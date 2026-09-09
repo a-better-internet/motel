@@ -24,11 +24,14 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   a saguaro in a terracotta pot, a spinning postcard rack, soda and cigarette
   machines, a payphone, a television on a bracket, a rag rug, a hat rack, and
   the counter itself with key pigeonholes and fobs, register, guest book and a
-  desk bell you can ring (`E`).
-- **The pool**: a real tank with a sloped floor, waterline tile, coping, entry
-  steps you can walk down and a deep-end ladder. After dark, underwater niche
-  lights, scrolling caustics and an emissive water sheet throw light blue across
-  the whole courtyard and up the facade.
+  desk bell you can ring (`E`). On the walls: a framed road map of New Mexico
+  and an aerial photograph of the property, both drawn in canvas like every
+  other texture in the scene.
+- **The pool**: a real tank with a sloped floor, waterline tile, bullnosed
+  coping, walk-in steps at the shallow end and a deep-end ladder you can climb
+  out on. Loungers line the south deck, reclined to face the water. After dark,
+  underwater niche lights, scrolling caustics and an emissive water sheet throw
+  light blue across the whole courtyard and up the facade.
 - **The desert**: a graded pad, a two-lane highway with power poles and sagging
   wires, saguaro and creosote, boulders and tumbleweeds. Two escarpments with
   wandering rim lines close the valley, with steep-sided buttes standing clear
@@ -93,8 +96,16 @@ A few pieces are specific to this scene:
 - **Light you can look at.** Tone mapping is off, per the style guide, so
   nothing may exceed a radiance of 1. Fixtures run at low intensity with a decay
   around 1.2 rather than the physical 2, which spreads the falloff and keeps
-  cream walls off the clip ceiling; indoor lamps stay lit through the day, since
-  a motel room with the drapes drawn has no daylight to speak of.
+  cream walls off the clip ceiling; white bathroom tile has an albedo near 0.9,
+  so its fixture is dimmer again. Indoor lamps stay lit through the day, since a
+  motel room with the drapes drawn has no daylight to speak of.
+- **Nothing ends in a knife edge.** Counters, dresser tops, bed fronts,
+  vanities, the pool coping, the walkway slabs and every stair tread carry a
+  bullnose — a cylinder laid along the top edge — and pillows are squashed
+  spheres rather than boxes. Two rules from the guide's pitfall list earn their
+  place here: never span a chair rail across a doorway (that one sealed the
+  office door shut until it was split around the opening), and never let two
+  flat surfaces share a depth.
 
 `window.MOTEL` exposes the player, the clock and a `go(x, z, yaw, level)` helper
 for tooling and screenshots.

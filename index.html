@@ -228,7 +228,7 @@ const NORTH = { bays:9, x0:-27, z:14.0, stairBay:4 };   // front face at z = 14
 const EAST  = { bays:5, z0:-16, x:27.0, stairBay:1 };   // front face at x = 27
 
 const POOL = { x0:6.2, x1:17.0, z0:-0.5, z1:5.5, water:-0.14,
-               deck:{x0:3.6, x1:19.6, z0:-2.9, z1:7.4} };
+               deck:{x0:3.6, x1:19.6, z0:-4.6, z1:7.4} };
 
 const OFFICE = { x0:-46, x1:-32, z0:-11.4, z1:-1.0, h:3.45 };
 
@@ -339,6 +339,7 @@ function bucketOf(name, makeMat){
 const _q=new T.Quaternion(), _s=new T.Vector3(1,1,1), _e=new T.Euler();
 // Euler order YXZ so a local tilt (rx) is applied *before* the wing rotation (ry)
 function push(name, geo, x,y,z, ry, color, rx, rz){
+  if(typeof ry==="string"){ color=ry; ry=0; }      // tolerate an omitted rotation argument
   _e.set(rx||0, ry||0, rz||0, "YXZ");
   _q.setFromEuler(_e);
   const m=new T.Matrix4().compose(new T.Vector3(x,y,z), _q, _s);
@@ -463,17 +464,56 @@ TEX.carpet=(function(){                       // room carpet — tired brown loo
   return rep(setSRGB(new T.CanvasTexture(c)),1,1);
 })();
 
-TEX.roomWall=(function(){                     // painted interior drywall
-  const c=cvs(128,128), x=c.getContext("2d");
-  x.fillStyle="#ddd2bb"; x.fillRect(0,0,128,128);
-  noiseDots(x,128,128,1400,["rgba(255,255,255,0.10)","rgba(150,138,116,0.08)"]);
+TEX.roomWall=(function(){                     // painted drywall, orange-peel roll
+  const c=cvs(256,256), x=c.getContext("2d");
+  x.fillStyle="#ded3bc"; x.fillRect(0,0,256,256);
+  noiseDots(x,256,256,4200,["rgba(255,255,255,0.11)","rgba(150,138,116,0.09)","rgba(120,108,86,0.05)"]);
+  for(let i=0;i<520;i++){                     // roller stipple
+    x.fillStyle="rgba(255,255,255,"+(0.03+Math.random()*0.06).toFixed(3)+")";
+    x.beginPath(); x.arc(Math.random()*256, Math.random()*256, 1+Math.random()*3.2, 0, 7); x.fill();
+  }
+  for(let i=0;i<40;i++){                       // faint scuffs at skirting height
+    x.strokeStyle="rgba(120,104,80,"+(0.03+Math.random()*0.05).toFixed(3)+")";
+    x.lineWidth=1+Math.random()*2; x.beginPath();
+    const px=Math.random()*256, py=Math.random()*256;
+    x.moveTo(px,py); x.lineTo(px+(Math.random()-0.5)*40, py+(Math.random()-0.5)*8); x.stroke();
+  }
+  return rep(setSRGB(new T.CanvasTexture(c)),1,1);
+})();
+
+TEX.ceilTile=(function(){                     // sprayed popcorn ceiling
+  const c=cvs(256,256), x=c.getContext("2d");
+  x.fillStyle="#e6dcc6"; x.fillRect(0,0,256,256);
+  for(let i=0;i<5200;i++){
+    const px=Math.random()*256, py=Math.random()*256, r=0.8+Math.random()*2.4;
+    x.fillStyle="rgba(255,255,255,"+(0.10+Math.random()*0.24).toFixed(2)+")";
+    x.beginPath(); x.arc(px,py,r,0,7); x.fill();
+    x.fillStyle="rgba(150,138,112,"+(0.06+Math.random()*0.14).toFixed(2)+")";
+    x.beginPath(); x.arc(px+r*0.5,py+r*0.5,r*0.7,0,7); x.fill();
+  }
+  return rep(setSRGB(new T.CanvasTexture(c)),1,1);
+})();
+
+TEX.lino=(function(){                         // speckled terrazzo, office floor
+  const c=cvs(256,256), x=c.getContext("2d");
+  x.fillStyle="#b9ae95"; x.fillRect(0,0,256,256);
+  for(let i=0;i<3400;i++){
+    const px=Math.random()*256, py=Math.random()*256, r=0.9+Math.random()*3.0;
+    x.fillStyle=["rgba(90,74,54,0.55)","rgba(240,236,224,0.6)","rgba(150,110,74,0.45)",
+                 "rgba(70,86,78,0.35)"][(Math.random()*4)|0];
+    x.beginPath(); x.arc(px,py,r,0,7); x.fill();
+  }
+  x.strokeStyle="rgba(110,98,78,0.35)"; x.lineWidth=2;
+  for(let u=0;u<=256;u+=128){ x.beginPath();x.moveTo(u,0);x.lineTo(u,256);x.stroke();
+                              x.beginPath();x.moveTo(0,u);x.lineTo(256,u);x.stroke(); }
   return rep(setSRGB(new T.CanvasTexture(c)),1,1);
 })();
 
 TEX.bathTile=(function(){                     // glossy square wall tile
   const c=cvs(128,128), x=c.getContext("2d");
-  x.fillStyle="#eef1ee"; x.fillRect(0,0,128,128);
-  x.strokeStyle="rgba(150,158,155,0.7)"; x.lineWidth=2;
+  x.fillStyle="#dfe3df"; x.fillRect(0,0,128,128);
+  noiseDots(x,128,128,900,["rgba(255,255,255,0.10)","rgba(120,130,126,0.10)"]);
+  x.strokeStyle="rgba(140,150,146,0.8)"; x.lineWidth=2;
   for(let u=0;u<=128;u+=32){ x.beginPath(); x.moveTo(u,0);x.lineTo(u,128);x.stroke();
                              x.beginPath(); x.moveTo(0,u);x.lineTo(128,u);x.stroke(); }
   return rep(setSRGB(new T.CanvasTexture(c)),1,1);
@@ -874,6 +914,31 @@ const CLOUDS=[], BIRDS=[], WHITE_C=new T.Color(0xffffff);
   }
 })();
 
+/* --- moths at the sconces, dust lifting off the lot ------------------- */
+const MOTHS=[], DUST=[];
+(function buildMotes(){
+  const soft=(inner,outer)=>{
+    const c=cvs(32,32), x=c.getContext("2d");
+    const g=x.createRadialGradient(16,16,0,16,16,16);
+    g.addColorStop(0,inner); g.addColorStop(0.5,outer); g.addColorStop(1,"rgba(0,0,0,0)");
+    x.fillStyle=g; x.fillRect(0,0,32,32);
+    return setSRGB(new T.CanvasTexture(c));
+  };
+  const mothTex=soft("rgba(236,226,196,0.95)","rgba(180,164,128,0.5)");
+  const dustTex=soft("rgba(214,190,150,0.55)","rgba(190,164,124,0.22)");
+  for(let i=0;i<12;i++){
+    const sp=new T.Sprite(new T.SpriteMaterial({map:mothTex, transparent:true, depthWrite:false, opacity:0}));
+    sp.scale.set(0.09,0.09,1); scene.add(sp);
+    MOTHS.push({s:sp, a:Math.random()*6.28, r:0.30+Math.random()*0.55,
+                sp:1.6+Math.random()*2.2, ph:Math.random()*6.28, lamp:null});
+  }
+  for(let i=0;i<10;i++){
+    const sp=new T.Sprite(new T.SpriteMaterial({map:dustTex, transparent:true, depthWrite:false, opacity:0}));
+    const sc=1.6+Math.random()*3.4; sp.scale.set(sc,sc*0.7,1); scene.add(sp);
+    DUST.push({s:sp, p:new T.Vector3(), v:0.7+Math.random()*1.4, life:Math.random()});
+  }
+})();
+
 /* --- the cycle itself --------------------------------------------------- */
 const DayNight=(function(){
   const DUR=360;                                   // seconds for a full 24 h
@@ -1030,7 +1095,9 @@ const matPaint    =()=>new T.MeshStandardMaterial({color:0xffffff,   roughness:0
 const matMetal    =()=>new T.MeshStandardMaterial({color:0xffffff,   roughness:0.34, metalness:0.72});
 const matCarpet   =()=>new T.MeshStandardMaterial({map:TEX.carpet,   roughness:0.99});
 const matRoomWall =()=>new T.MeshStandardMaterial({map:TEX.roomWall, roughness:0.93});
-const matBath     =()=>new T.MeshStandardMaterial({map:TEX.bathTile, roughness:0.25, metalness:0.05});
+const matCeil     =()=>new T.MeshStandardMaterial({map:TEX.ceilTile, roughness:0.99});
+const matLino     =()=>new T.MeshStandardMaterial({map:TEX.lino,     roughness:0.72});
+const matBath     =()=>new T.MeshStandardMaterial({map:TEX.bathTile, roughness:0.55, metalness:0.0});
 const matOak      =()=>new T.MeshStandardMaterial({map:TEX.oak,      roughness:0.72});
 const matSpread   =()=>new T.MeshStandardMaterial({map:TEX.spread,   roughness:0.95});
 const matCurtain  =()=>new T.MeshStandardMaterial({map:TEX.curtain,  roughness:0.95, side:T.DoubleSide});
@@ -1046,6 +1113,7 @@ bucketOf("roof",matRoof);        bucketOf("roofG",matRoofG);
 bucketOf("breeze",matBreeze);    bucketOf("teal",matTeal);
 bucketOf("paint",matPaint);      bucketOf("metal",matMetal);
 bucketOf("carpet",matCarpet);    bucketOf("roomwall",matRoomWall);
+bucketOf("ceil",matCeil);        bucketOf("lino",matLino);
 bucketOf("bath",matBath);        bucketOf("oak",matOak);
 bucketOf("spread",matSpread);    bucketOf("curtain",matCurtain);
 bucketOf("gravel",matGravel);    bucketOf("stairs",matStairT);
@@ -1228,12 +1296,19 @@ function makeDoor(xf, lx, ly, lz, roomNo, opensIn){
   const cream=new T.Color(0xd9d3c1), tealc=new T.Color(0x2f8b83), brass=new T.Color(0xcaa23c);
   // pivot sits at the hinge edge; leaf extends +x from it
   ent.push({geo:boxGeo(leafW,leafH,leafT,0.5), matrix:m4(leafW/2, leafH/2, 0), color:cream});
-  ent.push({geo:boxGeo(leafW-0.16,0.5,0.02,0.5),   matrix:m4(leafW/2, 0.46, leafT/2+0.012), color:tealc});
-  ent.push({geo:boxGeo(leafW-0.16,0.74,0.02,0.5),  matrix:m4(leafW/2, 1.42, leafT/2+0.012), color:tealc});
+  for(const sd of [1,-1]){                      // panels on BOTH faces of the leaf
+    ent.push({geo:boxGeo(leafW-0.16,0.50,0.02,0.5), matrix:m4(leafW/2, 0.46, sd*(leafT/2+0.012)), color:tealc});
+    ent.push({geo:boxGeo(leafW-0.16,0.74,0.02,0.5), matrix:m4(leafW/2, 1.42, sd*(leafT/2+0.012)), color:tealc});
+    ent.push({geo:boxGeo(leafW-0.10,0.03,0.03,0.5), matrix:m4(leafW/2, 0.99, sd*(leafT/2+0.010)), color:cream});
+  }
   ent.push({geo:new T.CylinderGeometry(0.035,0.035,0.10,10),
             matrix:new T.Matrix4().compose(new T.Vector3(leafW-0.14,1.02,leafT/2+0.05),
               new T.Quaternion().setFromEuler(new T.Euler(Math.PI/2,0,0)), new T.Vector3(1,1,1)), color:brass});
   ent.push({geo:new T.SphereGeometry(0.055,10,8), matrix:m4(leafW-0.14,1.02,leafT/2+0.10), color:brass});
+  ent.push({geo:new T.CylinderGeometry(0.035,0.035,0.10,10),
+            matrix:new T.Matrix4().compose(new T.Vector3(leafW-0.14,1.02,-leafT/2-0.05),
+              new T.Quaternion().setFromEuler(new T.Euler(Math.PI/2,0,0)), new T.Vector3(1,1,1)), color:brass});
+  ent.push({geo:new T.SphereGeometry(0.055,10,8), matrix:m4(leafW-0.14,1.02,-leafT/2-0.10), color:brass});
   const mesh=new T.Mesh(mergeEntries(ent), new T.MeshStandardMaterial({vertexColors:true, roughness:0.6}));
   mesh.castShadow=true; mesh.receiveShadow=true;
   const g=new T.Group();
@@ -1253,6 +1328,9 @@ function buildBay(xf, level, kind, roomNo, lit){
 
   // party wall on the local -x side (each bay adds one; the wing caps the end)
   lwall(xf,"roomwall", 0.30, wallH, 6.80, -2.85, cy, 3.40, 0.4, "#cfc4ad");
+  if(kind!=="alcove")
+    lbx(xf,"roomwall", 0.05, ROOM_H, 6.50, -3.02, y0+ROOM_H/2, 3.40, 0.4,
+        paletteFor(roomNo).wall);
 
   if(kind==="alcove"){
     // Open service alcove: ice + vending downstairs, housekeeping upstairs.
@@ -1261,7 +1339,7 @@ function buildBay(xf, level, kind, roomNo, lit){
     lbx(xf,"concrete", 5.44,0.30,6.90, 0, y0-0.15, 3.35, 0.45, "#a9a294");
     lflat(xf, -2.7,2.7, -0.05,6.7, y0);
     lwall(xf,"roomwall", 5.40, wallH, 0.20, 0, cy, 6.70, 0.4, "#cfc4ad");
-    lbx(xf,"roomwall", 5.44,0.16,6.86, 0, y0+ROOM_H, 3.37, 0.4, "#c6bba4");
+    lbx(xf,"ceil", 5.44,0.16,6.86, 0, y0+ROOM_H, 3.37, 0.45, "#ded4c0");
     // side returns so the alcove reads as a recess in the facade
     lwall(xf,"stucco", 0.24, wallH, 2.20, -2.60, cy, 1.30, 0.3, SLATE);
     lwall(xf,"stucco", 0.24, wallH, 2.20,  2.60, cy, 1.30, 0.3, SLATE);
@@ -1292,12 +1370,13 @@ function buildBay(xf, level, kind, roomNo, lit){
   /* ---- a guest room --------------------------------------------------- */
   const doorX0=-2.35, doorX1=-1.40, doorTop=2.06;
   const winX0=-0.55, winX1=1.75, winY0=0.95, winY1=2.15;
+  const pal=paletteFor(roomNo);
   // exterior stucco skin + interior liner, cut around the door and window
   function seg(x0,x1,ry0,ry1,collide){
     const w=x1-x0, h=ry1-ry0, cx=(x0+x1)/2, ccy=y0+(ry0+ry1)/2;
     if(w<=0.001||h<=0.001) return;
     lbx(xf,"stucco",   w,h,0.14, cx, ccy, 0.07, 0.3, SLATE);
-    lbx(xf,"roomwall", w,h,0.05, cx, ccy, 0.175, 0.4, "#d8ccb4");
+    lbx(xf,"roomwall", w,h,0.05, cx, ccy, 0.175, 0.4, pal.wall);
     if(collide!==false) lcol(xf, w,0.22, cx,0.10, ccy-h/2, ccy+h/2);
   }
   seg(-3.00, doorX0, 0, wallH);
@@ -1316,7 +1395,7 @@ function buildBay(xf, level, kind, roomNo, lit){
   push("glass", boxGeo(winX1-winX0, winY1-winY0, 0.03, 0),
        xf.x((winX0+winX1)/2, 0.09), y0+(winY0+winY1)/2, xf.z((winX0+winX1)/2, 0.09), xf.ry, "#bcd6de");
   lbx(xf,"curtain", (winX1-winX0)*0.98, (winY1-winY0)*0.99, 0.03,
-      (winX0+winX1)/2, y0+(winY0+winY1)/2, 0.30, 0.6, "#c9ae66");
+      (winX0+winX1)/2, y0+(winY0+winY1)/2, 0.30, 0.6, pal.curtain);
   if(lit) push("winglow", boxGeo(winX1-winX0-0.06, winY1-winY0-0.06, 0.02, 0),
        xf.x((winX0+winX1)/2, 0.36), y0+(winY0+winY1)/2, xf.z((winX0+winX1)/2, 0.36), xf.ry, "#ffcf8a");
 
@@ -1344,186 +1423,245 @@ function buildBay(xf, level, kind, roomNo, lit){
   plateM.rotation.y=xf.ry+Math.PI; scene.add(plateM);
   makeDoor(xf, doorX0+0.015, y0+0.02, 0.13, roomNo, true);
 
-  // shell: back-wall liner, floor, ceiling
-  lwall(xf,"roomwall", 5.40, wallH, 0.20, 0, cy, 6.70, 0.4, "#cfc4ad");
-  lbx(xf,"carpet", 5.40,0.04,6.42, 0, y0+0.02, 3.41, 0.5, "#6d5b46");
-  lbx(xf,"roomwall", 5.44,0.08,6.46, 0, y0+ROOM_H, 3.40, 0.4, "#e4dac2");
+  // shell: back-wall liner, side liners, floor, ceiling. The side liners are
+  // thin skins over whatever the party wall or the wing cap happens to be, so
+  // an end room never shows exterior stucco from the inside.
+  lwall(xf,"roomwall", 5.40, wallH, 0.20, 0, cy, 6.70, 0.4, pal.wall);
+  lbx(xf,"roomwall", 0.05, ROOM_H, 6.50, -2.67, y0+ROOM_H/2, 3.40, 0.4, pal.wall);
+  lbx(xf,"roomwall", 0.05, ROOM_H, 4.30,  2.67, y0+ROOM_H/2, 2.40, 0.4, pal.wall);
+  lbx(xf,"carpet", 5.40,0.04,6.42, 0, y0+0.02, 3.41, 0.5, pal.carpet);
+  lbx(xf,"ceil", 5.44,0.08,6.46, 0, y0+ROOM_H, 3.40, 0.45, "#efe6d2");
   lflat(xf, -2.7,2.7, -0.05,6.60, y0);
   lzone(xf, -2.6,2.6, 0.30,6.55, y0-0.5, y0+2.4, "ROOM "+roomNo);
   ROOMS.push({no:roomNo, x:xf.x(0,3.4), z:xf.z(0,3.4), y:y0, lit:lit, level:level});
-  LAMPS.push({x:xf.x(-0.6,3.20), y:y0+ROOM_H-0.34, z:xf.z(-0.6,3.20), color:0xffeacb,
-              intensity:0.62, dist:13, decay:1.15, indoor:true});
-  LAMPS.push({x:xf.x(1.5,5.4),   y:y0+ROOM_H-0.34, z:xf.z(1.5,5.4),   color:0xfff2dc,
-              intensity:0.34, dist:8,  decay:1.30, indoor:true});
-  LAMPS.push({x:xf.x(-2.42,3.45), y:y0+1.02, z:xf.z(-2.42,3.45), color:0xffd39a,
-              intensity:0.24, dist:6,  decay:1.45, indoor:true});
+  LAMPS.push({x:xf.x(0,2.60), y:y0+ROOM_H-0.34, z:xf.z(0,2.60), color:0xffeacb,
+              intensity:0.56, dist:13, decay:1.15, indoor:true});
+  LAMPS.push({x:xf.x(1.40,5.30),  y:y0+ROOM_H-0.34, z:xf.z(1.40,5.30),  color:0xf6f0e2,
+              intensity:0.16, dist:6,  decay:1.55, indoor:true});   // white tile blows easily
+  LAMPS.push({x:xf.x(2.42,1.32), y:y0+1.04, z:xf.z(2.42,1.32), color:0xffd39a,
+              intensity:0.22, dist:6,  decay:1.45, indoor:true});
 
   furnishRoom(xf, y0, roomNo);
 }
 
 /* --- room interior: beds, dresser, TV, bath. Density is the point -----
    Any one prop is small; together they make the room feel occupied.     */
-const SPREADS=["#8f5a4a","#5e7c6e","#8a7440"];
+/* --- room palettes: no two neighbours are painted quite the same ------ */
+const PALETTES=[
+  {spread:"#8f5a4a", wall:"#ded3b6", carpet:"#6d5b46", curtain:"#c9ae66", head:"#5c4029"},
+  {spread:"#5e7c6e", wall:"#d9d7c3", carpet:"#5e5949", curtain:"#b9a878", head:"#4e4033"},
+  {spread:"#8a7440", wall:"#e2d4ba", carpet:"#6a5340", curtain:"#c2a05e", head:"#6a4a2e"},
+  {spread:"#7a5a72", wall:"#d6d3c1", carpet:"#61503f", curtain:"#bfa86e", head:"#513a2c"},
+  {spread:"#93624a", wall:"#e4dabd", carpet:"#71604a", curtain:"#cbb072", head:"#5c4029"},
+  {spread:"#4f6f78", wall:"#dad5bd", carpet:"#5b5344", curtain:"#b9a06a", head:"#443a30"},
+];
+const paletteFor=no=>PALETTES[no%PALETTES.length];
+
+/* --- one guest room --------------------------------------------------
+   Single queen against the right-hand wall, dresser opposite, table under
+   the window, bathroom in the back-right corner. Everything else keeps out
+   of the 2.8 m lane that runs from the door to the bathroom door.        */
 function furnishRoom(xf, y0, roomNo){
-  const v=roomNo%3;
-  const spread=SPREADS[v];
+  const pal=paletteFor(roomNo), spread=pal.spread;
   const B=(name,w,h,d,x,y,z,uv,col)=>lbx(xf,name,w,h,d,x,y0+y,z,uv,col);
   const C=(w,d,x,z,h)=>lcol(xf,w,d,x,z,y0,y0+(h||1.2));
+  const P=(bucket,geo,x,y,z,col,rx,rz)=>push(bucket, geo, xf.x(x,z), y0+y, xf.z(x,z), xf.ry, col, rx, rz);
+  // bullnose: a cylinder laid along a top edge, so counters and cases stop
+  // ending in a knife edge
+  const noseZ=(bucket,len,r,x,y,z,col)=>P(bucket, new T.CylinderGeometry(r,r,len,10), x,y,z, col, Math.PI/2, 0);
+  const noseX=(bucket,len,r,x,y,z,col)=>P(bucket, new T.CylinderGeometry(r,r,len,10), x,y,z, col, 0, Math.PI/2);
 
-  /* --- bathroom block, back right, entered through an open doorway ----- */
-  lwall(xf,"bath", 1.40,ROOM_H,0.12, 2.00, y0+ROOM_H/2, 4.42, 0.7, "#eef1ee");   // wall beside the doorway
-  lwall(xf,"bath", 0.12,ROOM_H,2.18, 0.16, y0+ROOM_H/2, 5.51, 0.7, "#eef1ee");   // return wall
-  lbx(xf,"teal", 0.10,ROOM_H,0.14, 1.30, y0+ROOM_H/2, 4.42, 0, TEAL_D);          // doorway reveal
-  lbx(xf,"teal", 1.24,0.10,0.14, 0.72, y0+2.10, 4.42, 0, TEAL_D);
-  B("bath", 2.54,0.04,2.18, 1.43, 0.03, 5.51, 0.9, "#e6eae7");                   // tiled floor
-  B("bath", 0.10,ROOM_H,2.18, 2.66, ROOM_H/2, 5.51, 0.7, "#eef1ee");
-  B("bath", 2.54,ROOM_H,0.10, 1.43, ROOM_H/2, 6.56, 0.7, "#eef1ee");
-  // tub across the back wall, with a rod and a drawn curtain
-  B("bath", 1.70,0.52,0.78, 1.75, 0.26, 6.15, 0.8, "#f2f4f1");
-  B("bath", 1.54,0.10,0.62, 1.75, 0.50, 6.15, 0.8, "#dfe6e4");
-  B("metal",1.76,0.04,0.04, 1.75, 1.88, 6.15, 0, "#b9bdbd");
-  B("paint",0.78,1.34,0.04, 1.32, 1.19, 6.13, 0, "#dfe9e6");
-  C(1.74,0.82, 1.75,6.15, 0.62);
-  // vanity + basin on the side wall, mirror above it
-  B("oak",  0.54,0.78,1.02, 2.42, 0.39, 4.98, 0.6, "#7a5636");
-  B("paint",0.58,0.08,1.06, 2.42, 0.82, 4.98, 0, "#efeee7");
-  B("paint",0.34,0.10,0.42, 2.42, 0.88, 4.98, 0, "#f6f7f4");
-  B("metal",0.10,0.16,0.04, 2.62, 0.94, 4.98, 0, "#c9cdcd");
-  push("mirror", boxGeo(0.03,0.70,0.84,0), xf.x(2.66,4.98), y0+1.46, xf.z(2.66,4.98), xf.ry, "#c2d2d8");
-  C(0.6,1.06, 2.42,4.98, 0.9);
-  // toilet in the corner, towel bar by the door
-  B("paint",0.40,0.38,0.60, 0.56, 0.19, 5.32, 0, "#f4f6f3");
-  B("paint",0.44,0.14,0.54, 0.56, 0.42, 5.32, 0, "#f4f6f3");
-  B("paint",0.42,0.60,0.20, 0.56, 0.54, 4.92, 0, "#f4f6f3");
-  C(0.5,0.72, 0.56,5.22, 0.7);
-  B("metal",0.03,0.03,0.48, 0.24, 1.24, 4.90, 0, "#c9cdcd");
-  B("paint",0.06,0.34,0.42, 0.29, 1.09, 4.90, 0, "#e8e4d6");
-  // folded towels, shower head, paper roll, bath mat, soap
-  B("paint",0.34,0.09,0.24, 2.42, 0.91, 5.42, 0, "#eceadf");
-  B("paint",0.34,0.09,0.24, 2.42, 1.00, 5.42, 0, "#e4e2d6");
-  B("metal",0.05,0.05,0.20, 2.42, 1.94, 6.30, 0, "#c9cdcd");
-  push("bin", new T.CylinderGeometry(0.07,0.05,0.05,10), xf.x(2.42,6.16), y0+1.86, xf.z(2.42,6.16), xf.ry, "#c9cdcd");
-  push("bin", new T.CylinderGeometry(0.055,0.055,0.11,10), xf.x(0.30,4.74), y0+0.72, xf.z(0.30,4.74), xf.ry, "#f0eee6", 0,0,Math.PI/2);
-  B("paint",0.62,0.03,0.42, 1.20, 0.05, 5.55, 0, "#c8bda4");
-  B("paint",0.09,0.04,0.06, 2.30, 0.89, 4.80, 0, "#e6d9a8");
-  lzone(xf, 0.16,2.66, 4.50,6.55, y0-0.5, y0+2.4, "ROOM "+roomNo+" · BATH");
+  /* --- bathroom, back-right corner ------------------------------------ */
+  // partition with the doorway at local x 0.30 - 1.40
+  lwall(xf,"bath", 1.26,ROOM_H,0.12, 2.03, y0+ROOM_H/2, 4.42, 0.7, "#e6ebe7");
+  lwall(xf,"bath", 0.14,ROOM_H,0.12, 0.23, y0+ROOM_H/2, 4.42, 0.7, "#e6ebe7");
+  lwall(xf,"bath", 0.12,ROOM_H,2.18, 0.16, y0+ROOM_H/2, 5.51, 0.7, "#e6ebe7");
+  lbx(xf,"teal", 0.10,ROOM_H,0.16, 1.40, y0+ROOM_H/2, 4.42, 0, TEAL_D);      // doorway reveal
+  lbx(xf,"teal", 0.10,ROOM_H,0.16, 0.30, y0+ROOM_H/2, 4.42, 0, TEAL_D);
+  lbx(xf,"teal", 1.20,0.10,0.16, 0.85, y0+2.10, 4.42, 0, TEAL_D);
+  B("bath", 2.54,0.04,2.18, 1.43, 0.03, 5.51, 0.9, "#dfe4e0");               // tiled floor
+  B("bath", 0.10,ROOM_H,2.18, 2.66, ROOM_H/2, 5.51, 0.7, "#e6ebe7");
+  B("bath", 2.54,ROOM_H,0.10, 1.43, ROOM_H/2, 6.56, 0.7, "#e6ebe7");
+  // tub along the back wall, left of the toilet
+  B("bath", 1.66,0.50,0.76, 1.00, 0.25, 6.14, 0.8, "#eef0ec");
+  B("bath", 1.50,0.10,0.60, 1.00, 0.48, 6.14, 0.8, "#dbe2df");
+  noseX("bath", 1.66, 0.05, 1.00, 0.50, 5.78, "#eef0ec");
+  B("metal",1.70,0.04,0.04, 1.00, 1.86, 6.14, 0, "#b9bdbd");
+  B("paint",0.70,1.30,0.04, 0.42, 1.18, 6.12, 0, "#dfe9e6");                 // shower curtain
+  B("metal",0.05,0.05,0.18, 1.70, 1.72, 6.42, 0, "#c9cdcd");                 // shower head
+  P("bin", new T.CylinderGeometry(0.06,0.045,0.05,10), 1.70, 1.66, 6.30, "#c9cdcd", 0, Math.PI/2);
+  C(1.70,0.80, 1.00,6.14, 0.60);
+  // toilet in the back-right corner, tank against the back wall
+  B("paint",0.42,0.36,0.54, 2.30, 0.18, 6.14, 0, "#f2f4f1");
+  B("paint",0.46,0.13,0.50, 2.30, 0.40, 6.12, 0, "#f2f4f1");
+  P("bin", new T.SphereGeometry(0.20,12,9), 2.30, 0.44, 6.06, "#f4f6f3");    // rounded bowl rim
+  B("paint",0.44,0.58,0.20, 2.30, 0.53, 6.44, 0, "#f2f4f1");                 // cistern
+  B("paint",0.46,0.06,0.24, 2.30, 0.84, 6.44, 0, "#f6f7f4");
+  C(0.52,0.72, 2.30,6.20, 0.72);
+  P("bin", new T.CylinderGeometry(0.055,0.055,0.11,10), 1.94, 0.86, 6.46, "#f0eee6", 0, Math.PI/2);
+  // vanity on the right wall, mirror above
+  B("oak",  0.52,0.76,1.02, 2.40, 0.38, 5.06, 0.6, "#7a5636");
+  B("paint",0.58,0.08,1.08, 2.40, 0.80, 5.06, 0, "#efeee7");
+  noseZ("paint", 1.08, 0.045, 2.12, 0.80, 5.06, "#efeee7");
+  B("paint",0.30,0.09,0.38, 2.40, 0.86, 5.06, 0, "#f6f7f4");
+  B("metal",0.10,0.15,0.04, 2.60, 0.94, 5.06, 0, "#c9cdcd");
+  P("mirror", boxGeo(0.03,0.70,0.86,0), 2.66, 1.48, 5.06, "#c2d2d8");
+  C(0.58,1.06, 2.40,5.06, 0.86);
+  // towels, mat, soap
+  B("paint",0.30,0.09,0.24, 2.44, 0.92, 4.60, 0, "#eceadf");
+  B("paint",0.30,0.09,0.24, 2.44, 1.01, 4.60, 0, "#e4e2d6");
+  B("metal",0.03,0.03,0.44, 0.24, 1.22, 5.20, 0, "#c9cdcd");
+  B("paint",0.06,0.32,0.40, 0.29, 1.07, 5.20, 0, "#e8e4d6");
+  B("paint",0.66,0.03,0.44, 1.30, 0.05, 5.10, 0, "#c8bda4");
+  B("paint",0.09,0.04,0.06, 2.30, 0.87, 4.72, 0, "#e6d9a8");
+  lzone(xf, 0.20,2.66, 4.50,6.55, y0-0.5, y0+2.4, "ROOM "+roomNo+" · BATH");
 
-  /* --- beds: two doubles, or a king in every fourth room -------------- */
-  // a squashed sphere reads as a pillow far better than a box does, and the
-  // valance under each bed hides the hard slab edge the mattress would show
-  const pillowGeo=(function(){ const g=new T.SphereGeometry(0.30,12,8); g.scale(1.55,0.40,0.95); return g; })();
-  const bolsterGeo=(function(){ const g=new T.SphereGeometry(0.30,12,8); g.scale(1.05,0.34,0.62); return g; })();
-  const king=(roomNo%4===0);
-  function bed(bx0, bz, wide){
-    const halfW=wide?0.98:0.72;
-    B("oak",  0.10,0.98,halfW*2+0.10, bx0-0.62, 0.52, bz, 0.7, "#5c4029");     // headboard
-    B("oak",  0.08,0.20,halfW*2+0.24, bx0-0.62, 1.06, bz, 0.7, "#6a4b30");     // headboard cap
-    B("spread",1.98,0.20,halfW*2-0.06, bx0+0.36, 0.19, bz, 0.42, "#3b3128");   // valance skirt
-    B("oak",  1.92,0.22,halfW*2-0.14, bx0+0.36, 0.36, bz, 0.6, "#4c3b2a");     // base
-    B("spread",1.96,0.30,halfW*2, bx0+0.36, 0.60, bz, 0.42, spread);           // mattress + spread
-    B("spread",0.66,0.10,halfW*2+0.02, bx0+1.02, 0.79, bz, 0.5, "#6d5f4a");    // folded blanket at the foot
-    for(const d of (wide?[-0.46,0.46]:[-0.33,0.33]))
-      push("bedding", pillowGeo, xf.x(bx0-0.22, bz+d), y0+0.82, xf.z(bx0-0.22, bz+d), xf.ry, "#efeadb");
-    C(2.0, halfW*2+0.3, bx0+0.36, bz, 0.72);
+  /* --- one queen, headboard against the right-hand wall ---------------- */
+  const bz=2.50;
+  const pillow=(function(){ const g=new T.SphereGeometry(0.30,12,8); g.scale(0.95,0.40,1.50); return g; })();
+  B("oak",  0.10,0.98,1.66, 2.62, 0.52, bz, 0.7, pal.head);                  // headboard
+  B("oak",  0.10,0.18,1.78, 2.60, 1.07, bz, 0.7, pal.head);                  // headboard cap
+  noseZ("oak", 1.78, 0.05, 2.60, 1.14, bz, pal.head);
+  B("spread",2.02,0.20,1.58, 1.62, 0.19, bz, 0.42, "#3b3128");               // valance
+  B("oak",  1.96,0.24,1.50, 1.62, 0.38, bz, 0.6, "#4c3b2a");                 // base
+  B("spread",2.00,0.30,1.54, 1.62, 0.62, bz, 0.42, spread);                  // mattress and spread
+  noseZ("spread", 1.54, 0.075, 0.62, 0.72, bz, spread);                      // rolled front edge
+  B("spread",0.62,0.10,1.56, 0.92, 0.81, bz, 0.5, "#6d5f4a");                // folded blanket
+  P("bedding", pillow, 2.28, 0.84, bz-0.38, "#efeadb");
+  P("bedding", pillow, 2.28, 0.84, bz+0.38, "#efeadb");
+  C(2.10,1.66, 1.62,bz, 0.74);
+  P("art", boxGeo(0.04,0.52,1.00,0), 2.64, 1.92, bz, "#9a7a4c");             // print over the bed
+
+  /* --- nightstands either side of the head ----------------------------- */
+  for(const ns of [[1.32,"lamp"],[3.68,"phone"]]){
+    const nz=ns[0];
+    B("oak", 0.50,0.54,0.48, 2.42, 0.27, nz, 0.7, pal.head);
+    B("oak", 0.56,0.05,0.54, 2.42, 0.56, nz, 0.7, pal.head);
+    noseZ("oak", 0.54, 0.035, 2.16, 0.56, nz, pal.head);
+    C(0.52,0.52, 2.42,nz, 0.60);
+    if(ns[1]==="lamp"){
+      B("metal",0.10,0.30,0.10, 2.42, 0.73, nz, 0, "#b8a67e");
+      P("lampshade", new T.CylinderGeometry(0.15,0.20,0.24,12), 2.42, 1.00, nz, "#e8dcc0");
+      B("paint",0.15,0.08,0.09, 2.24, 0.63, nz-0.14, 0, "#232323");          // clock radio
+      P("clockled", boxGeo(0.06,0.03,0.01,0), 2.18, 0.64, nz-0.14, "#ff5a2a");
+    }else{
+      B("paint",0.16,0.05,0.24, 2.42, 0.61, nz, 0, "#2b2b2b");               // telephone
+      B("paint",0.09,0.03,0.05, 2.30, 0.64, nz, 0, "#c9c4b4");
+      B("paint",0.13,0.04,0.18, 2.42, 0.61, nz+0.18, 0, "#5a2320");          // Gideon bible
+    }
   }
-  if(king){
-    bed(-1.10, 2.85, true);
-    // armchair and a floor lamp where the second bed would have been
-    B("oak",  0.74,0.10,0.76, -1.70, 0.42, 5.35, 0.7, "#5c4029");
-    B("spread",0.70,0.26,0.72, -1.70, 0.60, 5.35, 0.5, spread);
-    B("spread",0.70,0.56,0.20, -1.70, 0.92, 5.62, 0.5, spread);
-    B("spread",0.16,0.42,0.66, -2.02, 0.86, 5.35, 0.5, spread);
-    B("spread",0.16,0.42,0.66, -1.38, 0.86, 5.35, 0.5, spread);
-    C(0.85,0.85, -1.70,5.35, 0.9);
-    B("metal",0.06,1.40,0.06, -2.42, 0.70, 4.55, 0, "#8f8a7c");
-    push("lampshade", new T.CylinderGeometry(0.17,0.24,0.30,14),
-         xf.x(-2.42,4.55), y0+1.55, xf.z(-2.42,4.55), xf.ry, "#e8dcc0");
-  }else{
-    bed(-1.98, 2.30, false);
-    bed(-1.98, 4.60, false);
+  // headboard reading light
+  B("metal",0.05,0.05,0.26, 2.62, 1.44, bz-0.62, 0, "#9a9a94");
+  P("lampshade", new T.CylinderGeometry(0.09,0.13,0.14,10), 2.50, 1.42, bz-0.62, "#e8dcc0");
+
+  /* --- dresser wall, opposite the bed ---------------------------------- */
+  B("oak", 0.44,0.78,1.94, -2.48, 0.39, 2.60, 0.6, "#6f4a2c");
+  for(let k=0;k<3;k++) B("oak", 0.05,0.20,1.74, -2.27, 0.24+k*0.24, 2.60, 0, "#4d3520");
+  B("oak", 0.50,0.06,2.00, -2.48, 0.81, 2.60, 0.6, "#7a5636");
+  noseZ("oak", 2.00, 0.04, -2.25, 0.81, 2.60, "#7a5636");
+  C(0.50,1.98, -2.48,2.60, 0.86);
+  B("paint",0.44,0.42,0.58, -2.44, 1.05, 2.10, 0, "#2f2f2e");                // television
+  P("tvglass", boxGeo(0.05,0.32,0.44,0), -2.21, 1.06, 2.10, "#1d262b");
+  B("metal",0.03,0.28,0.03, -2.46, 1.38, 2.32, 0, "#9a9a94");
+  B("paint",0.20,0.24,0.24, -2.46, 0.96, 3.30, 0, "#2b2b2b");                // coffee maker
+  B("paint",0.14,0.09,0.18, -2.42, 0.88, 3.30, 0, "#c9c4b4");
+  P("bin", new T.CylinderGeometry(0.09,0.078,0.18,12), -2.48, 0.93, 3.62, "#d5d1c4");  // ice bucket
+  for(const t of [-0.09,0.09])
+    P("glass", new T.CylinderGeometry(0.040,0.034,0.10,10), -2.44, 0.89, 3.86+t, "#cfe0e6");
+  // fridge and microwave stacked at the back of the dresser wall
+  B("paint", 0.44,0.72,0.54, -2.48, 0.36, 4.30, 0, "#d8d4c8");
+  B("metal", 0.03,0.58,0.05, -2.25, 0.36, 4.06, 0, "#9a9a94");
+  B("paint", 0.40,0.30,0.60, -2.48, 0.87, 4.30, 0, "#2f2f2e");
+  P("tvglass", boxGeo(0.03,0.16,0.34,0), -2.27, 0.88, 4.30, "#1d262b");
+  C(0.48,0.66, -2.48,4.30, 1.05);
+  P("mirror", boxGeo(0.03,0.62,0.46,0), -2.66, 1.62, 0.90, "#c2d2d8");
+
+  /* --- table and two chairs under the window --------------------------- */
+  P("oak", new T.CylinderGeometry(0.42,0.42,0.05,18), 0.60, 0.72, 0.92, "#6f4a2c");
+  P("oak", new T.TorusGeometry(0.42,0.032,6,20), 0.60, 0.72, 0.92, "#6f4a2c", Math.PI/2, 0);
+  P("oak", new T.CylinderGeometry(0.06,0.09,0.70,10), 0.60, 0.36, 0.92, "#5c4029");
+  P("oak", new T.CylinderGeometry(0.24,0.26,0.04,14), 0.60, 0.03, 0.92, "#5c4029");
+  C(0.86,0.86, 0.60,0.92, 0.76);
+  for(const cx2 of [-0.42, 1.62]){
+    B("oak", 0.46,0.06,0.46, cx2, 0.44, 0.92, 0.7, "#6f4a2c");
+    B("spread",0.42,0.10,0.42, cx2, 0.51, 0.92, 0.5, spread);
+    for(const d of [[-0.18,-0.18],[0.18,-0.18],[-0.18,0.18],[0.18,0.18]])
+      B("oak", 0.05,0.44,0.05, cx2+d[0], 0.22, 0.92+d[1], 0, "#5c4029");
+    B("oak", 0.05,0.46,0.44, cx2+(cx2<0?-0.20:0.20), 0.70, 0.92, 0.7, "#6f4a2c");
+    C(0.56,0.56, cx2,0.92, 0.86);
   }
-  const nsZ = king ? 4.10 : 3.45;
-  B("oak", 0.52,0.56,0.50, -2.42, 0.28, nsZ, 0.7, "#5c4029");          // nightstand
-  B("oak", 0.58,0.05,0.56, -2.42, 0.58, nsZ, 0.7, "#6a4b30");
-  C(0.55,0.55, -2.42,nsZ, 0.6);
-  B("metal",0.10,0.30,0.10, -2.42, 0.75, nsZ, 0, "#b8a67e");           // lamp
-  push("lampshade", new T.CylinderGeometry(0.15,0.20,0.24,12),
-       xf.x(-2.42,nsZ), y0+1.02, xf.z(-2.42,nsZ), xf.ry, "#e8dcc0");
-  B("paint",0.16,0.05,0.24, -2.42, 0.63, nsZ-0.30, 0, "#2b2b2b");      // telephone
-  B("paint",0.09,0.03,0.05, -2.30, 0.66, nsZ-0.30, 0, "#c9c4b4");
-  B("paint",0.13,0.04,0.18, -2.42, 0.63, nsZ+0.32, 0, "#5a2320");      // Gideon bible
-  B("paint",0.15,0.08,0.09, -2.20, 0.65, nsZ+0.02, 0, "#232323");      // clock radio
-  push("clockled", boxGeo(0.07,0.03,0.01,0), xf.x(-2.14,nsZ-0.03), y0+0.66,
-       xf.z(-2.14,nsZ-0.03), xf.ry, "#ff5a2a");
-  // a headboard reading light on the wall above the nightstand
-  B("metal",0.05,0.05,0.26, -2.62, 1.42, nsZ, 0, "#9a9a94");
-  push("lampshade", new T.CylinderGeometry(0.09,0.13,0.14,10),
-       xf.x(-2.50,nsZ), y0+1.40, xf.z(-2.50,nsZ), xf.ry, "#e8dcc0");
 
-  /* --- dresser + television against the right wall -------------------- */
-  B("oak", 0.54,0.78,1.86, 2.40, 0.39, 2.90, 0.6, "#6f4a2c");
-  for(let k=0;k<3;k++) B("oak", 0.05,0.20,1.66, 2.14, 0.24+k*0.24, 2.90, 0, "#4d3520");
-  C(0.58,1.9, 2.40,2.90, 0.85);
-  B("paint",0.52,0.44,0.60, 2.32, 1.02, 2.90, 0, "#2f2f2e");           // CRT television
-  push("tvglass", boxGeo(0.05,0.34,0.46,0), xf.x(2.04,2.90), y0+1.04, xf.z(2.04,2.90), xf.ry, "#1d262b");
-  B("metal",0.03,0.30,0.03, 2.38, 1.36, 2.66, 0, "#9a9a94");
-  // art over the dresser + wall mirror by the door
-  push("art", boxGeo(0.05,0.52,0.78,0), xf.x(2.64,2.90), y0+1.90, xf.z(2.64,2.90), xf.ry, "#9a7a4c");
-  push("mirror", boxGeo(0.03,0.62,0.46,0), xf.x(-2.66,0.85), y0+1.62, xf.z(-2.66,0.85), xf.ry, "#c2d2d8");
+  /* --- back wall: luggage rack, bin, boots ----------------------------- */
+  B("oak", 0.42,0.06,0.68, -2.30, 0.48, 5.50, 0.7, "#5c4029");
+  B("metal",0.05,0.48,0.05, -2.30, 0.24, 5.22, 0, "#8f8a7c");
+  B("metal",0.05,0.48,0.05, -2.30, 0.24, 5.78, 0, "#8f8a7c");
+  P("bin", new T.CylinderGeometry(0.13,0.11,0.30,12), -2.34, 0.15, 6.24, "#4a4a46");
 
-  /* --- window chair, side table, luggage rack, bin -------------------- */
-  B("oak", 0.62,0.06,0.62, 1.72, 0.44, 1.05, 0.7, "#6f4a2c");
-  for(const d of [[-0.24,-0.24],[0.24,-0.24],[-0.24,0.24],[0.24,0.24]])
-    B("oak", 0.06,0.44,0.06, 1.72+d[0], 0.22, 1.05+d[1], 0, "#5c4029");
-  B("spread",0.56,0.12,0.56, 1.72, 0.52, 1.05, 0.5, spread);
-  B("oak", 0.60,0.44,0.06, 1.72, 0.80, 0.79, 0.7, "#6f4a2c");
-  C(0.7,0.7, 1.72,1.05, 0.9);
-  B("oak", 0.50,0.04,0.50, 0.62, 0.55, 0.80, 0.7, "#5c4029");          // side table
-  B("metal",0.05,0.55,0.05, 0.62, 0.27, 0.80, 0, "#8f8a7c");
-  B("oak", 0.66,0.06,0.40, -1.90, 0.46, 6.24, 0.7, "#5c4029");         // luggage rack
-  B("metal",0.05,0.46,0.05, -2.16, 0.23, 6.24, 0, "#8f8a7c");
-  push("bin", new T.CylinderGeometry(0.13,0.11,0.30,10),
-       xf.x(-0.42,6.20), y0+0.15, xf.z(-0.42,6.20), xf.ry, "#4a4a46");
-  /* --- the small stuff: this is what makes a room feel let ------------- */
-  // mini fridge and microwave stacked beside the dresser
-  B("paint", 0.52,0.72,0.54, 2.38, 0.36, 4.05, 0, "#d8d4c8");
-  B("metal", 0.03,0.60,0.05, 2.11, 0.36, 3.83, 0, "#9a9a94");
-  B("paint", 0.44,0.30,0.62, 2.40, 0.87, 4.05, 0, "#2f2f2e");
-  push("tvglass", boxGeo(0.03,0.16,0.34,0), xf.x(2.17,4.05), y0+0.88, xf.z(2.17,4.05), xf.ry, "#1d262b");
-  C(0.56,0.66, 2.38,4.05, 1.05);
-  // coffee maker, tray, ice bucket, tumblers, ashtray on the dresser top
-  B("paint", 0.20,0.26,0.26, 2.46, 0.91, 2.20, 0, "#2b2b2b");
-  B("paint", 0.16,0.10,0.20, 2.40, 0.83, 2.20, 0, "#c9c4b4");
-  push("bin", new T.CylinderGeometry(0.11,0.09,0.20,12), xf.x(2.42,3.55), y0+0.88, xf.z(2.42,3.55), xf.ry, "#d5d1c4");
-  for(const t of [-0.10,0.10])
-    push("glass", new T.CylinderGeometry(0.045,0.038,0.11,10), xf.x(2.30,3.20+t), y0+0.84, xf.z(2.30,3.20+t), xf.ry, "#cfe0e6");
-  push("glass", new T.CylinderGeometry(0.09,0.07,0.03,12), xf.x(2.24,2.60), y0+0.80, xf.z(2.24,2.60), xf.ry, "#cfe0e6");
-  // a suitcase left open on the luggage rack
-  B("oak", 0.56,0.20,0.34, -1.90, 0.60, 6.24, 0.6, "#4a3524");
-  B("oak", 0.54,0.04,0.32, -1.90, 0.71, 6.24, 0.6, "#6a4b30");
-  // curtain valance and rod, so the window head is not a bare edge
-  B("oak", 2.60,0.20,0.10, 0.60, 2.30, 0.24, 0.6, "#5c4029");
-  B("metal",2.46,0.04,0.04, 0.60, 2.16, 0.30, 0, "#9a9a94");
-  // wall plates: thermostat, switch, rate card
-  B("paint", 0.14,0.20,0.03, -2.66, 1.42, 1.30, 0, "#e2ded0");
-  B("paint", 0.10,0.14,0.03, -2.66, 1.20, 0.70, 0, "#e2ded0");
-  push("art", boxGeo(0.02,0.22,0.16,0), xf.x(-2.66,1.90), y0+1.46, xf.z(-2.66,1.90), xf.ry, "#d8cfae");
-  // baseboard and a ceiling cove: the room stops reading as bare boxes
-  B("oak", 5.36,0.14,0.06,  0.00, 0.07, 0.24, 0.6, "#5a4832");
+  /* --- trim, fittings and the ceiling ---------------------------------- */
+  B("oak", 5.36,0.14,0.06,  0.00, 0.07, 0.24, 0.6, "#5a4832");               // baseboard
   B("oak", 5.36,0.14,0.06,  0.00, 0.07, 6.56, 0.6, "#5a4832");
   B("oak", 0.06,0.14,6.30, -2.64, 0.07, 3.40, 0.6, "#5a4832");
-  B("oak", 0.06,0.14,6.30,  2.64, 0.07, 3.40, 0.6, "#5a4832");
-  B("roomwall", 5.36,0.10,0.08, 0, ROOM_H-0.09, 0.26, 0.5, "#e2d8c0");
-  B("roomwall", 0.08,0.10,6.30, -2.64, ROOM_H-0.09, 3.40, 0.5, "#e2d8c0");
-  B("roomwall", 0.08,0.10,6.30,  2.64, ROOM_H-0.09, 3.40, 0.5, "#e2d8c0");
-  // door furniture on the inside face
-  B("metal", 0.03,0.05,0.16, -2.30, 1.32, 0.24, 0, "#caa23c");
+  B("oak", 0.06,0.14,4.10,  2.64, 0.07, 2.30, 0.6, "#5a4832");
+  B("roomwall", 5.36,0.10,0.08, 0, ROOM_H-0.09, 0.26, 0.5, pal.wall);        // cove
+  B("roomwall", 0.08,0.10,6.30, -2.64, ROOM_H-0.09, 3.40, 0.5, pal.wall);
+  B("roomwall", 0.08,0.10,4.10,  2.64, ROOM_H-0.09, 2.30, 0.5, pal.wall);
+  B("oak", 2.60,0.20,0.10, 0.60, 2.30, 0.24, 0.6, "#5c4029");                // curtain valance
+  B("metal",2.46,0.04,0.04, 0.60, 2.16, 0.30, 0, "#9a9a94");
+  B("paint", 0.14,0.20,0.03, -2.66, 1.42, 1.30, 0, "#e2ded0");               // thermostat
+  B("paint", 0.10,0.14,0.03, -2.66, 1.20, 0.70, 0, "#e2ded0");               // switch
+  P("art", boxGeo(0.02,0.22,0.16,0), -2.66, 1.46, 1.90, "#d8cfae");          // rate card
+  B("metal", 0.03,0.05,0.16, -2.30, 1.32, 0.24, 0, "#caa23c");               // door chain
   B("metal", 0.03,0.03,0.24, -2.30, 1.52, 0.24, 0, "#caa23c");
-  push("ceilfix", new T.CylinderGeometry(0.22,0.26,0.10,14),
-       xf.x(-0.6,3.20), y0+ROOM_H-0.09, xf.z(-0.6,3.20), xf.ry, "#e8dcc0");
-  push("ceilfix", new T.CylinderGeometry(0.16,0.20,0.09,12),
-       xf.x(1.5,5.4), y0+ROOM_H-0.08, xf.z(1.5,5.4), xf.ry, "#e8dcc0");
-  lbx(xf,"roomwall", 5.30,0.10,0.10, 0, y0+ROOM_H-0.05, 3.40, 0.5, "#d5cab3");
+  P("ceilfix", new T.CylinderGeometry(0.22,0.26,0.10,14), 0.0, ROOM_H-0.09, 2.60, "#e8dcc0");
+  P("ceilfix", new T.CylinderGeometry(0.15,0.19,0.09,12), 1.40, ROOM_H-0.08, 5.30, "#e8dcc0");
+  lbx(xf,"roomwall", 5.30,0.10,0.10, 0, y0+ROOM_H-0.05, 3.40, 0.5, pal.wall);
+
+  /* --- what the last guest left behind --------------------------------- */
+  const pick3=[(roomNo*7)%8, (roomNo*13+3)%8, (roomNo*5+6)%8];
+  for(let k=0;k<3;k++){
+    switch(pick3[k]){
+      case 0:  // ashtray with a cigarette still going
+        P("glass", new T.CylinderGeometry(0.085,0.065,0.035,12), 2.42, 0.60, 1.32, "#cfe0e6");
+        P("paint", new T.CylinderGeometry(0.011,0.011,0.10,8), 2.40, 0.63, 1.30, "#efeade", 0, Math.PI/2);
+        P("ember", boxGeo(0.020,0.018,0.018,0), 2.335, 0.63, 1.30, "#ff5a1e");
+        push("smoke", planeGeo(0.10,0.62,0), xf.x(2.34,1.30), y0+0.95, xf.z(2.34,1.30), xf.ry, "#c8c4bc");
+        push("smoke", planeGeo(0.10,0.62,0), xf.x(2.34,1.30), y0+0.95, xf.z(2.34,1.30), xf.ry+Math.PI/2, "#c8c4bc");
+        break;
+      case 1:  // magazines fanned on the table
+        P("art", boxGeo(0.28,0.012,0.21,0), 0.52, 0.755, 0.86, "#c9a24b", 0, 0);
+        P("art", boxGeo(0.27,0.012,0.20,0), 0.70, 0.767, 0.99, "#3f6ea8", 0, 0);
+        P("art", boxGeo(0.26,0.012,0.19,0), 0.58, 0.779, 1.05, "#c3562f", 0, 0);
+        break;
+      case 2:  // an open suitcase on the rack
+        B("oak", 0.40,0.18,0.62, -2.30, 0.60, 5.50, 0.6, "#4a3524");
+        B("oak", 0.38,0.03,0.60, -2.30, 0.70, 5.50, 0.6, "#6a4b30");
+        P("fabric", boxGeo(0.36,0.10,0.56,0), -2.30, 0.75, 5.50, "#d8d2c0");
+        break;
+      case 3:  // boots and a newspaper on the floor
+        B("oak", 0.16,0.22,0.13, 0.30, 0.11, 3.60, 0.6, "#4a3524");
+        B("oak", 0.16,0.22,0.13, 0.30, 0.11, 3.86, 0.6, "#4a3524");
+        P("art", boxGeo(0.34,0.01,0.26,0), -0.60, 0.045, 4.20, "#d8d2bc", 0, 0.12);
+        break;
+      case 4:  // room-service tray and a bottle
+        B("metal",0.34,0.02,0.28, -0.20, 0.755, 0.92, 0, "#b8bcbc");
+        P("glass", new T.CylinderGeometry(0.035,0.035,0.24,10), -0.24, 0.88, 0.86, "#4a6b3a");
+        P("glass", new T.CylinderGeometry(0.040,0.034,0.09,10), -0.12, 0.80, 0.98, "#cfe0e6");
+        break;
+      case 5:  // a hat left on the dresser
+        P("fabric", new T.CylinderGeometry(0.11,0.13,0.11,14), -2.46, 0.89, 1.60, "#6a5236");
+        P("fabric", new T.CylinderGeometry(0.20,0.20,0.02,16), -2.46, 0.845, 1.60, "#6a5236");
+        break;
+      case 6:  // guitar case against the wall
+        P("oak", boxGeo(0.14,1.00,0.42,0.6), -1.20, 0.52, 6.42, "#3f2f22", 0, 0.10);
+        P("metal", boxGeo(0.02,0.06,0.10,0), -1.13, 0.62, 6.36, "#c9c4b4");
+        break;
+      default: // a stack of towels and a coffee cup left on the dresser
+        B("paint",0.28,0.08,0.24, -2.46, 0.88, 1.70, 0, "#eceadf");
+        B("paint",0.28,0.08,0.24, -2.46, 0.96, 1.70, 0, "#e4e2d6");
+        P("bin", new T.CylinderGeometry(0.04,0.033,0.08,10), -2.44, 0.88, 2.02, "#e8e4d6");
+        break;
+    }
+  }
 }
 
 /* --- a whole wing: bays, walkway, balcony, railings, roof, stairs ----- */
@@ -1580,6 +1718,11 @@ function buildWing(cfg){
     lbx(wxf,"teal", 0.20,WALL_H1-0.16,0.20, lx, lvlY(1)+(WALL_H1-0.16)/2, -WALK_D+0.24, 0, TEAL);
     lcol(wxf, 0.26,0.26, lx, -WALK_D+0.24, lvlY(1), yTop);
   }
+  // rolled edge on the walkway and balcony slabs
+  push("concrete", new T.CylinderGeometry(0.075,0.075,dLen,10),
+       wxf.x(dMid,-WALK_D), BASE-0.075-drop, wxf.z(dMid,-WALK_D), wxf.ry, "#b6afa0", 0, Math.PI/2);
+  push("concrete", new T.CylinderGeometry(0.065,0.065,dLen,10),
+       wxf.x(dMid,-WALK_D-0.08), lvlY(1)-0.065-drop, wxf.z(dMid,-WALK_D-0.08), wxf.ry, "#aca596", 0, Math.PI/2);
   lbx(wxf,"teal", dLen,0.30,0.34, dMid, lvlY(1)-0.04-drop, -WALK_D+0.24, 0, TEAL_D);
   lbx(wxf,"teal", dLen,0.26,0.34, dMid, yTop-0.14,         -WALK_D+0.24, 0, TEAL_D);
 
@@ -1645,6 +1788,11 @@ function buildStair(o){
   for(let i=0;i<N;i++){
     const s0=i*tr+tr/2, y=BASE+(i+1)*rs;
     put("stairs", o.width, 0.08, tr+0.04, 0, y-0.04, s0, 0.7, "#b4ada0");
+    // rolled nosing on every tread
+    if(alongZ) push("stairs", new T.CylinderGeometry(0.045,0.045,o.width,8),
+                    o.x, y-0.045, o.z+o.sign*(s0+tr/2), 0, "#c0b9ac", 0, Math.PI/2);
+    else       push("stairs", new T.CylinderGeometry(0.045,0.045,o.width,8),
+                    o.x+o.sign*(s0+tr/2), y-0.045, o.z, 0, "#c0b9ac", Math.PI/2, 0);
     put("stairs", o.width, rs+0.04, 0.08, 0, y-rs/2, s0-tr/2, 0.7, "#a49d90");
     // closed side walls, stepping with the treads
     for(const sd of [-1,1]){
@@ -1665,12 +1813,19 @@ function buildStair(o){
   // teal pipe handrail on posts, riding 0.95 above the nosing line
   for(const sd of [-1,1]){
     const sx=sd*(halfW+0.08);
-    push("teal", boxGeo(alongZ?0.09:L, 0.09, alongZ?L:0.09, 0),
-         alongZ ? o.x+sx : mid[0], BASE+o.rise/2+1.02, alongZ ? mid[1] : o.z+sx,
-         0, TEAL, alongZ ? -tilt*o.sign : 0, 0, alongZ ? 0 : tilt*o.sign);
-    for(let i=0;i<N;i+=4){
+    // The rail tilts about X when the flight runs along Z and about Z when it
+    // runs along X; passing both to one push() call silently dropped the
+    // second, which is what left one staircase with a level handrail.
+    const rx = alongZ ? -tilt*o.sign : 0;
+    const rz = alongZ ? 0 : tilt*o.sign;
+    const rgeo=(t)=> alongZ ? boxGeo(t, t, L, 0) : boxGeo(L, t, t, 0);
+    const rpos=[ alongZ ? o.x+sx : mid[0], 0, alongZ ? mid[1] : o.z+sx ];
+    for(const rail of [[1.02,0.09],[0.52,0.06]]){        // top rail and mid rail
+      push("teal", rgeo(rail[1]), rpos[0], BASE+o.rise/2+rail[0], rpos[2], 0, TEAL, rx, rz);
+    }
+    for(let i=0;i<N;i+=3){
       const s0=i*tr+tr/2, top=BASE+(i+1)*rs;
-      put("teal", 0.07, 0.86, 0.07, sx, top+0.14+0.43, s0, 0, TEAL);
+      put("teal", 0.07, 0.92, 0.07, sx, top+0.14+0.46, s0, 0, TEAL);
     }
     // newels at both ends
     put("teal", 0.11, 1.30, 0.11, sx, BASE+0.65, 0.10, 0, TEAL_D);
@@ -1759,7 +1914,11 @@ const POOL_LIGHTS=[]; let waterMat=null, caustic1=null, caustic2=null, poolFloor
   const B=0.34;
   addCol(P.x0-B,P.x1+B, P.z0-B, P.z0+0.05, -3.2, dy+0.55);
   addCol(P.x0-B,P.x1+B, P.z1-0.05, P.z1+B, -3.2, dy+0.55);
-  addCol(P.x1-0.05,P.x1+B, P.z0,P.z1, -3.2, dy+0.55);
+  const ladZ=(P.z0+P.z1)/2;
+  addCol(P.x1-0.05,P.x1+B, P.z0, ladZ-0.55, -3.2, dy+0.55);
+  addCol(P.x1-0.05,P.x1+B, ladZ+0.55, P.z1, -3.2, dy+0.55);
+  // climbing out at the ladder: a hidden ramp from the tank floor to the coping
+  addRamp(P.x1-1.9, P.x1+0.34, ladZ-0.50, ladZ+0.50, "x", P.x1-1.9, P.x1+0.34, -2.30, dy);
   addCol(P.x0-B,P.x0+0.05, P.z0, POOL_STEPS.z0, -3.2, dy+0.55);
   addCol(P.x0-B,P.x0+0.05, POOL_STEPS.z1, P.z1, -3.2, dy+0.55);
   // entry steps in the shallow west corner
@@ -1846,19 +2005,39 @@ const POOL_LIGHTS=[]; let waterMat=null, caustic1=null, caustic2=null, poolFloor
   fenceRun(F.x0,F.x0,F.z0, 1.2);                 // west run, split for the gate
   fenceRun(F.x0,F.x0, 3.4, F.z1);
   for(const p of [[F.x0,1.2],[F.x0,3.4]]) bx("teal", 0.13,fh+0.3,0.13, p[0], dy+(fh+0.3)/2, p[1], 0, 0, TEAL_D);
-  // loungers along the deep end
-  for(let i=0;i<4;i++){
-    const lx=D.x0+2.2+i*3.2, lz=D.z1-1.5;
-    bx("paint", 0.66,0.06,1.72, lx, dy+0.42, lz, 0, 0, "#e4e0d2");
-    push("paint", boxGeo(0.66,0.06,0.70,0), lx, dy+0.62, lz-0.92, 0, "#e4e0d2", -0.6);
-    for(const d of [[-0.26,-0.7],[0.26,-0.7],[-0.26,0.7],[0.26,0.7]])
-      bx("metal", 0.05,0.40,0.05, lx+d[0], dy+0.20, lz+d[1], 0, 0, "#b8bcbc");
-    addCol(lx-0.4,lx+0.4, lz-1.0, lz+1.0, dy, dy+0.6);
+  // bullnose along the pool coping, so the rim is not a knife edge
+  for(const r of [[P.x0-cop, P.x1+cop, P.z0-cop, "x"],[P.x0-cop, P.x1+cop, P.z1+cop, "x"],
+                  [P.z0-cop, P.z1+cop, P.x0-cop, "z"],[P.z0-cop, P.z1+cop, P.x1+cop, "z"]]){
+    const len=r[1]-r[0], mid2=(r[0]+r[1])/2;
+    if(r[3]==="x") push("paint", new T.CylinderGeometry(0.055,0.055,len,10), mid2, dy+0.075, r[2], 0, "#eae6da", 0, Math.PI/2);
+    else           push("paint", new T.CylinderGeometry(0.055,0.055,len,10), r[2], dy+0.075, mid2, 0, "#eae6da", Math.PI/2, 0);
   }
-  bx("metal", 0.06,2.20,0.06, D.x0+1.0, dy+1.10, D.z0+1.0, 0, 0, "#b8bcbc");     // life ring post
-  push("paint", new T.TorusGeometry(0.34,0.10,8,16), D.x0+1.0, dy+1.75, D.z0+1.1, 0, "#d94b2a");
-  bx("metal", 0.07,1.60,0.07, D.x0+2.6, dy+0.80, D.z0+0.6, 0, 0, "#b8bcbc");     // rules sign
-  push("rules", boxGeo(0.90,0.66,0.04,0), D.x0+2.6, dy+1.42, D.z0+0.6, 0, "#e8e4d6");
+  // Loungers on the south deck. The seat runs north-south, the back rises at
+  // the south end, so you recline facing the water rather than away from it.
+  for(let i=0;i<5;i++){
+    const lx=D.x0+2.6+i*3.1, lz=-2.35;
+    bx("paint", 0.70,0.07,1.74, lx, dy+0.44, lz, 0, 0, "#e4e0d2");
+    push("paint", boxGeo(0.70,0.07,0.80,0), lx, dy+0.60, lz-1.08, 0, "#e4e0d2", 0.70);
+    push("paint", new T.CylinderGeometry(0.035,0.035,0.70,10), lx, dy+0.475, lz+0.86,
+         0, "#e4e0d2", 0, Math.PI/2);                                   // rolled foot edge
+    push("fabric", boxGeo(0.44,0.09,0.26,0), lx, dy+0.90, lz-1.40, 0, "#cfd8d2", 0.70);  // head pillow
+    for(const d of [[-0.30,-0.66],[0.30,-0.66],[-0.30,0.72],[0.30,0.72]])
+      bx("metal", 0.05,0.42,0.05, lx+d[0], dy+0.21, lz+d[1], 0, 0, "#b8bcbc");
+    bx("metal", 0.05,0.05,1.50, lx-0.34, dy+0.44, lz-0.1, 0, 0, "#b8bcbc");
+    bx("metal", 0.05,0.05,1.50, lx+0.34, dy+0.44, lz-0.1, 0, 0, "#b8bcbc");
+    addCol(lx-0.42,lx+0.42, lz-1.55, lz+1.05, dy, dy+0.55);
+    if(i%2===0 && i<4){                                                 // side table with a drink
+      const tx=lx+1.55;
+      push("metal", new T.CylinderGeometry(0.26,0.26,0.05,14), tx, dy+0.50, lz-0.2, 0, "#c8c4b4");
+      push("metal", new T.CylinderGeometry(0.04,0.05,0.50,8), tx, dy+0.25, lz-0.2, 0, "#b8bcbc");
+      push("glass", new T.CylinderGeometry(0.045,0.038,0.13,10), tx+0.06, dy+0.59, lz-0.24, 0, "#cfe0e6");
+      addCol(tx-0.28,tx+0.28, lz-0.48, lz+0.08, dy, dy+0.55);
+    }
+  }
+  bx("metal", 0.06,2.20,0.06, D.x0+1.0, dy+1.10, D.z0+1.2, 0, 0, "#b8bcbc");     // life ring post
+  push("paint", new T.TorusGeometry(0.34,0.10,8,16), D.x0+1.0, dy+1.75, D.z0+1.3, 0, "#d94b2a");
+  bx("metal", 0.07,1.60,0.07, D.x0+2.6, dy+0.80, D.z0+0.8, 0, 0, "#b8bcbc");     // rules sign
+  push("rules", boxGeo(0.90,0.66,0.04,0), D.x0+2.6, dy+1.42, D.z0+0.8, 0, "#e8e4d6");
 })();
 
 /* ----------------------------------------------------------------------
@@ -1869,7 +2048,7 @@ const POOL_LIGHTS=[]; let waterMat=null, caustic1=null, caustic2=null, poolFloor
   const w=O.x1-O.x0, d=O.z1-O.z0;
   bx("concrete", w+1.8, 0.32, d+1.8, cx, y0-0.16, cz, 0.45, 0, "#b6afa0");
   addFlat(O.x0-0.9,O.x1+0.9,O.z0-0.9,O.z1+0.9, y0);
-  bx("carpet", w-0.4, 0.04, d-0.4, cx, y0+0.02, cz, 0.4, 0, "#6a5a48");
+  bx("lino", w-0.4, 0.04, d-0.4, cx, y0+0.02, cz, 0.85, 0, "#c4baa2");
   addZone(O.x0,O.x1,O.z0,O.z1, y0-0.5, y0+3.0, "FRONT DESK OFFICE");
 
   const glazeX0=O.x0+3.4, glazeX1=O.x1-1.2, doorZ0=cz-0.5, doorZ1=cz+0.5;
@@ -1927,6 +2106,8 @@ const POOL_LIGHTS=[]; let waterMat=null, caustic1=null, caustic2=null, poolFloor
   const dx=O.x0+3.0;
   bx("oak", 1.00, 1.12, 6.0, dx, y0+0.56, cz, 0.5, 0, "#6f4a2c");        // counter
   bx("oak", 1.24, 0.10, 6.3, dx, y0+1.16, cz, 0.5, 0, "#8a5c34");        // counter top
+  push("oak", new T.CylinderGeometry(0.055,0.055,6.3,12), dx-0.62, y0+1.185, cz, 0, "#8a5c34", Math.PI/2, 0);
+  push("oak", new T.CylinderGeometry(0.055,0.055,6.3,12), dx+0.62, y0+1.185, cz, 0, "#8a5c34", Math.PI/2, 0);
   addCol(dx-0.62,dx+0.62, cz-3.15, cz+3.15, y0, y0+1.3);
   bx("paint", 0.06, 0.44, 5.9, dx-0.56, y0+0.80, cz, 0, 0, "#cdb98f");   // apron panel
   bx("oak", 0.30, 2.00, 4.6, O.x0+0.5, y0+1.55, cz, 0.5, 0, "#5c4029");  // key pigeonholes
@@ -1944,13 +2125,23 @@ const POOL_LIGHTS=[]; let waterMat=null, caustic1=null, caustic2=null, poolFloor
   bx("oak", 0.26,0.90,0.34, dx+0.1, y0+1.66, cz+2.2, 0.6, 0, "#5c4029");  // brochure rack
   for(let i=0;i<4;i++) bx("paint", 0.03,0.22,0.28, dx-0.05, y0+1.42+i*0.22, cz+2.2, 0, 0, pick(["#c3562f","#3f6ea8","#4f7a4a","#c9a24b"]));
   // lobby seating by the glazed wall
-  bx("oak",   2.30,0.34,0.90, O.x1-3.6, y0+0.32, O.z0+1.5, 0.6, 0, "#5c4029");
-  bx("spread",2.20,0.26,0.80, O.x1-3.6, y0+0.60, O.z0+1.5, 0.5, 0, "#5e7c6e");
-  bx("spread",2.20,0.60,0.22, O.x1-3.6, y0+0.86, O.z0+1.9, 0.5, 0, "#5e7c6e");
-  addCol(O.x1-4.8,O.x1-2.4, O.z0+1.0, O.z0+2.0, y0, y0+0.8);
-  bx("oak", 1.10,0.06,0.70, O.x1-3.6, y0+0.46, O.z0+2.9, 0.7, 0, "#6f4a2c");
-  for(const dd of [[-0.45,-0.25],[0.45,-0.25],[-0.45,0.25],[0.45,0.25]])
-    bx("oak", 0.07,0.44,0.07, O.x1-3.6+dd[0], y0+0.23, O.z0+2.9+dd[1], 0, 0, "#5c4029");
+  // back against the glazed wall, so you sit looking into the lobby
+  const sofaX=O.x1-3.6, sofaZ=O.z0+1.35;
+  bx("oak",   2.30,0.34,0.92, sofaX, y0+0.32, sofaZ, 0.6, 0, "#5c4029");
+  bx("spread",2.20,0.26,0.82, sofaX, y0+0.60, sofaZ, 0.5, 0, "#5e7c6e");
+  bx("spread",2.20,0.62,0.22, sofaX, y0+0.88, sofaZ-0.35, 0.5, 0, "#5e7c6e");   // back at the window
+  bx("spread",0.22,0.40,0.86, sofaX-1.06, y0+0.76, sofaZ, 0.5, 0, "#4e6c5e");   // arms
+  bx("spread",0.22,0.40,0.86, sofaX+1.06, y0+0.76, sofaZ, 0.5, 0, "#4e6c5e");
+  push("spread", new T.CylinderGeometry(0.11,0.11,2.20,12), sofaX, y0+0.96, sofaZ-0.35,
+       0, "#5e7c6e", 0, Math.PI/2);                                             // rolled back edge
+  for(const cu of [-0.62,0,0.62])
+    bx("spread",0.66,0.16,0.76, sofaX+cu, y0+0.71, sofaZ+0.02, 0.5, 0, "#688878");
+  addCol(O.x1-4.8,O.x1-2.4, sofaZ-0.55, sofaZ+0.55, y0, y0+0.9);
+  bx("oak", 1.20,0.06,0.72, sofaX, y0+0.46, sofaZ+1.40, 0.7, 0, "#6f4a2c");
+  push("oak", new T.CylinderGeometry(0.035,0.035,1.20,10), sofaX, y0+0.47, sofaZ+1.04,
+       0, "#6f4a2c", 0, Math.PI/2);
+  for(const dd of [[-0.50,-0.26],[0.50,-0.26],[-0.50,0.26],[0.50,0.26]])
+    bx("oak", 0.07,0.44,0.07, sofaX+dd[0], y0+0.23, sofaZ+1.40+dd[1], 0, 0, "#5c4029");
   cyl("gravel", 0.34,0.27,0.58,12, O.x1-1.3, y0+0.29, O.z1-1.4, "#a35a34");
   for(const b2 of [[0,0.86,0.34],[-0.22,0.74,0.24],[0.20,0.78,0.26],[0.04,1.02,0.22],[-0.14,0.98,0.19]])
     push("foliage", new T.IcosahedronGeometry(b2[2],1), O.x1-1.3+b2[0], y0+b2[1], O.z1-1.4+(b2[0]*0.6), 0,
@@ -1962,17 +2153,26 @@ const POOL_LIGHTS=[]; let waterMat=null, caustic1=null, caustic2=null, poolFloor
   cyl("metal", 0.16,0.18,0.46,12, O.x0+2.2, y0+1.13, O.z1-0.6, "#c9cdcd");
   addCol(O.x0+1.2,O.x0+2.6, O.z1-0.9, O.z1-0.3, y0, y0+1.0);
   push("clockface", boxGeo(0.44,0.44,0.05,0), O.x0+0.32, y0+2.45, cz+1.8, 0, "#efe9d8");
-  bx("roomwall", w-0.4, 0.10, d-0.4, cx, y0+h-0.16, cz, 0.4, 0, "#d8cfb8");   // ceiling
+  bx("ceil", w-0.4, 0.10, d-0.4, cx, y0+h-0.16, cz, 0.42, 0, "#e8dfc8");     // ceiling
   for(const wl of [[cx,O.z1-0.30,w-0.5,0.06],[cx,O.z0+0.30,w-0.5,0.06],
-                   [O.x0+0.30,cz,0.06,d-0.5],[O.x1-0.30,cz,0.06,d-0.5]])
+                   [O.x0+0.30,cz,0.06,d-0.5],
+                   [O.x1-0.30,(O.z0+doorZ0)/2,0.06,doorZ0-O.z0-0.25],
+                   [O.x1-0.30,(doorZ1+O.z1)/2,0.06,O.z1-doorZ1-0.25]])
     bx("roomwall", wl[2], h-1.35, wl[3], wl[0], y0+1.14+(h-1.35)/2, wl[1], 0.45, 0, "#ded3b6");
+  // header liner over the door, so the reveal reads as a doorway
+  bx("roomwall", 0.06, h-2.34, doorZ1-doorZ0, O.x1-0.30, y0+2.20+(h-2.34)/2, cz, 0.45, 0, "#ded3b6");
+  bx("oak", 0.30, 0.10, doorZ1-doorZ0+0.30, O.x1-0.16, y0+2.16, cz, 0.6, 0, "#5c4029");
 
   /* --- the kitsch: what actually makes a 1962 motel office ------------ */
   const O_=(bk,ww,hh,dd,px,py,pz,uv,c)=>bx(bk,ww,hh,dd,px,y0+py,pz,uv,0,c);
   const OC=(bk,rt,rb,hh,seg,px,py,pz,c,rx,rz)=>cyl(bk,rt,rb,hh,seg,px,y0+py,pz,c,rx,0,rz);
   // knotty-pine dado around the whole lobby, capped with a chair rail
-  for(const wl of [[cx,O.z1-0.24,w-0.5,0.10],[cx,O.z0+0.24,w-0.5,0.10],
-                   [O.x0+0.24,cz,0.10,d-0.5],[O.x1-0.24,cz,0.10,d-0.5]]){
+  // NB: split around the entrance — a chair rail must never span a doorway
+  const dadoRuns=[[cx,O.z1-0.24,w-0.5,0.10],[cx,O.z0+0.24,w-0.5,0.10],
+                  [O.x0+0.24,cz,0.10,d-0.5],
+                  [O.x1-0.24,(O.z0+doorZ0)/2,0.10,doorZ0-O.z0-0.25],
+                  [O.x1-0.24,(doorZ1+O.z1)/2,0.10,O.z1-doorZ1-0.25]];
+  for(const wl of dadoRuns){
     O_("oak", wl[2],1.14,wl[3], wl[0],0.57,wl[1], 0.7, "#7a5636");
     O_("oak", wl[2]+0.06,0.09,wl[3]+0.06, wl[0],1.18,wl[1], 0.7, "#5c4029");
   }
@@ -2024,20 +2224,65 @@ const POOL_LIGHTS=[]; let waterMat=null, caustic1=null, caustic2=null, poolFloor
   // payphone by the door
   O_("paint", 0.30,0.56,0.20, O.x1-0.36, 1.42, cz-1.6, 0, "#22303a");
   O_("paint", 0.10,0.24,0.08, O.x1-0.52, 1.44, cz-1.6, 0, "#12191f");
-  // framed prints and a wall map
-  push("art", boxGeo(0.03,0.44,0.66,0), O.x1-0.20, y0+2.06, cz+1.6, 0, "#9a7a4c");
-  push("art", boxGeo(0.03,0.44,0.66,0), O.x1-0.20, y0+2.06, cz+2.6, 0, "#7a6a4c");
-  push("art", boxGeo(0.90,0.62,0.03,0), O.x0+7.4, y0+2.10, O.z1-0.16, 0, "#c8bd94");
+  // framed road map and an aerial of the property, both drawn in canvas
+  const mapTex=signTex(512,384,(x,W,H)=>{
+    x.fillStyle="#e6dcbe"; x.fillRect(0,0,W,H);
+    x.strokeStyle="#b9ac86"; x.lineWidth=1;
+    for(let i=0;i<26;i++){ x.beginPath(); x.moveTo(0,i*15); x.lineTo(W,i*15+((i*37)%25)-12); x.stroke(); }
+    x.strokeStyle="#c3311f"; x.lineWidth=5;                       // the highways
+    x.beginPath(); x.moveTo(0,214); x.bezierCurveTo(150,190,320,250,W,206); x.stroke();
+    x.beginPath(); x.moveTo(206,0); x.bezierCurveTo(232,120,180,250,244,H); x.stroke();
+    x.strokeStyle="#3f6ea8"; x.lineWidth=3;
+    x.beginPath(); x.moveTo(0,60); x.bezierCurveTo(160,120,300,70,W,140); x.stroke();
+    x.fillStyle="#2f2a20";
+    for(const t of [[70,150,"GALLUP"],[250,120,"GRANTS"],[380,250,"LAGUNA"],[150,300,"ZUNI"],[420,90,"THOREAU"]]){
+      x.beginPath(); x.arc(t[0],t[1],5,0,7); x.fill();
+      x.font="700 15px 'JetBrains Mono', monospace"; x.textAlign="left";
+      x.fillText(t[2], t[0]+9, t[1]+5);
+    }
+    x.fillStyle="#13405e"; fitText(x,"NEW MEXICO", W*0.5, 34, W*0.30, 36);
+    x.strokeStyle="#8a7e5e"; x.lineWidth=8; x.strokeRect(4,4,W-8,H-8);
+  });
+  const aerialTex=signTex(512,384,(x,W,H)=>{
+    x.fillStyle="#b9a075"; x.fillRect(0,0,W,H);                    // desert
+    for(let i=0;i<2600;i++){ x.fillStyle="rgba(0,0,0,"+(Math.random()*0.10).toFixed(2)+")";
+      x.fillRect(Math.random()*W, Math.random()*H, 2,2); }
+    x.fillStyle="#3b3833"; x.fillRect(28,300,456,34);              // the highway
+    x.fillStyle="#d6c07a"; for(let px2=36;px2<484;px2+=26) x.fillRect(px2,315,14,3);
+    x.fillStyle="#4a4642"; x.fillRect(52,120,392,168);             // the lot
+    x.fillStyle="#8e9cb4"; x.fillRect(70,58,300,50);               // wing A
+    x.fillStyle="#5f829a"; x.fillRect(66,50,308,14);
+    x.fillStyle="#8e9cb4"; x.fillRect(352,58,52,206);              // wing B
+    x.fillStyle="#5f829a"; x.fillRect(346,54,14,214);
+    x.fillStyle="#8e9cb4"; x.fillRect(52,196,74,58);               // the office
+    x.fillStyle="#416b56"; x.fillRect(46,190,86,14);
+    x.fillStyle="#b3ada0"; x.fillRect(196,128,132,62);             // pool deck
+    x.fillStyle="#2f9fc9"; x.fillRect(214,140,96,38);              // the water
+    x.fillStyle="#cfd4d6";
+    for(let k=0;k<7;k++) x.fillRect(78+k*38, 234, 22, 12);         // cars
+    for(let k=0;k<4;k++) x.fillRect(360+k*0, 150+k*26, 12, 20);
+    x.fillStyle="rgba(0,0,0,0.22)"; x.fillRect(70,108,300,10);     // shadow under the eave
+    x.fillStyle="#f1ead6"; x.fillRect(0,H-40,W,40);
+    x.fillStyle="#13405e"; fitText(x,"DOWNTOWN INN  ·  ROUTE 66", W*0.9, 26, W/2, H-20);
+  });
+  push("art", boxGeo(0.05,0.66,0.90,0), O.x1-0.36, y0+2.02, cz+2.1, 0, "#5c4029");
+  signPanel(0.80,0.58, mapTex, O.x1-0.40, y0+2.02, cz+2.1, -Math.PI/2, false);
+  push("art", boxGeo(1.20,0.92,0.05,0), O.x0+7.2, y0+2.00, O.z1-0.38, 0, "#5c4029");
+  signPanel(1.04,0.78, aerialTex, O.x0+7.2, y0+2.00, O.z1-0.42, Math.PI, false);
+  push("art", boxGeo(0.05,0.44,0.60,0), O.x1-0.36, y0+2.06, cz+3.3, 0, "#9a7a4c");
+  // a second framed map on the north wall, beside the aerial
+  push("art", boxGeo(0.72,0.56,0.05,0), O.x0+9.4, y0+2.02, O.z1-0.38, 0, "#7a6a4c");
+  signPanel(0.60,0.44, mapTex, O.x0+9.4, y0+2.02, O.z1-0.42, Math.PI, false);
   // television on a bracket in the corner
   O_("metal", 0.30,0.06,0.30, O.x1-1.4, 2.10, O.z1-0.7, 0, "#8f9aa0");
   O_("paint", 0.56,0.46,0.52, O.x1-1.4, 2.36, O.z1-0.7, 0, "#2f2f2e");
   push("tvglass", boxGeo(0.40,0.30,0.03,0), O.x1-1.4, y0+2.36, O.z1-0.97, 0, "#1d262b");
   // rag rug, guest register, mint bowl, desk fan, NO VACANCY box in the window
-  O_("fabric", 2.60,0.03,1.70, O.x1-3.6, 0.04, O.z0+2.6, 0, "#6f4a42");
-  O_("fabric", 2.20,0.01,1.32, O.x1-3.6, 0.055, O.z0+2.6, 0, "#8a6f52");
+  O_("fabric", 2.80,0.03,2.30, O.x1-3.6, 0.04, O.z0+1.9, 0, "#6f4a42");
+  O_("fabric", 2.36,0.01,1.86, O.x1-3.6, 0.055, O.z0+1.9, 0, "#8a6f52");
   // magazines on the coffee table, a hat rack by the door, a print on the north wall
-  O_("art", 0.30,0.02,0.22, O.x1-3.7, 0.50, O.z0+2.9, 0, "#c9a24b");
-  O_("art", 0.28,0.02,0.20, O.x1-3.5, 0.53, O.z0+2.84, 0, "#3f6ea8");
+  O_("art", 0.30,0.02,0.22, O.x1-3.7, 0.50, O.z0+2.70, 0, "#c9a24b");
+  O_("art", 0.28,0.02,0.20, O.x1-3.5, 0.53, O.z0+2.64, 0, "#3f6ea8");
   OC("metal", 0.05,0.05,1.75,8, O.x1-0.9, 0.88, O.z1-2.2, "#6b6156");
   for(let k=0;k<3;k++){ const a=k*2.09;
     O_("metal", 0.16,0.05,0.05, O.x1-0.9+Math.cos(a)*0.10, 1.66, O.z1-2.2+Math.sin(a)*0.10, 0, "#6b6156"); }
@@ -2245,7 +2490,7 @@ const NEON=[];   // panels that brighten after dark
     const lines=["NO LIFEGUARD ON DUTY","SWIM AT YOUR OWN RISK","NO GLASS · NO DIVING","POOL CLOSES 10 PM"];
     x.font="15px 'JetBrains Mono', monospace"; x.textAlign="center";
     lines.forEach((L,i)=>x.fillText(L,W/2,72+i*28));
-  }), POOL.deck.x0+2.6, 0.10+1.42, POOL.deck.z0+0.58, 0, false));
+  }), POOL.deck.x0+2.6, 0.10+1.42, POOL.deck.z0+0.78, 0, false));
 })();
 
 /* --- site ambience: the service yard, the walkway clutter, the roadside -
@@ -2413,6 +2658,9 @@ bucketOf("bedding", ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.
 bucketOf("clockled",()=>glowMat({color:0xffffff, emissive:0xff5a2a, emissiveIntensity:0.9}, "warm"));
 bucketOf("neonbox", ()=>glowMat({color:0xffffff, emissive:0xff3a2a, emissiveIntensity:0.5}, "warm"));
 bucketOf("fabric",  ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.96}));
+bucketOf("ember",   ()=>glowMat({color:0xffffff, emissive:0xff4a12, emissiveIntensity:1.6}, "warm"));
+bucketOf("smoke",   ()=>new T.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.10,
+                          side:T.DoubleSide, depthWrite:false, toneMapped:false}));
 
 const BAKED=bakeBuckets(scene);
 
@@ -2816,6 +3064,31 @@ function frame(){
     b.s.visible = dn.nightAmount<0.85;
   }
 
+  // moths orbit whichever fixtures the light pool is currently driving
+  for(let i=0;i<MOTHS.length;i++){
+    const m=MOTHS[i], L=LIGHT_POOL[i%LIGHT_POOL.length];
+    if(!L || L.intensity<0.02 || dark<0.25){ m.s.material.opacity=0; continue; }
+    m.a += m.sp*delta;
+    m.s.position.set(L.position.x + Math.cos(m.a)*m.r,
+                     L.position.y - 0.18 + Math.sin(m.a*2.7+m.ph)*0.16,
+                     L.position.z + Math.sin(m.a)*m.r);
+    m.s.material.opacity = 0.75*Math.min(1,(dark-0.25)*3);
+  }
+  // dust lifting off the lot in the daytime wind
+  for(const d of DUST){
+    d.life -= delta*0.16;
+    if(d.life<=0){
+      d.life=1;
+      d.p.set(camera.position.x + (Math.random()-0.5)*70 - WIND.x*30,
+              0.5+Math.random()*1.6,
+              camera.position.z + (Math.random()-0.5)*70 - WIND.z*30);
+    }
+    d.p.addScaledVector(WIND, d.v*delta*4.0);
+    d.p.y += delta*0.22;
+    d.s.position.copy(d.p);
+    d.s.material.opacity = 0.16*Math.sin(d.life*Math.PI)*(1-dn.nightAmount);
+  }
+
   updateHUD();
   drawPlan();
 
@@ -2837,7 +3110,8 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                renderer:renderer, scene:scene,
                go:(x,z,yaw,y)=>{ player.pos.set(x,0,z); if(yaw!==undefined) player.yaw=yaw;
                                  player.feetY=surfaceY(x,z, y===undefined?0:y); },
-               sim:n=>{ for(let i=0;i<n;i++){ fixedUpdate(1/60); updateDoors(1/60); } } };
+               sim:n=>{ for(let i=0;i<n;i++){ fixedUpdate(1/60); updateDoors(1/60); } },
+               probe:(x,z,y)=>blocked(x,z,y===undefined?BASE:y) };
 
 addEventListener("resize",()=>{
   camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();

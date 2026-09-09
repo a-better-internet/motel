@@ -227,8 +227,8 @@ const DECK_Y  = FLOOR_H;              // balcony deck height
 const NORTH = { bays:9, x0:-27, z:14.0, stairBay:4 };   // front face at z = 14
 const EAST  = { bays:5, z0:-16, x:27.0, stairBay:1 };   // front face at x = 27
 
-const POOL = { x0:3.5, x1:14.5, z0:-0.5, z1:5.5, water:-0.14,
-               deck:{x0:0.9, x1:17.1, z0:-2.9, z1:7.9} };
+const POOL = { x0:6.2, x1:17.0, z0:-0.5, z1:5.5, water:-0.14,
+               deck:{x0:3.6, x1:19.6, z0:-2.9, z1:7.4} };
 
 const OFFICE = { x0:-46, x1:-32, z0:-11.4, z1:-1.0, h:3.45 };
 
@@ -273,6 +273,15 @@ function boxGeo(w,h,d,uvScale){
     }
     a.needsUpdate=true;
   }
+  return g;
+}
+
+// flat panel with world-scaled UVs, for alpha-cut things like chain-link
+function planeGeo(w,h,uvScale){
+  const g=new T.PlaneGeometry(w,h);
+  if(uvScale){ const a=g.attributes.uv;
+    for(let i=0;i<a.count;i++) a.setXY(i, a.getX(i)*w*uvScale, a.getY(i)*h*uvScale);
+    a.needsUpdate=true; }
   return g;
 }
 
@@ -404,7 +413,7 @@ TEX.asphalt=(function(){                      // parking lot + highway
   x.fillStyle="#2f2c28"; x.fillRect(0,0,256,256);
   noiseDots(x,256,256,9000,["rgba(255,255,255,0.05)","rgba(0,0,0,0.25)","rgba(160,150,135,0.06)"]);
   for(let i=0;i<26;i++){                       // patched cracks
-    x.strokeStyle="rgba(20,18,16,0.5)"; x.lineWidth=0.8+Math.random();
+    x.strokeStyle="rgba(20,18,16,0.22)"; x.lineWidth=0.7+Math.random()*0.6;
     x.beginPath(); let px=Math.random()*256, py=Math.random()*256; x.moveTo(px,py);
     for(let k=0;k<5;k++){ px+=(Math.random()-0.5)*40; py+=(Math.random()-0.5)*40; x.lineTo(px,py); }
     x.stroke();
@@ -506,7 +515,7 @@ TEX.curtain=(function(){                      // office & room drapes — gold p
 
 TEX.sand=(function(){                         // desert ground grain (P76 recipe)
   const c=cvs(256,256), x=c.getContext("2d");
-  x.fillStyle="#b0834a"; x.fillRect(0,0,256,256);
+  x.fillStyle="#b9a075"; x.fillRect(0,0,256,256);
   for(let i=0;i<13000;i++){
     const px=Math.random()*256, py=Math.random()*256, r=Math.random();
     if(r<0.03){ x.fillStyle="rgba(40,28,16,0.35)"; x.fillRect(px,py,2,2); }
@@ -569,6 +578,17 @@ TEX.caustic=(function(){                       // scrolling water light pattern
   return rep(setSRGB(new T.CanvasTexture(c)),1,1);
 })();
 
+TEX.chain=(function(){                        // chain-link, alpha-cut
+  const c=cvs(64,64), x=c.getContext("2d");
+  x.clearRect(0,0,64,64);
+  x.strokeStyle="rgba(158,164,168,0.9)"; x.lineWidth=1.7; x.lineCap="round";
+  for(let i=-64;i<128;i+=16){
+    x.beginPath(); x.moveTo(i,0); x.lineTo(i+64,64); x.stroke();
+    x.beginPath(); x.moveTo(i,64); x.lineTo(i+64,0); x.stroke();
+  }
+  const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; return setSRGB(t);
+})();
+
 TEX.stair=(function(){                        // stair tread nosing
   const c=cvs(64,64), x=c.getContext("2d");
   x.fillStyle="#b4ada0"; x.fillRect(0,0,64,64);
@@ -608,11 +628,11 @@ const ortho=new T.OrthographicCamera(-60,60,45,-45,0.1,600);
 let view="fp", fov=72;
 
 /* --- Layer 1 · base fill ------------------------------------------------ */
-const hemi=new T.HemisphereLight(0xffd9a4, 0x4a2a18, 0.85); scene.add(hemi);
+const hemi=new T.HemisphereLight(0xffe7c4, 0x4a2a18, 0.72); scene.add(hemi);
 const amb =new T.AmbientLight(0xfff0dc, 0.10); scene.add(amb);
 
 /* --- Layer 2 · the one shadow-casting key (sun, becomes moon at night) -- */
-const key=new T.DirectionalLight(0xffe0a8, 1.25);
+const key=new T.DirectionalLight(0xffeed0, 1.10);
 key.position.set(70,110,50); key.castShadow=true;
 key.shadow.mapSize.set(2048,2048);
 const ksc=key.shadow.camera;
@@ -641,14 +661,31 @@ const Terrain=(function(){
     const dz=Math.max(PAD.z0-z, 0, z-PAD.z1);
     return Math.hypot(dx,dz);
   }
-  // three named mesas so the horizon has a memorable silhouette
+  // Named buttes so the horizon has a memorable silhouette. `flat` is how
+  // much of the radius is tabletop: the higher it is, the more the sides read
+  // as a cliff rather than a hill.
   const MESAS=[
-    {x:-880, z: 640, h:190, r:520, flat:0.55},
-    {x: 820, z: 470, h:230, r:600, flat:0.62},
-    {x: 140, z:1120, h:170, r:470, flat:0.52},
-    {x:-620, z:-980, h:150, r:430, flat:0.46},
-    {x: 980, z:-660, h:180, r:520, flat:0.54},
+    {x:-880, z: 640, h:190, r:520, flat:0.62},
+    {x: 820, z: 470, h:230, r:600, flat:0.68},
+    {x: 140, z:1120, h:170, r:470, flat:0.60},
+    {x:-620, z:-980, h:150, r:430, flat:0.55},
+    {x: 980, z:-660, h:180, r:520, flat:0.62},
+    // nearer buttes, steep-sided, that stand clear of the escarpment
+    {x:-330, z: 430, h: 96, r:190, flat:0.80},
+    {x: 250, z: 520, h:118, r:220, flat:0.82},
+    {x: 560, z: 180, h: 74, r:150, flat:0.78},
+    {x:-520, z: 130, h: 62, r:140, flat:0.76},
+    {x: 470, z:-330, h: 70, r:160, flat:0.78},
   ];
+  // Two escarpments — one behind the motel, one across the highway — whose
+  // rim lines wander, so the canyon wall breaks into headlands and bays.
+  function rim(x,z,base,sign,height,depth){
+    const line=base + (fbm(x*0.0016+40, 7.3)-0.5)*230 + (fbm(x*0.0068+3, 2.1)-0.5)*60;
+    const t=smoothstep(line, line+depth, sign*z);
+    if(t<=0) return 0;
+    const face=(fbm(x*0.02, z*0.02)-0.5)*height*0.12;
+    return height*t + face*t;
+  }
   const PAD_Y=-0.25;                       // graded sub-base, under every slab
   function heightAt(x,z){
     const d=padDist(x,z);
@@ -659,12 +696,14 @@ const Terrain=(function(){
     let h=PAD_Y + smoothstep(0,7,d)*0.25 + t*(1.1+dune);
     // far ring: ground lifts into broken badlands past ~430 m
     const dc=Math.hypot(x, z+8);
-    const ring=smoothstep(430, 1250, dc);
+    const ring=smoothstep(600, 1400, dc);
     if(ring>0){
       const silh=fbm(x*0.0042+80, z*0.0042+80);
       const crag=(fbm(x*0.017,z*0.017)-0.5)*0.5;
-      h += ring*(120*(0.35+1.05*silh)+crag*60);
+      h += ring*(110*(0.35+1.05*silh)+crag*60);
     }
+    h=Math.max(h, rim(x,z, 760,  1, 135, 150));                   // northern canyon wall
+    h=Math.max(h, rim(x,z, 900, -1, 118, 170));                   // wall across the highway
     for(const m of MESAS){                                        // flat-topped buttes
       const dm=Math.hypot(x-m.x, z-m.z);
       if(dm<m.r){
@@ -684,12 +723,24 @@ const Terrain=(function(){
 
 const NEAR_SITE={x0:-92, x1:82, z0:-104, z1:74};
 (function buildTerrain(){
-  const floorC=new T.Color(0xb5834e), duneC=new T.Color(0x9c6a3a),
-        mountC=new T.Color(0x7a3b26), peakC=new T.Color(0xb07a4a), rockC=new T.Color(0x552c1c);
+  const floorC=new T.Color(0xb99165), duneC=new T.Color(0xa47a4e),
+        mountC=new T.Color(0x8a5540), peakC=new T.Color(0xbb9068), rockC=new T.Color(0x5e4032);
+  // sedimentary banding: alternating iron-red and buff layers, strongest on the
+  // cliff faces, with a pale caprock on the tabletops
+  const strA=new T.Color(0x8a3f28),   // iron-red sandstone
+        strB=new T.Color(0xd9c49c),   // pale buff
+        strC=new T.Color(0x7d7466),   // grey mudstone
+        capC=new T.Color(0xe0cfa8);   // bleached caprock
+  const _b=new T.Color();
   function tint(x,y,slope,out){
     out.copy(floorC).lerp(duneC, smoothstep(2,12,y));
-    out.lerp(mountC, smoothstep(16,60,y)); out.lerp(peakC, smoothstep(95,170,y));
-    out.lerp(rockC, slope*0.8);
+    out.lerp(mountC, smoothstep(16,60,y));
+    out.lerp(peakC, smoothstep(95,175,y));
+    const band=Math.sin(y*0.115)*0.5+0.5, thin=Math.sin(y*0.34+1.1)*0.5+0.5;
+    _b.copy(strA).lerp(strB, band).lerp(strC, thin*0.42);
+    out.lerp(_b, Math.min(0.92, 0.42+slope*0.95)*smoothstep(6,24,y));
+    out.lerp(capC, smoothstep(0.26,0.05,slope)*smoothstep(46,110,y)*0.6);
+    out.lerp(rockC, slope*0.34);
   }
   // A grid built by hand rather than PlaneGeometry, so cells can be dropped:
   // the pool tank needs a real hole in the ground, and the fine grid around
@@ -727,7 +778,11 @@ const NEAR_SITE={x0:-92, x1:82, z0:-104, z1:74};
     const mesh=new T.Mesh(g,m); mesh.receiveShadow=true; mesh.name=name;
     scene.add(mesh); return mesh;
   }
-  grid(-1500,1500,-1440,1560, 10, [NEAR_SITE], "desert-far");
+  // Three rings: a coarse horizon, a 5 m band across the canyon country where
+  // the strata and cliff faces need to read, and a 2 m grid over the site.
+  const MID={x0:-1008, x1:1008, z0:-1078, z1:938};
+  grid(-1800,1800,-1740,1860, 24, [MID], "desert-far");
+  grid(MID.x0, MID.x1, MID.z0, MID.z1, 7, [NEAR_SITE], "desert-mid");
   grid(NEAR_SITE.x0, NEAR_SITE.x1, NEAR_SITE.z0, NEAR_SITE.z1, 2, [POOL.deck], "desert-near");
 })();
 
@@ -782,12 +837,49 @@ function placeCelestial(sp, ang, sign, zBias){
   return _celDir.y;
 }
 
+/* --- clouds and birds: the only things moving in the middle distance --- */
+const CLOUDS=[], BIRDS=[], WHITE_C=new T.Color(0xffffff);
+(function buildSky2(){
+  const puff=(seed)=>{
+    const c=cvs(256,128), x=c.getContext("2d");
+    for(let i=0;i<26;i++){
+      const px=28+Math.random()*200, py=52+Math.random()*46, r=18+Math.random()*40;
+      const g=x.createRadialGradient(px,py,0,px,py,r);
+      g.addColorStop(0,"rgba(255,255,255,0.60)");
+      g.addColorStop(0.55,"rgba(255,255,255,0.22)");
+      g.addColorStop(1,"rgba(255,255,255,0)");
+      x.fillStyle=g; x.beginPath(); x.arc(px,py,r,0,7); x.fill();
+    }
+    return setSRGB(new T.CanvasTexture(c));
+  };
+  const texes=[puff(1),puff(2),puff(3)];
+  for(let i=0;i<16;i++){
+    const m=new T.SpriteMaterial({map:texes[i%3], transparent:true, depthWrite:false,
+      fog:false, opacity:0.0});
+    const sp=new T.Sprite(m);
+    const sc=340+Math.random()*420;
+    sp.scale.set(sc, sc*0.42, 1);
+    sp.position.set((Math.random()-0.5)*2600, 300+Math.random()*220, (Math.random()-0.5)*2600);
+    scene.add(sp); CLOUDS.push(sp);
+  }
+  const bc=cvs(64,32), bx2=bc.getContext("2d");
+  bx2.strokeStyle="rgba(20,16,12,0.85)"; bx2.lineWidth=3; bx2.beginPath();
+  bx2.moveTo(6,22); bx2.quadraticCurveTo(20,6,32,18); bx2.quadraticCurveTo(44,6,58,22); bx2.stroke();
+  const btex=setSRGB(new T.CanvasTexture(bc));
+  for(let i=0;i<6;i++){
+    const sp=new T.Sprite(new T.SpriteMaterial({map:btex, transparent:true, depthWrite:false, opacity:0.8}));
+    sp.scale.set(7,3.5,1); scene.add(sp);
+    BIRDS.push({s:sp, r:70+Math.random()*90, a:Math.random()*6.28, sp:0.12+Math.random()*0.10,
+                y:44+Math.random()*36, cx:(Math.random()-0.5)*180, cz:60+(Math.random()-0.5)*180});
+  }
+})();
+
 /* --- the cycle itself --------------------------------------------------- */
 const DayNight=(function(){
   const DUR=360;                                   // seconds for a full 24 h
   const P={
-    dayLight:new T.Color(0xffe0a8), setLight:new T.Color(0xff9b4c), nightLight:new T.Color(0x6a86b8),
-    dayHemi:new T.Color(0xffdba0),  nightHemi:new T.Color(0x18243a),
+    dayLight:new T.Color(0xffeed0), setLight:new T.Color(0xff9b4c), nightLight:new T.Color(0x6a86b8),
+    dayHemi:new T.Color(0xffe7c4),  nightHemi:new T.Color(0x18243a),
     dayGround:new T.Color(0x4a2a18),nightGround:new T.Color(0x0c0a10),
     daySkyTop:new T.Color(0x2f4b74), daySkyMid:new T.Color(0x7a8ea0),
     daySkyLow:new T.Color(0xd59762), daySkyHz:new T.Color(0xc37946),
@@ -815,8 +907,8 @@ const DayNight=(function(){
       s.sunsetAmount=set+tw*0.6;
       s.dark=1-smoothstep(-0.14,0.24,s.sunHeight);   // drives every artificial light
       s.hour=((s.t*24)+6)%24;
-      s.sunIntensity=Math.max(0.04, day*1.30+set*0.75);
-      s.hemiIntensity=Math.max(0.12, day*0.82+set*0.5+(1-s.nightAmount)*0.36);
+      s.sunIntensity=Math.max(0.04, day*1.12+set*0.68);
+      s.hemiIntensity=Math.max(0.12, day*0.70+set*0.46+(1-s.nightAmount)*0.32);
       return s;
     },
     paint(){
@@ -994,20 +1086,20 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
 
   // stall stripes: two ranks facing the road, one rank along the east wing
   const stripe=(x,z,len,horiz)=>{
-    if(horiz) bx("paint", len, 0.02, 0.14, x, 0.008, z, 0, 0, "#c9a94e");
-    else      bx("paint", 0.14, 0.02, len, x, 0.008, z, 0, 0, "#c9a94e");
+    if(horiz) bx("paint", len, 0.02, 0.11, x, 0.008, z, 0, 0, "#6a5b2e");
+    else      bx("paint", 0.11, 0.02, len, x, 0.008, z, 0, 0, "#6a5b2e");
   };
   for(let x=-46;x<=34;x+=2.9) stripe(x, -36.2, 5.4, false);      // south rank
-  bx("paint", 82, 0.02, 0.12, -6, 0.008, -33.5, 0, 0, "#a08b45");
+  bx("paint", 82, 0.02, 0.10, -6, 0.008, -33.5, 0, 0, "#6d5d30");
   for(let x=-46;x<=34;x+=2.9) stripe(x, -27.0, 5.4, false);      // second rank
-  bx("paint", 82, 0.02, 0.12, -6, 0.008, -24.3, 0, 0, "#a08b45");
-  for(let x=-24;x<=20;x+=2.9)  stripe(x, 8.6, 5.0, false);       // by the north wing
-  for(let z=-14;z<=8;z+=2.9)   stripe(20.0, z, 5.0, true);       // by the east wing
+  bx("paint", 82, 0.02, 0.10, -6, 0.008, -24.3, 0, 0, "#6d5d30");
+  for(let x=-24;x<=-4;x+=2.9)  stripe(x, 9.0, 4.2, false);       // courtyard, west of the stair
+  for(let z=-21;z<=-7;z+=2.9)  stripe(21.4, z, 5.0, true);       // alongside wing B
   // accessible stall by the office: blue field with a white hatched aisle
   bx("paint", 2.6, 0.02, 5.0, -32.6, 0.009, -19.0, 0, 0, "#2f5c8f");
-  for(let i=0;i<7;i++) bx("paint", 2.3, 0.02, 0.12, -29.7, 0.011, -21.3+i*0.78, 0, 0, "#d9d3c2");
-  bx("paint", 0.12, 0.02, 5.0, -30.85, 0.011, -19.0, 0, 0, "#d9d3c2");
-  bx("paint", 0.12, 0.02, 5.0, -28.55, 0.011, -19.0, 0, 0, "#d9d3c2");
+  for(let i=0;i<7;i++) bx("paint", 2.3, 0.02, 0.10, -29.7, 0.011, -21.3+i*0.78, 0, 0, "#a9a293");
+  bx("paint", 0.10, 0.02, 5.0, -30.85, 0.011, -19.0, 0, 0, "#a9a293");
+  bx("paint", 0.10, 0.02, 5.0, -28.55, 0.011, -19.0, 0, 0, "#a9a293");
 
   // ---- xeriscape bed along the office / street frontage ---------------
   bx("gravel", 16.5, 0.22, 4.0, -38.5, -0.02, -14.2, 0.22);
@@ -1163,11 +1255,13 @@ function buildBay(xf, level, kind, roomNo, lit){
   lwall(xf,"roomwall", 0.30, wallH, 6.80, -2.85, cy, 3.40, 0.4, "#cfc4ad");
 
   if(kind==="alcove"){
-    // open service alcove: ice + vending downstairs, housekeeping upstairs
-    lbx(xf,"concrete", 5.40,0.06,4.60, 0, y0+0.02, 4.50, 0.35, "#a9a294");
-    lflat(xf, -2.7,2.7, -0.05,6.6, y0);
+    // Open service alcove: ice + vending downstairs, housekeeping upstairs.
+    // The slab runs the full bay depth and is as thick as the walkway deck, so
+    // there is no gap where the alcove meets the balcony at the stair head.
+    lbx(xf,"concrete", 5.44,0.30,6.90, 0, y0-0.15, 3.35, 0.45, "#a9a294");
+    lflat(xf, -2.7,2.7, -0.05,6.7, y0);
     lwall(xf,"roomwall", 5.40, wallH, 0.20, 0, cy, 6.70, 0.4, "#cfc4ad");
-    lbx(xf,"roomwall", 5.40,0.08,4.60, 0, y0+ROOM_H, 4.50, 0.4, "#c6bba4");
+    lbx(xf,"roomwall", 5.44,0.16,6.86, 0, y0+ROOM_H, 3.37, 0.4, "#c6bba4");
     // side returns so the alcove reads as a recess in the facade
     lwall(xf,"stucco", 0.24, wallH, 2.20, -2.60, cy, 1.30, 0.3, SLATE);
     lwall(xf,"stucco", 0.24, wallH, 2.20,  2.60, cy, 1.30, 0.3, SLATE);
@@ -1184,7 +1278,7 @@ function buildBay(xf, level, kind, roomNo, lit){
       lbx(xf,"metal",0.08,0.44,0.08, 2.5, y0+0.22, 4.10, 0, "#6b6f72");
       lcol(xf, 1.6,0.42, 1.9,4.10, y0, y0+0.5);
       lzone(xf,-2.6,2.6, 0.0,6.6, y0-0.5, y0+2.4, "ICE & VENDING");
-      LAMPS.push({x:xf.x(-0.4,5.4), y:y0+2.3, z:xf.z(-0.4,5.4), color:0xbfe9ff, intensity:0.9, dist:8});
+      LAMPS.push({x:xf.x(-0.4,5.4), y:y0+2.3, z:xf.z(-0.4,5.4), color:0xbfe9ff, intensity:0.55, dist:10, decay:1.4});
     }else{
       lbx(xf,"paint", 0.80,1.05,0.62, -1.7, y0+0.55, 6.05, 0, "#b8bcc0");   // linen cart
       lbx(xf,"paint", 0.74,0.42,0.54, -1.7, y0+1.28, 6.05, 0, "#e6e2d6");
@@ -1253,13 +1347,16 @@ function buildBay(xf, level, kind, roomNo, lit){
   // shell: back-wall liner, floor, ceiling
   lwall(xf,"roomwall", 5.40, wallH, 0.20, 0, cy, 6.70, 0.4, "#cfc4ad");
   lbx(xf,"carpet", 5.40,0.04,6.42, 0, y0+0.02, 3.41, 0.5, "#6d5b46");
-  lbx(xf,"roomwall", 5.44,0.08,6.46, 0, y0+ROOM_H, 3.40, 0.4, "#cdc2ab");
+  lbx(xf,"roomwall", 5.44,0.08,6.46, 0, y0+ROOM_H, 3.40, 0.4, "#e4dac2");
   lflat(xf, -2.7,2.7, -0.05,6.60, y0);
   lzone(xf, -2.6,2.6, 0.30,6.55, y0-0.5, y0+2.4, "ROOM "+roomNo);
   ROOMS.push({no:roomNo, x:xf.x(0,3.4), z:xf.z(0,3.4), y:y0, lit:lit, level:level});
-  LAMPS.push({x:xf.x(0,3.20), y:y0+ROOM_H-0.30, z:xf.z(0,3.20), color:0xffe9c4, intensity:1.05, dist:9, indoor:true});
-  LAMPS.push({x:xf.x(1.5,5.4),  y:y0+ROOM_H-0.32, z:xf.z(1.5,5.4),  color:0xfff2dc, intensity:0.70, dist:5, indoor:true});
-  LAMPS.push({x:xf.x(-2.42,3.02), y:y0+1.02, z:xf.z(-2.42,3.02), color:0xffd9a0, intensity:0.55, dist:5, indoor:true});
+  LAMPS.push({x:xf.x(-0.6,3.20), y:y0+ROOM_H-0.34, z:xf.z(-0.6,3.20), color:0xffeacb,
+              intensity:0.62, dist:13, decay:1.15, indoor:true});
+  LAMPS.push({x:xf.x(1.5,5.4),   y:y0+ROOM_H-0.34, z:xf.z(1.5,5.4),   color:0xfff2dc,
+              intensity:0.34, dist:8,  decay:1.30, indoor:true});
+  LAMPS.push({x:xf.x(-2.42,3.45), y:y0+1.02, z:xf.z(-2.42,3.45), color:0xffd39a,
+              intensity:0.24, dist:6,  decay:1.45, indoor:true});
 
   furnishRoom(xf, y0, roomNo);
 }
@@ -1301,25 +1398,67 @@ function furnishRoom(xf, y0, roomNo){
   C(0.5,0.72, 0.56,5.22, 0.7);
   B("metal",0.03,0.03,0.48, 0.24, 1.24, 4.90, 0, "#c9cdcd");
   B("paint",0.06,0.34,0.42, 0.29, 1.09, 4.90, 0, "#e8e4d6");
+  // folded towels, shower head, paper roll, bath mat, soap
+  B("paint",0.34,0.09,0.24, 2.42, 0.91, 5.42, 0, "#eceadf");
+  B("paint",0.34,0.09,0.24, 2.42, 1.00, 5.42, 0, "#e4e2d6");
+  B("metal",0.05,0.05,0.20, 2.42, 1.94, 6.30, 0, "#c9cdcd");
+  push("bin", new T.CylinderGeometry(0.07,0.05,0.05,10), xf.x(2.42,6.16), y0+1.86, xf.z(2.42,6.16), xf.ry, "#c9cdcd");
+  push("bin", new T.CylinderGeometry(0.055,0.055,0.11,10), xf.x(0.30,4.74), y0+0.72, xf.z(0.30,4.74), xf.ry, "#f0eee6", 0,0,Math.PI/2);
+  B("paint",0.62,0.03,0.42, 1.20, 0.05, 5.55, 0, "#c8bda4");
+  B("paint",0.09,0.04,0.06, 2.30, 0.89, 4.80, 0, "#e6d9a8");
   lzone(xf, 0.16,2.66, 4.50,6.55, y0-0.5, y0+2.4, "ROOM "+roomNo+" · BATH");
 
-  /* --- two double beds along the left wall, set back from the door ----- */
-  for(let b=0;b<2;b++){
-    const bz=2.30+b*2.30;
-    B("oak",  0.10,0.92,1.42, -2.62, 0.46, bz, 0.7, "#5c4029");        // headboard
-    B("oak",  1.86,0.30,1.38, -1.62, 0.15, bz, 0.6, "#4c3b2a");        // base
-    B("spread",1.92,0.36,1.44, -1.60, 0.48, bz, 0.42, spread);         // mattress + spread
-    B("paint",0.44,0.13,0.62, -2.28, 0.70, bz-0.36, 0, "#efeadb");     // pillows
-    B("paint",0.44,0.13,0.62, -2.28, 0.70, bz+0.36, 0, "#efeadb");
-    C(1.95,1.5, -1.62,bz, 0.7);
+  /* --- beds: two doubles, or a king in every fourth room -------------- */
+  // a squashed sphere reads as a pillow far better than a box does, and the
+  // valance under each bed hides the hard slab edge the mattress would show
+  const pillowGeo=(function(){ const g=new T.SphereGeometry(0.30,12,8); g.scale(1.55,0.40,0.95); return g; })();
+  const bolsterGeo=(function(){ const g=new T.SphereGeometry(0.30,12,8); g.scale(1.05,0.34,0.62); return g; })();
+  const king=(roomNo%4===0);
+  function bed(bx0, bz, wide){
+    const halfW=wide?0.98:0.72;
+    B("oak",  0.10,0.98,halfW*2+0.10, bx0-0.62, 0.52, bz, 0.7, "#5c4029");     // headboard
+    B("oak",  0.08,0.20,halfW*2+0.24, bx0-0.62, 1.06, bz, 0.7, "#6a4b30");     // headboard cap
+    B("spread",1.98,0.20,halfW*2-0.06, bx0+0.36, 0.19, bz, 0.42, "#3b3128");   // valance skirt
+    B("oak",  1.92,0.22,halfW*2-0.14, bx0+0.36, 0.36, bz, 0.6, "#4c3b2a");     // base
+    B("spread",1.96,0.30,halfW*2, bx0+0.36, 0.60, bz, 0.42, spread);           // mattress + spread
+    B("spread",0.66,0.10,halfW*2+0.02, bx0+1.02, 0.79, bz, 0.5, "#6d5f4a");    // folded blanket at the foot
+    for(const d of (wide?[-0.46,0.46]:[-0.33,0.33]))
+      push("bedding", pillowGeo, xf.x(bx0-0.22, bz+d), y0+0.82, xf.z(bx0-0.22, bz+d), xf.ry, "#efeadb");
+    C(2.0, halfW*2+0.3, bx0+0.36, bz, 0.72);
   }
-  B("oak", 0.52,0.56,0.50, -2.42, 0.28, 3.45, 0.7, "#5c4029");         // nightstand
-  C(0.55,0.55, -2.42,3.45, 0.6);
-  B("metal",0.10,0.30,0.10, -2.42, 0.71, 3.45, 0, "#b8a67e");          // lamp base
+  if(king){
+    bed(-1.10, 2.85, true);
+    // armchair and a floor lamp where the second bed would have been
+    B("oak",  0.74,0.10,0.76, -1.70, 0.42, 5.35, 0.7, "#5c4029");
+    B("spread",0.70,0.26,0.72, -1.70, 0.60, 5.35, 0.5, spread);
+    B("spread",0.70,0.56,0.20, -1.70, 0.92, 5.62, 0.5, spread);
+    B("spread",0.16,0.42,0.66, -2.02, 0.86, 5.35, 0.5, spread);
+    B("spread",0.16,0.42,0.66, -1.38, 0.86, 5.35, 0.5, spread);
+    C(0.85,0.85, -1.70,5.35, 0.9);
+    B("metal",0.06,1.40,0.06, -2.42, 0.70, 4.55, 0, "#8f8a7c");
+    push("lampshade", new T.CylinderGeometry(0.17,0.24,0.30,14),
+         xf.x(-2.42,4.55), y0+1.55, xf.z(-2.42,4.55), xf.ry, "#e8dcc0");
+  }else{
+    bed(-1.98, 2.30, false);
+    bed(-1.98, 4.60, false);
+  }
+  const nsZ = king ? 4.10 : 3.45;
+  B("oak", 0.52,0.56,0.50, -2.42, 0.28, nsZ, 0.7, "#5c4029");          // nightstand
+  B("oak", 0.58,0.05,0.56, -2.42, 0.58, nsZ, 0.7, "#6a4b30");
+  C(0.55,0.55, -2.42,nsZ, 0.6);
+  B("metal",0.10,0.30,0.10, -2.42, 0.75, nsZ, 0, "#b8a67e");           // lamp
   push("lampshade", new T.CylinderGeometry(0.15,0.20,0.24,12),
-       xf.x(-2.42,3.45), y0+0.98, xf.z(-2.42,3.45), xf.ry, "#e8dcc0");
-  B("paint",0.16,0.05,0.24, -2.42, 0.58, 3.15, 0, "#2b2b2b");          // telephone
-  B("paint",0.13,0.04,0.18, -2.42, 0.59, 3.72, 0, "#5a2320");          // Gideon bible
+       xf.x(-2.42,nsZ), y0+1.02, xf.z(-2.42,nsZ), xf.ry, "#e8dcc0");
+  B("paint",0.16,0.05,0.24, -2.42, 0.63, nsZ-0.30, 0, "#2b2b2b");      // telephone
+  B("paint",0.09,0.03,0.05, -2.30, 0.66, nsZ-0.30, 0, "#c9c4b4");
+  B("paint",0.13,0.04,0.18, -2.42, 0.63, nsZ+0.32, 0, "#5a2320");      // Gideon bible
+  B("paint",0.15,0.08,0.09, -2.20, 0.65, nsZ+0.02, 0, "#232323");      // clock radio
+  push("clockled", boxGeo(0.07,0.03,0.01,0), xf.x(-2.14,nsZ-0.03), y0+0.66,
+       xf.z(-2.14,nsZ-0.03), xf.ry, "#ff5a2a");
+  // a headboard reading light on the wall above the nightstand
+  B("metal",0.05,0.05,0.26, -2.62, 1.42, nsZ, 0, "#9a9a94");
+  push("lampshade", new T.CylinderGeometry(0.09,0.13,0.14,10),
+       xf.x(-2.50,nsZ), y0+1.40, xf.z(-2.50,nsZ), xf.ry, "#e8dcc0");
 
   /* --- dresser + television against the right wall -------------------- */
   B("oak", 0.54,0.78,1.86, 2.40, 0.39, 2.90, 0.6, "#6f4a2c");
@@ -1345,6 +1484,41 @@ function furnishRoom(xf, y0, roomNo){
   B("metal",0.05,0.46,0.05, -2.16, 0.23, 6.24, 0, "#8f8a7c");
   push("bin", new T.CylinderGeometry(0.13,0.11,0.30,10),
        xf.x(-0.42,6.20), y0+0.15, xf.z(-0.42,6.20), xf.ry, "#4a4a46");
+  /* --- the small stuff: this is what makes a room feel let ------------- */
+  // mini fridge and microwave stacked beside the dresser
+  B("paint", 0.52,0.72,0.54, 2.38, 0.36, 4.05, 0, "#d8d4c8");
+  B("metal", 0.03,0.60,0.05, 2.11, 0.36, 3.83, 0, "#9a9a94");
+  B("paint", 0.44,0.30,0.62, 2.40, 0.87, 4.05, 0, "#2f2f2e");
+  push("tvglass", boxGeo(0.03,0.16,0.34,0), xf.x(2.17,4.05), y0+0.88, xf.z(2.17,4.05), xf.ry, "#1d262b");
+  C(0.56,0.66, 2.38,4.05, 1.05);
+  // coffee maker, tray, ice bucket, tumblers, ashtray on the dresser top
+  B("paint", 0.20,0.26,0.26, 2.46, 0.91, 2.20, 0, "#2b2b2b");
+  B("paint", 0.16,0.10,0.20, 2.40, 0.83, 2.20, 0, "#c9c4b4");
+  push("bin", new T.CylinderGeometry(0.11,0.09,0.20,12), xf.x(2.42,3.55), y0+0.88, xf.z(2.42,3.55), xf.ry, "#d5d1c4");
+  for(const t of [-0.10,0.10])
+    push("glass", new T.CylinderGeometry(0.045,0.038,0.11,10), xf.x(2.30,3.20+t), y0+0.84, xf.z(2.30,3.20+t), xf.ry, "#cfe0e6");
+  push("glass", new T.CylinderGeometry(0.09,0.07,0.03,12), xf.x(2.24,2.60), y0+0.80, xf.z(2.24,2.60), xf.ry, "#cfe0e6");
+  // a suitcase left open on the luggage rack
+  B("oak", 0.56,0.20,0.34, -1.90, 0.60, 6.24, 0.6, "#4a3524");
+  B("oak", 0.54,0.04,0.32, -1.90, 0.71, 6.24, 0.6, "#6a4b30");
+  // curtain valance and rod, so the window head is not a bare edge
+  B("oak", 2.60,0.20,0.10, 0.60, 2.30, 0.24, 0.6, "#5c4029");
+  B("metal",2.46,0.04,0.04, 0.60, 2.16, 0.30, 0, "#9a9a94");
+  // wall plates: thermostat, switch, rate card
+  B("paint", 0.14,0.20,0.03, -2.66, 1.42, 1.30, 0, "#e2ded0");
+  B("paint", 0.10,0.14,0.03, -2.66, 1.20, 0.70, 0, "#e2ded0");
+  push("art", boxGeo(0.02,0.22,0.16,0), xf.x(-2.66,1.90), y0+1.46, xf.z(-2.66,1.90), xf.ry, "#d8cfae");
+  // baseboard and a ceiling cove: the room stops reading as bare boxes
+  B("oak", 5.36,0.14,0.06,  0.00, 0.07, 0.24, 0.6, "#5a4832");
+  B("oak", 5.36,0.14,0.06,  0.00, 0.07, 6.56, 0.6, "#5a4832");
+  B("oak", 0.06,0.14,6.30, -2.64, 0.07, 3.40, 0.6, "#5a4832");
+  B("oak", 0.06,0.14,6.30,  2.64, 0.07, 3.40, 0.6, "#5a4832");
+  B("roomwall", 5.36,0.10,0.08, 0, ROOM_H-0.09, 0.26, 0.5, "#e2d8c0");
+  B("roomwall", 0.08,0.10,6.30, -2.64, ROOM_H-0.09, 3.40, 0.5, "#e2d8c0");
+  B("roomwall", 0.08,0.10,6.30,  2.64, ROOM_H-0.09, 3.40, 0.5, "#e2d8c0");
+  // door furniture on the inside face
+  B("metal", 0.03,0.05,0.16, -2.30, 1.32, 0.24, 0, "#caa23c");
+  B("metal", 0.03,0.03,0.24, -2.30, 1.52, 0.24, 0, "#caa23c");
   push("ceilfix", new T.CylinderGeometry(0.22,0.26,0.10,14),
        xf.x(-0.6,3.20), y0+ROOM_H-0.09, xf.z(-0.6,3.20), xf.ry, "#e8dcc0");
   push("ceilfix", new T.CylinderGeometry(0.16,0.20,0.09,12),
@@ -1384,29 +1558,37 @@ function buildWing(cfg){
   lcol(wxf, wLen, 0.18, 0, 6.89, BASE, yTop);
 
   // ---- ground walkway + upper balcony deck ----------------------------
-  lbx(wxf,"concrete", wLen, 0.30, WALK_D, 0, BASE-0.15, -WALK_D/2, 0.45, "#b6afa0");
-  lflat(wxf, -wLen/2, wLen/2, -WALK_D, 0.02, BASE);
-  lbx(wxf,"concrete", wLen, 0.26, WALK_D+0.16, 0, lvlY(1)-0.13, -WALK_D/2+0.08, 0.45, "#aca596");
-  lflat(wxf, -wLen/2, wLen/2, -WALK_D, 0.02, lvlY(1));
-  lzone(wxf, -wLen/2, wLen/2, -WALK_D, 0.0, BASE-0.4,   BASE+2.4,   cfg.name+" WALKWAY");
-  lzone(wxf, -wLen/2, wLen/2, -WALK_D, 0.0, lvlY(1)-0.4, lvlY(1)+2.4, cfg.name+" BALCONY");
+  // deckA/deckB trim the slab where the two wings meet, so the decks butt
+  // together at the inside corner instead of overlapping and z-fighting
+  const dA=(cfg.deckA!==undefined?cfg.deckA:-wLen/2), dB=(cfg.deckB!==undefined?cfg.deckB:wLen/2);
+  const dLen=dB-dA, dMid=(dA+dB)/2, drop=cfg.deckDrop||0;
+  lbx(wxf,"concrete", dLen, 0.30, WALK_D, dMid, BASE-0.15-drop, -WALK_D/2, 0.45, "#b6afa0");
+  lflat(wxf, dA, dB, -WALK_D, 0.02, BASE);
+  lbx(wxf,"concrete", dLen, 0.26, WALK_D+0.16, dMid, lvlY(1)-0.13-drop, -WALK_D/2+0.08, 0.45, "#aca596");
+  lflat(wxf, dA, dB, -WALK_D, 0.02, lvlY(1));
+  lzone(wxf, dA, dB, -WALK_D, 0.0, BASE-0.4,   BASE+2.4,   cfg.name+" WALKWAY");
+  lzone(wxf, dA, dB, -WALK_D, 0.0, lvlY(1)-0.4, lvlY(1)+2.4, cfg.name+" BALCONY");
 
   // ---- teal columns + fascia beams ------------------------------------
-  for(let i=0;i<=n;i++){
-    const lx=-halfLen+i*BAY_W;
+  const colLines=[];
+  for(let i=0;i<=n;i++){ const lx=-halfLen+i*BAY_W; if(lx>dA-0.02 && lx<dB+0.02) colLines.push(lx); }
+  if(colLines.length && colLines[0]-dA>0.6) colLines.unshift(dA+0.12);
+  if(colLines.length && dB-colLines[colLines.length-1]>0.6) colLines.push(dB-0.12);
+  for(const lx of colLines){
     lbx(wxf,"teal", 0.20,FLOOR_H-0.30,0.20, lx, BASE+(FLOOR_H-0.30)/2, -WALK_D+0.24, 0, TEAL);
     lcol(wxf, 0.26,0.26, lx, -WALK_D+0.24, BASE, lvlY(1));
     lbx(wxf,"teal", 0.20,WALL_H1-0.16,0.20, lx, lvlY(1)+(WALL_H1-0.16)/2, -WALK_D+0.24, 0, TEAL);
     lcol(wxf, 0.26,0.26, lx, -WALK_D+0.24, lvlY(1), yTop);
   }
-  lbx(wxf,"teal", wLen,0.30,0.34, 0, lvlY(1)-0.04, -WALK_D+0.24, 0, TEAL_D);
-  lbx(wxf,"teal", wLen,0.26,0.34, 0, yTop-0.14,    -WALK_D+0.24, 0, TEAL_D);
+  lbx(wxf,"teal", dLen,0.30,0.34, dMid, lvlY(1)-0.04-drop, -WALK_D+0.24, 0, TEAL_D);
+  lbx(wxf,"teal", dLen,0.26,0.34, dMid, yTop-0.14,         -WALK_D+0.24, 0, TEAL_D);
 
   // ---- balcony railing, X-braced like the reference elevation ---------
-  const gap=cfg.railGap, SEG=BAY_W/4;
+  const gaps=cfg.railGaps||[], SEG=BAY_W/4;
+  const gapped=(a,b)=>{ for(const g of gaps) if(b>g[0]+0.01 && a<g[1]-0.01) return true; return false; };
   for(let i=0;i<n*4;i++){
     const a=-halfLen+i*SEG, b=a+SEG, cx=(a+b)/2;
-    if(gap && b>gap[0]+0.01 && a<gap[1]-0.01) continue;
+    if(gapped(a,b) || a<dA-0.02 || b>dB+0.02) continue;
     const span=SEG-0.16, ry=lvlY(1), rz=-WALK_D+0.24;
     lbx(wxf,"teal", span,0.09,0.09, cx, ry+1.02, rz, 0, TEAL);
     lbx(wxf,"teal", span,0.06,0.06, cx, ry+0.54, rz, 0, TEAL);
@@ -1417,10 +1599,14 @@ function buildWing(cfg){
     lbx(wxf,"teal", 0.09,1.02,0.09, b, ry+0.51, rz, 0, TEAL);
     lcol(wxf, span+0.3, 0.34, cx, rz, ry, ry+1.14);
   }
-  // end railings so you cannot step off the ends of the balcony
+  // end railings so you cannot step off the ends of the balcony — except at
+  // the inside corner, where the two balconies run into one another
   for(const s of [-1,1]){
-    const ex=s*(halfLen+0.05);
+    if(cfg.openEnd===s) continue;
+    const ex=(s<0?dA:dB)+s*0.05;
     lbx(wxf,"teal", 0.09,0.09,WALK_D, ex, lvlY(1)+1.02, -WALK_D/2, 0, TEAL);
+    for(let k=0;k<4;k++)
+      lbx(wxf,"teal", 0.06,1.0,0.06, ex, lvlY(1)+0.5, -0.35-k*0.68, 0, TEAL);
     lcol(wxf, 0.3, WALK_D, ex, -WALK_D/2, lvlY(1), lvlY(1)+1.14);
   }
 
@@ -1440,55 +1626,68 @@ function buildWing(cfg){
   lbx(wxf,"paint", cfg.roofLen, 0.24, 0.18, cfg.roofOff, yTop+0.23+lift, backEaveZ,  0, "#e6e2d6");
 }
 
-/* --- outdoor stair: treads, stringers, teal handrails ----------------- */
+/* --- outdoor stair -----------------------------------------------------
+   Closed concrete sides that step up with the treads and a sloped soffit
+   underneath, so there is nothing to see through, plus the teal pipe rail on
+   posts from the reference elevation.                                    */
 function buildStair(o){
-  // o: {x,z (bottom centre), dir:'z'|'x', sign, width, run, rise}
-  const N=16, tr=o.run/N, rs=o.rise/N;
-  const along=(i)=> o.dir==="z" ? [o.x, o.z+o.sign*(i*tr+tr/2)]
-                                : [o.x+o.sign*(i*tr+tr/2), o.z];
+  // o: {x, z} is the BOTTOM centre; the run climbs in `dir` by `sign`
+  const N=16, tr=o.run/N, rs=o.rise/N, halfW=o.width/2;
+  const L=Math.hypot(o.run,o.rise), tilt=Math.atan2(o.rise,o.run);
+  const alongZ=(o.dir==="z");
+  const mid=[ alongZ ? o.x : o.x+o.sign*o.run/2,
+              alongZ ? o.z+o.sign*o.run/2 : o.z ];
+  const put=(bucket,w,h,d,lx,ly,lz,uv,col)=>{
+    if(alongZ) bx(bucket,w,h,d, o.x+lx, ly, o.z+o.sign*lz, uv, 0, col);
+    else       bx(bucket,d,h,w, o.x+o.sign*lz, ly, o.z+lx, uv, 0, col);
+  };
+  // treads and risers
   for(let i=0;i<N;i++){
-    const p=along(i), y=BASE+ (i+1)*rs;
-    if(o.dir==="z"){
-      bx("stairs", o.width, 0.07, tr+0.06, p[0], y-0.035, p[1], 0.6, 0, "#b4ada0");
-      bx("stairs", o.width, rs, 0.07, p[0], y-rs/2, p[1]-o.sign*(tr/2), 0.6, 0, "#a49d90");
-    }else{
-      bx("stairs", tr+0.06, 0.07, o.width, p[0], y-0.035, p[1], 0.6, 0, "#b4ada0");
-      bx("stairs", 0.07, rs, o.width, p[0]-o.sign*(tr/2), y-rs/2, p[1], 0.6, 0, "#a49d90");
+    const s0=i*tr+tr/2, y=BASE+(i+1)*rs;
+    put("stairs", o.width, 0.08, tr+0.04, 0, y-0.04, s0, 0.7, "#b4ada0");
+    put("stairs", o.width, rs+0.04, 0.08, 0, y-rs/2, s0-tr/2, 0.7, "#a49d90");
+    // closed side walls, stepping with the treads
+    for(const sd of [-1,1]){
+      const h=(i+1)*rs+0.30;
+      put("concrete", 0.16, h, tr+0.04, sd*(halfW+0.08), BASE-0.20+h/2, s0, 0.45, "#a8a193");
     }
   }
-  // stringers + handrails on both sides, and side colliders
-  const halfW=o.width/2;
-  for(const s of [-1,1]){
-    if(o.dir==="z"){
-      const sx=o.x+s*(halfW+0.06);
-      push("concrete", boxGeo(0.12, 0.42, Math.hypot(o.run,o.rise), 0.4), sx,
-           BASE+o.rise/2-0.02, o.z+o.sign*o.run/2, 0, "#a8a193", Math.atan2(o.sign*o.rise,o.sign*o.run)*-o.sign);
-      push("teal", boxGeo(0.08,0.08,Math.hypot(o.run,o.rise),0), sx,
-           BASE+o.rise/2+0.98, o.z+o.sign*o.run/2, 0, TEAL, Math.atan2(o.sign*o.rise,o.sign*o.run)*-o.sign);
-      for(let i=1;i<N;i+=3){
-        const p=along(i);
-        bx("teal", 0.06, 1.0, 0.06, sx, BASE+(i+1)*rs+0.48, p[1], 0, 0, TEAL);
-      }
-      addCol(sx-0.14, sx+0.14, Math.min(o.z,o.z+o.sign*o.run), Math.max(o.z,o.z+o.sign*o.run), BASE, BASE+o.rise+1.2);
-    }else{
-      const sz=o.z+s*(halfW+0.06);
-      push("concrete", boxGeo(Math.hypot(o.run,o.rise), 0.42, 0.12, 0.4),
-           o.x+o.sign*o.run/2, BASE+o.rise/2-0.02, sz, 0, "#a8a193", 0, 0, Math.atan2(o.sign*o.rise,o.sign*o.run)*o.sign);
-      push("teal", boxGeo(Math.hypot(o.run,o.rise),0.08,0.08,0),
-           o.x+o.sign*o.run/2, BASE+o.rise/2+0.98, sz, 0, TEAL, 0, 0, Math.atan2(o.sign*o.rise,o.sign*o.run)*o.sign);
-      for(let i=1;i<N;i+=3){
-        const p=along(i);
-        bx("teal", 0.06, 1.0, 0.06, p[0], BASE+(i+1)*rs+0.48, sz, 0, 0, TEAL);
-      }
-      addCol(Math.min(o.x,o.x+o.sign*o.run), Math.max(o.x,o.x+o.sign*o.run), sz-0.14, sz+0.14, BASE, BASE+o.rise+1.2);
+  // sloped soffit closing the underside of the flight
+  push("concrete", boxGeo(o.width+0.34, 0.16, L+0.2, 0.45),
+       mid[0], BASE+o.rise/2-0.30, mid[1], alongZ?0:Math.PI/2, "#9c968a",
+       alongZ ? -tilt*o.sign : -tilt*o.sign);
+  // the landing pad at the bottom
+  put("concrete", o.width+0.44, 0.30, 1.20, 0, BASE-0.15, -0.55, 0.45, "#b0a99b");
+  addFlat(alongZ ? o.x-halfW-0.2 : Math.min(o.x, o.x-o.sign*1.2),
+          alongZ ? o.x+halfW+0.2 : Math.max(o.x, o.x-o.sign*1.2),
+          alongZ ? Math.min(o.z, o.z-o.sign*1.2) : o.z-halfW-0.2,
+          alongZ ? Math.max(o.z, o.z-o.sign*1.2) : o.z+halfW+0.2, BASE);
+  // teal pipe handrail on posts, riding 0.95 above the nosing line
+  for(const sd of [-1,1]){
+    const sx=sd*(halfW+0.08);
+    push("teal", boxGeo(alongZ?0.09:L, 0.09, alongZ?L:0.09, 0),
+         alongZ ? o.x+sx : mid[0], BASE+o.rise/2+1.02, alongZ ? mid[1] : o.z+sx,
+         0, TEAL, alongZ ? -tilt*o.sign : 0, 0, alongZ ? 0 : tilt*o.sign);
+    for(let i=0;i<N;i+=4){
+      const s0=i*tr+tr/2, top=BASE+(i+1)*rs;
+      put("teal", 0.07, 0.86, 0.07, sx, top+0.14+0.43, s0, 0, TEAL);
     }
+    // newels at both ends
+    put("teal", 0.11, 1.30, 0.11, sx, BASE+0.65, 0.10, 0, TEAL_D);
+    put("teal", 0.11, 1.30, 0.11, sx, BASE+o.rise+0.55, o.run-0.10, 0, TEAL_D);
+    const cx = alongZ ? o.x+sx : mid[0], cz = alongZ ? mid[1] : o.z+sx;
+    const cw = alongZ ? 0.34 : o.run, cd = alongZ ? o.run : 0.34;
+    addCol(cx-cw/2, cx+cw/2, cz-cd/2, cz+cd/2, BASE, BASE+o.rise+1.5);
   }
-  if(o.dir==="z"){
+  // walkable ramp
+  if(alongZ){
     const z0=Math.min(o.z,o.z+o.sign*o.run), z1=Math.max(o.z,o.z+o.sign*o.run);
     addRamp(o.x-halfW, o.x+halfW, z0, z1, "z", o.sign>0?z0:z1, o.sign>0?z1:z0, BASE, BASE+o.rise);
+    addZone(o.x-halfW, o.x+halfW, z0, z1, BASE-0.5, BASE+o.rise+2.2, "STAIRWAY");
   }else{
     const x0=Math.min(o.x,o.x+o.sign*o.run), x1=Math.max(o.x,o.x+o.sign*o.run);
     addRamp(x0, x1, o.z-halfW, o.z+halfW, "x", o.sign>0?x0:x1, o.sign>0?x1:x0, BASE, BASE+o.rise);
+    addZone(x0, x1, o.z-halfW, o.z+halfW, BASE-0.5, BASE+o.rise+2.2, "STAIRWAY");
   }
 }
 
@@ -1499,14 +1698,16 @@ const EAST_CZ =(EAST.z0  + EAST.z0  + EAST.bays*BAY_W)/2;    // = -1
 buildWing({
   bays:NORTH.bays, stairBay:NORTH.stairBay, first:101, name:"WING A",
   lit:[102,105,108,203,206],
-  railGap:[-1.15, 1.15],
+  railGaps:[[-1.15, 1.15], [23.3, 27.6]],   // stair head, and the inside corner
+  deckA:-27.30, deckB:27.05,
   roofLen:NORTH.bays*BAY_W+1.6, roofOff:0.0, roofLift:0.0,
   frame:lx=>XF(NORTH_CX+lx, NORTH.z, 0)
 });
 buildWing({
   bays:EAST.bays, stairBay:3, first:109, name:"WING B",
   lit:[110,112,209],
-  railGap:[EAST_CZ-(-7)-1.15, EAST_CZ-(-7)+1.15],
+  railGaps:[[EAST_CZ-(-7)-1.15, EAST_CZ-(-7)+1.15]],
+  deckA:-12.35, deckB:15.30, deckDrop:0.014, openEnd:-1,
   roofLen:EAST.bays*BAY_W+1.6, roofOff:0.0, roofLift:0.30,
   frame:lx=>XF(EAST.x, EAST_CZ-lx, Math.PI/2)
 });
@@ -1750,8 +1951,10 @@ const POOL_LIGHTS=[]; let waterMat=null, caustic1=null, caustic2=null, poolFloor
   bx("oak", 1.10,0.06,0.70, O.x1-3.6, y0+0.46, O.z0+2.9, 0.7, 0, "#6f4a2c");
   for(const dd of [[-0.45,-0.25],[0.45,-0.25],[-0.45,0.25],[0.45,0.25]])
     bx("oak", 0.07,0.44,0.07, O.x1-3.6+dd[0], y0+0.23, O.z0+2.9+dd[1], 0, 0, "#5c4029");
-  push("foliage", new T.IcosahedronGeometry(0.55,1), O.x1-1.3, y0+1.05, O.z1-1.4, 0, "#4f6b3a");
-  cyl("paint", 0.34,0.28,0.60,12, O.x1-1.3, y0+0.30, O.z1-1.4, "#9c6a3a");
+  cyl("gravel", 0.34,0.27,0.58,12, O.x1-1.3, y0+0.29, O.z1-1.4, "#a35a34");
+  for(const b2 of [[0,0.86,0.34],[-0.22,0.74,0.24],[0.20,0.78,0.26],[0.04,1.02,0.22],[-0.14,0.98,0.19]])
+    push("foliage", new T.IcosahedronGeometry(b2[2],1), O.x1-1.3+b2[0], y0+b2[1], O.z1-1.4+(b2[0]*0.6), 0,
+         ["#4f6b3a","#57713f","#465f34"][(b2[2]*100|0)%3]);
   addCol(O.x1-1.8,O.x1-0.8, O.z1-1.9, O.z1-0.9, y0, y0+1.4);
   // coffee urn station + wall clock
   bx("oak", 1.30,0.90,0.50, O.x0+1.9, y0+0.45, O.z1-0.6, 0.6, 0, "#5c4029");
@@ -1760,59 +1963,184 @@ const POOL_LIGHTS=[]; let waterMat=null, caustic1=null, caustic2=null, poolFloor
   addCol(O.x0+1.2,O.x0+2.6, O.z1-0.9, O.z1-0.3, y0, y0+1.0);
   push("clockface", boxGeo(0.44,0.44,0.05,0), O.x0+0.32, y0+2.45, cz+1.8, 0, "#efe9d8");
   bx("roomwall", w-0.4, 0.10, d-0.4, cx, y0+h-0.16, cz, 0.4, 0, "#d8cfb8");   // ceiling
+  for(const wl of [[cx,O.z1-0.30,w-0.5,0.06],[cx,O.z0+0.30,w-0.5,0.06],
+                   [O.x0+0.30,cz,0.06,d-0.5],[O.x1-0.30,cz,0.06,d-0.5]])
+    bx("roomwall", wl[2], h-1.35, wl[3], wl[0], y0+1.14+(h-1.35)/2, wl[1], 0.45, 0, "#ded3b6");
+
+  /* --- the kitsch: what actually makes a 1962 motel office ------------ */
+  const O_=(bk,ww,hh,dd,px,py,pz,uv,c)=>bx(bk,ww,hh,dd,px,y0+py,pz,uv,0,c);
+  const OC=(bk,rt,rb,hh,seg,px,py,pz,c,rx,rz)=>cyl(bk,rt,rb,hh,seg,px,y0+py,pz,c,rx,0,rz);
+  // knotty-pine dado around the whole lobby, capped with a chair rail
+  for(const wl of [[cx,O.z1-0.24,w-0.5,0.10],[cx,O.z0+0.24,w-0.5,0.10],
+                   [O.x0+0.24,cz,0.10,d-0.5],[O.x1-0.24,cz,0.10,d-0.5]]){
+    O_("oak", wl[2],1.14,wl[3], wl[0],0.57,wl[1], 0.7, "#7a5636");
+    O_("oak", wl[2]+0.06,0.09,wl[3]+0.06, wl[0],1.18,wl[1], 0.7, "#5c4029");
+  }
+  // wagon-wheel chandelier over the lobby
+  push("oak", new T.TorusGeometry(0.62,0.055,8,20), cx+1.2, y0+h-0.60, cz+0.4, 0, "#5c4029", Math.PI/2);
+  for(let k=0;k<6;k++){
+    const a=k*Math.PI/3;
+    push("oak", boxGeo(1.20,0.05,0.05,0), cx+1.2, y0+h-0.60, cz+0.4, a, "#5c4029");
+    push("lampshade", new T.CylinderGeometry(0.05,0.06,0.16,8),
+         cx+1.2+Math.cos(a)*0.52, y0+h-0.50, cz+0.4+Math.sin(a)*0.52, 0, "#f0e0b0");
+  }
+  OC("metal", 0.02,0.02,0.50,6, cx+1.2, h-0.30, cz+0.4, "#6b6f72");
+  LAMPS.push({x:cx+1.2, y:y0+h-0.75, z:cz+0.4, color:0xffdca8, intensity:0.55, dist:14, decay:1.2, indoor:true});
+  // longhorn skull over the key board, and a jackalope beside it
+  O_("paint", 0.22,0.26,0.52, O.x0+0.40, 2.30, cz-1.6, 0, "#e6e0cc");
+  for(const sd of [-1,1]){
+    push("paint", new T.TorusGeometry(0.30,0.035,6,12), O.x0+0.42, y0+2.42, cz-1.6+sd*0.34,
+         0, "#e6e0cc", Math.PI/2, sd*0.6);
+  }
+  O_("oak", 0.10,0.30,0.26, O.x0+0.40, 2.28, cz+2.4, 0, "#5c4029");
+  O_("paint", 0.18,0.22,0.20, O.x0+0.46, 2.46, cz+2.4, 0, "#7a5b3a");
+  for(const sd of [-1,1]) O_("paint", 0.05,0.34,0.05, O.x0+0.50, 2.72, cz+2.4+sd*0.08, 0, "#c8b48a");
+  // a big saguaro in a terracotta pot by the glass
+  OC("gravel", 0.40,0.30,0.50,14, O.x1-4.6, 0.25, O.z0+1.0, "#a35a34");
+  OC("gravel", 0.36,0.36,0.08,14, O.x1-4.6, 0.53, O.z0+1.0, "#7c6a4a");
+  OC("foliage", 0.21,0.25,1.70,12, O.x1-4.6, 1.35, O.z0+1.0, "#4f6b3a");
+  for(const sd of [-1,1]){
+    OC("foliage", 0.13,0.15,0.62,10, O.x1-4.6+sd*0.34, 1.50, O.z0+1.0, "#4f6b3a", 0,Math.PI/2);
+    OC("foliage", 0.12,0.14,0.78,10, O.x1-4.6+sd*0.62, 1.86, O.z0+1.0, "#4f6b3a");
+    push("foliage", new T.SphereGeometry(0.13,10,8), O.x1-4.6+sd*0.62, y0+2.25, O.z0+1.0, 0, "#57713f");
+  }
+  push("foliage", new T.SphereGeometry(0.22,12,9), O.x1-4.6, y0+2.20, O.z0+1.0, 0, "#57713f");
+  addCol(O.x1-5.0,O.x1-4.2, O.z0+0.6, O.z0+1.4, y0, y0+1.8);
+  // rotating postcard rack
+  OC("metal", 0.05,0.05,1.55,8, O.x1-1.5, 0.78, cz-2.8, "#8f9aa0");
+  for(let t=0;t<4;t++) for(let k=0;k<4;k++){
+    const a=k*Math.PI/2+t*0.2;
+    push("art", boxGeo(0.20,0.28,0.02,0), O.x1-1.5+Math.cos(a)*0.16, y0+0.72+t*0.30,
+         cz-2.8+Math.sin(a)*0.16, a, ["#c3562f","#3f6ea8","#4f7a4a","#c9a24b"][k]);
+  }
+  addCol(O.x1-1.85,O.x1-1.15, cz-3.15, cz-2.45, y0, y0+1.6);
+  // soda machine and a cigarette machine against the north wall
+  O_("paint", 1.00,1.86,0.66, O.x0+4.6, 0.93, O.z1-0.6, 0, "#8f2c22");
+  push("vendglow", boxGeo(0.74,1.16,0.02,0), O.x0+4.6, y0+1.12, O.z1-0.96, 0, "#ffd27a");
+  addCol(O.x0+4.1,O.x0+5.1, O.z1-1.0, O.z1-0.3, y0, y0+1.9);
+  O_("paint", 0.62,1.40,0.46, O.x0+5.9, 0.70, O.z1-0.5, 0, "#3a4a52");
+  O_("metal", 0.54,0.10,0.04, O.x0+5.9, 1.16, O.z1-0.74, 0, "#b8bcbc");
+  addCol(O.x0+5.6,O.x0+6.2, O.z1-0.8, O.z1-0.25, y0, y0+1.5);
+  // payphone by the door
+  O_("paint", 0.30,0.56,0.20, O.x1-0.36, 1.42, cz-1.6, 0, "#22303a");
+  O_("paint", 0.10,0.24,0.08, O.x1-0.52, 1.44, cz-1.6, 0, "#12191f");
+  // framed prints and a wall map
+  push("art", boxGeo(0.03,0.44,0.66,0), O.x1-0.20, y0+2.06, cz+1.6, 0, "#9a7a4c");
+  push("art", boxGeo(0.03,0.44,0.66,0), O.x1-0.20, y0+2.06, cz+2.6, 0, "#7a6a4c");
+  push("art", boxGeo(0.90,0.62,0.03,0), O.x0+7.4, y0+2.10, O.z1-0.16, 0, "#c8bd94");
+  // television on a bracket in the corner
+  O_("metal", 0.30,0.06,0.30, O.x1-1.4, 2.10, O.z1-0.7, 0, "#8f9aa0");
+  O_("paint", 0.56,0.46,0.52, O.x1-1.4, 2.36, O.z1-0.7, 0, "#2f2f2e");
+  push("tvglass", boxGeo(0.40,0.30,0.03,0), O.x1-1.4, y0+2.36, O.z1-0.97, 0, "#1d262b");
+  // rag rug, guest register, mint bowl, desk fan, NO VACANCY box in the window
+  O_("fabric", 2.60,0.03,1.70, O.x1-3.6, 0.04, O.z0+2.6, 0, "#6f4a42");
+  O_("fabric", 2.20,0.01,1.32, O.x1-3.6, 0.055, O.z0+2.6, 0, "#8a6f52");
+  // magazines on the coffee table, a hat rack by the door, a print on the north wall
+  O_("art", 0.30,0.02,0.22, O.x1-3.7, 0.50, O.z0+2.9, 0, "#c9a24b");
+  O_("art", 0.28,0.02,0.20, O.x1-3.5, 0.53, O.z0+2.84, 0, "#3f6ea8");
+  OC("metal", 0.05,0.05,1.75,8, O.x1-0.9, 0.88, O.z1-2.2, "#6b6156");
+  for(let k=0;k<3;k++){ const a=k*2.09;
+    O_("metal", 0.16,0.05,0.05, O.x1-0.9+Math.cos(a)*0.10, 1.66, O.z1-2.2+Math.sin(a)*0.10, 0, "#6b6156"); }
+  O_("paint", 0.34,0.14,0.34, O.x1-0.9, 1.80, O.z1-2.2, 0, "#8a6a3c");
+  push("art", boxGeo(1.10,0.72,0.03,0), O.x0+5.0, y0+2.14, O.z1-0.20, 0, "#a8895a");
+  O_("paint", 0.42,0.06,0.32, O.x0+3.3, 1.24, cz+0.2, 0, "#e6e0cc");
+  O_("oak",   0.44,0.04,0.34, O.x0+3.3, 1.21, cz+0.2, 0.6, "#4a3524");
+  push("bin", new T.SphereGeometry(0.10,10,8), O.x0+3.3, y0+1.24, cz-1.9, 0, "#cfe0e6");
+  OC("metal", 0.13,0.13,0.05,12, O.x0+3.2, 1.36, cz+1.6, "#8f9aa0", Math.PI/2);
+  OC("metal", 0.02,0.02,0.22,6, O.x0+3.2, 1.28, cz+1.6, "#8f9aa0");
+  push("neonbox", boxGeo(0.92,0.30,0.05,0), O.x1-3.0, y0+2.60, O.z0+0.42, 0, "#ff5a3a");
   // three warm ceiling pans
   for(const p of [[O.x0+2.6,cz-2.4],[O.x0+6.4,cz],[O.x1-2.4,cz+2.2]]){
     push("ceilfix", new T.CylinderGeometry(0.34,0.40,0.14,14), p[0], y0+h-0.30, p[1], 0, "#e8dcc0");
-    LAMPS.push({x:p[0], y:y0+h-0.45, z:p[1], color:0xffe9c4, intensity:1.35, dist:13, indoor:true});
+    LAMPS.push({x:p[0], y:y0+h-0.45, z:p[1], color:0xffe9c4, intensity:0.68, dist:16, decay:1.15, indoor:true});
   }
 })();
 
-/* --- a handful of parked cars, built the way every other prop is ----- */
-bucketOf("carpaint", ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.42, metalness:0.30}));
+/* --- parked cars ------------------------------------------------------
+   Same body language as the Project 76 chassis: an interpenetrating stack of
+   primitives (rocker pan, main body, hood and trunk decks, cowl lip, glass
+   house, roof cap), chrome bumpers, lens pieces for the lamps, and wheels
+   inset into the flanks with a tyre and a hub. No two layers share a plane,
+   which is what keeps the silhouette reading as a car instead of a slab.  */
+bucketOf("carpaint", ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.38, metalness:0.34}));
+bucketOf("chrome",   ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.26, metalness:0.85}));
+bucketOf("carglass", ()=>new T.MeshStandardMaterial({color:0xffffff, transparent:true, opacity:0.80,
+                          roughness:0.08, metalness:0.45}));
+bucketOf("tyre",     ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.95}));
 (function parkedCars(){
-  const BODY=["#7d2318","#26456e","#b9b3a4","#2f4a33","#8a6a2c","#3c3b39","#a8442a"];
-  // [x, z, yaw, kind]  kind 0 = sedan, 1 = pickup, 2 = van
-  const SLOTS=[[-44.6,-33.6,0,0],[-38.8,-33.6,0,1],[-15.9,-33.6,0,0],[7.3,-33.6,0,2],
-               [24.7,-33.6,0,0],[-27.2,-24.4,0,1],[-4.2,-24.4,0,0],[15.2,-24.4,0,0],
-               [-18.0,11.2,0,0],[-6.4,11.2,0,1],[9.2,11.2,0,0],
-               [21.6,-3.0,Math.PI/2,0],[21.6,-12.0,Math.PI/2,2]];
-  const glassC="#243038", tyre="#101010", chrome="#b6b1a4";
+  const BODY=["#7c1f14","#21386e","#b0b3b8","#2f5a34","#8a5a1e","#3a3735","#a8452b","#6d6b5e"];
+  const GLASS="#20303a", TYRE="#0c0b0a", HUB="#9a9284", CHR="#b8b0a0";
+  const R=0.36, HW=0.90, WB=1.42;            // wheel radius, track, wheelbase
+  // [x, z, yaw, kind]   kind 0 sedan · 1 pickup · 2 van
+  const SLOTS=[
+    [-44.6,-35.6, 0.02, 0],[-38.8,-35.6,-0.03, 1],[-15.9,-35.6, 0.01, 0],
+    [  7.3,-35.6, 0.04, 2],[ 24.7,-35.6,-0.02, 0],
+    [-27.2,-26.4, 0.00, 1],[ -4.2,-26.4, 0.03, 0],[ 15.2,-26.4,-0.01, 0],
+    [-18.0,  8.70, 0.02, 0],[ -9.6,  8.70,-0.02, 1],
+    [ 21.4,-12.0, Math.PI/2+0.02, 0],[ 21.4,-19.0, Math.PI/2-0.02, 2],
+    [-27.4, -3.2, Math.PI/2, 0],   // pulled up under the porte-cochere
+  ];
   for(let i=0;i<SLOTS.length;i++){
     const S=SLOTS[i], col=BODY[i%BODY.length], yaw=S[2], kind=S[3];
-    const L=kind===1?5.4:(kind===2?5.0:4.8), W=1.94, wb=L*0.32;
-    const at=(lx,ly,lz)=>[S[0]+lx*Math.cos(yaw)+lz*Math.sin(yaw), ly, S[1]-lx*Math.sin(yaw)+lz*Math.cos(yaw)];
-    const B=(w,h,d,lx,ly,lz,bucket,c)=>{ const q=at(lx,ly,lz);
-      push(bucket||"carpaint", boxGeo(w,h,d,0.4), q[0],q[1],q[2], yaw, c||col); };
-    B(W,0.30,L, 0,0.44,0, "carpaint", "#1a1917");                       // rocker
-    B(W-0.06,0.52,L-0.12, 0,0.72,0);                                    // body
-    if(kind===1){                                                       // pickup: cab + bed
-      B(W-0.20,0.60,1.90, 0,1.24,0.72);
-      push("glass", boxGeo(W-0.34,0.42,1.60,0), ...at(0,1.30,0.70), yaw, glassC);
-      B(W-0.14,0.34,2.30, 0,1.10,-1.30);
-      B(W-0.16,0.06,2.10, 0,1.24,-1.30, "carpaint", "#2a2724");
-    }else if(kind===2){                                                 // van
-      B(W-0.10,1.10,3.60, 0,1.48,-0.30);
-      push("glass", boxGeo(W-0.24,0.60,3.20,0), ...at(0,1.62,-0.30), yaw, glassC);
-      B(W-0.16,0.60,0.10, 0,1.30,1.62, "glass", glassC);
-    }else{                                                              // sedan
-      B(W-0.24,0.62,2.50, 0,1.28,-0.15);
-      push("glass", boxGeo(W-0.36,0.46,2.24,0), ...at(0,1.32,-0.15), yaw, glassC);
-      B(W-0.30,0.10,2.30, 0,1.58,-0.18);
+    const cy=Math.cos(yaw), sy=Math.sin(yaw);
+    const at=(lx,lz)=>[S[0]+lx*cy+lz*sy, S[1]-lx*sy+lz*cy];
+    const B=(bucket,w,h,d,lx,ly,lz,c)=>{ const q=at(lx,lz);
+      push(bucket, boxGeo(w,h,d,0.45), q[0],ly,q[1], yaw, c||col); };
+    const CY=(bucket,rt,rb,h,seg,lx,ly,lz,c,rx,rz)=>{ const q=at(lx,lz);
+      push(bucket, new T.CylinderGeometry(rt,rb,h,seg), q[0],ly,q[1], yaw, c, rx||0, rz||0); };
+    const G=(w,h,d,lx,ly,lz)=>{ const q=at(lx,lz);
+      push("carglass", boxGeo(w,h,d,0), q[0],ly,q[1], yaw, GLASS); };
+
+    /* ---- shared lower body -------------------------------------------- */
+    B("carpaint", 2.04,0.30,4.62, 0,0.39,0,   "#1b1a18");     // rocker / pan
+    B("carpaint", 1.98,0.52,4.50, 0,0.67,0);                  // main body (top 0.93)
+    B("carpaint", 1.82,0.18,1.50, 0,0.89, 1.42);              // hood deck
+    B("carpaint", 2.06,0.28,0.22, 0,0.53, 2.34, CHR);         // front bumper
+    B("carpaint", 2.06,0.28,0.22, 0,0.53,-2.34, CHR);         // rear bumper
+    B("carpaint", 1.30,0.22,0.10, 0,0.80, 2.30, "#2b2a28");   // grille
+    B("carpaint", 0.34,0.14,0.04, 0,0.53,-2.46, "#d8d2bc");   // plate
+    CY("carpaint", 0.16,0.16,0.12,14, -0.66,0.80,2.30, "#ffe9a8", Math.PI/2);
+    CY("carpaint", 0.16,0.16,0.12,14,  0.66,0.80,2.30, "#ffe9a8", Math.PI/2);
+    B("carpaint", 0.42,0.18,0.12, -0.66,0.80,-2.32, "#8c2418");
+    B("carpaint", 0.42,0.18,0.12,  0.66,0.80,-2.32, "#8c2418");
+    B("carpaint", 2.02,0.05,3.10, 0,0.945,-0.20, "#d8d2c4");  // beltline chrome strip
+
+    /* ---- greenhouse, per body style ----------------------------------- */
+    if(kind===1){                                             // pickup
+      B("carpaint", 1.82,0.16,1.10, 0,0.90, 0.62);            // cab base
+      G(1.52,0.44,1.34, 0,1.20,0.62);
+      B("carpaint", 1.44,0.14,1.16, 0,1.41, 0.60);            // cab roof
+      B("carpaint", 1.90,0.44,0.10, 0,1.14,-0.02);            // bulkhead
+      B("carpaint", 0.13,0.40,2.26, -0.92,1.12,-1.20);        // bed sides
+      B("carpaint", 0.13,0.40,2.26,  0.92,1.12,-1.20);
+      B("carpaint", 1.94,0.40,0.13, 0,1.12,-2.28);            // tailgate
+      B("carpaint", 1.72,0.06,2.14, 0,0.96,-1.20, "#3a352e");  // bed floor
+      for(let k=0;k<4;k++) B("carpaint", 0.06,0.02,2.06, -0.62+k*0.42,1.00,-1.20, "#2c2822");
+    }else if(kind===2){                                       // panel van
+      B("carpaint", 1.92,0.90,3.30, 0,1.20,-0.55);            // box
+      G(1.56,0.42,0.90, 0,1.30,1.00);
+      B("carpaint", 1.80,0.12,3.10, 0,1.66,-0.55);            // roof cap
+      G(0.10,0.36,0.92, -0.94,1.34,-0.30);
+      G(0.10,0.36,0.92,  0.94,1.34,-0.30);
+      B("carpaint", 1.62,0.62,0.08, 0,1.14,-2.22, "#c8c2b4");  // rear doors
+    }else{                                                    // sedan
+      B("carpaint", 1.82,0.16,1.15, 0,0.88,-1.52);            // trunk deck
+      B("carpaint", 1.70,0.16,1.95, 0,0.97,-0.05);            // cowl lip
+      G(1.50,0.42,1.60, 0,1.21,-0.08);
+      B("carpaint", 1.40,0.14,1.34, 0,1.40,-0.10);            // roof cap
+      B("carpaint", 0.08,0.18,0.16, -1.02,1.02, 0.92, CHR);   // mirrors
+      B("carpaint", 0.08,0.18,0.16,  1.02,1.02, 0.92, CHR);
+      CY("carpaint", 0.012,0.012,0.80,6, 0.94,1.30,1.10, CHR, 0.16); // antenna
     }
-    B(W+0.06,0.20,0.20, 0,0.60, L/2-0.05, "carpaint", chrome);          // bumpers
-    B(W+0.06,0.20,0.20, 0,0.60,-L/2+0.05, "carpaint", chrome);
-    B(0.34,0.16,0.10, -0.62,0.78, L/2-0.02, "carpaint", "#e8dcb4");     // lamps
-    B(0.34,0.16,0.10,  0.62,0.78, L/2-0.02, "carpaint", "#e8dcb4");
-    B(0.40,0.16,0.10, -0.62,0.78,-L/2+0.02, "carpaint", "#8c2418");
-    B(0.40,0.16,0.10,  0.62,0.78,-L/2+0.02, "carpaint", "#8c2418");
-    for(const wq of [[-W/2,wb],[W/2,wb],[-W/2,-wb],[W/2,-wb]]){
-      const q=at(wq[0],0.34,wq[1]);
-      push("carpaint", new T.CylinderGeometry(0.34,0.34,0.24,14), q[0],q[1],q[2], yaw, tyre, 0,0,Math.PI/2);
-      push("carpaint", new T.CylinderGeometry(0.18,0.18,0.26,10), q[0],q[1],q[2], yaw, chrome, 0,0,Math.PI/2);
+
+    /* ---- wheels, tucked into the flanks ------------------------------- */
+    for(const w of [[-HW,WB],[HW,WB],[-HW,-WB],[HW,-WB]]){
+      CY("tyre",  R,R,0.30,18, w[0]*0.98, R, w[1], TYRE, 0, Math.PI/2);
+      CY("chrome",R*0.52,R*0.52,0.32,12, w[0]*0.98, R, w[1], HUB, 0, Math.PI/2);
+      B("carpaint", 0.10,0.30,1.14, w[0]*1.02, R+0.30, w[1], "#171614");  // arch shadow
     }
-    const half=[Math.abs(Math.cos(yaw))*W/2+Math.abs(Math.sin(yaw))*L/2,
-                Math.abs(Math.sin(yaw))*W/2+Math.abs(Math.cos(yaw))*L/2];
-    addCol(S[0]-half[0], S[0]+half[0], S[1]-half[1], S[1]+half[1], 0, 1.7);
+    const hx=Math.abs(cy)*1.03+Math.abs(sy)*2.45, hz=Math.abs(sy)*1.03+Math.abs(cy)*2.45;
+    addCol(S[0]-hx, S[0]+hx, S[1]-hz, S[1]+hz, 0, 1.5);
   }
 })();
 
@@ -1884,13 +2212,13 @@ const NEON=[];   // panels that brighten after dark
     bx("metal", 0.07,0.60,0.07, sx+d, 6.45, sz-0.42, 0, 0, "#b8bcbc");
     push("ceilfix", new T.CylinderGeometry(0.22,0.14,0.16,12), sx+d, 6.20, sz-0.62, 0, "#e8dcc0");
   }
-  LAMPS.push({x:sx, y:6.0, z:sz-1.0, color:0xffd9a0, intensity:1.1, dist:14});
+  LAMPS.push({x:sx, y:6.0, z:sz-1.0, color:0xffd9a0, intensity:0.75, dist:16, decay:1.5});
 
   /* --- walkway sconces on both wings, plus lot pole lights ----------- */
   function sconce(x,y,z,ry){
     push("ceilfix", new T.CylinderGeometry(0.12,0.17,0.16,12), x, y, z, ry, "#e8dcc0");
     bx("metal", 0.06,0.22,0.06, x, y+0.16, z, 0, 0, "#8f9aa0");
-    LAMPS.push({x:x, y:y-0.1, z:z, color:0xffd9a0, intensity:0.80, dist:9});
+    LAMPS.push({x:x, y:y-0.1, z:z, color:0xffd9a0, intensity:0.52, dist:11, decay:1.4});
   }
   for(let i=0;i<NORTH.bays;i++){
     const x=-27+i*BAY_W+BAY_W/2;
@@ -1907,7 +2235,7 @@ const NEON=[];   // panels that brighten after dark
     bx("metal", 0.9,0.22,0.5, p[0], 7.35, p[1]+0.3, 0, 0, "#8f9aa0");
     push("ceilfix", boxGeo(0.78,0.10,0.42,0), p[0], 7.22, p[1]+0.3, 0, "#f2e9cf");
     addCol(p[0]-0.2,p[0]+0.2,p[1]-0.2,p[1]+0.2, 0, 7.4);
-    LAMPS.push({x:p[0], y:7.0, z:p[1]+0.3, color:0xffe0a8, intensity:0.85, dist:26, pole:true});
+    LAMPS.push({x:p[0], y:7.0, z:p[1]+0.3, color:0xffe0a8, intensity:0.90, dist:30, decay:1.6, pole:true});
   }
   // pool rules copy + the room-door number strip get their painted faces
   NEON.push(signPanel(0.86,0.62, signTex(256,192,(x,W,H)=>{
@@ -1918,6 +2246,134 @@ const NEON=[];   // panels that brighten after dark
     x.font="15px 'JetBrains Mono', monospace"; x.textAlign="center";
     lines.forEach((L,i)=>x.fillText(L,W/2,72+i*28));
   }), POOL.deck.x0+2.6, 0.10+1.42, POOL.deck.z0+0.58, 0, false));
+})();
+
+/* --- site ambience: the service yard, the walkway clutter, the roadside -
+   Any one of these is a box or two. Together they are what stops the lot
+   reading as an empty plane with a building on it.                       */
+(function ambience(){
+  const CHAIN="#b4b9bc", RUSTC="#9c5232", GALV="#9aa1a6";
+  // chain-link back fence around the property, with a wire-frame mesh panel
+  bucketOf("chainlink", ()=>new T.MeshStandardMaterial({map:TEX.chain, transparent:true,
+    alphaTest:0.30, side:T.DoubleSide, roughness:0.6, metalness:0.35}));
+  function fence(x0,z0,x1,z1){
+    const horiz=Math.abs(x1-x0)>Math.abs(z1-z0), len=horiz?(x1-x0):(z1-z0);
+    const cx=(x0+x1)/2, cz=(z0+z1)/2;
+    push("chainlink", planeGeo(len, 2.10, 2.2), cx, 1.05, cz, horiz?0:Math.PI/2, CHAIN);
+    if(horiz){ bx("metal", len, 0.06, 0.06, cx, 2.12, cz, 0, 0, GALV);
+               for(let x=x0;x<=x1;x+=3.0) cyl("metal", 0.05,0.05,2.30,8, x, 1.15, cz, GALV);
+               addCol(x0,x1, cz-0.12, cz+0.12, 0, 2.2); }
+    else     { bx("metal", 0.06, 0.06, len, cx, 2.12, cz, 0, 0, GALV);
+               for(let z=z0;z<=z1;z+=3.0) cyl("metal", 0.05,0.05,2.30,8, cx, 1.15, z, GALV);
+               addCol(cx-0.12, cx+0.12, z0,z1, 0, 2.2); }
+  }
+  fence(-50, 25.6, 38, 25.6);      // back of the property
+  fence(38, -22, 38, 25.6);        // east side, beyond wing B
+  fence(-50, -13, -50, 25.6);      // west side, beyond the office
+
+  // service yard behind wing A
+  bx("paint", 2.30,1.30,1.20, -20.0, 0.65, 23.4, 0.4, 0, "#3f5c46");        // dumpster
+  bx("paint", 2.34,0.14,1.24, -20.0, 1.36, 23.4, 0, 0, "#4a6b52");
+  bx("metal", 0.10,0.30,0.10, -21.0, 1.50, 23.4, 0, 0, GALV);
+  addCol(-21.2,-18.8, 22.7, 24.1, 0, 1.5);
+  cyl("metal", 0.55,0.55,2.60,14, 14.0, 1.30, 23.2, "#c8c4b4");             // propane tank
+  cyl("metal", 0.62,0.62,0.14,14, 14.0, 2.68, 23.2, "#9aa1a6");
+  addCol(13.4,14.6, 22.6, 23.8, 0, 2.7);
+  for(let i=0;i<6;i++){                                                      // condensers on the back wall
+    const cx=-24+i*9.5;
+    bx("metal", 1.05,0.95,0.85, cx, 0.62, 21.6, 0.4, 0, GALV);
+    for(let k=0;k<5;k++) bx("metal", 0.95,0.04,0.03, cx, 0.36+k*0.13, 21.19, 0, 0, "#5f676b");
+    addCol(cx-0.6, cx+0.6, 21.1, 22.1, 0, 1.1);
+  }
+  cyl("metal", 0.30,0.30,0.22,12, -9.0, 0.90, 21.5, RUSTC, 0,0,Math.PI/2);  // hose reel
+  cyl("metal", 0.05,0.05,1.30,8, -9.0, 0.65, 21.5, GALV);
+  for(let i=0;i<4;i++) bx("oak", 1.15,0.11,0.95, 6.0, 0.06+i*0.13, 22.8, 0.6, 0, "#6a5236");
+  addCol(5.3,6.7, 22.2, 23.4, 0, 0.7);
+  for(let i=0;i<5;i++){                                                      // oil drums
+    const dx=-14.5+i*1.0+(i%2)*0.25, dz=23.6+(i%2)*0.9;
+    cyl("metal", 0.30,0.30,0.88,12, dx, 0.44, dz, ["#9c5232","#3f5c46","#7a6a4c"][i%3]);
+    addCol(dx-0.34,dx+0.34, dz-0.34, dz+0.34, 0, 0.9);
+  }
+  for(let i=0;i<3;i++)                                                       // stacked old mattresses
+    bx("spread", 1.95,0.24,1.42, 20.0, 0.13+i*0.26, 23.2, 0.4, 0, ["#8f5a4a","#5e7c6e","#8a7440"][i]);
+  addCol(19.0,21.0, 22.4, 24.0, 0, 0.9);
+  for(let i=0;i<4;i++) cyl("metal", 0.02,0.02,7.0,6, -4.0+i*0.02, 2.10, 21.9+i*0.6, GALV, 0,0,Math.PI/2);
+  for(let i=0;i<6;i++) bx("fabric", 0.70,0.90,0.03, -6.6+i*0.9, 1.62, 22.2, 0, 0,   // laundry line
+                          ["#e6e2d6","#dfe6e4","#e8dcc0"][i%3]);
+  cyl("metal", 0.06,0.06,2.60,8, -7.6, 1.30, 22.2, GALV);
+  cyl("metal", 0.06,0.06,2.60,8, -0.6, 1.30, 22.2, GALV);
+  bx("paint", 1.60,1.10,0.10, 30.0, 0.60, 24.4, 0, 0, "#8a5a3a");            // leaning old sign
+  bx("metal", 0.90,0.60,0.06, 32.4, 0.32, 23.6, 0, 0, "#7a6a5c");
+
+  // walkway clutter along wing A
+  const props=[[-24.4,"bench"],[-21.2,"urn"],[-15.4,"plant"],[-3.2,"chest"],
+               [8.6,"plant"],[15.4,"bench"],[21.0,"urn"]];
+  for(const pr of props){
+    const px=pr[0], pz=13.55, y=BASE;
+    if(pr[1]==="bench"){
+      bx("oak", 1.70,0.09,0.44, px, y+0.44, pz, 0.6, 0, "#5c4029");
+      bx("oak", 1.70,0.36,0.09, px, y+0.66, pz+0.20, 0.6, 0, "#5c4029");
+      for(const d of [-0.72,0.72]){ bx("metal", 0.09,0.44,0.40, px+d, y+0.22, pz, 0, 0, "#4b4f52"); }
+      addCol(px-0.9,px+0.9, pz-0.3, pz+0.3, y, y+0.9);
+    }else if(pr[1]==="urn"){
+      cyl("metal", 0.17,0.20,0.72,12, px, y+0.36, pz, "#5b5f62");
+      cyl("gravel", 0.15,0.15,0.06,12, px, y+0.74, pz, "#8a7a5e");
+      addCol(px-0.22,px+0.22, pz-0.22, pz+0.22, y, y+0.8);
+    }else if(pr[1]==="plant"){
+      cyl("gravel", 0.30,0.23,0.42,12, px, y+0.21, pz, "#a35a34");
+      push("foliage", new T.IcosahedronGeometry(0.40,1), px, y+0.68, pz, 0, "#4f6b3a");
+      push("foliage", new T.IcosahedronGeometry(0.26,1), px+0.22, y+0.52, pz-0.10, 0, "#57713f");
+      addCol(px-0.36,px+0.36, pz-0.36, pz+0.36, y, y+1.0);
+    }else{
+      bx("paint", 1.05,0.80,0.62, px, y+0.40, pz, 0, 0, "#b8332a");         // ice chest
+      bx("paint", 1.09,0.10,0.66, px, y+0.85, pz, 0, 0, "#d8d4c8");
+      addCol(px-0.6,px+0.6, pz-0.4, pz+0.4, y, y+0.95);
+    }
+  }
+
+  // roadside: billboard, mailbox, newspaper boxes, a bus bench, a water tower
+  (function billboard(){
+    const bx0=62, bz=ROADZ-13, yaw=Math.PI;
+    for(const d of [-3.6,3.6]){ bx("metal", 0.34,7.6,0.34, bx0+d, 3.8, bz, 0, 0, "#6b6156");
+      addCol(bx0+d-0.24, bx0+d+0.24, bz-0.24, bz+0.24, 0, 7.6); }
+    bx("paint", 10.4,3.8,0.34, bx0, 6.6, bz, 0, 0, "#e6e2d6");
+    const tex=signTex(768,280,(x,W,H)=>{
+      x.fillStyle="#d8cdae"; x.fillRect(0,0,W,H);
+      x.fillStyle="#13405e"; x.fillRect(0,0,W,54);
+      x.fillStyle="#f1ead6"; fitText(x,"NEXT SERVICES 74 MILES", W*0.9, 40, W/2, 28);
+      x.fillStyle="#c3311f"; fitText(x,"GAS · FOOD · ICE", W*0.86, 88, W/2, 120);
+      x.fillStyle="#3a3a36"; fitText(x,"KEEP LEFT AT THE JUNCTION", W*0.8, 44, W/2, 210);
+    });
+    NEON.push(signPanel(10.0,3.5,tex, bx0, 6.6, bz-0.19, Math.PI, true));
+    NEON.push(signPanel(10.0,3.5,tex, bx0, 6.6, bz+0.19, 0, true));
+    for(const d of [-2.6,2.6]) bx("metal", 0.16,0.50,0.16, bx0+d, 8.7, bz-0.5, 0, 0, "#6b6156");
+  })();
+  bx("oak", 0.12,1.10,0.12, -47.0, 0.55, -42.6, 0, 0, "#5b4632");            // mailbox
+  bx("metal", 0.26,0.26,0.46, -47.0, 1.24, -42.6, 0, 0, "#8f9aa0");
+  for(let i=0;i<3;i++){                                                       // newspaper boxes
+    bx("paint", 0.42,0.86,0.40, -41.5+i*0.52, 0.43, -42.4, 0, 0,
+       ["#c3311f","#3f6ea8","#e0d24a"][i]);
+    bx("metal", 0.10,0.34,0.06, -41.5+i*0.52, 0.72, -42.62, 0, 0, "#3a3a36");
+  }
+  addCol(-42.0,-40.2, -42.7,-42.1, 0, 0.9);
+  bx("oak", 1.90,0.09,0.42, 30.0, 0.50, -43.0, 0.6, 0, "#5c4029");            // bus bench
+  bx("oak", 1.90,0.40,0.09, 30.0, 0.72, -43.2, 0.6, 0, "#5c4029");
+  for(const d of [-0.8,0.8]) bx("metal", 0.09,0.46,0.38, 30.0+d, 0.25, -43.0, 0, 0, "#4b4f52");
+  addCol(29.0,31.0, -43.4,-42.7, 0, 0.95);
+  (function watertower(){
+    const wx=-168, wz=88, gy=Terrain.heightAt(wx,wz);
+    for(const l of [[-2.6,-2.6],[2.6,-2.6],[-2.6,2.6],[2.6,2.6]])
+      cyl("metal", 0.20,0.26,17,8, wx+l[0], gy+8.5, wz+l[1], GALV);
+    for(const yy of [5,10,14]){
+      bx("metal", 5.4,0.16,0.16, wx, gy+yy, wz-2.6, 0, 0, GALV);
+      bx("metal", 5.4,0.16,0.16, wx, gy+yy, wz+2.6, 0, 0, GALV);
+      bx("metal", 0.16,0.16,5.4, wx-2.6, gy+yy, wz, 0, 0, GALV);
+      bx("metal", 0.16,0.16,5.4, wx+2.6, gy+yy, wz, 0, 0, GALV);
+    }
+    cyl("metal", 3.6,3.6,5.2,18, wx, gy+19.6, wz, "#b6b1a4");
+    push("roofG", new T.CylinderGeometry(0.06,3.9,2.2,18), wx, gy+23.3, wz, 0, "#8a3a2a");
+    push("art", boxGeo(4.6,1.5,0.10,0), wx, gy+19.6, wz-3.55, 0, "#e6e2d6");
+  })();
 })();
 
 /* ----------------------------------------------------------------------
@@ -1953,6 +2409,10 @@ bucketOf("winglow", ()=>glowMat({color:0xffffff, emissive:0xffcf8a, emissiveInte
 bucketOf("iceglow", ()=>glowMat({color:0xffffff, emissive:0x6fd2ff, emissiveIntensity:0.25}, "cool"));
 bucketOf("vendglow",()=>glowMat({color:0xffffff, emissive:0xffc46a, emissiveIntensity:0.25}, "warm"));
 bucketOf("niche",   ()=>glowMat({color:0xffffff, emissive:0x9fe8ff, emissiveIntensity:0.6}, "pool"));
+bucketOf("bedding", ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.98}));
+bucketOf("clockled",()=>glowMat({color:0xffffff, emissive:0xff5a2a, emissiveIntensity:0.9}, "warm"));
+bucketOf("neonbox", ()=>glowMat({color:0xffffff, emissive:0xff3a2a, emissiveIntensity:0.5}, "warm"));
+bucketOf("fabric",  ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.96}));
 
 const BAKED=bakeBuckets(scene);
 
@@ -1975,7 +2435,7 @@ const BAKED=bakeBuckets(scene);
    ---------------------------------------------------------------------- */
 const LIGHT_POOL=[];
 for(let i=0;i<7;i++){
-  const L=new T.PointLight(0xffe9c4, 0, 10, 2); L.castShadow=false;
+  const L=new T.PointLight(0xffe9c4, 0, 10, 1.4); L.castShadow=false;
   scene.add(L); LIGHT_POOL.push(L);
 }
 const _lampSort=[];
@@ -1995,7 +2455,8 @@ function updateLights(dark, camPos){
     L.position.set(e.l.x, e.l.y, e.l.z);
     L.color.setHex(e.l.color);
     L.distance=e.l.dist;
-    L.intensity=e.l.intensity*mult*1.5;
+    L.decay=e.l.decay||1.5;              // gentler than physical, so no hot spots
+    L.intensity=e.l.intensity*mult;
   }
   for(const L of POOL_LIGHTS) L.intensity=0.16+dark*1.00;
 }
@@ -2338,6 +2799,22 @@ function frame(){
   poolFloorCaustic.material.map.offset.set(tt*0.009, -tt*0.014);
   poolGlow.material.opacity=dark*0.48;
   poolGlow.scale.set(26+Math.sin(tt*0.7)*0.9, 14+Math.cos(tt*0.6)*0.6, 1);
+
+  // clouds drift downwind and are tinted by whatever the sky is doing
+  for(let i=0;i<CLOUDS.length;i++){
+    const c=CLOUDS[i];
+    c.position.x += (2.6+i*0.13)*delta;
+    if(c.position.x>1500) c.position.x=-1500;
+    c.material.opacity = 0.16+0.5*(1-dn.nightAmount)*(0.7+0.3*Math.sin(i*1.7));
+    c.material.color.copy(skyImg.mid).lerp(WHITE_C, 0.45-dn.nightAmount*0.3);
+  }
+  for(const b of BIRDS){
+    b.a += b.sp*delta;
+    b.s.position.set(camera.position.x+b.cx+Math.cos(b.a)*b.r, b.y+Math.sin(b.a*2.3)*3.0,
+                     camera.position.z+b.cz+Math.sin(b.a)*b.r);
+    b.s.material.opacity = 0.75*(1-dn.nightAmount);
+    b.s.visible = dn.nightAmount<0.85;
+  }
 
   updateHUD();
   drawPlan();

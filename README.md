@@ -10,23 +10,36 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
 
 ## What is in it
 
-- **24 guest rooms**, all enterable, all furnished: two doubles, a nightstand
-  and lamp, dresser with a CRT television, a chair at the window, and a tiled
-  bathroom with a tub, vanity and mirror. Doors swing open as you reach them,
-  or on `E`.
+- **24 guest rooms**, all enterable, all furnished: two doubles (or a king in
+  every fourth room), a nightstand with a lamp and a clock radio, a dresser with
+  a CRT television, a mini fridge and microwave, a coffee maker and ice bucket,
+  a chair at the window under a valanced drape, a suitcase on the rack, and a
+  tiled bathroom with a tub, vanity, mirror, folded towels and a bath mat. Doors
+  swing open as you reach them, or on `E`.
 - **Two wings in an L** around the courtyard — nine bays and five bays, with a
   service alcove in each (ice machine, vending) and an outdoor stair up to the
   balcony.
-- **The front desk office**: counter, key pigeonholes with fobs, register, desk
-  bell (`E`), lobby seating, brochure rack, coffee urns, and the glazed street
-  wall with gold drapes.
+- **The front desk office**, done up the way these places always were: knotty-pine
+  dado, a wagon-wheel chandelier, a longhorn skull and a jackalope on the wall,
+  a saguaro in a terracotta pot, a spinning postcard rack, soda and cigarette
+  machines, a payphone, a television on a bracket, a rag rug, a hat rack, and
+  the counter itself with key pigeonholes and fobs, register, guest book and a
+  desk bell you can ring (`E`).
 - **The pool**: a real tank with a sloped floor, waterline tile, coping, entry
   steps you can walk down and a deep-end ladder. After dark, underwater niche
   lights, scrolling caustics and an emissive water sheet throw light blue across
   the whole courtyard and up the facade.
 - **The desert**: a graded pad, a two-lane highway with power poles and sagging
-  wires, saguaro and creosote, boulders, tumbleweeds, and named mesas on the
-  horizon.
+  wires, saguaro and creosote, boulders and tumbleweeds. Two escarpments with
+  wandering rim lines close the valley, with steep-sided buttes standing clear
+  of them and sedimentary strata banding every cliff face. Clouds drift, birds
+  circle, and the roadside carries a billboard, a mailbox, newspaper boxes and a
+  bus bench, with a water tower away to the west.
+- **The rest of the property**: thirteen parked cars — sedans, a pickup, a panel
+  van — built from the same primitive stack as the Project 76 chassis; a
+  chain-link fence around the back; a service yard with a dumpster, a propane
+  tank, condensers, oil drums, a laundry line and stacked mattresses; and
+  benches, planters, ice chests and cigarette urns along the walkways.
 - **A full day/night cycle** — sun and moon discs, a repainted gradient sky,
   stars, and every artificial light in the scene ramping up as the sun goes down.
 
@@ -75,8 +88,13 @@ A few pieces are specific to this scene:
   is all an outdoor stair needs.
 - **A hole in the ground.** The terrain is built as a hand-rolled grid rather
   than a `PlaneGeometry` so cells can be dropped — the pool tank is a real void,
-  and the fine grid around the site does not double up on the coarse one that
-  carries the horizon.
+  and three rings (2 m over the site, 7 m across the canyon country, 24 m to the
+  horizon) each cut a hole for the finer one inside it.
+- **Light you can look at.** Tone mapping is off, per the style guide, so
+  nothing may exceed a radiance of 1. Fixtures run at low intensity with a decay
+  around 1.2 rather than the physical 2, which spreads the falloff and keeps
+  cream walls off the clip ceiling; indoor lamps stay lit through the day, since
+  a motel room with the drapes drawn has no daylight to speak of.
 
 `window.MOTEL` exposes the player, the clock and a `go(x, z, yaw, level)` helper
 for tooling and screenshots.

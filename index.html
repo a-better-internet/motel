@@ -236,6 +236,37 @@ const LOT   = { x0:-52, x1:40, z0:-42, z1:26 };         // paved / flat pad
 const ROADZ = -48.5;                                     // highway centre-line
 
 /* ----------------------------------------------------------------------
+   0b · IMAGE SLOTS
+   Every printed surface in the scene is drawn into a canvas at build time.
+   Any of them can be replaced by a hosted picture: put a URL against the
+   slot key in IMAGES below and it is loaded and swapped onto the material
+   at run time, with the canvas art as the fallback until it arrives.
+   Each slot has a FIXED aspect ratio. Author to it and the picture lands
+   square on the surface with no stretching and no cropping.
+
+     slot          ratio (w:h)   suggested pixels
+     brochure       4 : 9         800 x 1800   rack brochures, portrait
+     postcard       2 : 3         800 x 1200   the spinner in the office
+     artWide        2 : 1        1600 x  800   the print over every bed
+     artLand        3 : 2        1200 x  800   framed landscape, rooms+office
+     artPort        2 : 3         800 x 1200   framed portrait
+     tv             4 : 3        1024 x  768   every television screen
+     vendFront      1 : 2         900 x 1800   vending machine fronts
+     vendHeader     3 : 1        1200 x  400   the lit header over a machine
+
+   Keys take an optional variant after a colon, so a slot can carry more
+   than one picture: "brochure:a", "brochure:b", "brochure:c", "artLand:room",
+   "artLand:office", "vendFront:snack", "vendFront:soda". Instances sharing
+   a key share one image and one draw call.
+   ---------------------------------------------------------------------- */
+const SLOT = { brochure:[4,9], postcard:[2,3], artWide:[2,1], artLand:[3,2],
+               artPort:[2,3], tv:[4,3], vendFront:[1,2], vendHeader:[3,1] };
+const IMAGES = {
+  // "artWide":        "https://example.com/over-the-bed.png",
+  // "vendFront:soda": "https://example.com/soda-front.png",
+};
+
+/* ----------------------------------------------------------------------
    1 · HELPERS
    ---------------------------------------------------------------------- */
 const T = THREE;
@@ -250,6 +281,23 @@ function mat(color, opts){
 function cvs(w,h){ const c=document.createElement("canvas"); c.width=w; c.height=h; return c; }
 function setSRGB(t){ try{ t.colorSpace=T.SRGBColorSpace; }catch(e){ t.encoding=T.sRGBEncoding; } return t; }
 function rep(t,x,y){ t.wrapS=t.wrapT=T.RepeatWrapping; t.repeat.set(x,y); return t; }
+// draw a slot's fallback art at exactly the slot's aspect ratio
+function artTex(key, long, draw){
+  const a=SLOT[key.split(":")[0]], W=a[0]>=a[1]?long:Math.round(long*a[0]/a[1]),
+        H=a[1]>=a[0]?long:Math.round(long*a[1]/a[0]);
+  const c=cvs(W,H), x=c.getContext("2d");
+  x.fillStyle="#ffffff"; x.fillRect(0,0,W,H);
+  draw(x,W,H);
+  return hosted(key, setSRGB(new T.CanvasTexture(c)));
+}
+// swap in the hosted picture for this slot, if one has been named
+function hosted(key, tex){
+  const url=IMAGES[key];
+  if(url) new T.TextureLoader().load(url, t=>{
+    tex.image=t.image; setSRGB(tex); tex.needsUpdate=true;
+  }, undefined, ()=>{});
+  return tex;
+}
 
 // deterministic little PRNG so the scene is identical every load
 let _seed = 1337;
@@ -582,7 +630,7 @@ TEX.gravel=(function(){                       // xeriscape beds by the office
 
 TEX.pooltile=(function(){                     // waterline tile band
   const c=cvs(128,64), x=c.getContext("2d");
-  x.fillStyle="#2f9fc9"; x.fillRect(0,0,128,64);
+  x.fillStyle="#2d87ab"; x.fillRect(0,0,128,64);
   x.strokeStyle="rgba(255,255,255,0.5)"; x.lineWidth=2;
   for(let u=0;u<=128;u+=16){ x.beginPath();x.moveTo(u,0);x.lineTo(u,64);x.stroke(); }
   x.beginPath();x.moveTo(0,32);x.lineTo(128,32);x.stroke();
@@ -741,11 +789,15 @@ const Terrain=(function(){
 
   // the graded pad: the lot plus the highway corridor, all dead flat at y = 0
   const PAD={x0:LOT.x0-14, x1:LOT.x1+14, z0:ROADZ-16, z1:LOT.z1+12};
-  function padDist(x,z){
-    const dx=Math.max(PAD.x0-x, 0, x-PAD.x1);
-    const dz=Math.max(PAD.z0-z, 0, z-PAD.z1);
-    return Math.hypot(dx,dz);
+  // The highway keeps going after the pad does. Its corridor is graded flat
+  // out to the edge of the world, and the badlands and buttes it crosses are
+  // cut away on either side of it, so the road runs off to a vanishing point
+  // instead of stopping in mid-desert.
+  const CORR={x0:-1760, x1:1760, z0:ROADZ-26, z1:ROADZ+26};
+  function boxDist(B,x,z){
+    return Math.hypot(Math.max(B.x0-x, 0, x-B.x1), Math.max(B.z0-z, 0, z-B.z1));
   }
+  function padDist(x,z){ return Math.min(boxDist(PAD,x,z), boxDist(CORR,x,z)); }
   // Named buttes so the horizon has a memorable silhouette. `flat` is how
   // much of the radius is tabletop: the higher it is, the more the sides read
   // as a cliff rather than a hill.
@@ -780,8 +832,9 @@ const Terrain=(function(){
              + (fbm(x*0.0210,    z*0.0210)   -0.5)*1.9;
     let h=PAD_Y + smoothstep(0,7,d)*0.25 + t*(1.1+dune);
     // far ring: ground lifts into broken badlands past ~430 m
+    const cut=smoothstep(0, 210, boxDist(CORR,x,z));     // the highway's cut
     const dc=Math.hypot(x, z+8);
-    const ring=smoothstep(600, 1400, dc);
+    const ring=smoothstep(600, 1400, dc)*cut;
     if(ring>0){
       const silh=fbm(x*0.0042+80, z*0.0042+80);
       const crag=(fbm(x*0.017,z*0.017)-0.5)*0.5;
@@ -794,7 +847,7 @@ const Terrain=(function(){
       if(dm<m.r){
         const u=1-dm/m.r;
         const shoulder=smoothstep(0,1-m.flat,u);
-        const top=m.h*shoulder;
+        const top=m.h*shoulder*cut;
         const rough =(fbm(x*0.0075+m.x*0.001, z*0.0075+m.z*0.001)-0.5)*top*0.42;
         const ridge =(fbm(x*0.022, z*0.022)-0.5)*top*0.28;         // gullies down the flanks
         const fine  =(fbm(x*0.060, z*0.060)-0.5)*Math.min(top,60)*0.22;
@@ -951,11 +1004,12 @@ function starSprite(cross){
     return pts;
   }
   starSky=new T.Group();
-  starSky.add(layer(2200, 2.8, 2.6, 0.22, 0.90, tex,  0,     0.75));  // the faint majority
-  starSky.add(layer(1300, 3.2, 2.2, 0.26, 0.95, tex,  0.13,  0.80));  // crowded on the band
+  starSky.add(layer(2400, 2.8, 2.6, 0.22, 0.92, tex,  0,     0.75));  // the faint majority
+  starSky.add(layer( 900, 3.0, 2.3, 0.24, 0.80, tex,  0.30,  0.80));  // thicker on the band
   starSky.add(layer( 320, 5.4, 1.7, 0.42, 1.00, tex,  0,     0.95));  // second magnitude
   starSky.add(layer(  52,10.0, 1.0, 0.68, 1.00, texX, 0,     1.00));  // the named ones
-  starSky.add(layer( 800,26.0, 1.4, 0.12, 0.30, tex,  0.075, 0.40));  // Milky Way haze
+  // the galactic haze only just shows — a suggestion of the band, not a stripe
+  starSky.add(layer( 420,22.0, 1.4, 0.10, 0.075, tex, 0.22,  0.30));
   starPivot=new T.Group();
   starPivot.rotation.x=0.96;                     // the pole, ~35 deg above the horizon
   starPivot.add(starSky); scene.add(starPivot);
@@ -1383,17 +1437,20 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
 
 (function buildSite(){
   // ---- highway ---------------------------------------------------------
-  const roadW=9.0;
-  bx("asphalt", 700, 0.30, roadW, 0, -0.15, ROADZ, 0.42);
-  for(let x=-340;x<340;x+=8){                                   // centre dashes
+  const roadW=9.0, ROAD_L=3400;                 // past the far fog, both ways
+  bx("asphalt", ROAD_L, 0.30, roadW, 0, -0.15, ROADZ, 0.42);
+  for(let x=-900;x<900;x+=8){                                   // centre dashes
     bx("paint", 3.0, 0.02, 0.16, x, 0.012, ROADZ, 0, 0, "#d9c27a");
   }
-  bx("paint", 700, 0.02, 0.14, 0, 0.012, ROADZ-roadW/2+0.5, 0, 0, "#cbbb92");
-  bx("paint", 700, 0.02, 0.14, 0, 0.012, ROADZ+roadW/2-0.5, 0, 0, "#cbbb92");
+  bx("paint", ROAD_L, 0.02, 0.14, 0, 0.012, ROADZ-roadW/2+0.5, 0, 0, "#cbbb92");
+  bx("paint", ROAD_L, 0.02, 0.14, 0, 0.012, ROADZ+roadW/2-0.5, 0, 0, "#cbbb92");
+  // gravel shoulders either side, so the asphalt does not end in a knife edge
+  bx("gravel", ROAD_L, 0.26, 2.6, 0, -0.13, ROADZ-roadW/2-1.3, 0.42, 0, "#9b8a70");
+  bx("gravel", ROAD_L, 0.26, 1.2, 0, -0.13, ROADZ+roadW/2+0.6, 0.42, 0, "#9b8a70");
   // shoulder + sidewalk + painted curb between highway and lot
-  bx("concrete", 700, 0.30, 3.2, 0, 0.11, ROADZ+roadW/2+1.6, 0.40);
+  bx("concrete", ROAD_L, 0.30, 3.2, 0, 0.11, ROADZ+roadW/2+1.6, 0.40);
   addFlat(-340,340, ROADZ+roadW/2, ROADZ+roadW/2+3.2, 0.26);
-  bx("paint", 700, 0.30, 0.42, 0, 0.15, ROADZ+roadW/2+3.3, 0, 0, "#d6c07a");
+  bx("paint", ROAD_L, 0.30, 0.42, 0, 0.15, ROADZ+roadW/2+3.3, 0, 0, "#d6c07a");
 
   // ---- parking lot -----------------------------------------------------
   const L={x0:LOT.x0, x1:LOT.x1, z0:ROADZ+roadW/2+3.5, z1:LOT.z1}, D=POOL.deck;
@@ -1483,7 +1540,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   }
   // power poles along the highway (wires drawn as line segments afterwards)
   const tops=[];
-  for(let x=-300;x<=300;x+=44){
+  for(let x=-704;x<=704;x+=44){
     const z=ROADZ-7.4, y=Terrain.heightAt(x,z);
     cyl("oak", 0.17,0.21,8.2,8, x, y+4.1, z, "#5b4632");
     bx("oak", 2.4,0.16,0.16, x, y+7.5, z, 0.4, 0, "#5b4632");
@@ -1549,7 +1606,9 @@ function lzone(xf, lx0,lx1,lz0,lz1, y0,y1, name){
 }
 
 /* --- door leaf: its own little merged mesh so it can swing ------------- */
-function makeDoor(xf, lx, ly, lz, roomNo, opensIn){
+// `ajar` leaves a door standing part-open for good: the one down the far end
+// of the walkway with the light on behind it and nobody in the room.
+function makeDoor(xf, lx, ly, lz, roomNo, opensIn, ajar){
   const ent=[], leafW=0.92, leafH=2.02, leafT=0.055;
   const m4=(x,y,z)=>new T.Matrix4().makeTranslation(x,y,z);
   const cream=new T.Color(0xd9d3c1), tealc=new T.Color(0x2f8b83), brass=new T.Color(0xcaa23c);
@@ -1576,7 +1635,7 @@ function makeDoor(xf, lx, ly, lz, roomNo, opensIn){
   g.add(mesh); scene.add(g);
   const wx=xf.x(lx+leafW/2, lz), wz=xf.z(lx+leafW/2, lz);
   DOORS.push({g:g, open:0, target:0, x:wx, z:wz, y:ly, base:xf.ry, manual:0,
-              swing:(opensIn?-1:1)*1.52, label:roomNo});
+              ajar:ajar||0, swing:(opensIn?-1:1)*1.52, label:roomNo});
   return g;
 }
 
@@ -1625,21 +1684,47 @@ function buildBay(xf, level, kind, roomNo, lit){
       AP("iceglow", boxGeo(0.74,0.24,0.02,0), -1.95, y0+0.94, 5.63, "#7fd2ff");
       A("metal", 1.10,0.10,0.80, -1.95, 1.88, 6.04, 0, "#b6bcbe");
       AP("signlit", boxGeo(0.90,0.34,0.05,0), -1.95, y0+2.18, 5.70, "#e8e4d6");
-      NEON.push(signPanel(0.78,0.26, signTex(256,88,(x,W,H)=>{
+      NEON.push(signPanel(0.78,0.26, hosted("vendHeader", signTex(384,128,(x,W,H)=>{
         x.fillStyle="#13405e"; x.fillRect(0,0,W,H);
-        x.fillStyle="#bfe9ff"; fitText(x,"I C E", W*0.7, 52, W/2, H/2+2);
-      }), xf.x(-1.95,5.66), y0+2.18, xf.z(-1.95,5.66), xf.ry+Math.PI, true));
+        x.fillStyle="#bfe9ff"; fitText(x,"I C E", W*0.62, H*0.62, W/2, H/2+2);
+      })), xf.x(-1.95,5.66), y0+2.18, xf.z(-1.95,5.66), xf.ry+Math.PI, true));
       AC(1.10,0.80, -1.95,6.04, 1.92);
       A("paint", 1.04,1.92,0.74, -0.30, 0.96, 6.06, 0, "#8f2c22");        // snack machine
-      AP("vendglow", boxGeo(0.78,1.30,0.02,0), -0.30, y0+1.18, 5.68, "#ffd27a");
+      push("pic:vendFront:snack", planeGeo(0.80,1.60,0), xf.x(-0.30,5.676), y0+1.02,
+           xf.z(-0.30,5.676), xf.ry+Math.PI, "#ffffff");
       A("metal", 0.86,0.20,0.06, -0.30, 0.36, 5.66, 0, "#6b6f72");
       AC(1.06,0.76, -0.30,6.06, 1.95);
       A("paint", 1.02,1.94,0.72, 1.35, 0.97, 6.07, 0, "#2f4a8a");        // soda machine
-      AP("vendglow", boxGeo(0.72,0.92,0.02,0), 1.35, y0+1.32, 5.70, "#bfe0ff");
+      push("pic:vendFront:soda", planeGeo(0.76,1.52,0), xf.x(1.35,5.696), y0+1.06,
+           xf.z(1.35,5.696), xf.ry+Math.PI, "#ffffff");
       A("paint", 0.76,0.22,0.05, 1.35, 0.42, 5.69, 0, "#d8d4c8");
       AC(1.04,0.74, 1.35,6.07, 1.96);
       // an OUT OF ORDER card taped to the soda machine
       AP("art", boxGeo(0.26,0.20,0.02,0), 1.35, y0+1.86, 5.68, "#e6e0c4", 0, 0.14);
+      /* ---- the alcove after hours ------------------------------------
+         Three lit machines and nobody using them is the whole picture. Give
+         them their spill on the slab, put a zapper on the return that has
+         been killing moths since 1971, and let the corners go unswept.   */
+      for(const g of [[-1.95,"#ffd9a0"],[-0.30,"#ffc98a"],[1.35,"#bfe0ff"]]){
+        AP("floorglow", planeGeo(2.5,2.5,0), xf.x(g[0],4.85), y0+0.022, xf.z(g[0],4.85),
+           g[1], -Math.PI/2, 0);
+        LAMPS.push({x:xf.x(g[0],5.30), y:y0+0.9, z:xf.z(g[0],5.30), color:0xffd2a0,
+                    intensity:0.22, dist:6.0, decay:1.35, indoor:true});
+      }
+      // bug zapper, high on the right return
+      A("metal", 0.10,0.34,0.26, 2.52, 2.10, 3.40, 0, "#6b6f72");
+      AP("zapper", boxGeo(0.05,0.26,0.18,0), xf.x(2.44,3.40), y0+2.10, xf.z(2.44,3.40), "#c9a8ff");
+      LAMPS.push({x:xf.x(2.20,3.40), y:y0+2.10, z:xf.z(2.20,3.40), color:0x9a6cff,
+                  intensity:0.20, dist:4.6, decay:1.5, indoor:true, mothy:true});
+      // cobwebs in the two ceiling corners
+      for(const cw of [[-2.52,6.42],[2.52,6.42]])
+        AP("soot", planeGeo(0.62,0.62,0), xf.x(cw[0],cw[1]), y0+ROOM_H-0.30, xf.z(cw[0],cw[1]),
+           "#d2cdbe", 0.9, cw[0]<0?0.7:-0.7);
+      // a wet-floor sign left out days after the floor dried
+      A("paint", 0.30,0.62,0.05, 0.62, 0.31, 4.35, 0, "#e8b32a");
+      A("paint", 0.30,0.62,0.05, 0.62, 0.31, 4.55, 0, "#e8b32a");
+      A("paint", 0.26,0.05,0.22, 0.62, 0.60, 4.45, 0, "#d8a520");
+      AC(0.40,0.36, 0.62,4.45, 0.66);
       // change machine and a wall telephone on the right return
       A("paint", 0.18,0.50,0.40, 2.56, 1.30, 5.10, 0, "#6b6f72");
       A("metal", 0.06,0.10,0.24, 2.44, 1.16, 5.10, 0, "#caa23c");
@@ -1810,7 +1895,7 @@ function buildBay(xf, level, kind, roomNo, lit){
     new T.MeshStandardMaterial({map:plateTex(roomNo), roughness:0.42, metalness:0.4}));
   plateM.position.set(xf.x(-1.18,-0.005), y0+1.86, xf.z(-1.18,-0.005));
   plateM.rotation.y=xf.ry+Math.PI; scene.add(plateM);
-  makeDoor(xf, doorX0+0.015, y0+0.02, 0.13, roomNo, true);
+  makeDoor(xf, doorX0+0.015, y0+0.02, 0.13, roomNo, true, roomNo===107?0.34:0);
 
   // shell: back-wall liner, side liners, floor, ceiling. The side liners are
   // thin skins over whatever the party wall or the wing cap happens to be, so
@@ -1857,6 +1942,8 @@ function furnishRoom(xf, y0, roomNo){
   const B=(name,w,h,d,x,y,z,uv,col)=>lbx(xf,name,w,h,d,x,y0+y,z,uv,col);
   const C=(w,d,x,z,h)=>lcol(xf,w,d,x,z,y0,y0+(h||1.2));
   const P=(bucket,geo,x,y,z,col,rx,rz)=>push(bucket, geo, xf.x(x,z), y0+y, xf.z(x,z), xf.ry, col, rx, rz);
+  // a picture hung on a wall needs its own yaw, so it can face into the room
+  const PY=(bucket,geo,x,y,z,yaw,col)=>push(bucket, geo, xf.x(x,z), y0+y, xf.z(x,z), xf.ry+yaw, col);
   // bullnose: a cylinder laid along a top edge, so counters and cases stop
   // ending in a knife edge
   const noseZ=(bucket,len,r,x,y,z,col)=>P(bucket, new T.CylinderGeometry(r,r,len,10), x,y,z, col, Math.PI/2, 0);
@@ -1936,7 +2023,8 @@ function furnishRoom(xf, y0, roomNo){
   P("bedding", pillow, 2.28, 0.84, bz-0.38, "#efeadb");
   P("bedding", pillow, 2.28, 0.84, bz+0.38, "#efeadb");
   C(2.10,1.66, 1.62,bz, 0.74);
-  P("art", boxGeo(0.04,0.52,1.00,0), 2.64, 1.92, bz, "#9a7a4c");             // print over the bed
+  P("oak", boxGeo(0.035,0.56,1.04,0), 2.646, 1.92, bz, pal.head);            // print over the bed
+  PY("pic:artWide", planeGeo(0.96,0.48,0), 2.624, 1.92, bz, -Math.PI/2, "#ffffff");
 
   /* --- nightstands either side of the head ----------------------------- */
   for(const ns of [[1.32,"lamp"],[3.68,"phone"]]){
@@ -1967,7 +2055,8 @@ function furnishRoom(xf, y0, roomNo){
   noseZ("oak", 2.00, 0.04, -2.25, 0.81, 2.60, "#7a5636");
   C(0.50,1.98, -2.48,2.60, 0.86);
   B("paint",0.44,0.42,0.58, -2.44, 1.05, 2.10, 0, "#2f2f2e");                // television
-  P("tvglass", boxGeo(0.05,0.32,0.44,0), -2.21, 1.06, 2.10, "#1d262b");
+  B("paint",0.03,0.38,0.52, -2.215, 1.06, 2.10, 0, "#191919");               // bezel
+  PY("pic:tv", planeGeo(0.44,0.33,0), -2.196, 1.06, 2.10, Math.PI/2, "#ffffff");
   B("metal",0.03,0.28,0.03, -2.46, 1.38, 2.32, 0, "#9a9a94");
   B("paint",0.20,0.24,0.24, -2.46, 0.96, 3.30, 0, "#2b2b2b");                // coffee maker
   B("paint",0.14,0.09,0.18, -2.42, 0.88, 3.30, 0, "#c9c4b4");
@@ -2017,7 +2106,7 @@ function furnishRoom(xf, y0, roomNo){
   B("metal",2.46,0.04,0.04, 0.60, 2.16, 0.30, 0, "#9a9a94");
   B("paint", 0.14,0.20,0.03, -2.66, 1.42, 1.30, 0, "#e2ded0");               // thermostat
   B("paint", 0.10,0.14,0.03, -2.66, 1.20, 0.70, 0, "#e2ded0");               // switch
-  P("art", boxGeo(0.02,0.22,0.16,0), -2.66, 1.46, 1.90, "#d8cfae");          // rate card
+  P("art", boxGeo(0.02,0.22,0.16,0), -2.632, 1.46, 1.90, "#d8cfae");         // rate card
   B("metal", 0.03,0.05,0.16, -2.30, 1.32, 0.24, 0, "#caa23c");               // door chain
   B("metal", 0.03,0.03,0.24, -2.30, 1.52, 0.24, 0, "#caa23c");
   P("ceilfix", new T.CylinderGeometry(0.22,0.26,0.10,14), 0.0, ROOM_H-0.09, 2.60, "#e8dcc0");
@@ -2029,7 +2118,8 @@ function furnishRoom(xf, y0, roomNo){
   B("fabric", 1.42,0.015,0.86, 0.55, 0.062, bz, 0, "#a98a6e");
   B("fabric", 0.80,0.03,0.52, -1.88, 0.05, 0.46, 0, "#4a4238");              // mat inside the door
   B("spread", 0.50,0.10,0.46, -0.42, 0.60, 0.92, 0.5, spread);               // throw over a chair
-  P("art", boxGeo(0.04,0.44,0.60,0), -2.64, 1.86, 4.20, "#7a6a4c");          // second print
+  P("oak", boxGeo(0.035,0.44,0.64,0), -2.646, 1.86, 4.20, "#5c4029");        // second print
+  PY("pic:artLand:room", planeGeo(0.57,0.38,0), -2.624, 1.86, 4.20, Math.PI/2, "#ffffff");
   P("gravel", new T.CylinderGeometry(0.11,0.085,0.18,12), -2.44, 0.99, 1.66, "#a35a34");
   for(const b3 of [[0,0.24,0.15],[-0.10,0.16,0.11],[0.09,0.19,0.10]])        // a plant, half alive
     P("foliage", new T.IcosahedronGeometry(b3[2],1), -2.44+b3[0], 1.10+b3[1], 1.66+b3[0]*0.6, "#57713f");
@@ -2153,6 +2243,44 @@ function buildWing(cfg){
     const px=-halfLen+i*BAY_W+BAY_W*0.6;
     push("soot", planeGeo(1.5,1.2,0), wxf.x(px,-WALK_D*0.45), lvlY(1)-0.28,
          wxf.z(px,-WALK_D*0.45), wxf.ry, "#4a4236", Math.PI/2, 0);
+  }
+
+  /* ---- the small evidence that this is a corridor and not a diagram ----
+     Concrete this long is poured in bays with a joint between them, and the
+     joint is the first thing that tells your eye how far the walkway runs.
+     Then: the dirt line that collects along the foot of any wall nobody
+     hoses down, and the arc each door has scrubbed across the slab.      */
+  const decJ=(y,dz)=>{
+    for(let i=0;i<=n;i++){
+      const jx=-halfLen+i*BAY_W;
+      if(jx<dA+0.15 || jx>dB-0.15) continue;
+      lbx(wxf,"concrete", 0.035, 0.03, WALK_D-0.06, jx, y+0.005, -WALK_D/2+dz, 0, "#6b6459");
+    }
+    // and a long joint running the length of the slab, a third of the way out
+    lbx(wxf,"concrete", dLen-0.3, 0.03, 0.035, dMid, y+0.005, -WALK_D*0.36+dz, 0, "#6b6459");
+  };
+  decJ(BASE, 0); decJ(lvlY(1), 0.08);
+  for(let i=0;i<Math.ceil(dLen/1.6);i++){
+    const gx=dA+0.4+i*1.6; if(gx>dB-0.3) break;
+    push("soot", planeGeo(1.9,0.56,0), wxf.x(gx,0.02), BASE+0.19, wxf.z(gx,0.02), wxf.ry, "#3a3228");
+    push("soot", planeGeo(1.9,0.56,0), wxf.x(gx,0.02), lvlY(1)+0.19, wxf.z(gx,0.02), wxf.ry, "#3a3228");
+  }
+  for(let i=0;i<n;i++){
+    const sx2=-halfLen+i*BAY_W+BAY_W/2-1.88;      // in front of each door leaf
+    if(sx2<dA+0.4 || sx2>dB-0.4) continue;
+    push("soot", planeGeo(1.35,1.15,0), wxf.x(sx2,-0.72), BASE+0.014,
+         wxf.z(sx2,-0.72), wxf.ry, "#2e281f", -Math.PI/2, 0);
+    push("soot", planeGeo(1.35,1.15,0), wxf.x(sx2,-0.72), lvlY(1)+0.014,
+         wxf.z(sx2,-0.72), wxf.ry, "#2e281f", -Math.PI/2, 0);
+  }
+  // conduit clipped along the soffit, with one drop that never got finished
+  lbx(wxf,"metal", dLen-0.6, 0.05, 0.05, dMid, lvlY(1)-0.34, -0.42, 0, "#8f9aa0");
+  lbx(wxf,"metal", dLen-0.6, 0.05, 0.05, dMid, yTop-0.46,    -0.42, 0, "#8f9aa0");
+  for(let i=1;i<n;i+=3){
+    const cx2=-halfLen+i*BAY_W;
+    if(cx2<dA+0.5 || cx2>dB-0.5) continue;
+    lbx(wxf,"metal", 0.05,0.34,0.05, cx2, lvlY(1)-0.52, -0.42, 0, "#8f9aa0");
+    lbx(wxf,"paint", 0.14,0.18,0.10, cx2, lvlY(1)-0.74, -0.42, 0, "#6b6f72");
   }
   lbx(wxf,"teal", dLen,0.30,0.34, dMid, lvlY(1)-0.04-drop, -WALK_D+0.24, 0, TEAL_D);
   lbx(wxf,"teal", dLen,0.26,0.34, dMid, yTop-0.14,         -WALK_D+0.24, 0, TEAL_D);
@@ -2291,7 +2419,7 @@ const EAST_CZ =(EAST.z0  + EAST.z0  + EAST.bays*BAY_W)/2;    // = -1
 
 buildWing({
   bays:NORTH.bays, stairBay:NORTH.stairBay, first:101, name:"WING A",
-  lit:[102,105,108,203,206],
+  lit:[102,105,107,108,203,206],
   railGaps:[[-1.15, 1.15], [24.2, 27.6]],   // stair head, and the inside corner
   deckA:-27.30, deckB:27.05, openEnd:1,     // the east end runs into wing B
   roofLen:NORTH.bays*BAY_W+1.6, roofOff:0.0, roofLift:0.0,
@@ -2314,7 +2442,7 @@ buildStair({x:19.20, z:-7.00, dir:"x", sign:1, width:1.55, run:5.10, rise:FLOOR_
    9 · THE POOL — the reason to come back after dark
    ---------------------------------------------------------------------- */
 const POOL_LIGHTS=[]; let waterMat=null, caustic1=null, caustic2=null, poolFloorCaustic=null, poolGlow=null;
-let waterGeo=null, waterBase=null, surfGlint=null;
+let waterGeo=null, waterBase=null, waterFall=null, surfGlint=null;
 (function buildPool(){
   const D=POOL.deck, P=POOL, dy=0.10;
   // deck apron in four plates so the tank itself stays open to walk into
@@ -2371,7 +2499,7 @@ let waterGeo=null, waterBase=null, surfGlint=null;
   // entry steps in the shallow west corner
   for(let i=0;i<3;i++){
     const w=(3-i)*0.62;
-    bx("plaster", w, 0.30, POOL_STEPS.z1-POOL_STEPS.z0, P.x0+w/2, -0.20-i*0.29,
+    bx("plaster", w, 0.30, POOL_STEPS.z1-POOL_STEPS.z0, P.x0+w/2, -0.37-i*0.29,
        (POOL_STEPS.z0+POOL_STEPS.z1)/2, 0.6, 0, "#e2f2f5");
   }
   // deep-end ladder
@@ -2393,15 +2521,22 @@ let waterGeo=null, waterBase=null, surfGlint=null;
      frame, a tiling normal map scrolling over it for the chop between the
      swells, and vertex colours that carry the tank's own depth — pale over
      the shallow end, deep and green over the drain. */
-  waterGeo=new T.PlaneGeometry(P.x1-P.x0-0.04, P.z1-P.z0-0.04, 40, 26);
+  // The sheet runs 80 mm INTO the tile band on every side and the swell is
+  // tapered to nothing over the last half metre, so the edge of the water
+  // stays buried under the rim instead of bobbing out from behind it.
+  const wLap=0.08, wHX=(P.x1-P.x0)/2+wLap, wHZ=(P.z1-P.z0)/2+wLap;
+  waterGeo=new T.PlaneGeometry(wHX*2, wHZ*2, 44, 28);
   waterGeo.rotateX(-Math.PI/2);
   const wp=waterGeo.attributes.position;
   waterBase=new Float32Array(wp.array);                 // the undisplaced grid
   const wcol=new Float32Array(wp.count*3);
+  waterFall=new Float32Array(wp.count);
   for(let i=0;i<wp.count;i++){
     const wx=(P.x0+P.x1)/2+waterBase[i*3];
     const d=clamp((wx-POOL_STEPS.x1)/(P.x1-POOL_STEPS.x1),0,1);   // 0 shallow, 1 deep
     wcol[i*3]=1.00-0.34*d; wcol[i*3+1]=1.00-0.14*d; wcol[i*3+2]=1.00-0.06*d;
+    const edge=Math.min(wHX-Math.abs(waterBase[i*3]), wHZ-Math.abs(waterBase[i*3+2]));
+    waterFall[i]=clamp(edge/0.55, 0, 1);
   }
   waterGeo.setAttribute("color", new T.BufferAttribute(wcol,3));
   waterMat=new T.MeshStandardMaterial({color:0x2b93bb, transparent:true, opacity:0.80,
@@ -2414,7 +2549,7 @@ let waterGeo=null, waterBase=null, surfGlint=null;
 
   const caMat=o=>new T.MeshBasicMaterial({map:TEX.caustic.clone(), transparent:true,
     blending:T.AdditiveBlending, depthWrite:false, opacity:o, toneMapped:false});
-  const cg=new T.PlaneGeometry(P.x1-P.x0-0.04, P.z1-P.z0-0.04); cg.rotateX(-Math.PI/2);
+  const cg=new T.PlaneGeometry(P.x1-P.x0-0.30, P.z1-P.z0-0.30); cg.rotateX(-Math.PI/2);
   caustic1=new T.Mesh(cg, caMat(0.0)); caustic1.material.map.repeat.set(2.4,1.4);
   caustic1.position.set((P.x0+P.x1)/2, P.water+0.055, (P.z0+P.z1)/2); scene.add(caustic1);
   caustic2=new T.Mesh(cg.clone(), caMat(0.0)); caustic2.material.map.repeat.set(1.6,0.95);
@@ -2594,8 +2729,13 @@ let waterGeo=null, waterBase=null, surfGlint=null;
   bx("paint", 0.30,0.04,0.34, dx-0.1, y0+1.53, cz-1.0, 0, 0, "#1d262b");
   push("bell", new T.SphereGeometry(0.09,10,8), dx+0.2, y0+1.27, cz+0.9, 0, "#caa23c");
   bx("metal", 0.16,0.03,0.16, dx+0.2, y0+1.22, cz+0.9, 0, 0, "#caa23c");
-  bx("oak", 0.26,0.90,0.34, dx+0.1, y0+1.66, cz+2.2, 0.6, 0, "#5c4029");  // brochure rack
-  for(let i=0;i<4;i++) bx("paint", 0.03,0.22,0.28, dx-0.05, y0+1.42+i*0.22, cz+2.2, 0, 0, pick(["#c3562f","#3f6ea8","#4f7a4a","#c9a24b"]));
+  bx("oak", 0.26,1.10,0.44, dx+0.1, y0+1.70, cz+2.2, 0.6, 0, "#5c4029");  // brochure rack
+  for(let r=0;r<3;r++) for(let c2=0;c2<2;c2++){
+    const bz2=cz+2.10+c2*0.20, by=y0+1.32+r*0.30;
+    bx("oak", 0.05,0.035,0.15, dx-0.03, by-0.142, bz2, 0, 0, "#4a3524");   // the lip
+    push("pic:brochure:"+"abc"[(r*2+c2)%3], planeGeo(0.12,0.27,0),
+         dx-0.062, by, bz2, -Math.PI/2, "#ffffff");
+  }
   // lobby seating by the glazed wall
   // back against the glazed wall, so you sit looking into the lobby
   const sofaX=O.x1-3.9, sofaZ=O.z0+0.95;
@@ -2823,15 +2963,20 @@ let waterGeo=null, waterBase=null, surfGlint=null;
 
   // rotating postcard rack
   OC("metal", 0.05,0.05,1.55,8, O.x1-1.5, 0.78, cz-2.8, "#8f9aa0");
+  // each card faces radially outward: a plane with yaw f has normal
+  // (sin f, 0, cos f), so f = pi/2 - a puts it square to the radius
   for(let t=0;t<4;t++) for(let k=0;k<4;k++){
-    const a=k*Math.PI/2+t*0.2;
-    push("art", boxGeo(0.20,0.28,0.02,0), O.x1-1.5+Math.cos(a)*0.16, y0+0.72+t*0.30,
-         cz-2.8+Math.sin(a)*0.16, a, ["#c3562f","#3f6ea8","#4f7a4a","#c9a24b"][k]);
+    const a=k*Math.PI/2+t*0.2, f=Math.PI/2-a;
+    const px=O.x1-1.5+Math.cos(a)*0.16, pz=cz-2.8+Math.sin(a)*0.16;
+    push("art", boxGeo(0.18,0.27,0.012,0), px, y0+0.72+t*0.30, pz, f, "#d8d2c0");
+    push("pic:postcard", planeGeo(0.18,0.27,0), px+Math.cos(a)*0.011, y0+0.72+t*0.30,
+         pz+Math.sin(a)*0.011, f, "#ffffff");
   }
   addCol(O.x1-1.85,O.x1-1.15, cz-3.15, cz-2.45, y0, y0+1.6);
   // soda machine and a cigarette machine against the north wall
   O_("paint", 1.00,1.86,0.66, O.x0+4.6, 0.93, O.z1-0.58, 0, "#8f2c22");
-  push("vendglow", boxGeo(0.74,1.16,0.02,0), O.x0+4.6, y0+1.12, O.z1-0.96, 0, "#ffd27a");
+  push("pic:vendFront:snack", planeGeo(0.76,1.52,0), O.x0+4.6, y0+1.04, O.z1-0.955,
+       Math.PI, "#ffffff");
   addCol(O.x0+4.1,O.x0+5.1, O.z1-1.0, O.z1-0.3, y0, y0+1.9);
   O_("paint", 0.62,1.40,0.46, O.x0+5.9, 0.70, O.z1-0.48, 0, "#3a4a52");
   O_("metal", 0.54,0.10,0.04, O.x0+5.9, 1.16, O.z1-0.74, 0, "#b8bcbc");
@@ -2840,7 +2985,7 @@ let waterGeo=null, waterBase=null, surfGlint=null;
   O_("paint", 0.30,0.56,0.20, O.x1-0.36, 1.42, cz-1.6, 0, "#22303a");
   O_("paint", 0.10,0.24,0.08, O.x1-0.52, 1.44, cz-1.6, 0, "#12191f");
   // framed road map and an aerial of the property, both drawn in canvas
-  const mapTex=signTex(512,384,(x,W,H)=>{
+  const mapTex=hosted("map", signTex(512,384,(x,W,H)=>{
     x.fillStyle="#e6dcbe"; x.fillRect(0,0,W,H);
     x.strokeStyle="#b9ac86"; x.lineWidth=1;
     for(let i=0;i<26;i++){ x.beginPath(); x.moveTo(0,i*15); x.lineTo(W,i*15+((i*37)%25)-12); x.stroke(); }
@@ -2857,8 +3002,8 @@ let waterGeo=null, waterBase=null, surfGlint=null;
     }
     x.fillStyle="#13405e"; fitText(x,"NEW MEXICO", W*0.5, 34, W*0.30, 36);
     x.strokeStyle="#8a7e5e"; x.lineWidth=8; x.strokeRect(4,4,W-8,H-8);
-  });
-  const aerialTex=signTex(512,384,(x,W,H)=>{
+  }));
+  const aerialTex=hosted("aerial", signTex(512,384,(x,W,H)=>{
     x.fillStyle="#b9a075"; x.fillRect(0,0,W,H);                    // desert
     for(let i=0;i<2600;i++){ x.fillStyle="rgba(0,0,0,"+(Math.random()*0.10).toFixed(2)+")";
       x.fillRect(Math.random()*W, Math.random()*H, 2,2); }
@@ -2879,19 +3024,20 @@ let waterGeo=null, waterBase=null, surfGlint=null;
     x.fillStyle="rgba(0,0,0,0.22)"; x.fillRect(70,108,300,10);     // shadow under the eave
     x.fillStyle="#f1ead6"; x.fillRect(0,H-40,W,40);
     x.fillStyle="#13405e"; fitText(x,"LOW DESERT MOTEL  ·  ROUTE 66", W*0.86, 26, W/2, H-20);
-  });
-  push("art", boxGeo(0.05,0.66,0.90,0), O.x1-0.36, y0+2.02, cz+2.1, 0, "#5c4029");
-  signPanel(0.80,0.58, mapTex, O.x1-0.40, y0+2.02, cz+2.1, -Math.PI/2, false);
+  }));
+  push("art", boxGeo(0.05,0.64,0.92,0), O.x1-0.36, y0+2.02, cz+2.1, 0, "#5c4029");
+  signPanel(0.84,0.56, mapTex, O.x1-0.40, y0+2.02, cz+2.1, -Math.PI/2, false);
   push("art", boxGeo(1.20,0.92,0.05,0), O.x0+7.2, y0+2.00, O.z1-0.38, 0, "#5c4029");
   signPanel(1.04,0.78, aerialTex, O.x0+7.2, y0+2.00, O.z1-0.42, Math.PI, false);
   push("art", boxGeo(0.05,0.44,0.60,0), O.x1-0.36, y0+2.06, cz+3.3, 0, "#9a7a4c");
   // a second framed map on the north wall, beside the aerial
-  push("art", boxGeo(0.72,0.56,0.05,0), O.x0+9.4, y0+2.02, O.z1-0.38, 0, "#7a6a4c");
-  signPanel(0.60,0.44, mapTex, O.x0+9.4, y0+2.02, O.z1-0.42, Math.PI, false);
+  push("art", boxGeo(0.68,0.48,0.05,0), O.x0+9.4, y0+2.02, O.z1-0.38, 0, "#7a6a4c");
+  signPanel(0.60,0.40, mapTex, O.x0+9.4, y0+2.02, O.z1-0.42, Math.PI, false);
   // television on a bracket in the corner
   O_("metal", 0.30,0.06,0.30, O.x1-1.4, 2.10, O.z1-0.7, 0, "#8f9aa0");
   O_("paint", 0.56,0.46,0.52, O.x1-1.4, 2.36, O.z1-0.7, 0, "#2f2f2e");
-  push("tvglass", boxGeo(0.40,0.30,0.03,0), O.x1-1.4, y0+2.36, O.z1-0.97, 0, "#1d262b");
+  push("paint", boxGeo(0.46,0.36,0.03,0), O.x1-1.4, y0+2.36, O.z1-0.97, 0, "#191919");
+  push("pic:tv", planeGeo(0.40,0.30,0), O.x1-1.4, y0+2.36, O.z1-0.995, Math.PI, "#ffffff");
   // rag rug, guest register, mint bowl, desk fan, NO VACANCY box in the window
   O_("fabric", 2.80,0.03,2.30, O.x1-3.6, 0.04, O.z0+1.9, 0, "#6f4a42");
   O_("fabric", 2.36,0.01,1.86, O.x1-3.6, 0.055, O.z0+1.9, 0, "#8a6f52");
@@ -2902,7 +3048,10 @@ let waterGeo=null, waterBase=null, surfGlint=null;
   for(let k=0;k<3;k++){ const a=k*2.09;
     O_("metal", 0.16,0.05,0.05, O.x1-0.9+Math.cos(a)*0.10, 1.66, O.z1-2.2+Math.sin(a)*0.10, 0, "#6b6156"); }
   O_("paint", 0.34,0.14,0.34, O.x1-0.9, 1.80, O.z1-2.2, 0, "#8a6a3c");
-  push("art", boxGeo(1.10,0.72,0.03,0), O.x0+5.0, y0+2.14, O.z1-0.20, 0, "#a8895a");
+  // hung clear above the machines, not behind them
+  push("oak", boxGeo(1.14,0.78,0.04,0), O.x0+5.2, y0+2.50, O.z1-0.38, 0, "#7a6a4c");
+  push("pic:artLand:office", planeGeo(1.05,0.70,0), O.x0+5.2, y0+2.50, O.z1-0.405,
+       Math.PI, "#ffffff");
   O_("paint", 0.42,0.06,0.32, O.x0+3.3, 1.24, cz+0.2, 0, "#e6e0cc");
   O_("oak",   0.44,0.04,0.34, O.x0+3.3, 1.21, cz+0.2, 0.6, "#4a3524");
   push("bin", new T.SphereGeometry(0.10,10,8), O.x0+3.3, y0+1.24, cz-1.9, 0, "#cfe0e6");
@@ -3045,7 +3194,9 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
 (function buildSigns(){
   // The posts stand OUTSIDE the boards, flush with their ends — a pole sign
   // whose legs cross its own face is a pole sign you cannot read.
-  const sx=-38, sz=-30.5, postH=6.4, BOARD_W=6.9, postD=BOARD_W/2+0.17;
+  // the posts lap 40 mm onto the cream frame either side. Butted exactly to
+  // the board's edge, post and board shared a plane and fought over it.
+  const sx=-38, sz=-30.5, postH=6.4, BOARD_W=6.9, postD=BOARD_W/2+0.13;
   for(const d of [-postD, postD]){
     bx("paint", 0.34, postH, 0.34, sx+d, postH/2, sz, 0, 0, "#eae6da");
     addCol(sx+d-0.24, sx+d+0.24, sz-0.24, sz+0.24, 0, postH);
@@ -3053,35 +3204,37 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
   bx("concrete", 8.4, 0.5, 1.6, sx, 0.24, sz, 0.3, 0, "#8a6a4c");
   // main navy board. Every string is fitted inside a stated margin rather
   // than to the canvas edge, so nothing runs up against its own border.
-  const mainTex=signTex(1024,276,(x,W,H)=>{
+  const mainTex=hosted("sign:name", signTex(1024,276,(x,W,H)=>{
     x.fillStyle="#13405e"; x.fillRect(0,0,W,H);
     x.strokeStyle="#e6e2d6"; x.lineWidth=9;  x.strokeRect(13,13,W-26,H-26);
     x.strokeStyle="#7fd2ff"; x.lineWidth=3;  x.strokeRect(30,30,W-60,H-60);
     x.fillStyle="#f1ead6"; fitText(x,"Low Desert Motel", W-150, 116, W/2, H/2+6);
-  });
+  }));
   bx("paint", BOARD_W, 1.95, 0.28, sx, 5.35, sz, 0, 0, "#e6e2d6");
   NEON.push(signPanel(6.6,1.78,mainTex, sx, 5.35, sz-0.16, Math.PI, true));
   NEON.push(signPanel(6.6,1.78,mainTex, sx, 5.35, sz+0.16, 0, true));
   // rates board — same width as the name board, so the stack reads as one
   // cabinet hung between the posts
-  const rateTex=signTex(768,360,(x,W,H)=>{
+  const rateTex=hosted("sign:rates", signTex(768,319,(x,W,H)=>{
     const PAD=W*0.10;
     x.fillStyle="#f1ead6"; x.fillRect(0,0,W,H);
     x.strokeStyle="#c3311f"; x.lineWidth=5; x.strokeRect(15,15,W-30,H-30);
-    x.fillStyle="#c3311f"; fitText(x,"LOW WEEKLY RATES", W-2*PAD, 54, W/2, 64);
-    x.fillStyle="#13405e"; fitText(x,"FREE", W*0.26, 66, W/2, 136);
-    x.fillStyle="#13405e"; fitText(x,"HIGH SPEED INTERNET", W-2*PAD, 46, W/2, 198);
-    x.fillStyle="#13405e"; fitText(x,"MICROWAVE & FRIDGE", W-2*PAD, 46, W/2, 252);
-    x.fillStyle="#c3311f"; x.fillRect(PAD,302,W-2*PAD,8);
-  });
-  bx("paint", BOARD_W, 3.3, 0.24, sx, 3.10, sz, 0, 0, "#e6e2d6");
-  NEON.push(signPanel(6.6,3.1,rateTex, sx, 3.10, sz-0.14, Math.PI, true));
-  NEON.push(signPanel(6.6,3.1,rateTex, sx, 3.10, sz+0.14, 0, true));
+    x.fillStyle="#c3311f"; fitText(x,"LOW WEEKLY RATES", W-2*PAD, 50, W/2, 56);
+    x.fillStyle="#13405e"; fitText(x,"FREE", W*0.24, 60, W/2, 122);
+    x.fillStyle="#13405e"; fitText(x,"HIGH SPEED INTERNET", W-2*PAD, 42, W/2, 178);
+    x.fillStyle="#13405e"; fitText(x,"MICROWAVE & FRIDGE", W-2*PAD, 42, W/2, 226);
+    x.fillStyle="#c3311f"; x.fillRect(PAD,268,W-2*PAD,7);
+  }));
+  // the reader board stops just under the name board. Overlapping, its
+  // printed face landed on the plane of the name board's cream frame.
+  bx("paint", BOARD_W-0.06, 2.92, 0.24, sx, 2.91, sz, 0, 0, "#e6e2d6");
+  NEON.push(signPanel(6.6,2.74,rateTex, sx, 2.91, sz-0.14, Math.PI, true));
+  NEON.push(signPanel(6.6,2.74,rateTex, sx, 2.91, sz+0.14, 0, true));
   // VACANCY neon strip on top
-  const vacTex=signTex(512,108,(x,W,H)=>{
+  const vacTex=hosted("sign:vacancy", signTex(512,108,(x,W,H)=>{
     x.fillStyle="#150c08"; x.fillRect(0,0,W,H);
     x.fillStyle="#ff8a3a"; fitText(x,"VACANCY", W*0.68, 62, W/2, H/2+3);
-  });
+  }));
   bx("paint", 4.0, 0.9, 0.26, sx, 6.85, sz, 0, 0, "#22201c");
   NEON.push(signPanel(3.8,0.78,vacTex, sx, 6.85, sz-0.15, Math.PI, true));
   NEON.push(signPanel(3.8,0.78,vacTex, sx, 6.85, sz+0.15, 0, true));
@@ -3121,14 +3274,14 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
                 pole:true, mothy:true});
   }
   // pool rules copy + the room-door number strip get their painted faces
-  NEON.push(signPanel(0.86,0.62, signTex(256,192,(x,W,H)=>{
+  NEON.push(signPanel(0.84,0.56, hosted("poolRules", signTex(384,256,(x,W,H)=>{
     x.fillStyle="#e8e4d6"; x.fillRect(0,0,W,H);
-    x.fillStyle="#13405e"; fitText(x,"POOL RULES",W*0.86,34,W/2,28);
+    x.fillStyle="#13405e"; fitText(x,"POOL RULES", W*0.82, H*0.18, W/2, H*0.16);
     x.fillStyle="#3a3a36";
     const lines=["NO LIFEGUARD ON DUTY","SWIM AT YOUR OWN RISK","NO GLASS · NO DIVING","POOL CLOSES 10 PM"];
-    x.font="15px 'JetBrains Mono', monospace"; x.textAlign="center";
-    lines.forEach((L,i)=>x.fillText(L,W/2,72+i*28));
-  }), POOL.deck.x0+2.6, 0.10+1.42, POOL.deck.z0+0.78, 0, false));
+    x.font=Math.round(H*0.082)+"px 'JetBrains Mono', monospace"; x.textAlign="center";
+    lines.forEach((L,i)=>x.fillText(L, W/2, H*0.42+i*H*0.165));
+  })), POOL.deck.x0+2.6, 0.10+1.42, POOL.deck.z0+0.78, 0, false));
 })();
 
 /* --- site ambience: the service yard, the walkway clutter, the roadside -
@@ -3338,6 +3491,103 @@ bucketOf("rust",    ()=>new T.MeshBasicMaterial({color:0xffffff, transparent:tru
 bucketOf("ember",   ()=>glowMat({color:0xffffff, emissive:0xff4a12, emissiveIntensity:1.6}, "warm"));
 bucketOf("smoke",   ()=>new T.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.10,
                           side:T.DoubleSide, depthWrite:false, toneMapped:false}));
+// the pool of light a lit machine throws onto the slab in front of it
+bucketOf("floorglow",()=>{ const m=new T.MeshBasicMaterial({color:0xffffff, map:TEX.soot,
+                          transparent:true, opacity:0, depthWrite:false, side:T.DoubleSide,
+                          blending:T.AdditiveBlending, toneMapped:false});
+                          GLOW.push({m:m, kind:"warm", basic:true, max:0.34}); return m; });
+bucketOf("zapper",  ()=>glowMat({color:0xffffff, emissive:0x8f5cff, emissiveIntensity:0.7}, "cool"));
+
+/* --- picture slots: one bucket, one image, one draw call each ---------
+   The canvas art below is the fallback. Name a URL in IMAGES (top of file)
+   against the same key and it replaces the art at the same aspect ratio. */
+const picMat=(key,long,draw,opts)=>new T.MeshStandardMaterial(Object.assign(
+  {color:0xffffff, roughness:0.74, map:artTex(key,long,draw)}, opts||{}));
+function washBG(x,W,H,a,b){
+  const g=x.createLinearGradient(0,0,0,H); g.addColorStop(0,a); g.addColorStop(1,b);
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+}
+function mesaArt(x,W,H){                       // the print every motel has
+  washBG(x,W,H,"#cfa26a","#efd7ae");
+  x.fillStyle="#f2e2b6"; x.beginPath(); x.arc(W*0.70,H*0.34,H*0.13,0,7); x.fill();
+  for(const L of [[0.62,"#8d5a44"],[0.72,"#a06a4c"],[0.82,"#b98a62"]]){
+    x.fillStyle=L[1]; x.beginPath(); x.moveTo(0,H);
+    for(let i=0;i<=14;i++){
+      const u=i/14, top=H*L[0]+Math.sin(u*7.1+L[0]*9)*H*0.07-Math.sin(u*2.2)*H*0.05;
+      x.lineTo(u*W, top);
+    }
+    x.lineTo(W,H); x.closePath(); x.fill();
+  }
+  x.strokeStyle="rgba(60,40,26,0.5)"; x.lineWidth=Math.max(2,H*0.012);
+  x.strokeRect(H*0.02,H*0.02,W-H*0.04,H-H*0.04);
+}
+function capArt(x,W,H,title,sub,a,b,c){        // a park-poster kind of thing
+  washBG(x,W,H,a,b);
+  x.fillStyle=c; x.beginPath(); x.moveTo(0,H*0.96);
+  x.lineTo(W*0.28,H*0.40); x.lineTo(W*0.48,H*0.70); x.lineTo(W*0.70,H*0.30);
+  x.lineTo(W,H*0.74); x.lineTo(W,H*0.96); x.closePath(); x.fill();
+  x.fillStyle="rgba(20,16,12,0.72)"; x.fillRect(0,H*0.78,W,H*0.22);
+  x.fillStyle="#f1ead6"; fitText(x,title, W*0.86, H*0.13, W/2, H*0.865);
+  x.fillStyle="#d9c27a"; fitText(x,sub,   W*0.70, H*0.075, W/2, H*0.955);
+}
+bucketOf("pic:artWide",       ()=>picMat("artWide", 768, mesaArt));
+bucketOf("pic:artLand:room",  ()=>picMat("artLand:room", 640,
+  (x,W,H)=>capArt(x,W,H,"CARLSBAD CAVERNS","NEW MEXICO","#2b3f5c","#6d5f7a","#1d2733")));
+bucketOf("pic:artLand:office",()=>picMat("artLand:office", 768,
+  (x,W,H)=>capArt(x,W,H,"THE PAINTED DESERT","ARIZONA","#7e4a2c","#e0b271","#5a2f1e")));
+bucketOf("pic:artPort",       ()=>picMat("artPort", 640,
+  (x,W,H)=>capArt(x,W,H,"ROUTE 66","THE MOTHER ROAD","#1e3a52","#b98a52","#12202b")));
+bucketOf("pic:tv",            ()=>picMat("tv", 512, (x,W,H)=>{
+  x.fillStyle="#101619"; x.fillRect(0,0,W,H);
+  for(let i=0;i<2400;i++){ const g=Math.random()*46|0;
+    x.fillStyle="rgb("+(g+10)+","+(g+14)+","+(g+18)+")";
+    x.fillRect(Math.random()*W, Math.random()*H, 2,2); }
+  const gl=x.createLinearGradient(0,0,W*0.6,H); gl.addColorStop(0,"rgba(210,225,235,0.16)");
+  gl.addColorStop(0.5,"rgba(210,225,235,0.03)"); gl.addColorStop(1,"rgba(0,0,0,0)");
+  x.fillStyle=gl; x.fillRect(0,0,W,H);
+}, {roughness:0.18, metalness:0.35}));
+const brochureArt=(title,tint)=>(x,W,H)=>{
+  x.fillStyle="#efe9d8"; x.fillRect(0,0,W,H);
+  x.fillStyle=tint; x.fillRect(0,0,W,H*0.44);
+  x.fillStyle="rgba(255,255,255,0.22)";
+  for(let i=0;i<5;i++) x.fillRect(0,H*(0.10+i*0.06),W,H*0.02);
+  x.fillStyle="#f1ead6"; fitText(x,title, W*0.84, H*0.075, W/2, H*0.34);
+  x.fillStyle=tint;     fitText(x,"OPEN DAILY", W*0.74, H*0.05, W/2, H*0.54);
+  x.fillStyle="#8a8272";
+  for(let i=0;i<7;i++) x.fillRect(W*0.12, H*(0.62+i*0.045), W*(0.30+Math.random()*0.46), H*0.014);
+};
+bucketOf("pic:brochure:a", ()=>picMat("brochure:a", 384, brochureArt("CAVERNS TOUR","#2f6c82")));
+bucketOf("pic:brochure:b", ()=>picMat("brochure:b", 384, brochureArt("TRADING POST","#9c4a24")));
+bucketOf("pic:brochure:c", ()=>picMat("brochure:c", 384, brochureArt("GHOST TOWN","#4f6b3a")));
+bucketOf("pic:postcard",   ()=>picMat("postcard", 384, (x,W,H)=>{
+  washBG(x,W,H,"#6fb8d6","#e6cf9e");
+  x.fillStyle="#9c6a44"; x.fillRect(0,H*0.56,W,H*0.44);
+  x.fillStyle="#c3562f"; fitText(x,"GREETINGS", W*0.82, H*0.09, W/2, H*0.24);
+  x.fillStyle="#13405e"; fitText(x,"FROM NEW MEXICO", W*0.86, H*0.06, W/2, H*0.36);
+  x.strokeStyle="#f1ead6"; x.lineWidth=Math.max(2,W*0.03); x.strokeRect(0,0,W,H);
+}));
+const vendArt=(head,tint,rows)=>(x,W,H)=>{
+  x.fillStyle="#1a1c1e"; x.fillRect(0,0,W,H);
+  x.fillStyle=tint; x.fillRect(0,0,W,H*0.20);
+  x.fillStyle="#f6f1e2"; fitText(x,head, W*0.80, H*0.085, W/2, H*0.105);
+  for(let r=0;r<rows;r++) for(let c2=0;c2<4;c2++){
+    const bw=W*0.19, bh=H*(0.62/rows)*0.72;
+    x.fillStyle=["#c3562f","#3f6ea8","#4f7a4a","#c9a24b","#8a3f6e"][(r*4+c2)%5];
+    x.fillRect(W*0.06+c2*(bw+W*0.045), H*0.26+r*(H*0.62/rows), bw, bh);
+  }
+  x.fillStyle="#2a2d30"; x.fillRect(W*0.06,H*0.90,W*0.88,H*0.07);
+};
+// a machine front is a picture that lights up: the same texture drives the
+// emissive channel, so the artwork itself is what glows after dark
+const picGlowMat=(key,long,draw,kind)=>{
+  const tex=artTex(key,long,draw);
+  const m=new T.MeshStandardMaterial({color:0xffffff, roughness:0.58, map:tex,
+    emissive:0xffffff, emissiveMap:tex, emissiveIntensity:0});
+  GLOW.push({m:m, base:new T.Color(0xffffff), kind:kind||"warm", baseInt:0.22});
+  return m;
+};
+bucketOf("pic:vendFront:snack", ()=>picGlowMat("vendFront:snack", 512, vendArt("SNACKS","#b8332a",5)));
+bucketOf("pic:vendFront:soda",  ()=>picGlowMat("vendFront:soda", 512, vendArt("ICE COLD","#2f5c8a",3), "cool"));
 
 const BAKED=bakeBuckets(scene);
 
@@ -3479,7 +3729,7 @@ function updateDoors(dt){
     if(d.manual!==0){
       if(dist>4.6 || !sameFloor) d.manual=0; else want=(d.manual>0?1:0);
     }
-    d.target=want;
+    d.target=Math.max(want, d.ajar);
     d.open += (d.target-d.open)*Math.min(1, dt*5.2);
     d.g.rotation.y = d.base + d.swing*d.open;
   }
@@ -3810,7 +4060,7 @@ function frame(){
 
   /* ---- artificial light: emissives ramp, real lights follow the player -- */
   for(const g of GLOW){
-    if(g.basic){ g.m.opacity=dark; continue; }
+    if(g.basic){ g.m.opacity=dark*(g.max===undefined?1:g.max); continue; }
     const k=g.kind==="pool" ? 0.30+dark*2.0 : 0.10+dark*3.0;
     if(g.base) g.m.emissive.copy(g.base);
     g.m.emissiveIntensity=g.baseInt*k;
@@ -3845,10 +4095,10 @@ function frame(){
     const wp=waterGeo.attributes.position, a=waterBase;
     for(let i=0;i<wp.count;i++){
       const x=a[i*3], z=a[i*3+2];
-      wp.array[i*3+1]= 0.017*Math.sin(x*1.55 + tt*1.20)
+      wp.array[i*3+1]= waterFall[i]*( 0.017*Math.sin(x*1.55 + tt*1.20)
                      + 0.012*Math.sin(z*2.30 - tt*1.05)
                      + 0.008*Math.sin((x+z)*3.10 + tt*1.90)
-                     + 0.005*Math.sin((x-z*0.6)*5.30 - tt*2.60);
+                     + 0.005*Math.sin((x-z*0.6)*5.30 - tt*2.60));
     }
     wp.needsUpdate=true; waterGeo.computeVertexNormals();
   }

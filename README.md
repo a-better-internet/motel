@@ -55,8 +55,12 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   glitters; after dark it climbs onto the water, and underwater niche lights and
   an emissive sheet throw light blue across the whole courtyard and up the
   facade.
-- **The desert**: a graded pad, a two-lane highway with power poles and sagging
-  wires, saguaro and creosote, boulders, and tumbleweeds grown the way a Russian
+- **The desert**: a graded pad, a two-lane highway that runs to a vanishing
+  point in both directions — its corridor is graded flat to the edge of the
+  world and the badlands and buttes it crosses are cut away either side of it,
+  so it recedes into the haze instead of stopping in mid-desert — with power
+  poles and sagging wires marching out with it, saguaro and creosote, boulders,
+  and tumbleweeds grown the way a Russian
   thistle actually grows — nine stems out of the crown, each kinking and forking
   twice more, so the silhouette is ragged and no two are alike. They wander
   across the wind and hop, because a lopsided ball does not roll smoothly. Every
@@ -88,10 +92,48 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   down the middle of each walkway, a fixture in the laundry with a bad ballast,
   a television still flickering behind one drawn curtain at two in the morning,
   and a plastic chair somebody carried onto a balcony and never carried back.
+- **The small evidence that it is a corridor and not a diagram.** Concrete this
+  long is poured in bays with a joint between them, and the joint is the first
+  thing that tells your eye how far the walkway runs; then the dirt line that
+  collects along the foot of any wall nobody hoses down, the arc each door has
+  scrubbed across the slab, conduit clipped along the soffit with one drop that
+  never got finished, cobwebs in the alcove corners, a wet-floor sign left out
+  days after the floor dried, a bug zapper that has been killing moths since
+  1971, the pool of light each lit machine throws onto the slab in front of it,
+  and one door down the far end standing ajar with the light on behind it.
 - **Weather and traffic.** Cumulus built the way a cloud is actually shaped — a
   row of lobes on a flat base, shaded underneath, sunlit on top — with a thin
   cirrus layer above it, and three vehicles working the highway day and night,
   headlights on after dark.
+
+## Putting your own pictures in it
+
+Every printed surface is drawn into a canvas at build time, and any of them can
+be replaced by a hosted picture. Put a URL against the slot key in the `IMAGES`
+map at the top of `index.html`; it loads at run time with the canvas art as the
+fallback until it arrives. Each slot has a fixed aspect ratio — author to it and
+the picture lands square on the surface, no stretching and no cropping.
+
+| slot key | ratio (w : h) | suggested pixels | where it appears |
+|---|---|---|---|
+| `brochure:a` `:b` `:c` | 4 : 9 | 800 × 1800 | the rack beside the front desk, six slots sharing three images |
+| `postcard` | 2 : 3 | 800 × 1200 | all sixteen cards on the office spinner |
+| `artWide` | 2 : 1 | 1600 × 800 | the print over the bed in every room |
+| `artLand:room` | 3 : 2 | 1200 × 800 | the second framed print in every room |
+| `artLand:office` | 3 : 2 | 1200 × 800 | the framed print on the office north wall |
+| `artPort` | 2 : 3 | 800 × 1200 | framed portrait |
+| `tv` | 4 : 3 | 1024 × 768 | every television screen, rooms and office |
+| `vendFront:snack` | 1 : 2 | 900 × 1800 | the snack machine, alcove and office |
+| `vendFront:soda` | 1 : 2 | 900 × 1800 | the soda machine in the alcove |
+| `vendHeader` | 3 : 1 | 1200 × 400 | the lit ICE header over the ice machine |
+
+Four more surfaces take a picture at their own shape rather than a listed slot:
+`map` and `aerial` (the framed map and the aerial photograph in the office,
+512 × 384 each), `poolRules` (384 × 256), and the three faces of the pole sign —
+`sign:name` (1024 × 276), `sign:rates` (768 × 319) and `sign:vacancy` (512 × 108).
+
+Instances sharing a key share one image and one draw call, so adding pictures
+costs nothing in performance.
 
 ## Controls
 

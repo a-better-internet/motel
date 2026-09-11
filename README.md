@@ -1,4 +1,4 @@
-# Downtown Inn — a walkable desert motel
+# Low Desert Motel — a walkable desert motel
 
 A first-person, single-file web scene: a two-storey Route 66 motel dropped in
 the middle of the New Mexico desert. Walk the lot, let yourself into any of the
@@ -29,6 +29,9 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   floor; a guest laundry above with a washer and dryer, a folding counter, wire
   shelving stacked with linen, a housekeeping cart, a mop bucket and an ironing
   board leaning where somebody left it.
+- **The pole sign** on the highway frontage: VACANCY neon on top, the name
+  board, and a reader board underneath, all hung between two posts that stand
+  clear of the boards rather than across them.
 - **The front desk office**, done up the way these places always were: knotty-pine
   dado, a wagon-wheel chandelier, a longhorn skull and a jackalope on the wall,
   a saguaro in a terracotta pot, a spinning postcard rack, soda and cigarette
@@ -42,23 +45,41 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   notices and a clock that stopped at 3:47 — all drawn in canvas like every
   other texture in the scene.
 - **The pool**: a real tank with a sloped floor, waterline tile, bullnosed
-  coping, walk-in steps at the shallow end and a deep-end ladder you can climb
-  out on. Loungers line the south deck, reclined to face the water. After dark,
-  underwater niche lights, scrolling caustics and an emissive water sheet throw
-  light blue across the whole courtyard and up the facade.
+  coping that laps out over the water, walk-in steps at the shallow end and a
+  deep-end ladder you can climb out on. Loungers line the south deck, reclined
+  to face the water. The surface is a subdivided sheet displaced every frame by
+  four crossing swells with its normals rebuilt, a tiling ripple normal map
+  scrolling over it for the chop in between, and vertex colours carrying the
+  tank's own depth — pale over the shallow end, deep and green over the drain.
+  By day the caustic net sits on the floor where it belongs and the surface only
+  glitters; after dark it climbs onto the water, and underwater niche lights and
+  an emissive sheet throw light blue across the whole courtyard and up the
+  facade.
 - **The desert**: a graded pad, a two-lane highway with power poles and sagging
-  wires, saguaro and creosote, boulders and tumbleweeds. Two escarpments with
+  wires, saguaro and creosote, boulders, and tumbleweeds grown the way a Russian
+  thistle actually grows — nine stems out of the crown, each kinking and forking
+  twice more, so the silhouette is ragged and no two are alike. They wander
+  across the wind and hop, because a lopsided ball does not roll smoothly. Every
+  minute or two a sheet of newspaper or a carrier bag comes through on the same
+  wind, tumbling and lifting and dropping back, and then the lot is empty again. Two escarpments with
   wandering rim lines close the valley, with steep-sided buttes standing clear
   of them and sedimentary strata banding every cliff face. Clouds drift, birds
   circle, and the roadside carries a billboard, a mailbox, newspaper boxes and a
   bus bench, with a water tower away to the west.
 - **The rest of the property**: thirteen parked cars — sedans, a pickup, a panel
-  van — built from the same primitive stack as the Project 76 chassis; a
+  van — built from the same primitive stack as the Project 76 chassis, with
+  raked glass, chrome window surrounds and headlamp bezels, whitewalls, fender
+  lips, and the shut lines and handles that tell you where a car comes apart; a
   chain-link fence around the back; a service yard with a dumpster, a propane
   tank, condensers, oil drums, a laundry line and stacked mattresses; and
   benches, planters, ice chests and cigarette urns along the walkways.
-- **A full day/night cycle** — sun and moon discs, a repainted gradient sky,
-  stars, and every artificial light in the scene ramping up as the sun goes down.
+- **A full day/night cycle** — sun and moon discs, a repainted gradient sky, and
+  every artificial light in the scene ramping up as the sun goes down. The night
+  sky is built in magnitude classes: a handful of named stars with diffraction
+  spikes, a few hundred of second magnitude, thousands of faint ones, colour
+  temperatures running blue-white through orange, and the Milky Way laid across
+  it on its own great circle. Each class scintillates on its own beat, and the
+  whole sky hangs off a tilted pivot that wheels with the clock.
   After dark the haze sits darker than the sky rather than matching it, so the
   canyon walls keep their strata and their shape instead of dissolving into the
   horizon.
@@ -132,6 +153,17 @@ A few pieces are specific to this scene:
   place here: never span a chair rail across a doorway (that one sealed the
   office door shut until it was split around the opening), and never let two
   flat surfaces share a depth.
+- **And nothing stops on a plane something else also stops on.** Every trim
+  piece laps past the thing it trims, so the cut edge underneath is buried
+  rather than flush: door and window linings lap 20 mm into their openings and
+  the heads are wider and deeper than the jambs; the pool coping laps out over
+  the water and the shell tops out under the deck slab; the office's east and
+  west walls own the corners outright and the north and south walls butt into
+  them. The scene is audited for it — a script walks every baked bucket, folds
+  its triangles into axis-aligned face rects and reports any two that share a
+  plane, a normal direction and a footprint. That is what a buzzing door frame
+  is, and it is also what the blue rectangle by the door turned out to be: a
+  mirror hung exactly ON the plane of the wall instead of on the wall.
 
 `window.MOTEL` exposes the player, the clock and a `go(x, z, yaw, level)` helper
 for tooling and screenshots.

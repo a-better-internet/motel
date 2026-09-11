@@ -55,6 +55,20 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   glitters; after dark it climbs onto the water, and underwater niche lights and
   an emissive sheet throw light blue across the whole courtyard and up the
   facade.
+- **Seven things to walk out and find.** Far enough away to be a decision —
+  a hundred and fifty to three hundred metres, one to three minutes on foot —
+  and each one names itself on the HUD when you reach it, so finding it
+  registers as having found something. A descanso on the shoulder with plastic
+  flowers and a ring of stones; somebody's pickup, rusted through and half sunk;
+  a windmill still turning over a stock tank; **a drive-in across the highway**,
+  its blank screen facing the road with the speaker posts still standing in
+  rows; a telephone booth alone in the open desert; a fence line that stops
+  mattering halfway along; and a cold fire ring with oil drums and a mattress
+  somebody slept on.
+- **Wind.** Three slow beats multiplied together, so mostly it is calm and then
+  every couple of minutes a gust comes through for half a minute. Everything
+  loose reads off it: the tumbleweeds run, litter comes loose more often, the
+  ground starts to smoke, and the haze closes in and goes the colour of dust.
 - **The desert**: a graded pad, a two-lane highway that runs to a vanishing
   point in both directions — its corridor is graded flat to the edge of the
   world and the badlands and buttes it crosses are cut away either side of it,
@@ -127,6 +141,18 @@ the picture lands square on the surface, no stretching and no cropping.
 | `vendFront:soda` | 1 : 2 | 900 × 1800 | the soda machine in the alcove |
 | `vendHeader` | 3 : 1 | 1200 × 400 | the lit ICE header over the ice machine |
 
+Some slots take more than one picture. `brochure:0` … `brochure:5` are the six
+slots in the rack — the ten brochures currently wired up are dealt into them at
+random on load, so the rack is different every visit. `tv:0` … `tv:3` are four
+screens dealt out across the rooms, so no two sets down a walkway are showing
+the same thing; animated GIFs work, because the page re-uploads the playing
+frame a dozen times a second.
+
+Pictures are **cover-cropped** to the slot, so a file at any shape lands square
+with nothing stretched — author close to the ratio and nothing is lost. If a
+URL fails, or the host will not give the browser CORS for it, the canvas art
+simply stays up.
+
 Four more surfaces take a picture at their own shape rather than a listed slot:
 `map` and `aerial` (the framed map and the aerial photograph in the office,
 512 × 384 each), `poolRules` (384 × 256), and the three faces of the pole sign —
@@ -195,6 +221,18 @@ A few pieces are specific to this scene:
   place here: never span a chair rail across a doorway (that one sealed the
   office door shut until it was split around the opening), and never let two
   flat surfaces share a depth.
+- **Two bugs the pool taught us.** The rectangles in the water were two faults
+  wearing each other's clothes. One was shadow acne: the shadow frustum was 112
+  m across 2048 texels, 5.5 cm a texel, and the normalBias needed to stop
+  banding on the big slabs was wider than the 10 cm waterline tile itself. The
+  frustum already followed the player, so narrowing it to 64 m across 3072
+  texels — 2 cm a texel — let the bias come down by a factor of three, and the
+  frustum is now snapped to whole texels so it does not crawl as you walk. The
+  other was a flat tank floor: the ramp between the shallow and deep ends was
+  pushed with one argument too many, the tilt fell off the end of the list, and
+  the floor had been a plate at mid-depth with a step at each end since the day
+  it was built. A raycast straight down a grid of points inside the tank is what
+  found it — the floor read the same height across seven metres.
 - **And nothing stops on a plane something else also stops on.** Every trim
   piece laps past the thing it trims, so the cut edge underneath is buried
   rather than flush: door and window linings lap 20 mm into their openings and

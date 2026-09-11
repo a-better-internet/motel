@@ -16,16 +16,23 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   a chair at the window under a valanced drape, a suitcase on the rack, and a
   tiled bathroom with a tub, vanity, mirror, folded towels and a bath mat. Doors
   swing open as you reach them, or on `E`.
-- **Two wings in an L** around the courtyard — nine bays and five bays, with a
-  service alcove in each (ice machine, vending) and an outdoor stair up to the
-  balcony.
+- **Two wings in an L** around the courtyard — nine bays and five bays, with an
+  outdoor stair up to the balcony and a service alcove cut into each wing: ice,
+  snacks and a soda machine with an OUT OF ORDER card taped to it on the ground
+  floor; a guest laundry above with a washer and dryer, a folding counter, wire
+  shelving stacked with linen, a housekeeping cart, a mop bucket and an ironing
+  board leaning where somebody left it.
 - **The front desk office**, done up the way these places always were: knotty-pine
   dado, a wagon-wheel chandelier, a longhorn skull and a jackalope on the wall,
   a saguaro in a terracotta pot, a spinning postcard rack, soda and cigarette
   machines, a payphone, a television on a bracket, a rag rug, a hat rack, and
   the counter itself with key pigeonholes and fobs, register, guest book and a
-  desk bell you can ring (`E`). On the walls: a framed road map of New Mexico
-  and an aerial photograph of the property, both drawn in canvas like every
+  desk bell you can ring (`E`). A sofa and armchair face each other across a
+  coffee table under the shopfront glazing, with a second bench, a coffee
+  credenza and a bottle-top water cooler along the back wall, and a luggage cart
+  nobody came back for parked by the door. On the walls: a framed road map of
+  New Mexico, an aerial photograph of the property, a cork board of curling
+  notices and a clock that stopped at 3:47 — all drawn in canvas like every
   other texture in the scene.
 - **The pool**: a real tank with a sloped floor, waterline tile, bullnosed
   coping, walk-in steps at the shallow end and a deep-end ladder you can climb
@@ -45,6 +52,14 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   benches, planters, ice chests and cigarette urns along the walkways.
 - **A full day/night cycle** — sun and moon discs, a repainted gradient sky,
   stars, and every artificial light in the scene ramping up as the sun goes down.
+  After dark the haze sits darker than the sky rather than matching it, so the
+  canyon walls keep their strata and their shape instead of dissolving into the
+  horizon.
+- **Signs of wear.** Soot halos above every sconce, rust bleeding from the
+  through-wall air conditioners, damp blooms on the balcony soffits, a worn path
+  down the middle of each walkway, a fixture in the laundry with a bad ballast,
+  a television still flickering behind one drawn curtain at two in the morning,
+  and a plastic chair somebody carried onto a balcony and never carried back.
 
 ## Controls
 

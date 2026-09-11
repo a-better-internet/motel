@@ -10,12 +10,19 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
 
 ## What is in it
 
-- **24 guest rooms**, all enterable, all furnished: two doubles (or a king in
-  every fourth room), a nightstand with a lamp and a clock radio, a dresser with
-  a CRT television, a mini fridge and microwave, a coffee maker and ice bucket,
-  a chair at the window under a valanced drape, a suitcase on the rack, and a
-  tiled bathroom with a tub, vanity, mirror, folded towels and a bath mat. Doors
-  swing open as you reach them, or on `E`.
+- **24 guest rooms**, all enterable, all furnished, all laid out the same
+  sensible way: one queen with its headboard against the right-hand wall,
+  nightstands either side with a lamp and a clock radio, the dresser, television,
+  fridge and coffee maker on the wall opposite, and a round table with two chairs
+  under the window. The bathroom has the tub down the long wall, the toilet in
+  the near corner with its tank against the back wall, and the vanity between
+  them, so all three are reachable from the floor you step into; a clear lane
+  runs from the entrance door to the bathroom door, verified by flood-filling
+  every room. Six palettes cycle through the rooms — bedspread, walls, carpet,
+  drapes and headboard all shift — and each room gets three things the last
+  guest left: magazines fanned on the table, a cigarette still glowing in the
+  ashtray, an open suitcase, boots and a newspaper, a room-service tray, a hat
+  on the dresser, a guitar case. Doors swing open as you reach them, or on `E`.
 - **Two wings in an L** around the courtyard — nine bays and five bays, with an
   outdoor stair up to the balcony and a service alcove cut into each wing: ice,
   snacks and a soda machine with an OUT OF ORDER card taped to it on the ground
@@ -60,6 +67,10 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   down the middle of each walkway, a fixture in the laundry with a bad ballast,
   a television still flickering behind one drawn curtain at two in the morning,
   and a plastic chair somebody carried onto a balcony and never carried back.
+- **Weather and traffic.** Cumulus built the way a cloud is actually shaped — a
+  row of lobes on a flat base, shaded underneath, sunlit on top — with a thin
+  cirrus layer above it, and three vehicles working the highway day and night,
+  headlights on after dark.
 
 ## Controls
 

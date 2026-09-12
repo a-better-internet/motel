@@ -47,13 +47,20 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
 - **The pool**: a real tank with a sloped floor, waterline tile, bullnosed
   coping that laps out over the water, walk-in steps at the shallow end and a
   deep-end ladder you can climb out on. Loungers line the south deck, reclined
-  to face the water. The surface is a subdivided sheet displaced every frame by
-  four crossing swells with its normals rebuilt, a tiling ripple normal map
-  scrolling over it for the chop in between, and vertex colours carrying the
-  tank's own depth — pale over the shallow end, deep and green over the drain.
-  By day the caustic net sits on the floor where it belongs and the surface only
-  glitters; after dark it climbs onto the water, and underwater niche lights and
-  an emissive sheet throw light blue across the whole courtyard and up the
+  to face the water. The water is a single shader, built the way the *Super
+  Mario Sunshine* breakdown argues water should be built — not as a simulation
+  but as a stack of cheap, independently controllable illusions. Two patterns
+  moving on different vectors so their interference never repeats; Fresnel, so
+  it is glass at a grazing angle and a window when you look straight down;
+  depth taken analytically from the tank's own floor profile, so the shallow
+  end is pale and see-through and the drain end is dark; a shore blend and a
+  moving foam band so the water never ends in a hard line at the wall; a tight
+  specular for the glitter; caustics; a ring that travels out from wherever you
+  are standing in it; and a distance band so the same pattern is never equally
+  obvious everywhere. One draw call, no render targets, and no per-frame CPU
+  work at all — the swell and its normals are computed in the vertex shader,
+  and the whole per-frame cost is eight uniforms. After dark the niche lights
+  take over and the sheet throws light blue across the courtyard and up the
   facade.
 - **Twelve things to walk out and find**, with two-track roads worn out to
   them from the highway shoulder so the desert has a grain and you know where
@@ -154,12 +161,16 @@ ten brochures wired up are dealt into them at random on load, so the office is
 different every visit. `tv:0` … `tv:3` are four screens dealt out across the
 rooms, so no two sets down a walkway are showing the same thing.
 
-**Animated GIFs work**, and getting them to is not a texture problem, it is a
-DOM problem: an `<img>` that is not laid out in the document never advances a
-GIF's frames in Chrome, and a WebGL texture only changes when something
-re-uploads it. So each animated slot keeps its image in the page — two pixels,
-off in the corner, all but transparent — and a dozen times a second the frame
-it is currently showing is blitted into the canvas the texture already owns.
+**Animated GIFs work**, and getting them to needs three fallbacks, because two
+of the obvious approaches quietly do nothing. An `<img>` that is not *painted*
+in the document never advances a GIF's frames in Chrome, and a WebGL texture
+only changes when something re-uploads it. So: the GIF is decoded frame by
+frame through WebCodecs' `ImageDecoder` where that exists, which is exact and
+needs no DOM at all; failing that an `<img>` is kept four pixels square in the
+corner of the page where it really is painted, and blitted; and whatever
+happens the screens keep moving with procedural static, so a set is never a
+still photograph of snow. `MOTEL.images()` in the console reports what every
+slot actually did.
 
 Pictures are **cover-cropped** to the slot, so a file at any shape lands square
 with nothing stretched — author close to the ratio and nothing is lost. If a

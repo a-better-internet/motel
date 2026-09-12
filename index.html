@@ -314,30 +314,94 @@ function artTex(key, long, draw){
 // swap in the hosted picture for this slot, if one has been named. The canvas
 // art stays up until it arrives, and stays up for good if it never does —
 // a picture the browser will not give us CORS for simply fails quietly.
-/* Animated slots are not a texture problem, they are a DOM problem. An <img>
-   that is not laid out in the document never advances a GIF's frames in
-   Chrome, and a WebGL texture only changes when something re-uploads it. So
-   the image lives in the page — two pixels, off in the corner, all but
-   transparent — and every tick we blit whatever frame it is currently showing
-   into the canvas the texture already owns, cropping to fill as we go. */
-const ANIM=[];
-function hosted(key, tex, opt){
-  const url=IMAGES[key];
-  if(!url) return tex;
-  opt=opt||{};
-  if(opt.animated){
-    const img=document.createElement("img");
-    img.crossOrigin="anonymous";
-    img.decoding="sync";
-    img.style.cssText="position:fixed;left:0;top:0;width:2px;height:2px;opacity:0.01;"+
-                      "pointer-events:none;z-index:-1";
-    img.addEventListener("load", ()=>{ ANIM.push({img:img, tex:tex, c:tex.image}); });
-    img.addEventListener("error", ()=>{ img.remove(); });
-    document.body.appendChild(img);
-    img.src=url;
-    return tex;
+/* Animated slots need three fallbacks, because two of the obvious approaches
+   quietly do nothing. An <img> that is not painted in the document never
+   advances a GIF's frames in Chrome, and a texture only changes when
+   something re-uploads it. So: decode the GIF ourselves through WebCodecs
+   where that exists, which is exact and needs no DOM at all; fall back to an
+   <img> kept four pixels square in the corner of the page where it really is
+   painted; and, whatever happens, keep the screens moving with procedural
+   static so a set is never a still photograph of snow. */
+const ANIM=[], STATIC_TILES=[];
+(function buildStatic(){
+  for(let k=0;k<6;k++){
+    const c=cvs(128,96), x=c.getContext("2d");
+    x.fillStyle="#0d1315"; x.fillRect(0,0,128,96);
+    for(let i=0;i<2600;i++){
+      const g=(Math.random()*70)|0;
+      x.fillStyle="rgb("+(g+8)+","+(g+12)+","+(g+16)+")";
+      x.fillRect(Math.random()*128, Math.random()*96, 1+Math.random()*2, 1);
+    }
+    STATIC_TILES.push(c);
   }
+})();
+function drawStatic(c, t){
+  const x=c.getContext("2d"), W=c.width, H=c.height;
+  x.globalAlpha=1; x.globalCompositeOperation="source-over";
+  x.drawImage(STATIC_TILES[(t*14|0)%STATIC_TILES.length], 0,0,W,H);
+  const y=((t*0.22)%1.35-0.18)*H;                    // the frame rolling through
+  const g=x.createLinearGradient(0,y,0,y+H*0.16);
+  g.addColorStop(0,"rgba(255,255,255,0)"); g.addColorStop(0.5,"rgba(210,228,238,0.14)");
+  g.addColorStop(1,"rgba(255,255,255,0)");
+  x.fillStyle=g; x.fillRect(0,y,W,H*0.16);
+}
+function coverBlit(c, src, iw, ih){
+  if(!iw || !ih) return false;
+  const g=c.getContext("2d"), want=c.width/c.height, have=iw/ih;
+  let sw=iw, sh=ih, sx=0, sy=0;
+  if(have>want){ sw=ih*want; sx=(iw-sw)/2; } else { sh=iw/want; sy=(ih-sh)/2; }
+  try{ g.drawImage(src, sx,sy,sw,sh, 0,0,c.width,c.height); return true; }
+  catch(e){ return false; }
+}
+const IMG_STATUS={};
+function dropNoise(tex){
+  for(let i=0;i<ANIM.length;i++) if(ANIM[i].tex===tex && ANIM[i].noise) ANIM.splice(i--,1);
+}
+function domGif(key, url, tex){
+  const img=document.createElement("img");
+  img.crossOrigin="anonymous";
+  img.style.cssText="position:fixed;right:0;bottom:0;width:4px;height:4px;opacity:0.02;"+
+                    "pointer-events:none;z-index:2147483647";
+  img.addEventListener("load", ()=>{ dropNoise(tex); IMG_STATUS[key]="img";
+                                     ANIM.push({tex:tex, c:tex.image, img:img}); });
+  img.addEventListener("error", ()=>{
+    IMG_STATUS[key]=(IMG_STATUS[key]==="static"?"static (picture failed)":"failed");
+    img.remove(); });
+  document.body.appendChild(img);
+  img.src=url;
+}
+function gifInto(key, url, tex){
+  if(window.ImageDecoder){
+    fetch(url, {mode:"cors"}).then(r=>r.ok?r.arrayBuffer():Promise.reject(0)).then(buf=>{
+      const dec=new ImageDecoder({data:buf, type:"image/gif"});
+      return dec.completed.then(()=>{
+        const n=Math.max(1, dec.tracks.selectedTrack.frameCount|0);
+        dropNoise(tex); IMG_STATUS[key]="decoder:"+n;
+        let i=0;
+        const step=()=>{
+          dec.decode({frameIndex:i%n}).then(res=>{
+            const f=res.image;
+            if(coverBlit(tex.image, f, f.displayWidth, f.displayHeight)) tex.needsUpdate=true;
+            const ms=Math.max(45, (f.duration||90000)/1000);
+            f.close(); i++; setTimeout(step, ms);
+          }).catch(()=>{ IMG_STATUS[key]="decode-error"; });
+        };
+        step();
+      });
+    }).catch(()=>domGif(key, url, tex));
+  }else domGif(key, url, tex);
+}
+function hosted(key, tex, opt){
+  opt=opt||{};
+  const url=IMAGES[key];
+  if(opt.animated){                       // moving from the first frame, always
+    ANIM.push({tex:tex, c:tex.image, noise:true});
+    IMG_STATUS[key]="static";
+  }
+  if(!url) return tex;
+  if(opt.animated){ gifInto(key, url, tex); return tex; }
   new T.TextureLoader().load(url, t=>{
+    IMG_STATUS[key]="loaded";
     tex.image=t.image; setSRGB(tex);
     // cover-crop to the slot, so a picture at any shape lands square and
     // nothing is ever stretched
@@ -348,22 +412,17 @@ function hosted(key, tex, opt){
       else         { const r=have/want; tex.repeat.set(1,r); tex.offset.set(0,(1-r)/2); }
     }
     tex.needsUpdate=true;
-  }, undefined, ()=>{});
+  }, undefined, ()=>{ IMG_STATUS[key]="failed"; });
   return tex;
 }
-function tickAnim(){
+function tickAnim(now){
   for(let i=0;i<ANIM.length;i++){
-    const a=ANIM[i], c=a.c, iw=a.img.naturalWidth, ih=a.img.naturalHeight;
-    if(!iw || !ih || !c.getContext) continue;
-    const g=c.getContext("2d"), want=c.width/c.height, have=iw/ih;
-    let sw=iw, sh=ih, sx=0, sy=0;
-    if(have>want){ sw=ih*want; sx=(iw-sw)/2; } else { sh=iw/want; sy=(ih-sh)/2; }
-    try{ g.drawImage(a.img, sx,sy,sw,sh, 0,0,c.width,c.height); }
-    catch(e){ ANIM.splice(i--,1); continue; }
-    a.tex.needsUpdate=true;
+    const a=ANIM[i];
+    if(a.noise){ drawStatic(a.c, now); a.tex.needsUpdate=true; continue; }
+    if(coverBlit(a.c, a.img, a.img.naturalWidth, a.img.naturalHeight)) a.tex.needsUpdate=true;
+    else ANIM.splice(i--,1);
   }
 }
-
 // deterministic little PRNG so the scene is identical every load
 let _seed = 1337;
 function rnd(){ _seed = (_seed*1664525 + 1013904223) & 0x7fffffff; return _seed/0x7fffffff; }
@@ -1160,63 +1219,73 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
   // A cumulus is a row of lobes on a flat base, lit from above and shaded
   // underneath. Drawing it that way — mass, then a shaded base, then sunlit
   // tops, then cutting the base flat — reads as weather rather than as fog.
-  // Four archetypes, a fresh one for every cloud in the sky. Three things
-  // were making them read as cut-out bubbles rather than weather: the lobes
-  // ran off the edge of their own canvas and got squared off; the silhouette
-  // was a chain of circles because nothing ever bit into it; and the flat base
-  // was a ruler line. So: a hard margin, an erosion pass around the rim, and a
-  // base that is cut with a soft gradient and then chewed.
+  // One generative model rather than four recognisable archetypes: every cloud
+  // picks its own point in a four-axis space — how far it spreads, how much it
+  // towers, how broken it is, how much its top shears downwind — so no two
+  // read as the same shape. The silhouette is then eroded with a tiling noise
+  // field instead of punched with circles, which is what was leaving those
+  // negative-space holes: subtracting a proportion of alpha thins the soft rim
+  // into wisps and barely touches the solid core, which is how a cloud edge
+  // actually behaves.
+  const CLOUD_NOISE=(function(){
+    const N=256, c=cvs(N,N), x=c.getContext("2d"), img=x.createImageData(N,N);
+    const h=(i,j)=>{ const k=Math.sin(i*127.1+j*311.7)*43758.5453; return k-Math.floor(k); };
+    const oct=(u,v,f)=>{                              // tiling value noise
+      const uu=u*f, vv=v*f, i0=Math.floor(uu), j0=Math.floor(vv);
+      const fu=uu-i0, fv=vv-j0, su=fu*fu*(3-2*fu), sv=fv*fv*(3-2*fv);
+      const m=(a,b,t)=>a+(b-a)*t, w=(a)=>((a%f)+f)%f;
+      const a=h(w(i0),w(j0)), b=h(w(i0+1),w(j0)), cc=h(w(i0),w(j0+1)), d=h(w(i0+1),w(j0+1));
+      return m(m(a,b,su), m(cc,d,su), sv);
+    };
+    for(let j2=0;j2<N;j2++) for(let i2=0;i2<N;i2++){
+      const u=i2/N, v=j2/N;
+      let n=oct(u,v,4)*0.5+oct(u,v,8)*0.28+oct(u,v,16)*0.14+oct(u,v,32)*0.08;
+      n=Math.pow(Math.max(0,(n-0.30)/0.70), 1.9);     // mostly gentle, sometimes a real bite
+      const o=(j2*N+i2)*4;
+      img.data[o]=img.data[o+1]=img.data[o+2]=0;
+      img.data[o+3]=Math.min(255, n*255);
+    }
+    x.putImageData(img,0,0);
+    return c;
+  })();
   function cumulusTex(seed){
     let sd=seed*9301+7;
     const r2=()=>{ sd=(sd*9301+49297)%233280; return sd/233280; };
-    const kind=[0,0,0,1,2,3][(r2()*6)|0];   // mostly fair-weather heaps
-    const W=448, H=[236,352,200,220][kind], M=26;           // M: the safe margin
-    const base=H-M-(kind===1?10:16);
+    // the four axes, drawn independently for every cloud
+    const spread=0.35+r2()*0.65, tower=Math.pow(r2(),1.7), rag=Math.pow(r2(),1.5),
+          shear=(r2()-0.5)*1.7*tower;
+    const W=448, H=Math.round(180+tower*210), M=26, IW=W-M*2;
+    const base=H-M-12;
     const c=cvs(W,H), x=c.getContext("2d");
-    const lobes=[], IW=W-M*2;
-    const put=(lx,ly,lr)=>{                                 // keep it off the edge
-      const r=Math.min(lr, lx-M, W-M-lx, ly-M, base+10-ly+lr*0.9);
+    const lobes=[];
+    const put=(lx,ly,lr)=>{
+      const r=Math.min(lr, lx-M, W-M-lx, ly-M, base+12-ly+lr*0.9);
       if(r>6) lobes.push({x:lx, y:ly, r:r});
     };
-    if(kind===0){                                           // fair weather
-      const n=6+((r2()*4)|0);
-      for(let i=0;i<n;i++){
-        const t=n>1?i/(n-1):0.5, hump=Math.sin(t*Math.PI);
-        const lr=22+hump*30+r2()*14;
-        put(M+IW*0.06+t*IW*0.88+(r2()-0.5)*18, base-lr*0.52-hump*12*r2(), lr);
+    // the heap along the base: a hump curve with its own skew and wobble
+    const n=Math.round(5+spread*9+rag*6), skew=(r2()-0.5)*0.9, cxx=M+IW*(0.30+r2()*0.40);
+    for(let i=0;i<n;i++){
+      if(rag>0.45 && r2()<rag*0.34) continue;            // broken ones lose lobes
+      const t=n>1?i/(n-1):0.5;
+      const hump=Math.pow(Math.sin(t*Math.PI), 0.7+skew*0.5);
+      const lr=(15+hump*(26+spread*22))*(1-rag*0.34)+r2()*14;
+      put(M+IW*0.05+t*IW*0.90+(r2()-0.5)*20*(1+rag),
+          base-lr*0.5-hump*(8+tower*26)*r2()-rag*r2()*26, lr);
+    }
+    // and, if it is building, a column that leans downwind as it rises
+    if(tower>0.18){
+      let y=base-34-tower*22, r=30+tower*26, lean=0;
+      while(y>M+r*0.7 && r>10){
+        lean += shear*r*0.34;
+        put(cxx+lean+(r2()-0.5)*r*0.7, y, r*(0.9+r2()*0.25));
+        y-=r*(0.52+r2()*0.18); r*=0.80-r2()*0.08;
       }
-    }else if(kind===1){                                     // towering congestus
-      const cxx=M+IW*(0.32+r2()*0.36), n=6+((r2()*4)|0);
-      for(let i=0;i<n;i++){
-        const t=i/(n-1), lr=26+Math.sin(t*Math.PI)*28+r2()*12;
-        put(M+IW*0.08+t*IW*0.84, base-lr*0.48-r2()*10, lr);
-      }
-      let y=base-54, r=48;
-      while(y>M+r*0.7 && r>11){
-        put(cxx+(r2()-0.5)*r*0.8, y, r);
-        y-=r*0.60; r*=0.83-r2()*0.07;
-      }
-    }else if(kind===2){                                     // ragged and broken
-      const n=12+((r2()*7)|0);
-      for(let i=0;i<n;i++){
-        if(r2()<0.26) continue;                             // the gaps are the point
-        const t=i/(n-1), lr=11+r2()*22;
-        put(M+IW*0.04+t*IW*0.92+(r2()-0.5)*16,
-            base-lr*0.5-r2()*30-Math.sin(t*3.1)*12, lr);
-      }
-    }else{                                                  // anvil, spreading right
-      const n=7+((r2()*3)|0);
-      for(let i=0;i<n;i++){
-        const t=i/(n-1), lr=40-t*20+r2()*10;
-        put(M+IW*0.06+t*IW*0.24, base-lr*0.52-t*16, lr);
-      }
-      for(let i=0;i<10;i++){                                // the flat top blowing off
-        const t=i/9, lr=14+r2()*15;
-        put(M+IW*0.26+t*IW*0.70, base-64-t*22+(r2()-0.5)*12, lr);
+      if(Math.abs(shear)>0.45) for(let i=0;i<8;i++){      // the top sheared off
+        const t=i/7, lr=11+r2()*15;
+        put(cxx+lean*(0.6+t*1.5)+shear*IW*0.30*t, y+r*1.6+(r2()-0.5)*16, lr);
       }
     }
-    // mass: softer falloff and heavier overlap, so it is one body of cloud
-    for(const L of lobes){
+    for(const L of lobes){                                    // the mass
       const g=x.createRadialGradient(L.x, L.y-L.r*0.16, L.r*0.10, L.x, L.y, L.r);
       g.addColorStop(0.00,"rgba(255,255,255,1.00)");
       g.addColorStop(0.58,"rgba(255,255,255,0.94)");
@@ -1224,22 +1293,16 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
       g.addColorStop(1.00,"rgba(255,255,255,0)");
       x.fillStyle=g; x.beginPath(); x.arc(L.x,L.y,L.r,0,7); x.fill();
     }
-    // nibble the silhouette only — enough to stop it reading as a row of
-    // circles, not enough to break the cloud into separate lumps
+    // erode with noise at two scales — organic, never a circular hole
     x.globalCompositeOperation="destination-out";
-    for(let i=0;i<(kind===2?9:16);i++){
-      const L=lobes[(r2()*lobes.length)|0]; if(!L) break;
-      const a=r2()*Math.PI*2, rr2=L.r*(0.94+r2()*0.22), br=L.r*(0.13+r2()*0.17);
-      const px=L.x+Math.cos(a)*rr2, py=L.y+Math.sin(a)*rr2*0.9;
-      if(py>base-8) continue;                               // leave the base alone
-      const g=x.createRadialGradient(px,py,0,px,py,br);
-      g.addColorStop(0,"rgba(0,0,0,"+(0.42+r2()*0.45).toFixed(2)+")");
-      g.addColorStop(0.6,"rgba(0,0,0,"+(0.18+r2()*0.2).toFixed(2)+")");
-      g.addColorStop(1,"rgba(0,0,0,0)");
-      x.fillStyle=g; x.beginPath(); x.arc(px,py,br,0,7); x.fill();
+    for(const pass of [[1.0+r2()*0.7, 0.34+rag*0.30], [2.3+r2()*1.6, 0.20+rag*0.24]]){
+      const sw=256/pass[0], sh=256/pass[0];
+      x.globalAlpha=pass[1];
+      x.drawImage(CLOUD_NOISE, r2()*(256-sw), r2()*(256-sh), sw, sh, 0, 0, W, H);
     }
+    x.globalAlpha=1;
     x.globalCompositeOperation="source-atop";               // shaded underside
-    const sg=x.createLinearGradient(0, base-70, 0, base+10);
+    const sg=x.createLinearGradient(0, base-70-tower*40, 0, base+10);
     sg.addColorStop(0,"rgba(150,166,192,0)");
     sg.addColorStop(0.62,"rgba(126,142,172,0.46)");
     sg.addColorStop(1,"rgba(104,120,152,0.74)");
@@ -1253,22 +1316,15 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
       x.fillStyle=g; x.beginPath(); x.arc(hx,hy,hr,0,7); x.fill();
     }
     x.globalCompositeOperation="destination-out";           // the base, cut soft
-    const cutTop=base-(kind===2?26:14);
-    const eg=x.createLinearGradient(0, cutTop, 0, base+22);
+    const cutTop=base-(10+rag*22);
+    const eg=x.createLinearGradient(0, cutTop, 0, base+20);
     eg.addColorStop(0,"rgba(0,0,0,0)"); eg.addColorStop(0.55,"rgba(0,0,0,0.55)");
     eg.addColorStop(1,"rgba(0,0,0,1)");
     x.fillStyle=eg; x.fillRect(0,cutTop,W,H-cutTop);
-    for(let i=0;i<14;i++){                                  // then chewed, not ruled
-      const px=M+r2()*IW, br=12+r2()*30;
-      const g=x.createRadialGradient(px,base-2,0,px,base-2,br);
-      g.addColorStop(0,"rgba(0,0,0,"+(0.25+r2()*0.5).toFixed(2)+")");
-      g.addColorStop(1,"rgba(0,0,0,0)");
-      x.fillStyle=g; x.beginPath(); x.arc(px,base-2,br,0,7); x.fill();
-    }
     x.globalCompositeOperation="source-over";
     const tex=setSRGB(new T.CanvasTexture(c));
     if(r2()<0.5){ tex.wrapS=T.RepeatWrapping; tex.repeat.x=-1; tex.offset.x=1; }
-    return {tex:tex, aspect:H/W, kind:kind};
+    return {tex:tex, aspect:H/W, tower:tower, spread:spread};
   }
   function cirrusTex(seed){
     const W=512, H=128, c=cvs(W,H), x=c.getContext("2d");
@@ -1291,24 +1347,20 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
   // mile up, not two hundred metres, and the big ones belong out near the
   // horizon where a sprite's flatness does not show.
   // They drift along x, so z is what sets how close one can ever come. Keeping
-  // a floor under |z| is what stops a thunderhead from ending up overhead.
-  const CLOUD_PLACE=[
-    // kind:  [zMin, zMax, altMin, altMax, scaleMin, scaleMax]
-    [ 500, 2400,  620, 1050,  420,  800],   // fair weather, the near ones
-    [1600, 3800,  850, 1500,  950, 1600],   // towering, kept out where it belongs
-    [ 420, 1800,  620, 1150,  230,  430],   // ragged
-    [1500, 3400,  950, 1600,  880, 1400],   // anvil
-  ];
-  for(let i=0;i<30;i++){
-    const t=cumulusTex(i*37+3), P2=CLOUD_PLACE[t.kind];
+  // a floor under |z| is what stops a big one from ending up overhead, and the
+  // bigger it is the further out it starts.
+  for(let i=0;i<32;i++){
+    const t=cumulusTex(i*37+3);
     const m=new T.SpriteMaterial({map:t.tex, transparent:true, depthWrite:false,
       fog:false, opacity:0.0});
     const sp=new T.Sprite(m);
-    const sc=P2[4]+Math.random()*(P2[5]-P2[4]);
+    const big=Math.max(t.tower, t.spread*0.8);
+    const sc=240+big*1250+Math.random()*260;
     sp.scale.set(sc, sc*t.aspect, 1);
+    const zMin=420+big*1500, zMax=zMin+900+big*1700;
     sp.position.set((Math.random()*2-1)*4600,
-                    P2[2]+Math.random()*(P2[3]-P2[2]),
-                    (Math.random()<0.5?-1:1)*(P2[0]+Math.random()*(P2[1]-P2[0])));
+                    600+big*760+Math.random()*420,
+                    (Math.random()<0.5?-1:1)*(zMin+Math.random()*(zMax-zMin)));
     scene.add(sp); CLOUDS.push({s:sp, sp:1.2+Math.random()*1.8});
   }
   for(let i=0;i<10;i++){
@@ -1776,7 +1828,7 @@ const BASE=0.15;                       // building pad, one step above the lot
 const lvlY=l=>BASE+l*FLOOR_H;
 const WALL_H0=FLOOR_H, WALL_H1=3.00;   // exterior wall height per level
 const DOORS=[], ROOMS=[], LAMPS=[];
-const NEON=[];   // painted panels that brighten after dark
+const NEON=[], VAC_NEON=[];   // painted panels that brighten after dark
 
 function XF(ox,oz,ry){
   const c=Math.cos(ry), s=Math.sin(ry);
@@ -2643,8 +2695,8 @@ buildStair({x:19.20, z:-7.00, dir:"x", sign:1, width:1.55, run:5.10, rise:FLOOR_
 /* ----------------------------------------------------------------------
    9 · THE POOL — the reason to come back after dark
    ---------------------------------------------------------------------- */
-const POOL_LIGHTS=[]; let waterMat=null, caustic1=null, caustic2=null, poolFloorCaustic=null, poolGlow=null;
-let waterGeo=null, waterBase=null, waterFall=null, surfGlint=null, waterMesh=null;
+const POOL_LIGHTS=[]; let waterMat=null, poolFloorCaustic=null, poolGlow=null;
+let waterGeo=null, waterMesh=null;
 (function buildPool(){
   const D=POOL.deck, P=POOL, dy=0.10;
   // deck apron in four plates so the tank itself stays open to walk into
@@ -2725,63 +2777,159 @@ let waterGeo=null, waterBase=null, waterFall=null, surfGlint=null, waterMesh=nul
     cyl("metal", 0.035,0.035,0.55,10, P.x0+0.10, dy+1.16, z, "#cfd6d8", 0,0,Math.PI/2);
   }
 
-  /* --- water: a translucent sheet, two scrolling caustic layers, and the
-     underwater niche lights that give the whole courtyard its night colour */
-  /* A flat plate with a tint on it never looks like water. This is a real
-     surface: a subdivided sheet displaced by four crossing swells every
-     frame, a tiling normal map scrolling over it for the chop between the
-     swells, and vertex colours that carry the tank's own depth — pale over
-     the shallow end, deep and green over the drain. */
-  // The sheet runs 80 mm INTO the tile band on every side and the swell is
-  // tapered to nothing over the last half metre, so the edge of the water
-  // stays buried under the rim instead of bobbing out from behind it.
+  /* --- the water ---------------------------------------------------------
+     Built the way the Super Mario Sunshine breakdown argues water should be
+     built: not as a simulation but as a stack of cheap, independently
+     controllable illusions. Two wave patterns moving in different directions
+     so their interference never repeats; Fresnel, so it is glass at a
+     grazing angle and a window when you look straight down; depth, taken
+     analytically from the tank's own floor profile, so the shallow end is
+     pale and see-through and the drain end is dark; a shore blend and a foam
+     band so the water does not end in a hard line at the wall; a tight
+     specular for the glitter; caustics; and a distance band so the same
+     pattern is not equally obvious everywhere. One draw call, no render
+     targets, no per-frame CPU work at all — the swell and its normals are
+     computed in the vertex shader.                                        */
   const wLap=0.08, wHX=(P.x1-P.x0)/2+wLap, wHZ=(P.z1-P.z0)/2+wLap;
-  waterGeo=new T.PlaneGeometry(wHX*2, wHZ*2, 44, 28);
+  const wcx=(P.x0+P.x1)/2, wcz=(P.z0+P.z1)/2;
+  waterGeo=new T.PlaneGeometry(wHX*2, wHZ*2, 56, 34);
   waterGeo.rotateX(-Math.PI/2);
-  const wp=waterGeo.attributes.position;
-  waterBase=new Float32Array(wp.array);                 // the undisplaced grid
-  const wcol=new Float32Array(wp.count*3);
-  waterFall=new Float32Array(wp.count);
-  for(let i=0;i<wp.count;i++){
-    const wx=(P.x0+P.x1)/2+waterBase[i*3];
-    const d=clamp((wx-POOL_STEPS.x1)/(P.x1-POOL_STEPS.x1),0,1);   // 0 shallow, 1 deep
-    wcol[i*3]=1.00-0.34*d; wcol[i*3+1]=1.00-0.14*d; wcol[i*3+2]=1.00-0.06*d;
-    const edge=Math.min(wHX-Math.abs(waterBase[i*3]), wHZ-Math.abs(waterBase[i*3+2]));
-    waterFall[i]=clamp(edge/0.55, 0, 1);
+  {
+    const wp=waterGeo.attributes.position, fall=new Float32Array(wp.count);
+    for(let i=0;i<wp.count;i++){
+      const e=Math.min(wHX-Math.abs(wp.getX(i)), wHZ-Math.abs(wp.getZ(i)));
+      fall[i]=clamp(e/0.55, 0, 1);            // the swell dies at the wall
+    }
+    waterGeo.setAttribute("aFall", new T.BufferAttribute(fall,1));
   }
-  waterGeo.setAttribute("color", new T.BufferAttribute(wcol,3));
-  waterMat=new T.MeshStandardMaterial({color:0x2b93bb, transparent:true, opacity:0.80,
-    roughness:0.045, metalness:0.30, side:T.DoubleSide, vertexColors:true,
-    normalMap:TEX.ripple, normalScale:new T.Vector2(0.30,0.30),
-    emissive:new T.Color(0x0a3a4c), emissiveIntensity:0.2});
+  const WATER_VS = [
+"attribute float aFall;",
+"uniform float uTime;  uniform vec2 uPlayer;  uniform float uRipple;",
+"varying vec3 vWorld;  varying vec3 vNrm;  varying float vFall;",
+"void main(){",
+"  vec4 wp = modelMatrix * vec4(position,1.0);",
+"  vec2 p = wp.xz;  float t = uTime;  float h = 0.0;  vec2 g = vec2(0.0);",
+// three long swells crossing at unrelated angles
+"  vec2 d1=vec2(0.95,0.31); float k1=1.15, a1=0.020, w1=1.05;",
+"  h += a1*sin(dot(p,d1)*k1 - t*w1);  g += a1*k1*d1*cos(dot(p,d1)*k1 - t*w1);",
+"  vec2 d2=vec2(-0.42,0.91); float k2=1.83, a2=0.013, w2=1.37;",
+"  h += a2*sin(dot(p,d2)*k2 - t*w2);  g += a2*k2*d2*cos(dot(p,d2)*k2 - t*w2);",
+"  vec2 d3=vec2(0.66,-0.75); float k3=3.10, a3=0.007, w3=2.10;",
+"  h += a3*sin(dot(p,d3)*k3 - t*w3);  g += a3*k3*d3*cos(dot(p,d3)*k3 - t*w3);",
+// and a ring travelling out from wherever the player is standing
+"  float r = max(distance(p, uPlayer), 0.001);",
+"  float env = uRipple * exp(-r*0.62);",
+"  h += env*0.020*sin(r*5.4 - t*4.6);",
+"  g += normalize(p-uPlayer) * (env*0.020*5.4*cos(r*5.4 - t*4.6));",
+"  h *= aFall;  g *= aFall;",
+"  wp.y += h;  vWorld = wp.xyz;  vFall = aFall;",
+"  vNrm = normalize(vec3(-g.x, 1.0, -g.y));",
+"  gl_Position = projectionMatrix * viewMatrix * wp;",
+"}"].join("\n");
+
+  const WATER_FS = [
+"precision highp float;",
+"uniform float uTime, uDark, uReflect, uFoam, uGlow, uSunStr;",
+"uniform vec3 uShallow, uDeep, uSky, uHorizon, uSunCol, uSunDir, uNight;",
+"uniform vec4 uRect;  uniform vec4 uProf;   // x0,x1 of the slope, shallowY, deepY",
+"uniform float uSurfY;",
+"varying vec3 vWorld;  varying vec3 vNrm;  varying float vFall;",
+// one pattern: four sinusoids with analytic slopes, drifting on its own vector
+"vec3 pat(vec2 p, vec2 flow, float sc, float t){",
+"  vec2 q = p*sc + flow*t;  float h=0.0;  vec2 g=vec2(0.0);",
+"  vec2 a=vec2(0.99,0.14);  h+=0.50*sin(dot(q,a));      g+=0.50*a*cos(dot(q,a));",
+"  vec2 b=vec2(-0.28,0.96); h+=0.36*sin(dot(q,b)*1.7);  g+=0.36*1.7*b*cos(dot(q,b)*1.7);",
+"  vec2 c=vec2(0.61,-0.79); h+=0.24*sin(dot(q,c)*2.9);  g+=0.24*2.9*c*cos(dot(q,c)*2.9);",
+"  vec2 d=vec2(-0.88,-0.47);h+=0.15*sin(dot(q,d)*4.7);  g+=0.15*4.7*d*cos(dot(q,d)*4.7);",
+"  return vec3(h, g*sc);",
+"}",
+"void main(){",
+"  vec3 V = normalize(cameraPosition - vWorld);",
+"  float dist = distance(cameraPosition, vWorld);",
+// Sunshine's distance trick: calm right under you, busiest in the mid field,
+// simplifying again far off so the pattern is never equally obvious
+"  float band = smoothstep(0.8, 6.0, dist) * (1.0 - smoothstep(24.0, 64.0, dist)*0.62);",
+"  vec3 A = pat(vWorld.xz, vec2( 0.055, 0.034), 1.95, uTime);",
+"  vec3 B = pat(vWorld.xz, vec2(-0.041, 0.068), 1.02, uTime);",
+"  float chop = A.x + B.x;",
+"  vec2  slope = (A.yz + B.yz) * 0.155 * band * vFall;",
+"  vec3 N = normalize(vNrm + vec3(-slope.x, 0.0, -slope.y));",
+"  if(!gl_FrontFacing) N = -N;",
+// depth, straight off the tank's own floor profile
+"  float u = clamp((vWorld.x - uProf.x) / (uProf.y - uProf.x), 0.0, 1.0);",
+"  float floorY = mix(uProf.z, uProf.w, u);",
+"  float depth = max(0.0, uSurfY - floorY);",
+"  float dN = clamp(depth / 1.85, 0.0, 1.0);",
+// the shore: how close this pixel is to a wall
+"  float edge = min(min(vWorld.x-uRect.x, uRect.y-vWorld.x),",
+"                   min(vWorld.z-uRect.z, uRect.w-vWorld.z));",
+"  float shore = 1.0 - smoothstep(0.0, 0.70, edge);",
+"  vec3 body = mix(uShallow, uDeep, dN);",
+"  float alpha = mix(0.50, 0.92, dN) * (1.0 - shore*0.40);",
+// Fresnel: a window from above, a mirror across
+"  float fres = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 5.0);",
+"  fres = clamp(0.02 + 0.98*fres, 0.0, 1.0) * uReflect;",
+"  vec3 refl = mix(uHorizon, uSky, clamp(V.y*1.4, 0.0, 1.0));",
+"  vec3 col = mix(body, refl, fres);",
+"  alpha = mix(alpha, 1.0, fres*0.8);",
+// the glitter, and a broader sheen behind it
+"  vec3 H = normalize(uSunDir + V);",
+"  float sp = pow(max(dot(N,H), 0.0), 130.0);",
+"  float sh = pow(max(dot(N,H), 0.0), 18.0);",
+"  col += uSunCol * (sp*2.2 + sh*0.10) * uSunStr * band;",
+// caustic filaments where the two patterns pile up, strongest over shallow water
+"  float caus = pow(max(chop*0.80, 0.0), 6.0) * 1.5;",
+"  col += vec3(0.62,0.92,1.00) * caus * (0.30 + 0.55*(1.0-dN)) * band;",
+"  alpha += caus*0.10;",
+// a foam line at the wall, moving with the swell, so the edge is never hard
+"  float f = shore * (0.42 + 0.58*sin(edge*19.0 - uTime*1.9 + chop*2.4));",
+"  f = clamp(f,0.0,1.0) * uFoam * shore;",
+"  col = mix(col, vec3(0.95,0.99,1.0), f*0.75);",
+"  alpha = max(alpha, f*0.55);",
+// after dark the niche lights take over and the whole sheet glows
+"  col += uNight * uGlow * (0.42 + 0.46*chop + caus*0.9);",
+"  alpha = clamp(mix(alpha, alpha*0.80 + 0.34, uDark), 0.0, 1.0);",
+"  if(!gl_FrontFacing){",         // seen from underneath: bright, near-mirrored
+"    col = mix(col, vec3(0.72,0.92,1.00), 0.42);",
+"    alpha = clamp(alpha*0.7 + 0.25, 0.0, 1.0);",
+"  }",
+"  gl_FragColor = vec4(col, alpha);",
+"}"].join("\n");
+
+  waterMat=new T.ShaderMaterial({
+    vertexShader:WATER_VS, fragmentShader:WATER_FS,
+    transparent:true, depthWrite:false, side:T.DoubleSide,
+    uniforms:{
+      uTime:{value:0}, uPlayer:{value:new T.Vector2(999,999)}, uRipple:{value:0},
+      uDark:{value:0}, uReflect:{value:0.72}, uFoam:{value:0.55}, uGlow:{value:0},
+      uSunStr:{value:1}, uSurfY:{value:P.water},
+      uShallow:{value:new T.Color(0x63c7d8)}, uDeep:{value:new T.Color(0x0d4f6b)},
+      uSky:{value:new T.Color(0x9fc4de)},      uHorizon:{value:new T.Color(0xcfd8d2)},
+      uSunCol:{value:new T.Color(0xffeed0)},   uSunDir:{value:new T.Vector3(0.4,0.8,0.4)},
+      uNight:{value:new T.Color(0x2ea8d8)},
+      uRect:{value:new T.Vector4(P.x0,P.x1,P.z0,P.z1)},
+      uProf:{value:new T.Vector4(POOL_STEPS.x1, P.x1, -1.05, -2.30)}
+    }
+  });
   const water=new T.Mesh(waterGeo, waterMat);
-  water.position.set((P.x0+P.x1)/2, P.water, (P.z0+P.z1)/2);
-  water.receiveShadow=false; water.frustumCulled=false; scene.add(water);
+  water.position.set(wcx, P.water, wcz);
+  water.receiveShadow=false; water.castShadow=false; water.frustumCulled=false;
+  water.renderOrder=2; scene.add(water);
   waterMesh=water;
 
+  // The only thing left outside the shader is the caustic net on the tank
+  // floor, which has to be projected onto the floor's own slope rather than
+  // living on the surface.
   const caMat=o=>new T.MeshBasicMaterial({map:TEX.caustic.clone(), transparent:true,
     blending:T.AdditiveBlending, depthWrite:false, opacity:o, toneMapped:false});
-  const cg=new T.PlaneGeometry(P.x1-P.x0-0.30, P.z1-P.z0-0.30); cg.rotateX(-Math.PI/2);
-  caustic1=new T.Mesh(cg, caMat(0.0)); caustic1.material.map.repeat.set(2.4,1.4);
-  caustic1.position.set((P.x0+P.x1)/2, P.water+0.055, (P.z0+P.z1)/2); scene.add(caustic1);
-  caustic2=new T.Mesh(cg.clone(), caMat(0.0)); caustic2.material.map.repeat.set(1.6,0.95);
-  caustic2.position.set((P.x0+P.x1)/2, P.water+0.085, (P.z0+P.z1)/2); scene.add(caustic2);
-  // daylight sparkle: the same pattern run fast and hard, so the surface
-  // glitters where the sun catches it instead of sitting there as a sheet
-  surfGlint=new T.Mesh(cg.clone(), caMat(0.0)); surfGlint.material.map.repeat.set(5.2,3.4);
-  surfGlint.position.set((P.x0+P.x1)/2, P.water+0.115, (P.z0+P.z1)/2); scene.add(surfGlint);
-  // caustics thrown onto the tank floor, seen through the water
-  // the caustic net belongs ON the tank floor, which slopes. A flat sheet at
-  // one depth floats a metre off the bottom at the deep end and reads as a
-  // plate of glass lying in the water.
   const fg=new T.PlaneGeometry(P.x1-P.x0-0.3, P.z1-P.z0-0.3, 28, 14); fg.rotateX(-Math.PI/2);
   {
-    const fp=fg.attributes.position, fcx=(P.x0+P.x1)/2;
-    for(let i=0;i<fp.count;i++) fp.setY(i, poolFloorY(fcx+fp.getX(i))+0.045);
+    const fp=fg.attributes.position;
+    for(let i=0;i<fp.count;i++) fp.setY(i, poolFloorY(wcx+fp.getX(i))+0.045);
     fp.needsUpdate=true; fg.computeVertexNormals();
   }
   poolFloorCaustic=new T.Mesh(fg, caMat(0.0)); poolFloorCaustic.material.map.repeat.set(3.0,1.8);
-  poolFloorCaustic.position.set((P.x0+P.x1)/2, 0, (P.z0+P.z1)/2); scene.add(poolFloorCaustic);
+  poolFloorCaustic.position.set(wcx, 0, wcz); scene.add(poolFloorCaustic);
 
   for(const nx of [P.x0+3.0, P.x1-3.0]){                 // niche lights on the long wall
     push("niche", boxGeo(0.34,0.24,0.06,0), nx, -0.72, P.z0+0.06, 0, "#a8ecff");
@@ -3458,8 +3606,9 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
     x.fillStyle="#ff8a3a"; fitText(x,"VACANCY", W*0.68, 62, W/2, H/2+3);
   }));
   bx("paint", 4.0, 0.9, 0.26, sx, 6.85, sz, 0, 0, "#22201c");
-  NEON.push(signPanel(3.8,0.78,vacTex, sx, 6.85, sz-0.15, Math.PI, true));
-  NEON.push(signPanel(3.8,0.78,vacTex, sx, 6.85, sz+0.15, 0, true));
+  // the VACANCY tube has never quite struck properly since about 1988
+  VAC_NEON.push(signPanel(3.8,0.78,vacTex, sx, 6.85, sz-0.15, Math.PI, true));
+  VAC_NEON.push(signPanel(3.8,0.78,vacTex, sx, 6.85, sz+0.15, 0, true));
   // gooseneck lamps over the board
   for(const d of [-1.6,1.6]){
     bx("metal", 0.07,0.60,0.07, sx+d, 6.45, sz-0.42, 0, 0, "#b8bcbc");
@@ -3723,7 +3872,7 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
     m.B("roofG", 8.2,0.26,6.4, -2.6,3.22,2.2, 0.3,0, "#7d7466");
     m.B("glass", 3.4,1.70,0.10, -3.4,1.75,-0.58, 0,0, "#9fb2ae");          // the window
     m.B("teal", 1.00,2.10,0.12, -0.4,1.05,-0.58, 0,0, "#2f6c62");          // the door
-    m.B("signlit", 4.0,0.80,0.14, -2.6,2.86,-0.62, 0,0, "#d8d2c4");        // the fascia band
+    m.B("signlit", 4.0,0.80,0.14, -2.6,2.78,-0.62, 0,0, "#d8d2c4");        // the fascia band
     for(const px of [2.6,5.4]){                                            // the pumps
       m.B("weathered", 0.66,1.42,0.52, px,0.85,-1.8, 0.4,0, "#b8442e");
       m.B("weathered", 0.72,0.20,0.58, px,1.66,-1.8, 0.4,0, "#d8d2c4");
@@ -3731,14 +3880,14 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
       m.C("weathered", 0.04,0.04,1.10,6, px+0.40,1.05,-1.8, "#4a4640", 0,0,0.5);
       m.col(px-0.4,px+0.4,-2.2,-1.4, 0,1.6);
     }
-    m.B("concrete", 7.0,0.30,3.2, 4.0,0.32,-1.8, 0.45,0, "#b9b2a2");       // the island
+    m.B("concrete", 6.8,0.30,3.2, 3.9,0.32,-1.8, 0.45,0, "#b9b2a2");       // the island
     for(const px of [1.2,6.8]){                                            // canopy posts
       m.B("weathered", 0.28,4.30,0.28, px,2.15,-1.8, 0.4,0, "#cfc8bc");
       m.col(px-0.2,px+0.2,-2.0,-1.6, 0,4.3);
     }
     m.B("weathered", 9.6,0.55,6.0, 4.0,4.52,-1.8, 0.35,0, "#d8d2c4");      // the canopy
     m.B("teal", 9.8,0.30,0.16, 4.0,4.16,-4.82, 0,0, "#2f6c62");
-    m.B("stucco", 7.4,0.20,0.30, -2.6,3.16,-0.62, 0.3,0, "#cfc4ad");
+    m.B("stucco", 7.3,0.20,0.30, -2.6,3.13,-0.62, 0.3,0, "#cfc4ad");
     m.col(-6.3,1.1,-0.6,5.0, 0,3.2);
     m.rect(-12,12,-8,9, "A FILLING STATION");
   })();
@@ -4308,10 +4457,18 @@ function updateDoors(dt){
 }
 
 /* --- movement --------------------------------------------------------- */
+// Being below the waterline is not the same as being IN the pool. The graded
+// pad and the highway corridor sit at y = -0.25, which is under the pool's
+// surface — so standing anywhere on the road or its verges counted as wading,
+// and you walked at 45% speed in a ring all the way round the site.
+function inPool(x,z){
+  return x>POOL.x0-0.35 && x<POOL.x1+0.35 && z>POOL.z0-0.35 && z<POOL.z1+0.35;
+}
 function fixedUpdate(dt){
   const f=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
   const r=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
-  const underwater = player.feetY < POOL.water-0.05;
+  const underwater = player.feetY < POOL.water-0.05 &&
+                     inPool(player.pos.x, player.pos.z);
   let sp=(keys.ShiftLeft||keys.ShiftRight?RUN:WALK)*(underwater?0.45:1);
   if(f||r){
     const len=Math.hypot(f,r)||1;
@@ -4324,8 +4481,10 @@ function fixedUpdate(dt){
     if(!blocked(player.pos.x, nz, player.feetY)) player.pos.z=nz;   // …then on Z
     player.step += sp*dt;
     player.bob   = Math.sin(player.step*3.1)*0.025;
+    player.moving = 1;
   }else{
     player.bob += (0-player.bob)*Math.min(1,dt*6);
+    player.moving = 0;
   }
   const target=surfaceY(player.pos.x, player.pos.z, player.feetY);
   const rate = target>player.feetY ? 14 : 9;               // step up snappy, drop softly
@@ -4681,7 +4840,7 @@ function frame(){
   camera.lookAt(player.pos.x - Math.sin(player.yaw)*cp,
                 eyeY + Math.sin(player.pitch),
                 player.pos.z - Math.cos(player.yaw)*cp);
-  wetEl.classList.toggle("on", eyeY < POOL.water);
+  wetEl.classList.toggle("on", eyeY < POOL.water && inPool(player.pos.x, player.pos.z));
 
   /* ---- day / night ---- */
   const dn=DayNight.tick(started?delta:delta*0.25);
@@ -4733,43 +4892,43 @@ function frame(){
     g.m.emissiveIntensity=g.baseInt*k;
   }
   for(const n of NEON) n.material.color.setScalar(0.72+0.28*dark+0.06);
+  {                                   // the bad tube in the VACANCY sign
+    const b=Math.sin(now*13.1)*Math.sin(now*4.3)*Math.sin(now*1.7);
+    const f=(dark>0.15 && b>0.62) ? 0.22+0.5*Math.abs(Math.sin(now*41.0)) : 1.0;
+    for(const n of VAC_NEON) n.material.color.setScalar((0.72+0.28*dark+0.06)*f);
+  }
   if(TVWIN_MAT){                      // the blue stutter of a set left running
     const f=0.5+0.5*Math.sin(now*6.1)+0.35*Math.sin(now*17.7);
     TVWIN_MAT.color.setRGB(0.16*dark*f, 0.26*dark*f, 0.42*dark*(0.6+0.4*f));
   }
-  if(ANIM.length && now-lastGifPush>0.07){ lastGifPush=now; tickAnim(); }
+  if(ANIM.length && now-lastGifPush>0.055){ lastGifPush=now; tickAnim(now); }
   tickFlicker(delta);
   updateLights(dark, camera.position);
 
-  /* ---- the pool: the whole point of coming back after dark ---- */
-  const tt=now;
-  waterMat.emissive.setRGB(0.05, 0.44+dark*0.16, 0.70+dark*0.14);
-  waterMat.emissiveIntensity=0.08+dark*0.52;
-  waterMat.opacity=0.76+dark*0.09;
-  waterMat.color.setRGB(0.09, 0.44+0.06*dark, 0.60+0.10*dark);
-  // by day the pattern belongs on the FLOOR — a bright film on the surface
-  // reads as fog at a grazing angle. After dark it moves up onto the water,
-  // because that is where the niche lights put it.
-  caustic1.material.opacity=0.040+dark*0.32;
-  caustic2.material.opacity=0.026+dark*0.24;
-  poolFloorCaustic.material.opacity=0.26+dark*0.16;
-  caustic1.material.map.offset.set( tt*0.017, tt*0.011);
-  caustic2.material.map.offset.set(-tt*0.013, tt*0.019);
+  /* ---- the pool: the whole point of coming back after dark ----
+     All the per-frame work is eight uniforms. The swell, its normals, the
+     two drifting patterns, the Fresnel, the depth tint, the foam and the
+     caustics all live on the GPU now. */
+  const tt=now, U=waterMat.uniforms;
+  U.uTime.value   = tt;
+  U.uDark.value   = dark;
+  U.uSunStr.value = Math.max(0.08, 1.0-dark*0.92);
+  U.uGlow.value   = 0.05 + dark*0.62;
+  U.uReflect.value= 0.46 - dark*0.22;          // less mirror, more glow at night
+  U.uFoam.value   = 0.42 + dark*0.18;
+  U.uSky.value.copy(skyImg.mid).lerp(WHITE_C, 0.18);
+  U.uHorizon.value.copy(skyImg.hz);
+  U.uSunCol.value.copy(key.color);
+  U.uSunDir.value.copy(key.position).sub(key.target.position).normalize();
+  U.uShallow.value.setRGB(0.20+0.06*dark, 0.62, 0.71);
+  U.uDeep.value.setRGB(0.02, 0.21+0.06*dark, 0.35+0.09*dark);
+  U.uPlayer.value.set(player.pos.x, player.pos.z);
+  // the ring only exists while you are actually in the water and moving
+  const wading = inPool(player.pos.x, player.pos.z) && player.feetY < POOL.water+0.9;
+  U.uRipple.value += ((wading ? (player.moving?1.0:0.42) : 0.0) - U.uRipple.value)
+                     * Math.min(1, delta*2.4);
+  poolFloorCaustic.material.opacity=0.26+dark*0.18;
   poolFloorCaustic.material.map.offset.set(tt*0.009, -tt*0.014);
-  surfGlint.material.opacity=(1-dark)*0.13;
-  surfGlint.material.map.offset.set(-tt*0.055, tt*0.041);
-  TEX.ripple.offset.set(tt*0.026, tt*0.017);
-  {                                   // four crossing swells, normals rebuilt
-    const wp=waterGeo.attributes.position, a=waterBase;
-    for(let i=0;i<wp.count;i++){
-      const x=a[i*3], z=a[i*3+2];
-      wp.array[i*3+1]= waterFall[i]*( 0.017*Math.sin(x*1.55 + tt*1.20)
-                     + 0.012*Math.sin(z*2.30 - tt*1.05)
-                     + 0.008*Math.sin((x+z)*3.10 + tt*1.90)
-                     + 0.005*Math.sin((x-z*0.6)*5.30 - tt*2.60));
-    }
-    wp.needsUpdate=true; waterGeo.computeVertexNormals();
-  }
   poolGlow.material.opacity=dark*0.48;
   poolGlow.scale.set(26+Math.sin(tt*0.7)*0.9, 14+Math.cos(tt*0.6)*0.6, 1);
 
@@ -4846,9 +5005,9 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                sim:n=>{ for(let i=0;i<n;i++){ fixedUpdate(1/60); updateDoors(1/60); } },
                weeds:WEEDS, flyers:FLYERS, blowLitter:()=>{ flyerWait=0; },
                wind:Wind, blow:(g)=>{ Wind.gust=(g===undefined?0.9:g); Wind.hold=Wind.gust>0; },
-               terrain:Terrain, camera:camera,
-               pool:()=>({water:waterMesh, c1:caustic1, c2:caustic2,
-                          glint:surfGlint, floor:poolFloorCaustic, glow:poolGlow}),
+               terrain:Terrain, camera:camera, images:()=>IMG_STATUS,
+               pool:()=>({water:waterMesh, floor:poolFloorCaustic, glow:poolGlow,
+                          mat:waterMat}),
                probe:(x,z,y)=>blocked(x,z,y===undefined?BASE:y) };
 
 addEventListener("resize",()=>{

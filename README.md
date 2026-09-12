@@ -55,11 +55,16 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   glitters; after dark it climbs onto the water, and underwater niche lights and
   an emissive sheet throw light blue across the whole courtyard and up the
   facade.
-- **Seven things to walk out and find.** Far enough away to be a decision —
+- **Twelve things to walk out and find**, with two-track roads worn out to
+  them from the highway shoulder so the desert has a grain and you know where
+  to start walking. Further out, past the road: five cars stood on their noses
+  in a row; a filling station with its canopy still up and two pumps under it;
+  a forty-four metre radio mast whose red light still blinks after dark; the
+  concrete slab of a motel that did not make it, its pool filled to the brim
+  with sand; and three graves behind a wire fence. Nearer in: Far enough away to be a decision —
   a hundred and fifty to three hundred metres, one to three minutes on foot —
-  and each one names itself on the HUD when you reach it, so finding it
-  registers as having found something. A descanso on the shoulder with plastic
-  flowers and a ring of stones; somebody's pickup, rusted through and half sunk;
+  each naming itself on the HUD when you reach it. A descanso on the shoulder
+  with plastic flowers and a ring of stones; somebody's pickup, rusted through and half sunk;
   a windmill still turning over a stock tank; **a drive-in across the highway**,
   its blank screen facing the road with the speaker posts still standing in
   rows; a telephone booth alone in the open desert; a fence line that stops
@@ -68,7 +73,9 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
 - **Wind.** Three slow beats multiplied together, so mostly it is calm and then
   every couple of minutes a gust comes through for half a minute. Everything
   loose reads off it: the tumbleweeds run, litter comes loose more often, the
-  ground starts to smoke, and the haze closes in and goes the colour of dust.
+  ground starts to smoke, the haze closes in and goes the colour of dust, and
+  in a real blow a dust devil stands up a couple of hundred metres off and
+  walks downwind.
 - **The desert**: a graded pad, a two-lane highway that runs to a vanishing
   point in both directions — its corridor is graded flat to the edge of the
   world and the badlands and buttes it crosses are cut away either side of it,
@@ -141,12 +148,18 @@ the picture lands square on the surface, no stretching and no cropping.
 | `vendFront:soda` | 1 : 2 | 900 × 1800 | the soda machine in the alcove |
 | `vendHeader` | 3 : 1 | 1200 × 400 | the lit ICE header over the ice machine |
 
-Some slots take more than one picture. `brochure:0` … `brochure:5` are the six
-slots in the rack — the ten brochures currently wired up are dealt into them at
-random on load, so the rack is different every visit. `tv:0` … `tv:3` are four
-screens dealt out across the rooms, so no two sets down a walkway are showing
-the same thing; animated GIFs work, because the page re-uploads the playing
-frame a dozen times a second.
+Some slots take more than one picture. `brochure:0` … `brochure:9` are ten
+slots — six in the wall rack beside the desk and four on the spinner — and the
+ten brochures wired up are dealt into them at random on load, so the office is
+different every visit. `tv:0` … `tv:3` are four screens dealt out across the
+rooms, so no two sets down a walkway are showing the same thing.
+
+**Animated GIFs work**, and getting them to is not a texture problem, it is a
+DOM problem: an `<img>` that is not laid out in the document never advances a
+GIF's frames in Chrome, and a WebGL texture only changes when something
+re-uploads it. So each animated slot keeps its image in the page — two pixels,
+off in the corner, all but transparent — and a dozen times a second the frame
+it is currently showing is blitted into the canvas the texture already owns.
 
 Pictures are **cover-cropped** to the slot, so a file at any shape lands square
 with nothing stretched — author close to the ratio and nothing is lost. If a

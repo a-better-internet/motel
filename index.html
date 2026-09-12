@@ -268,16 +268,21 @@ const TV_URLS=[
   "https://thelossless.neocities.org/Motel/TV%20Static/silhouette-watching-tv.gif",
   "https://thelossless.neocities.org/Motel/TV%20Static/static.gif",
   "https://thelossless.neocities.org/Motel/TV%20Static/tv-static.gif"];
+const ART_BASE="https://thelossless.neocities.org/Motel/Over%20The%20Bed/";
 const IMAGES = {
-  "vendHeader": "https://thelossless.neocities.org/Motel/Ice%20Machine/IceMachineHeader.jpg",
-  // brochure:0..5 and tv:0..3 are filled in below from the two lists above
+  "vendHeader":     "https://thelossless.neocities.org/Motel/Ice%20Machine/IceMachineHeader.jpg",
+  "artWide":        ART_BASE+"OverBed.jpg",
+  "artLand:office": ART_BASE+"FramedPrintOffice.jpg",
+  "artLand:room":   ART_BASE+"FramedPrint.jpg",
+  // brochure:0..9 and tv:0..3 are filled in below from the two lists above
 };
-// six slots in the rack, ten brochures to put in them: deal without repeats
+// ten brochures, ten slots — six in the wall rack and four on the spinner —
+// dealt without repeats, so the rack is different every visit
 (function dealBrochures(){
   const deck=BROCHURE_URLS.slice();
   for(let i=deck.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0;
     const t=deck[i]; deck[i]=deck[j]; deck[j]=t; }
-  for(let i=0;i<6;i++) IMAGES["brochure:"+i]=deck[i];
+  for(let i=0;i<10;i++) IMAGES["brochure:"+i]=deck[i%deck.length];
 })();
 for(let i=0;i<4;i++) IMAGES["tv:"+i]=TV_URLS[i];
 
@@ -309,11 +314,29 @@ function artTex(key, long, draw){
 // swap in the hosted picture for this slot, if one has been named. The canvas
 // art stays up until it arrives, and stays up for good if it never does —
 // a picture the browser will not give us CORS for simply fails quietly.
-const ANIM_TEX=[];                       // GIFs: re-upload the frame on show
+/* Animated slots are not a texture problem, they are a DOM problem. An <img>
+   that is not laid out in the document never advances a GIF's frames in
+   Chrome, and a WebGL texture only changes when something re-uploads it. So
+   the image lives in the page — two pixels, off in the corner, all but
+   transparent — and every tick we blit whatever frame it is currently showing
+   into the canvas the texture already owns, cropping to fill as we go. */
+const ANIM=[];
 function hosted(key, tex, opt){
   const url=IMAGES[key];
   if(!url) return tex;
   opt=opt||{};
+  if(opt.animated){
+    const img=document.createElement("img");
+    img.crossOrigin="anonymous";
+    img.decoding="sync";
+    img.style.cssText="position:fixed;left:0;top:0;width:2px;height:2px;opacity:0.01;"+
+                      "pointer-events:none;z-index:-1";
+    img.addEventListener("load", ()=>{ ANIM.push({img:img, tex:tex, c:tex.image}); });
+    img.addEventListener("error", ()=>{ img.remove(); });
+    document.body.appendChild(img);
+    img.src=url;
+    return tex;
+  }
   new T.TextureLoader().load(url, t=>{
     tex.image=t.image; setSRGB(tex);
     // cover-crop to the slot, so a picture at any shape lands square and
@@ -325,9 +348,20 @@ function hosted(key, tex, opt){
       else         { const r=have/want; tex.repeat.set(1,r); tex.offset.set(0,(1-r)/2); }
     }
     tex.needsUpdate=true;
-    if(opt.animated) ANIM_TEX.push(tex);
   }, undefined, ()=>{});
   return tex;
+}
+function tickAnim(){
+  for(let i=0;i<ANIM.length;i++){
+    const a=ANIM[i], c=a.c, iw=a.img.naturalWidth, ih=a.img.naturalHeight;
+    if(!iw || !ih || !c.getContext) continue;
+    const g=c.getContext("2d"), want=c.width/c.height, have=iw/ih;
+    let sw=iw, sh=ih, sx=0, sy=0;
+    if(have>want){ sw=ih*want; sx=(iw-sw)/2; } else { sh=iw/want; sy=(ih-sh)/2; }
+    try{ g.drawImage(a.img, sx,sy,sw,sh, 0,0,c.width,c.height); }
+    catch(e){ ANIM.splice(i--,1); continue; }
+    a.tex.needsUpdate=true;
+  }
 }
 
 // deterministic little PRNG so the scene is identical every load
@@ -471,6 +505,26 @@ TEX.stucco=(function(){                       // slate-periwinkle motel walls
     x.lineWidth=1+Math.random()*3; x.beginPath();
     const px=Math.random()*256, py=Math.random()*256;
     x.arc(px,py,6+Math.random()*22, Math.random()*6, Math.random()*6); x.stroke();
+  }
+  return rep(setSRGB(new T.CanvasTexture(c)),1,1);
+})();
+
+TEX.track=(function(){                        // a two-track, drawn once and tiled
+  const c=cvs(64,64), x=c.getContext("2d");
+  const g=x.createLinearGradient(0,0,64,0);
+  g.addColorStop(0.00,"rgba(150,126,92,0)");   g.addColorStop(0.14,"rgba(150,126,92,0.40)");
+  g.addColorStop(0.50,"rgba(150,126,92,0.16)");g.addColorStop(0.86,"rgba(150,126,92,0.40)");
+  g.addColorStop(1.00,"rgba(150,126,92,0)");
+  x.fillStyle=g; x.fillRect(0,0,64,64);
+  for(const u of [0.28,0.72]){                 // the two ruts
+    const rg=x.createLinearGradient((u-0.10)*64,0,(u+0.10)*64,0);
+    rg.addColorStop(0,"rgba(78,60,40,0)"); rg.addColorStop(0.5,"rgba(78,60,40,0.50)");
+    rg.addColorStop(1,"rgba(78,60,40,0)");
+    x.fillStyle=rg; x.fillRect((u-0.10)*64,0,0.20*64,64);
+  }
+  for(let i=0;i<240;i++){                      // gravel kicked up along it
+    x.fillStyle="rgba(216,196,158,"+(Math.random()*0.22).toFixed(2)+")";
+    x.fillRect(Math.random()*64, Math.random()*64, 2,2);
   }
   return rep(setSRGB(new T.CanvasTexture(c)),1,1);
 })();
@@ -1106,79 +1160,111 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
   // A cumulus is a row of lobes on a flat base, lit from above and shaded
   // underneath. Drawing it that way — mass, then a shaded base, then sunlit
   // tops, then cutting the base flat — reads as weather rather than as fog.
-  // Four archetypes, a fresh one for every cloud in the sky, each with its own
-  // canvas shape: a flat-based fair-weather heap, a towering congestus stacked
-  // into a peak, a ragged broken one, and an anvil spreading downwind. One
-  // texture reused across fourteen sprites is what makes a sky look printed.
+  // Four archetypes, a fresh one for every cloud in the sky. Three things
+  // were making them read as cut-out bubbles rather than weather: the lobes
+  // ran off the edge of their own canvas and got squared off; the silhouette
+  // was a chain of circles because nothing ever bit into it; and the flat base
+  // was a ruler line. So: a hard margin, an erosion pass around the rim, and a
+  // base that is cut with a soft gradient and then chewed.
   function cumulusTex(seed){
     let sd=seed*9301+7;
     const r2=()=>{ sd=(sd*9301+49297)%233280; return sd/233280; };
-    const kind=(r2()*4)|0;
-    const W=384, H=[224,336,192,208][kind], base=H*(kind===1?0.86:0.78);
+    const kind=[0,0,0,1,2,3][(r2()*6)|0];   // mostly fair-weather heaps
+    const W=448, H=[236,352,200,220][kind], M=26;           // M: the safe margin
+    const base=H-M-(kind===1?10:16);
     const c=cvs(W,H), x=c.getContext("2d");
-    const lobes=[];
-    if(kind===0){                                     // fair weather
-      const n=5+((r2()*4)|0);
+    const lobes=[], IW=W-M*2;
+    const put=(lx,ly,lr)=>{                                 // keep it off the edge
+      const r=Math.min(lr, lx-M, W-M-lx, ly-M, base+10-ly+lr*0.9);
+      if(r>6) lobes.push({x:lx, y:ly, r:r});
+    };
+    if(kind===0){                                           // fair weather
+      const n=6+((r2()*4)|0);
       for(let i=0;i<n;i++){
         const t=n>1?i/(n-1):0.5, hump=Math.sin(t*Math.PI);
-        const lr=20+hump*34+r2()*16;
-        lobes.push({x:W*0.14+t*W*0.72+(r2()-0.5)*24, y:base-lr*0.55-hump*14*r2(), r:lr});
+        const lr=22+hump*30+r2()*14;
+        put(M+IW*0.06+t*IW*0.88+(r2()-0.5)*18, base-lr*0.52-hump*12*r2(), lr);
       }
-    }else if(kind===1){                               // towering congestus
-      const cxx=W*(0.34+r2()*0.32), n=6+((r2()*4)|0);
-      for(let i=0;i<n;i++){                           // the wide base
-        const t=i/(n-1), lr=26+Math.sin(t*Math.PI)*30+r2()*14;
-        lobes.push({x:W*0.16+t*W*0.68, y:base-lr*0.5-r2()*12, r:lr});
-      }
-      let y=base-58, r=52;
-      while(y>H*0.10 && r>13){                        // the column above it
-        lobes.push({x:cxx+(r2()-0.5)*r*0.9, y:y, r:r});
-        y-=r*0.68; r*=0.80-r2()*0.08;
-      }
-    }else if(kind===2){                               // ragged and broken
-      const n=11+((r2()*7)|0);
+    }else if(kind===1){                                     // towering congestus
+      const cxx=M+IW*(0.32+r2()*0.36), n=6+((r2()*4)|0);
       for(let i=0;i<n;i++){
-        if(r2()<0.24) continue;                       // the gaps are the point
-        const t=i/(n-1), lr=13+r2()*26;
-        lobes.push({x:W*0.08+t*W*0.84+(r2()-0.5)*20,
-                    y:base-lr*0.5-r2()*34-Math.sin(t*3.1)*14, r:lr});
+        const t=i/(n-1), lr=26+Math.sin(t*Math.PI)*28+r2()*12;
+        put(M+IW*0.08+t*IW*0.84, base-lr*0.48-r2()*10, lr);
       }
-    }else{                                            // anvil, spreading right
+      let y=base-54, r=48;
+      while(y>M+r*0.7 && r>11){
+        put(cxx+(r2()-0.5)*r*0.8, y, r);
+        y-=r*0.60; r*=0.83-r2()*0.07;
+      }
+    }else if(kind===2){                                     // ragged and broken
+      const n=12+((r2()*7)|0);
+      for(let i=0;i<n;i++){
+        if(r2()<0.26) continue;                             // the gaps are the point
+        const t=i/(n-1), lr=11+r2()*22;
+        put(M+IW*0.04+t*IW*0.92+(r2()-0.5)*16,
+            base-lr*0.5-r2()*30-Math.sin(t*3.1)*12, lr);
+      }
+    }else{                                                  // anvil, spreading right
       const n=7+((r2()*3)|0);
       for(let i=0;i<n;i++){
-        const t=i/(n-1), lr=44-t*24+r2()*12;
-        lobes.push({x:W*0.10+t*W*0.26, y:base-lr*0.55-t*18, r:lr});
+        const t=i/(n-1), lr=40-t*20+r2()*10;
+        put(M+IW*0.06+t*IW*0.24, base-lr*0.52-t*16, lr);
       }
-      for(let i=0;i<9;i++){                           // the flat top blowing off
-        const t=i/8, lr=16+r2()*17;
-        lobes.push({x:W*0.30+t*W*0.66, y:base-72-t*26+(r2()-0.5)*14, r:lr});
+      for(let i=0;i<10;i++){                                // the flat top blowing off
+        const t=i/9, lr=14+r2()*15;
+        put(M+IW*0.26+t*IW*0.70, base-64-t*22+(r2()-0.5)*12, lr);
       }
     }
-    for(const L of lobes){                                  // the mass
-      const g=x.createRadialGradient(L.x, L.y-L.r*0.15, L.r*0.12, L.x, L.y, L.r);
-      g.addColorStop(0,"rgba(255,255,255,0.96)");
-      g.addColorStop(0.60,"rgba(255,255,255,0.84)");
-      g.addColorStop(1,"rgba(255,255,255,0)");
+    // mass: softer falloff and heavier overlap, so it is one body of cloud
+    for(const L of lobes){
+      const g=x.createRadialGradient(L.x, L.y-L.r*0.16, L.r*0.10, L.x, L.y, L.r);
+      g.addColorStop(0.00,"rgba(255,255,255,1.00)");
+      g.addColorStop(0.58,"rgba(255,255,255,0.94)");
+      g.addColorStop(0.86,"rgba(255,255,255,0.44)");
+      g.addColorStop(1.00,"rgba(255,255,255,0)");
       x.fillStyle=g; x.beginPath(); x.arc(L.x,L.y,L.r,0,7); x.fill();
     }
+    // nibble the silhouette only — enough to stop it reading as a row of
+    // circles, not enough to break the cloud into separate lumps
+    x.globalCompositeOperation="destination-out";
+    for(let i=0;i<(kind===2?9:16);i++){
+      const L=lobes[(r2()*lobes.length)|0]; if(!L) break;
+      const a=r2()*Math.PI*2, rr2=L.r*(0.94+r2()*0.22), br=L.r*(0.13+r2()*0.17);
+      const px=L.x+Math.cos(a)*rr2, py=L.y+Math.sin(a)*rr2*0.9;
+      if(py>base-8) continue;                               // leave the base alone
+      const g=x.createRadialGradient(px,py,0,px,py,br);
+      g.addColorStop(0,"rgba(0,0,0,"+(0.42+r2()*0.45).toFixed(2)+")");
+      g.addColorStop(0.6,"rgba(0,0,0,"+(0.18+r2()*0.2).toFixed(2)+")");
+      g.addColorStop(1,"rgba(0,0,0,0)");
+      x.fillStyle=g; x.beginPath(); x.arc(px,py,br,0,7); x.fill();
+    }
     x.globalCompositeOperation="source-atop";               // shaded underside
-    const sg=x.createLinearGradient(0, base-62, 0, base+12);
-    sg.addColorStop(0,"rgba(146,162,188,0)");
-    sg.addColorStop(0.68,"rgba(122,138,168,0.52)");
-    sg.addColorStop(1,"rgba(100,116,148,0.78)");
+    const sg=x.createLinearGradient(0, base-70, 0, base+10);
+    sg.addColorStop(0,"rgba(150,166,192,0)");
+    sg.addColorStop(0.62,"rgba(126,142,172,0.46)");
+    sg.addColorStop(1,"rgba(104,120,152,0.74)");
     x.fillStyle=sg; x.fillRect(0,0,W,H);
     x.globalCompositeOperation="lighter";                   // sunlit tops
     for(const L of lobes){
-      const hx=L.x-L.r*0.20, hy=L.y-L.r*0.48, hr=L.r*0.72;
+      const hx=L.x-L.r*0.22, hy=L.y-L.r*0.50, hr=L.r*0.76;
       const g=x.createRadialGradient(hx,hy,0,hx,hy,hr);
-      g.addColorStop(0,"rgba(255,252,240,0.34)");
+      g.addColorStop(0,"rgba(255,252,240,0.30)");
       g.addColorStop(1,"rgba(255,252,240,0)");
       x.fillStyle=g; x.beginPath(); x.arc(hx,hy,hr,0,7); x.fill();
     }
-    x.globalCompositeOperation="destination-out";           // cut the base flat
-    const eg=x.createLinearGradient(0, base-(kind===2?16:6), 0, base+30);
-    eg.addColorStop(0,"rgba(0,0,0,0)"); eg.addColorStop(1,"rgba(0,0,0,1)");
-    x.fillStyle=eg; x.fillRect(0,base-30,W,H-base+30);
+    x.globalCompositeOperation="destination-out";           // the base, cut soft
+    const cutTop=base-(kind===2?26:14);
+    const eg=x.createLinearGradient(0, cutTop, 0, base+22);
+    eg.addColorStop(0,"rgba(0,0,0,0)"); eg.addColorStop(0.55,"rgba(0,0,0,0.55)");
+    eg.addColorStop(1,"rgba(0,0,0,1)");
+    x.fillStyle=eg; x.fillRect(0,cutTop,W,H-cutTop);
+    for(let i=0;i<14;i++){                                  // then chewed, not ruled
+      const px=M+r2()*IW, br=12+r2()*30;
+      const g=x.createRadialGradient(px,base-2,0,px,base-2,br);
+      g.addColorStop(0,"rgba(0,0,0,"+(0.25+r2()*0.5).toFixed(2)+")");
+      g.addColorStop(1,"rgba(0,0,0,0)");
+      x.fillStyle=g; x.beginPath(); x.arc(px,base-2,br,0,7); x.fill();
+    }
     x.globalCompositeOperation="source-over";
     const tex=setSRGB(new T.CanvasTexture(c));
     if(r2()<0.5){ tex.wrapS=T.RepeatWrapping; tex.repeat.x=-1; tex.offset.x=1; }
@@ -1191,35 +1277,47 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
     const dir=r2()<0.5?1:-1, dens=22+((r2()*22)|0);
     x.lineCap="round";
     for(let i=0;i<dens;i++){
-      const y0c=18+r2()*92, len=70+r2()*280, x0c=r2()*(W-len);
-      x.strokeStyle="rgba(255,255,255,"+(0.04+r2()*0.13).toFixed(3)+")";
-      x.lineWidth=1.2+r2()*7;
+      const y0c=22+r2()*84, len=70+r2()*260, x0c=18+r2()*(W-len-36);
+      x.strokeStyle="rgba(255,255,255,"+(0.04+r2()*0.12).toFixed(3)+")";
+      x.lineWidth=1.2+r2()*6;
       x.beginPath(); x.moveTo(x0c,y0c);
-      x.bezierCurveTo(x0c+len*0.3, y0c-dir*(6+r2()*16), x0c+len*0.7, y0c+dir*(5+r2()*13),
+      x.bezierCurveTo(x0c+len*0.3, y0c-dir*(6+r2()*14), x0c+len*0.7, y0c+dir*(5+r2()*11),
                       x0c+len, y0c-dir*2);
       x.stroke();
     }
     return setSRGB(new T.CanvasTexture(c));
   }
-  for(let i=0;i<14;i++){
-    const t=cumulusTex(i*37+3);
+  // Distance is what keeps a cloud from looming. Cumulus bases sit around a
+  // mile up, not two hundred metres, and the big ones belong out near the
+  // horizon where a sprite's flatness does not show.
+  // They drift along x, so z is what sets how close one can ever come. Keeping
+  // a floor under |z| is what stops a thunderhead from ending up overhead.
+  const CLOUD_PLACE=[
+    // kind:  [zMin, zMax, altMin, altMax, scaleMin, scaleMax]
+    [ 500, 2400,  620, 1050,  420,  800],   // fair weather, the near ones
+    [1600, 3800,  850, 1500,  950, 1600],   // towering, kept out where it belongs
+    [ 420, 1800,  620, 1150,  230,  430],   // ragged
+    [1500, 3400,  950, 1600,  880, 1400],   // anvil
+  ];
+  for(let i=0;i<30;i++){
+    const t=cumulusTex(i*37+3), P2=CLOUD_PLACE[t.kind];
     const m=new T.SpriteMaterial({map:t.tex, transparent:true, depthWrite:false,
       fog:false, opacity:0.0});
     const sp=new T.Sprite(m);
-    // towering clouds are bigger and sit lower; ragged ones are small and high
-    const sc=(t.kind===1?520:t.kind===2?210:300)+Math.random()*(t.kind===2?190:420);
+    const sc=P2[4]+Math.random()*(P2[5]-P2[4]);
     sp.scale.set(sc, sc*t.aspect, 1);
-    sp.position.set((Math.random()-0.5)*2800,
-                    (t.kind===1?190:260)+Math.random()*(t.kind===2?260:200),
-                    (Math.random()-0.5)*2800);
-    scene.add(sp); CLOUDS.push({s:sp, sp:1.5+Math.random()*2.0});
+    sp.position.set((Math.random()*2-1)*4600,
+                    P2[2]+Math.random()*(P2[3]-P2[2]),
+                    (Math.random()<0.5?-1:1)*(P2[0]+Math.random()*(P2[1]-P2[0])));
+    scene.add(sp); CLOUDS.push({s:sp, sp:1.2+Math.random()*1.8});
   }
-  for(let i=0;i<9;i++){
+  for(let i=0;i<10;i++){
     const m=new T.SpriteMaterial({map:cirrusTex(i*53+9), transparent:true, depthWrite:false,
       fog:false, opacity:0.0});
-    const sp=new T.Sprite(m), sc=800+Math.random()*620;
+    const sp=new T.Sprite(m), sc=1400+Math.random()*900;
     sp.scale.set(sc, sc*0.25, 1);
-    sp.position.set((Math.random()-0.5)*3000, 640+Math.random()*220, (Math.random()-0.5)*3000);
+    sp.position.set((Math.random()*2-1)*5400, 2200+Math.random()*900,
+                    (Math.random()<0.5?-1:1)*(900+Math.random()*3200));
     scene.add(sp); CIRRUS.push({s:sp, sp:0.9+Math.random()*0.8});
   }
   const bc=cvs(64,32), bx2=bc.getContext("2d");
@@ -1320,8 +1418,9 @@ const TRAFFIC=[];
 function updateTraffic(dt, dark){
   for(const v of TRAFFIC){
     v.x += v.speed*v.dir*dt;
-    if(v.x> 360) v.x=-360;
-    if(v.x<-360) v.x= 360;
+    // wrap well past the fog, so nothing is ever seen appearing or vanishing
+    if(v.x> 1500) v.x=-1500;
+    if(v.x<-1500) v.x= 1500;
     v.g.position.set(v.x, Terrain.heightAt(v.x, v.z)+0.02, v.z);
     for(const L of v.lamps) L.s.material.opacity = L.head ? dark*0.95 : dark*0.55;
   }
@@ -2551,12 +2650,17 @@ let waterGeo=null, waterBase=null, waterFall=null, surfGlint=null, waterMesh=nul
   // deck apron in four plates so the tank itself stays open to walk into
   const plate=(x0,x1,z0,z1)=>{
     bx("concrete", x1-x0, 0.22, z1-z0, (x0+x1)/2, dy-0.11, (z0+z1)/2, 0.45, 0, "#b3ada0");
-    addFlat(x0,x1,z0,z1, dy);
+    addFlat(x0-0.1,x1+0.1,z0-0.1,z1+0.1, dy);   // walkable right up to the coping
   };
-  plate(D.x0, D.x1, D.z0, P.z0);
-  plate(D.x0, D.x1, P.z1, D.z1);
-  plate(D.x0, P.x0, P.z0, P.z1);
-  plate(P.x1, D.x1, P.z0, P.z1);
+  // The apron's inner edge and the shell wall's inner face were the same
+  // plane all the way round the tank — a couple of square metres of concrete
+  // and plaster arguing over the depth buffer at exactly the waterline. The
+  // apron now stops 60 mm short and the shell wall fills the gap.
+  const TE=0.06;
+  plate(D.x0, D.x1, D.z0, P.z0-TE);
+  plate(D.x0, D.x1, P.z1+TE, D.z1);
+  plate(D.x0, P.x0-TE, P.z0-TE, P.z1+TE);
+  plate(P.x1+TE, D.x1, P.z0-TE, P.z1+TE);
   addZone(D.x0,D.x1,D.z0,D.z1, -3.2, 2.4, "POOL DECK");
   addZone(P.x0,P.x1,P.z0,P.z1, -3.2, 0.05, "IN THE POOL");
 
@@ -2583,7 +2687,7 @@ let waterGeo=null, waterBase=null, waterFall=null, surfGlint=null, waterMesh=nul
   for(const s of [[P.x0-0.02,P.x1+0.02,P.z0-0.02,P.z0+0.10],[P.x0-0.02,P.x1+0.02,P.z1-0.10,P.z1+0.02],
                   [P.x0-0.02,P.x0+0.10,P.z0+0.10,P.z1-0.10],
                   [P.x1-0.10,P.x1+0.02,P.z0+0.10,P.z1-0.10]]){
-    bx("pooltile", s[1]-s[0], 0.34, s[3]-s[2], (s[0]+s[1])/2, dy-0.30, (s[2]+s[3])/2, 0.8, 0, "#2f9fc9");
+    bx("pooltile", s[1]-s[0], 0.42, s[3]-s[2], (s[0]+s[1])/2, dy-0.26, (s[2]+s[3])/2, 0.8, 0, "#2f9fc9");
   }
   // the cap laps 30 mm out over the water, so its inner edge is not on the
   // same plane as the deck slab's, and the long runs own the corners
@@ -2606,7 +2710,7 @@ let waterGeo=null, waterBase=null, waterFall=null, surfGlint=null, waterMesh=nul
   // entry steps in the shallow west corner
   for(let i=0;i<3;i++){
     const w=(3-i)*0.62;
-    bx("plaster", w, 0.30, POOL_STEPS.z1-POOL_STEPS.z0, P.x0+w/2, -0.37-i*0.29,
+    bx("plaster", w, 0.30, POOL_STEPS.z1-POOL_STEPS.z0, P.x0-0.05+w/2, -0.37-i*0.29,
        (POOL_STEPS.z0+POOL_STEPS.z1)/2, 0.6, 0, "#e2f2f5");
   }
   // deep-end ladder
@@ -3079,14 +3183,16 @@ let waterGeo=null, waterBase=null, waterFall=null, surfGlint=null, waterMesh=nul
 
   // rotating postcard rack
   OC("metal", 0.05,0.05,1.55,8, O.x1-1.5, 0.78, cz-2.8, "#8f9aa0");
-  // each card faces radially outward: a plane with yaw f has normal
-  // (sin f, 0, cos f), so f = pi/2 - a puts it square to the radius
+  // Each card faces radially outward: a plane with yaw f has normal
+  // (sin f, 0, cos f), so f = pi/2 - a puts it square to the radius. Four
+  // tiers, and each tier carries one of the four brochures the wall rack
+  // did not get.
   for(let t=0;t<4;t++) for(let k=0;k<4;k++){
     const a=k*Math.PI/2+t*0.2, f=Math.PI/2-a;
-    const px=O.x1-1.5+Math.cos(a)*0.16, pz=cz-2.8+Math.sin(a)*0.16;
-    push("art", boxGeo(0.18,0.27,0.012,0), px, y0+0.72+t*0.30, pz, f, "#d8d2c0");
-    push("pic:postcard", planeGeo(0.18,0.27,0), px+Math.cos(a)*0.011, y0+0.72+t*0.30,
-         pz+Math.sin(a)*0.011, f, "#ffffff");
+    const px=O.x1-1.5+Math.cos(a)*0.155, pz=cz-2.8+Math.sin(a)*0.155;
+    push("art", boxGeo(0.135,0.30,0.012,0), px, y0+0.70+t*0.325, pz, f, "#d8d2c0");
+    push("pic:brochure:"+(6+t), planeGeo(0.132,0.297,0), px+Math.cos(a)*0.011,
+         y0+0.70+t*0.325, pz+Math.sin(a)*0.011, f, "#ffffff");
   }
   addCol(O.x1-1.85,O.x1-1.15, cz-3.15, cz-2.45, y0, y0+1.6);
   // soda machine and a cigarette machine against the north wall
@@ -3572,6 +3678,146 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
     m.zone(16, "A FENCE LINE");
   })();
 
+  /* --- two-track roads, so the desert has a grain to it ---------------- */
+  function dirtTrack(x0,z0,x1,z1,w){
+    const dx=x1-x0, dz=z1-z0, L=Math.hypot(dx,dz), n=Math.max(2,Math.round(L/5));
+    const ux=dx/L, uz=dz/L, px=-uz, pz=ux, yaw=Math.atan2(-ux,-uz), seg=L/n+1.0;
+    for(let i=0;i<n;i++){
+      const t=(i+0.5)/n, wob=Math.sin(t*8.1+x0*0.013)*w*0.9+Math.sin(t*19.7)*w*0.3;
+      const x=x0+dx*t+px*wob, z=z0+dz*t+pz*wob;
+      const g=new T.PlaneGeometry(w, seg), a=g.attributes.uv;
+      for(let k=0;k<a.count;k++) a.setXY(k, a.getX(k), a.getY(k)*seg/3.2);
+      a.needsUpdate=true;
+      push("track", g, x, Terrain.heightAt(x,z)+0.04, z, yaw, "#ffffff", -Math.PI/2, 0);
+    }
+  }
+  const TRK=-56;                                     // just off the highway shoulder
+  dirtTrack(-118,TRK, -145,-359, 3.1);
+  dirtTrack(-145,-359, -311,-319, 2.8);
+  dirtTrack(  42,TRK,  176,-433, 3.0);
+  dirtTrack(  12,TRK,    0,-528, 2.6);
+  dirtTrack(-378,TRK, -517,-222, 2.6);
+  dirtTrack( -58,TRK,  -70,-129, 2.4);
+  dirtTrack(-173,-74, -173,-118, 4.2);               // into the drive-in
+
+  /* --- five old cars stood on their noses in a row --------------------- */
+  (function(){
+    const m=mk(-311,-319), C=["#7a3a2a","#3a4d6a","#6a6a58","#5a3a5a","#7a6a30"];
+    for(let i=0;i<5;i++){
+      const px=(i-2)*4.6, lean=0.30+((i*7)%5)*0.05, ry=(i%2?0.10:-0.08);
+      m.P("weathered", boxGeo(1.90,0.52,4.10,0.4), px,1.62,0, ry, C[i], -1.22+lean, 0);
+      m.P("weathered", boxGeo(1.78,0.14,1.28,0.4), px,2.94,-0.70, ry, C[i], -1.22+lean, 0);
+      m.P("weathered", boxGeo(1.40,0.52,1.40,0.4), px,2.10,-1.10, ry, C[i], -1.22+lean, 0);
+      for(const w of [[-0.86,1.20],[0.86,1.20]])
+        m.C("tyre", 0.34,0.34,0.28,12, px+w[0], 3.30, w[1]-1.1, "#17150f", -1.22+lean, ry, Math.PI/2);
+      m.col(px-1.1,px+1.1,-1.2,1.2, 0,3.4);
+    }
+    m.rect(-14,14,-6,6, "FIVE CARS, NOSE DOWN");
+  })();
+
+  /* --- a filling station that stopped selling anything ----------------- */
+  (function(){
+    const m=mk(-145,-359);
+    m.B("concrete", 15.0,0.24,11.0, 0,0.12,0, 0.45,0, "#a9a294");          // the apron
+    m.B("stucco", 7.4,3.10,5.6, -2.6,1.55,2.2, 0.3,0, "#cfc4ad");          // the building
+    m.B("roofG", 8.2,0.26,6.4, -2.6,3.22,2.2, 0.3,0, "#7d7466");
+    m.B("glass", 3.4,1.70,0.10, -3.4,1.75,-0.58, 0,0, "#9fb2ae");          // the window
+    m.B("teal", 1.00,2.10,0.12, -0.4,1.05,-0.58, 0,0, "#2f6c62");          // the door
+    m.B("signlit", 4.0,0.80,0.14, -2.6,2.86,-0.62, 0,0, "#d8d2c4");        // the fascia band
+    for(const px of [2.6,5.4]){                                            // the pumps
+      m.B("weathered", 0.66,1.42,0.52, px,0.85,-1.8, 0.4,0, "#b8442e");
+      m.B("weathered", 0.72,0.20,0.58, px,1.66,-1.8, 0.4,0, "#d8d2c4");
+      m.B("tvglass", 0.44,0.30,0.03, px,1.34,-2.07, 0,0, "#1d262b");
+      m.C("weathered", 0.04,0.04,1.10,6, px+0.40,1.05,-1.8, "#4a4640", 0,0,0.5);
+      m.col(px-0.4,px+0.4,-2.2,-1.4, 0,1.6);
+    }
+    m.B("concrete", 7.0,0.30,3.2, 4.0,0.32,-1.8, 0.45,0, "#b9b2a2");       // the island
+    for(const px of [1.2,6.8]){                                            // canopy posts
+      m.B("weathered", 0.28,4.30,0.28, px,2.15,-1.8, 0.4,0, "#cfc8bc");
+      m.col(px-0.2,px+0.2,-2.0,-1.6, 0,4.3);
+    }
+    m.B("weathered", 9.6,0.55,6.0, 4.0,4.52,-1.8, 0.35,0, "#d8d2c4");      // the canopy
+    m.B("teal", 9.8,0.30,0.16, 4.0,4.16,-4.82, 0,0, "#2f6c62");
+    m.B("stucco", 7.4,0.20,0.30, -2.6,3.16,-0.62, 0.3,0, "#cfc4ad");
+    m.col(-6.3,1.1,-0.6,5.0, 0,3.2);
+    m.rect(-12,12,-8,9, "A FILLING STATION");
+  })();
+
+  /* --- a radio mast, still blinking ------------------------------------ */
+  (function(){
+    const m=mk(0,-528), H2=44, BW=3.2, TW=0.9, ST="#8f9aa0";
+    const legAt=h=>BW+(TW-BW)*(h/H2), tl=Math.atan2(BW-TW,H2);
+    for(const q of [[-1,-1],[1,-1],[-1,1],[1,1]])
+      m.P("metal", boxGeo(0.17,H2*1.01,0.17,0), q[0]*(BW+TW)/2, H2/2, q[1]*(BW+TW)/2,
+          0, ST, -q[1]*tl, q[0]*tl);
+    for(let k=1;k<=13;k++){
+      const h=k*3.2, w=legAt(h);
+      m.B("metal", w*2,0.09,0.09, 0,h, w, 0,0, ST);
+      m.B("metal", w*2,0.09,0.09, 0,h,-w, 0,0, ST);
+      m.B("metal", 0.09,0.09,w*2, w,h, 0, 0,0, ST);
+      m.B("metal", 0.09,0.09,w*2,-w,h, 0, 0,0, ST);
+      const w2=legAt(h+3.2), dl=Math.hypot(3.2,w+w2), an=Math.atan2(3.2,w+w2);
+      if(k<13) for(const sd of [-1,1]){
+        m.P("metal", boxGeo(dl,0.06,0.06,0), 0,h+1.6,sd*(w+w2)/2, 0, ST, 0, an);
+        m.P("metal", boxGeo(0.06,0.06,dl,0), sd*(w+w2)/2,h+1.6,0, 0, ST, -an, 0);
+      }
+    }
+    m.P("neonbox", new T.SphereGeometry(0.42,10,8), 0,H2+0.7,0, 0, "#ff3a2a");
+    m.B("concrete", 1.4,0.5,1.4, 0,0.25,0, 0.45,0, "#a9a294");
+    for(const q of [[-1,-1],[1,-1],[-1,1],[1,1]])                          // guy wires
+      m.P("metal", boxGeo(0.05,Math.hypot(H2*0.62,22),0.05,0),
+          q[0]*11, H2*0.31, q[1]*11, Math.atan2(q[0],q[1]), ST,
+          Math.atan2(22*1.414, H2*0.62), 0);
+    m.col(-2.0,2.0,-2.0,2.0, 0,44);
+    m.zone(26, "A RADIO MAST");
+    LAMPS.push({x:0, y:m.y+H2+0.7, z:-528, color:0xff3a2a, intensity:0.5, dist:30, decay:1.4});
+  })();
+
+  /* --- a motel that did not make it ------------------------------------ */
+  (function(){
+    const m=mk(176,-433);
+    m.B("concrete", 28.0,0.26,7.2, 0,0.13,0, 0.45,0, "#a29a8c");           // the slab
+    for(let i=0;i<6;i++){                                                  // stubs of wall
+      const px=-11.5+i*4.6, h2=0.5+((i*11)%5)*0.35;
+      m.B("stucco", 0.24,h2,7.0, px,0.26+h2/2,0, 0.3,0, "#b6a992");
+      m.col(px-0.2,px+0.2,-3.5,3.5, 0,0.3+h2);
+    }
+    m.B("stucco", 27.6,0.9,0.24, 0,0.72,3.5, 0.3,0, "#b6a992");
+    m.col(-13.8,13.8,3.3,3.7, 0,1.2);
+    // the pool, full of sand
+    m.B("concrete", 9.4,0.30,6.4, 2.0,0.15,13.0, 0.45,0, "#a29a8c");
+    m.B("plaster", 7.0,1.40,4.0, 2.0,-0.55,13.0, 0.4,0, "#c4cfc8");
+    m.B("gravel",  6.8,0.90,3.8, 2.0,-0.28,13.0, 0.5,0, "#b5a17c");        // sand to the brim
+    for(let i=0;i<7;i++)
+      m.P("foliage", new T.IcosahedronGeometry(0.16+((i*5)%3)*0.09,0),
+          -0.4+i*0.8, 0.24, 13.0+Math.sin(i*2.1)*1.3, i, "#6a7a4a");
+    m.B("teal", 0.10,1.05,0.10, -2.2,0.70,10.0, 0,0, "#2f6c62");           // a rail left
+    m.B("teal", 0.10,0.10,1.30, -2.2,1.20,10.6, 0,0, "#2f6c62");
+    m.P("weathered", boxGeo(2.6,1.7,0.14,0.4), -6.0,1.35,-6.0, 0.3, "#cfc4ad");  // the sign
+    m.B("weathered", 0.20,2.30,0.20, -6.0,1.15,-6.0, 0,0, "#a9a294");
+    m.col(-6.1,-5.9,-6.1,-5.9, 0,2.4);
+    m.rect(-17,17,-9,19, "WHAT IS LEFT OF A MOTEL");
+  })();
+
+  /* --- three graves and a wire fence ----------------------------------- */
+  (function(){
+    const m=mk(-517,-222);
+    for(let i=0;i<3;i++){
+      const px=(i-1)*1.7, lean=((i*13)%5-2)*0.06;
+      m.P("oak", boxGeo(0.09,1.05,0.09,0), px,0.50,0, 0, "#6b5947", 0, lean);
+      m.P("oak", boxGeo(0.56,0.09,0.09,0), px+lean*0.3,0.76,0, 0, "#6b5947", 0, lean);
+      m.B("gravel", 0.80,0.10,1.70, px,0.05,0.95, 0.5,0, "#9a8a6e");
+    }
+    for(let i=-4;i<=4;i++){                                                // the fence
+      for(const sd of [-1,1]) m.C("oak", 0.05,0.06,0.95,6, i*1.5, 0.42, sd*3.2, "#5b4632");
+      if(i<4) for(const sd of [-1,1]) for(const wy of [0.42,0.72])
+        m.P("metal", boxGeo(1.5,0.010,0.010,0), i*1.5+0.75, wy, sd*3.2, 0, "#7d7466");
+    }
+    for(const sd of [-1,1]) for(let j=-2;j<=2;j++)
+      m.C("oak", 0.05,0.06,0.95,6, sd*6.0, 0.42, j*1.6, "#5b4632");
+    m.zone(13, "THREE GRAVES");
+  })();
+
   /* --- somebody camped here, a while ago ------------------------------- */
   (function(){
     const m=mk(-70, -129);
@@ -3795,6 +4041,8 @@ bucketOf("fabric",  ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.
 // everything left out in the sun for forty years: chalky, no shine left on it
 bucketOf("weathered",()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.chalk,
                           roughness:0.95, metalness:0.04}));
+bucketOf("track",   ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.track,
+                          transparent:true, roughness:1, depthWrite:false}));
 bucketOf("soot",    ()=>new T.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.16,
                           map:TEX.soot, depthWrite:false, side:T.DoubleSide}));
 bucketOf("rust",    ()=>new T.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.30,
@@ -3873,8 +4121,10 @@ const brochureArt=(title,tint)=>(x,W,H)=>{
 };
 const BROCHURE_ART=[["CAVERNS TOUR","#2f6c82"],["TRADING POST","#9c4a24"],
                     ["GHOST TOWN","#4f6b3a"],["INDIAN CITY","#8a5a1e"],
-                    ["LAKE CRUISES","#2f5c8a"],["GUN MUSEUM","#7a3a3a"]];
-for(let k=0;k<6;k++) bucketOf("pic:brochure:"+k,
+                    ["LAKE CRUISES","#2f5c8a"],["GUN MUSEUM","#7a3a3a"],
+                    ["SNAKE FARM","#6b8a3a"],["MERAMEC CAVERNS","#2f6c82"],
+                    ["PETRIFIED FOREST","#8a5a1e"],["JACKRABBIT","#9c4a24"]];
+for(let k=0;k<10;k++) bucketOf("pic:brochure:"+k,
   ()=>picMat("brochure:"+k, 384, brochureArt(BROCHURE_ART[k][0], BROCHURE_ART[k][1])));
 bucketOf("pic:postcard",   ()=>picMat("postcard", 384, (x,W,H)=>{
   washBG(x,W,H,"#6fb8d6","#e6cf9e");
@@ -4132,7 +4382,8 @@ function updateHUD(){
   const h=DayNight.state.hour, hi=Math.floor(h), mi=Math.floor((h-hi)*60);
   hud.clock.textContent=(hi<10?"0":"")+hi+":"+(mi<10?"0":"")+mi;
   const z=zoneAt(player.pos.x, player.pos.z, player.feetY);
-  hud.where.textContent = z || (player.pos.z<ROADZ+6 ? "ROUTE 66" : "OPEN DESERT");
+  hud.where.textContent = z ||
+    (Math.abs(player.pos.z-ROADZ)<9 ? "ROUTE 66" : "OPEN DESERT");
 }
 
 /* --- painted site plan ------------------------------------------------ */
@@ -4229,9 +4480,10 @@ const WIND_L=new T.Vector3(-WIND.z,0,WIND.x);          // across the wind
    couple of minutes a gust comes through for half a minute. Everything loose
    in the scene reads off Wind.gust — the weeds run, litter flies further, the
    ground starts to smoke and the haze closes in.                          */
-const Wind={gust:0};
+const Wind={gust:0, hold:false};
 const DUSTC=new T.Color(0xc2a172);
 function updateWind(t, dt){
+  if(Wind.hold) return;                 // tooling pins it to inspect a gust
   const a=Math.sin(t*0.055+1.7)*0.5+0.5,
         b=Math.sin(t*0.021+4.2)*0.5+0.5,
         c=Math.sin(t*0.013)*0.5+0.5;
@@ -4265,7 +4517,36 @@ const SAND={n:1100, m:170, sn:230};
   SAND.fine =layer(SAND.n,  1.05, grain(0.85,0.30), ()=>0.1+Math.pow(rnd(),2.2)*13);
   SAND.sheet=layer(SAND.sn, 9.00, grain(0.30,0.12), ()=>0.2+Math.pow(rnd(),1.8)*2.4);
 })();
+/* --- a dust devil, but only in a real gust ---------------------------- */
+const DEVIL={s:null, x:0, z:0, seeded:false};
+(function buildDevil(){
+  const c=cvs(64,256), x=c.getContext("2d");
+  for(let i=0;i<1600;i++){
+    const t=Math.random(), y=(1-t)*256;
+    const w=5+t*26, cxx=32+Math.sin(t*6.4+1.1)*6.5;
+    x.fillStyle="rgba(200,170,126,"+(0.05+Math.random()*0.17*(1-t*0.55)).toFixed(3)+")";
+    x.fillRect(cxx+(Math.random()-0.5)*w, y, 2+Math.random()*3, 2+Math.random()*5);
+  }
+  const sp=new T.Sprite(new T.SpriteMaterial({map:setSRGB(new T.CanvasTexture(c)),
+    transparent:true, depthWrite:false, fog:true, opacity:0}));
+  sp.scale.set(24,96,1); sp.visible=false; scene.add(sp);
+  DEVIL.s=sp;
+})();
+function updateDevil(dt){
+  const a=Math.max(0,(Wind.gust-0.42)/0.58), m=DEVIL.s.material;
+  if(a<=0.002){ DEVIL.s.visible=false; DEVIL.seeded=false; return; }
+  if(!DEVIL.seeded){
+    const th=rnd()*Math.PI*2, r=130+rnd()*190;   // near enough to see through the dust
+    DEVIL.x=player.pos.x+Math.cos(th)*r; DEVIL.z=player.pos.z+Math.sin(th)*r;
+    DEVIL.seeded=true;
+  }
+  DEVIL.x+=WIND.x*6.5*dt; DEVIL.z+=WIND.z*6.5*dt;
+  DEVIL.s.visible=true;
+  DEVIL.s.position.set(DEVIL.x, Terrain.heightAt(DEVIL.x,DEVIL.z)+48, DEVIL.z);
+  m.opacity=a*0.46;
+}
 function updateSand(dt, dark){
+  updateDevil(dt);
   const g=Wind.gust;
   const on=g>0.03;
   SAND.fine.p.visible=on; SAND.sheet.p.visible=on;
@@ -4456,12 +4737,7 @@ function frame(){
     const f=0.5+0.5*Math.sin(now*6.1)+0.35*Math.sin(now*17.7);
     TVWIN_MAT.color.setRGB(0.16*dark*f, 0.26*dark*f, 0.42*dark*(0.6+0.4*f));
   }
-  // animated screens: an <img> playing a GIF only reaches the GPU when we
-  // re-upload it, so nudge them a dozen times a second
-  if(ANIM_TEX.length && now-lastGifPush>0.08){
-    lastGifPush=now;
-    for(const t of ANIM_TEX) t.needsUpdate=true;
-  }
+  if(ANIM.length && now-lastGifPush>0.07){ lastGifPush=now; tickAnim(); }
   tickFlicker(delta);
   updateLights(dark, camera.position);
 
@@ -4501,14 +4777,14 @@ function frame(){
   for(let i=0;i<CLOUDS.length;i++){
     const c=CLOUDS[i];
     c.s.position.x += c.sp*delta;
-    if(c.s.position.x>1500) c.s.position.x=-1500;
-    c.s.material.opacity = (0.16+0.66*(1-dn.nightAmount))*(0.72+0.28*Math.sin(i*1.7));
+    if(c.s.position.x>4600) c.s.position.x=-4600;
+    c.s.material.opacity = (0.18+0.76*(1-dn.nightAmount))*(0.78+0.22*Math.sin(i*1.7));
     c.s.material.color.copy(skyImg.mid).lerp(WHITE_C, 0.70-dn.nightAmount*0.62);
   }
   for(let i=0;i<CIRRUS.length;i++){
     const c=CIRRUS[i];
     c.s.position.x += c.sp*delta;
-    if(c.s.position.x>1600) c.s.position.x=-1600;
+    if(c.s.position.x>5400) c.s.position.x=-5400;
     c.s.material.opacity = 0.28*(1-dn.nightAmount*0.85)*(0.6+0.4*Math.sin(i*2.3));
     c.s.material.color.copy(skyImg.low).lerp(WHITE_C, 0.74-dn.nightAmount*0.6);
   }
@@ -4569,8 +4845,8 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                                  player.feetY=surfaceY(x,z, y===undefined?0:y); },
                sim:n=>{ for(let i=0;i<n;i++){ fixedUpdate(1/60); updateDoors(1/60); } },
                weeds:WEEDS, flyers:FLYERS, blowLitter:()=>{ flyerWait=0; },
-               wind:Wind, blow:(g)=>{ Wind.gust=(g===undefined?0.9:g); },
-               terrain:Terrain,
+               wind:Wind, blow:(g)=>{ Wind.gust=(g===undefined?0.9:g); Wind.hold=Wind.gust>0; },
+               terrain:Terrain, camera:camera,
                pool:()=>({water:waterMesh, c1:caustic1, c2:caustic2,
                           glint:surfGlint, floor:poolFloorCaustic, glow:poolGlow}),
                probe:(x,z,y)=>blocked(x,z,y===undefined?BASE:y) };

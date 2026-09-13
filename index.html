@@ -268,6 +268,11 @@ const TV_URLS=[
   "https://thelossless.neocities.org/Motel/TV%20Static/silhouette-watching-tv.gif",
   "https://thelossless.neocities.org/Motel/TV%20Static/static.gif",
   "https://thelossless.neocities.org/Motel/TV%20Static/tv-static.gif"];
+// If your image host refuses cross-origin reads the screens fall back to
+// procedural static and the prints to their canvas art. Putting a CORS proxy
+// prefix here routes the fetch through it. Off by default, because it would
+// send your URLs to a third party without asking.
+const IMAGE_PROXY="";
 const ART_BASE="https://thelossless.neocities.org/Motel/Over%20The%20Bed/";
 const IMAGES = {
   "vendHeader":     "https://thelossless.neocities.org/Motel/Ice%20Machine/IceMachineHeader.jpg",
@@ -314,14 +319,15 @@ function artTex(key, long, draw){
 // swap in the hosted picture for this slot, if one has been named. The canvas
 // art stays up until it arrives, and stays up for good if it never does —
 // a picture the browser will not give us CORS for simply fails quietly.
-/* Animated slots need three fallbacks, because two of the obvious approaches
-   quietly do nothing. An <img> that is not painted in the document never
-   advances a GIF's frames in Chrome, and a texture only changes when
-   something re-uploads it. So: decode the GIF ourselves through WebCodecs
-   where that exists, which is exact and needs no DOM at all; fall back to an
-   <img> kept four pixels square in the corner of the page where it really is
-   painted; and, whatever happens, keep the screens moving with procedural
-   static so a set is never a still photograph of snow. */
+/* --- animated screens --------------------------------------------------
+   Two obvious approaches quietly do nothing. An <img> that is not actually
+   painted in the document never advances a GIF's frames in Chrome, and a
+   WebGL texture never changes unless something re-uploads it. So the GIF is
+   decoded here, in full, from its own bytes: header, colour tables, graphic
+   control blocks, LZW. That needs nothing from the browser but the bytes, it
+   behaves the same in every engine, and it gives us each frame's real delay.
+   Underneath it all the screens run procedural static, so a set is never a
+   still photograph of snow even when the network gives us nothing.        */
 const ANIM=[], STATIC_TILES=[];
 (function buildStatic(){
   for(let k=0;k<6;k++){
@@ -353,43 +359,140 @@ function coverBlit(c, src, iw, ih){
   try{ g.drawImage(src, sx,sy,sw,sh, 0,0,c.width,c.height); return true; }
   catch(e){ return false; }
 }
+
+/* --- a GIF decoder, because we cannot rely on the browser animating one -- */
+function gifLZW(minCode, data, count){
+  const out=new Uint8Array(count);
+  const clear=1<<minCode, eoi=clear+1;
+  const prefix=new Int32Array(4096), suffix=new Uint8Array(4096), stack=new Uint8Array(4096);
+  for(let i=0;i<clear;i++){ prefix[i]=-1; suffix[i]=i; }
+  let size=minCode+1, next=eoi+1, bit=0, oi=0, prev=-1, sp=0;
+  const bits=data.length*8;
+  while(oi<count){
+    if(bit+size>bits) break;
+    let code=0;
+    for(let i=0;i<size;i++){ code |= ((data[bit>>3]>>(bit&7))&1)<<i; bit++; }
+    if(code===eoi) break;
+    if(code===clear){ size=minCode+1; next=eoi+1; prev=-1; continue; }
+    if(prev===-1){ out[oi++]=suffix[code]; prev=code; continue; }
+    let cur=code;
+    if(code>=next){ stack[sp++]=suffix[prev]; cur=prev; }
+    while(cur>=clear){ stack[sp++]=suffix[cur]; cur=prefix[cur]; }
+    stack[sp++]=suffix[cur];
+    if(next<4096){
+      prefix[next]=prev; suffix[next]=suffix[cur]; next++;
+      if(next===(1<<size) && size<12) size++;
+    }
+    while(sp>0 && oi<count) out[oi++]=stack[--sp];
+    prev=code;
+  }
+  return out;
+}
+function gifDecode(buf){
+  const d=new Uint8Array(buf); let p=0;
+  if(d.length<13 || d[0]!==71 || d[1]!==73 || d[2]!==70) return null;   // "GIF"
+  const u16=()=>{ const v=d[p]|(d[p+1]<<8); p+=2; return v; };
+  p=6; const W=u16(), H=u16(), f=d[p++]; p+=2;
+  let gct=null;
+  if(f&0x80){ const n=2<<(f&7); gct=d.subarray(p,p+n*3); p+=n*3; }
+  const frames=[]; let delay=10, tIdx=-1, disp=0;
+  while(p<d.length){
+    const b=d[p++];
+    if(b===0x3B) break;
+    if(b===0x21){                                   // extension
+      const label=d[p++], blocks=[];
+      while(p<d.length && d[p]!==0){ const n=d[p++]; blocks.push(d.subarray(p,p+n)); p+=n; }
+      p++;
+      if(label===0xF9 && blocks.length){
+        const g=blocks[0];
+        disp=(g[0]>>2)&7; delay=(g[1]|(g[2]<<8)); tIdx=(g[0]&1)?g[3]:-1;
+      }
+      continue;
+    }
+    if(b===0x2C){                                   // image descriptor
+      const ix=u16(), iy=u16(), iw=u16(), ih=u16(), lf=d[p++];
+      let ct=gct;
+      if(lf&0x80){ const n=2<<(lf&7); ct=d.subarray(p,p+n*3); p+=n*3; }
+      const inter=!!(lf&0x40), minCode=d[p++];
+      let total=0, start=p;
+      while(p<d.length && d[p]!==0){ total+=d[p]; p+=d[p]+1; }
+      const data=new Uint8Array(total); let o=0, q=start;
+      while(q<d.length && d[q]!==0){ const n=d[q++]; data.set(d.subarray(q,q+n),o); o+=n; q+=n; }
+      p++;
+      if(!ct || iw<=0 || ih<=0) continue;
+      frames.push({x:ix, y:iy, w:iw, h:ih, ct:ct, t:tIdx, disp:disp, inter:inter,
+                   delay:Math.max(20, (delay||10)*10), px:gifLZW(minCode, data, iw*ih)});
+      continue;
+    }
+    break;
+  }
+  return frames.length ? {w:W, h:H, frames:frames} : null;
+}
+// compose the frames onto a canvas, honouring each one's disposal
+function gifFrames(gif){
+  const c=cvs(gif.w, gif.h), x=c.getContext("2d");
+  const out=[], img=x.createImageData(gif.w, gif.h);
+  let prev=null;
+  for(const fr of gif.frames){
+    if(prev===2) x.clearRect(0,0,gif.w,gif.h);      // restore to background
+    const sub=x.createImageData(fr.w, fr.h), sd=sub.data;
+    for(let j=0;j<fr.h;j++){
+      // interlaced rows come in four passes
+      let row=j;
+      if(fr.inter){
+        const q=fr.h;
+        if(j < Math.ceil(q/8))                 row=j*8;
+        else if(j < Math.ceil(q/8)+Math.ceil((q-4)/8)) row=(j-Math.ceil(q/8))*8+4;
+        else if(j < Math.ceil(q/8)+Math.ceil((q-4)/8)+Math.ceil((q-2)/4))
+             row=(j-Math.ceil(q/8)-Math.ceil((q-4)/8))*4+2;
+        else row=(j-Math.ceil(q/8)-Math.ceil((q-4)/8)-Math.ceil((q-2)/4))*2+1;
+      }
+      for(let i=0;i<fr.w;i++){
+        const idx=fr.px[j*fr.w+i], o=(row*fr.w+i)*4;
+        if(idx===fr.t){ sd[o+3]=0; continue; }
+        sd[o]=fr.ct[idx*3]; sd[o+1]=fr.ct[idx*3+1]; sd[o+2]=fr.ct[idx*3+2]; sd[o+3]=255;
+      }
+    }
+    const tmp=cvs(fr.w, fr.h); tmp.getContext("2d").putImageData(sub,0,0);
+    x.drawImage(tmp, fr.x, fr.y);
+    const keep=cvs(gif.w, gif.h);
+    keep.getContext("2d").drawImage(c,0,0);
+    out.push({c:keep, delay:fr.delay});
+    prev=fr.disp;
+  }
+  return out;
+}
 const IMG_STATUS={};
 function dropNoise(tex){
   for(let i=0;i<ANIM.length;i++) if(ANIM[i].tex===tex && ANIM[i].noise) ANIM.splice(i--,1);
 }
-function domGif(key, url, tex){
-  const img=document.createElement("img");
-  img.crossOrigin="anonymous";
-  img.style.cssText="position:fixed;right:0;bottom:0;width:4px;height:4px;opacity:0.02;"+
-                    "pointer-events:none;z-index:2147483647";
-  img.addEventListener("load", ()=>{ dropNoise(tex); IMG_STATUS[key]="img";
-                                     ANIM.push({tex:tex, c:tex.image, img:img}); });
-  img.addEventListener("error", ()=>{
-    IMG_STATUS[key]=(IMG_STATUS[key]==="static"?"static (picture failed)":"failed");
-    img.remove(); });
-  document.body.appendChild(img);
-  img.src=url;
-}
-function gifInto(key, url, tex){
-  if(window.ImageDecoder){
-    fetch(url, {mode:"cors"}).then(r=>r.ok?r.arrayBuffer():Promise.reject(0)).then(buf=>{
-      const dec=new ImageDecoder({data:buf, type:"image/gif"});
-      return dec.completed.then(()=>{
-        const n=Math.max(1, dec.tracks.selectedTrack.frameCount|0);
-        dropNoise(tex); IMG_STATUS[key]="decoder:"+n;
-        let i=0;
-        const step=()=>{
-          dec.decode({frameIndex:i%n}).then(res=>{
-            const f=res.image;
-            if(coverBlit(tex.image, f, f.displayWidth, f.displayHeight)) tex.needsUpdate=true;
-            const ms=Math.max(45, (f.duration||90000)/1000);
-            f.close(); i++; setTimeout(step, ms);
-          }).catch(()=>{ IMG_STATUS[key]="decode-error"; });
-        };
-        step();
-      });
-    }).catch(()=>domGif(key, url, tex));
-  }else domGif(key, url, tex);
+function playGif(key, url, tex){
+  fetch(url, {mode:"cors", cache:"force-cache"})
+    .then(r=>{ if(!r.ok) throw 0; return r.arrayBuffer(); })
+    .then(buf=>{
+      const gif=gifDecode(buf);
+      if(!gif) throw 1;
+      const fr=gifFrames(gif);
+      if(!fr.length) throw 2;
+      dropNoise(tex);
+      IMG_STATUS[key]="gif:"+fr.length+"f";
+      let i=0;
+      const step=()=>{
+        const f=fr[i%fr.length];
+        if(coverBlit(tex.image, f.c, gif.w, gif.h)) tex.needsUpdate=true;
+        i++; setTimeout(step, f.delay);
+      };
+      step();
+    })
+    .catch(e=>{
+      if(IMAGE_PROXY && url.indexOf(IMAGE_PROXY)!==0){
+        playGif(key, IMAGE_PROXY+encodeURIComponent(url), tex); return;
+      }
+      IMG_STATUS[key]="static (gif unavailable)";
+      console.warn("[motel] could not fetch "+url+
+        " — the screens fall back to procedural static. If this is a CORS "+
+        "refusal the host has to send Access-Control-Allow-Origin.");
+    });
 }
 function hosted(key, tex, opt){
   opt=opt||{};
@@ -399,7 +502,7 @@ function hosted(key, tex, opt){
     IMG_STATUS[key]="static";
   }
   if(!url) return tex;
-  if(opt.animated){ gifInto(key, url, tex); return tex; }
+  if(opt.animated){ playGif(key, url, tex); return tex; }
   new T.TextureLoader().load(url, t=>{
     IMG_STATUS[key]="loaded";
     tex.image=t.image; setSRGB(tex);
@@ -531,7 +634,7 @@ function bakeBuckets(scene){
     if(!b.entries.length) continue;
     const geo=mergeEntries(b.entries);
     const m=b.makeMat ? b.makeMat() : mat(0xffffff);
-    m.vertexColors=true;
+    m.vertexColors=true; b.mat=m;
     const mesh=new T.Mesh(geo,m);
     mesh.castShadow=true;
     // a 100 mm ledge is a couple of shadow texels wide however fine the map
@@ -920,7 +1023,11 @@ const MAXANISO=Math.min(8, renderer.capabilities.getMaxAnisotropy());
 for(const k in TEX){ if(TEX[k] && TEX[k].isTexture) TEX[k].anisotropy=MAXANISO; }
 
 const scene=new T.Scene();
-const camera=new T.PerspectiveCamera(72, innerWidth/innerHeight, 0.08, 4000);
+// Depth precision is set by the near plane far more than the far one. At 0.08
+// the buffer had about 19 cm of resolution half a kilometre out, which is why
+// distant signs and panels buzzed; 0.24 brings that to 6 cm. The player can
+// never get closer than the collision radius anyway.
+const camera=new T.PerspectiveCamera(72, innerWidth/innerHeight, 0.24, 4000);
 const ortho=new T.OrthographicCamera(-60,60,45,-45,0.1,600);
 let view="fp", fov=72;
 
@@ -1213,7 +1320,7 @@ function placeCelestial(sp, ang, sign, zBias){
 }
 
 /* --- clouds, birds and the odd car on the highway ---------------------- */
-const CLOUDS=[], CIRRUS=[], BIRDS=[], WHITE_C=new T.Color(0xffffff);
+const CLOUDS=[], CIRRUS=[], BIRDS=[], BALLOONS=[], WHITE_C=new T.Color(0xffffff);
 const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is gone
 (function buildSky2(){
   // A cumulus is a row of lobes on a flat base, lit from above and shaded
@@ -1372,6 +1479,48 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
                     (Math.random()<0.5?-1:1)*(900+Math.random()*3200));
     scene.add(sp); CIRRUS.push({s:sp, sp:0.9+Math.random()*0.8});
   }
+  /* --- balloons ---------------------------------------------------------
+     Three of them, four to nine kilometres out, drifting on the same wind as
+     everything else. They only fade in once you are a few hundred metres from
+     the motel, so they read as something you found by walking out rather than
+     as scenery hung on the lot.                                           */
+  const BALLOON_SKINS=[["#c3311f","#f1ead6","#13405e"],["#e0a52a","#3f6ea8","#f1ead6"],
+                       ["#4f7a4a","#e0d24a","#c3562f"]];
+  for(let i=0;i<5;i++){
+    const pal2=BALLOON_SKINS[i%BALLOON_SKINS.length], c=cvs(128,180), x=c.getContext("2d");
+    for(let k=0;k<9;k++){                         // gores, alternating colours
+      const a0=Math.PI*(k/9), a1=Math.PI*((k+1)/9);
+      x.fillStyle=pal2[k%pal2.length];
+      x.beginPath();
+      for(let t=0;t<=12;t++){                     // an envelope, not a circle
+        const u=t/12, w=Math.sin(Math.PI*(0.22+u*0.78))*62;
+        x.lineTo(64+Math.cos(a0)*w, 8+u*118);
+      }
+      for(let t=12;t>=0;t--){
+        const u=t/12, w=Math.sin(Math.PI*(0.22+u*0.78))*62;
+        x.lineTo(64+Math.cos(a1)*w, 8+u*118);
+      }
+      x.closePath(); x.fill();
+    }
+    x.globalCompositeOperation="source-atop";     // shade the far side
+    const sg2=x.createLinearGradient(0,0,128,0);
+    sg2.addColorStop(0,"rgba(40,46,62,0.36)"); sg2.addColorStop(0.45,"rgba(40,46,62,0)");
+    sg2.addColorStop(1,"rgba(40,46,62,0.46)");
+    x.fillStyle=sg2; x.fillRect(0,0,128,180);
+    x.globalCompositeOperation="source-over";
+    x.strokeStyle="rgba(60,54,44,0.75)"; x.lineWidth=1.4;
+    for(const bx3 of [54,74]){ x.beginPath(); x.moveTo(bx3,124); x.lineTo(64,150); x.stroke(); }
+    x.fillStyle="#7a5636"; x.fillRect(56,150,16,13);      // the basket
+    x.fillStyle="#5c4029"; x.fillRect(56,150,16,3);
+    const sp=new T.Sprite(new T.SpriteMaterial({map:setSRGB(new T.CanvasTexture(c)),
+      transparent:true, depthWrite:false, fog:false, opacity:0}));
+    const sc=170+Math.random()*110;
+    sp.scale.set(sc, sc*1.40, 1);
+    const a=Math.random()*Math.PI*2, d=2600+Math.random()*3200;
+    sp.position.set(Math.cos(a)*d, 420+Math.random()*560, Math.sin(a)*d);
+    scene.add(sp); BALLOONS.push({s:sp, sp:0.8+Math.random()*0.9, ph:Math.random()*6});
+  }
+
   const bc=cvs(64,32), bx2=bc.getContext("2d");
   bx2.strokeStyle="rgba(20,16,12,0.85)"; bx2.lineWidth=3; bx2.beginPath();
   bx2.moveTo(6,22); bx2.quadraticCurveTo(20,6,32,18); bx2.quadraticCurveTo(44,6,58,22); bx2.stroke();
@@ -1455,13 +1604,16 @@ const TRAFFIC=[];
     scene.add(g);
     return {g:g, lamps:lamps, kind:kind};
   }
+  // The wrap moved out to 1500 m so nothing is seen appearing, which spread
+  // three cars over four kilometres of road. Sixteen puts them past the old
+  // sighting rate by about a fifth.
   const lanes=[[ROADZ-2.2, 1], [ROADZ+2.2, -1]];
-  for(let i=0;i<3;i++){
-    const kind=[0,1,2][i%3];
-    const v=vehicle(kind, BODY[i%BODY.length]);
+  for(let i=0;i<16;i++){
+    const kind=[0,1,0,2,1,0][i%6];
+    const v=vehicle(kind, BODY[(i*3+((i/4)|0))%BODY.length]);
     const ln=lanes[i%2];
     v.dir=ln[1]; v.z=ln[0];
-    v.x=-340+Math.random()*680;
+    v.x=-1500+(i/16)*3000+Math.random()*140;
     v.speed=(kind===2?19:26)+Math.random()*6;
     v.g.rotation.y = v.dir>0 ? Math.PI/2 : -Math.PI/2;
     TRAFFIC.push(v);
@@ -1474,7 +1626,11 @@ function updateTraffic(dt, dark){
     if(v.x> 1500) v.x=-1500;
     if(v.x<-1500) v.x= 1500;
     v.g.position.set(v.x, Terrain.heightAt(v.x, v.z)+0.02, v.z);
-    for(const L of v.lamps) L.s.material.opacity = L.head ? dark*0.95 : dark*0.55;
+    const lit=dark>0.04;                       // no lamp draws at all by day
+    for(const L of v.lamps){
+      L.s.visible=lit;
+      if(lit) L.s.material.opacity = L.head ? dark*0.95 : dark*0.55;
+    }
   }
 }
 
@@ -1574,6 +1730,9 @@ scene.background=new T.Color(0xc37946);
    which is all a two-storey motel with outdoor stairs actually needs.
    ---------------------------------------------------------------------- */
 const COL=[];    // {x0,x1,z0,z1,y0,y1}
+const SEATS=[];  // somewhere to sit: the cushion's x/z/height, which way it
+                 // faces, and what the prompt should call it
+function addSeat(x,z,y,yaw,label){ SEATS.push({x:x, z:z, y:y, yaw:yaw, label:label}); }
 const SURF=[];   // flat {x0,x1,z0,z1,y} | ramp {axis:'x'|'z',a0,a1,y0,y1}
 const ZONES=[];  // {x0,x1,z0,z1,y0,y1,name}
 
@@ -1988,6 +2147,7 @@ function buildBay(xf, level, kind, roomNo, lit){
       // a bench tucked against the left return, out of the walking line
       A("oak", 0.42,0.09,1.56, -2.28, 0.46, 3.50, 0.6, "#5c4029");
       A("oak", 0.09,0.34,1.56, -2.50, 0.68, 3.50, 0.6, "#5c4029");
+      addSeat(xf.x(-2.26,3.50), xf.z(-2.26,3.50), y0+0.52, xf.ry-Math.PI/2, "THE BENCH");
       for(const d2 of [-0.62,0.62]) A("metal", 0.38,0.44,0.09, -2.28, 0.23, 3.50+d2, 0, "#4b4f52");
       AC(0.56,1.66, -2.28,3.50, 0.9);
       AP("bin", new T.CylinderGeometry(0.27,0.23,0.72,14), 2.28, y0+0.36, 5.70, "#3f4a44");
@@ -2334,6 +2494,7 @@ function furnishRoom(xf, y0, roomNo){
   P("oak", new T.CylinderGeometry(0.24,0.26,0.04,14), 0.60, 0.03, 0.92, "#5c4029");
   C(0.86,0.86, 0.60,0.92, 0.76);
   for(const cx2 of [-0.42, 1.62]){
+    addSeat(xf.x(cx2,0.92), xf.z(cx2,0.92), y0+0.50, xf.ry+(cx2<0?-1.15:1.15), "THE CHAIR");
     B("oak", 0.46,0.06,0.46, cx2, 0.44, 0.92, 0.7, "#6f4a2c");
     B("spread",0.42,0.10,0.42, cx2, 0.51, 0.92, 0.5, spread);
     for(const d of [[-0.18,-0.18],[0.18,-0.18],[-0.18,0.18],[0.18,0.18]])
@@ -2995,6 +3156,7 @@ let waterGeo=null, waterMesh=null;
     bx("metal", 0.05,0.05,1.50, lx-0.34, dy+0.44, lz-0.1, 0, 0, "#b8bcbc");
     bx("metal", 0.05,0.05,1.50, lx+0.34, dy+0.44, lz-0.1, 0, 0, "#b8bcbc");
     addCol(lx-0.42,lx+0.42, lz-1.55, lz+1.05, dy, dy+0.55);
+    addSeat(lx, lz+0.10, dy+0.48, Math.PI, "LOUNGER");   // facing the water
     if(i%2===0 && i<4){                                                 // side table with a drink
       const tx=lx+1.55;
       push("metal", new T.CylinderGeometry(0.26,0.26,0.05,14), tx, dy+0.50, lz-0.2, 0, "#c8c4b4");
@@ -3110,6 +3272,8 @@ let waterGeo=null, waterMesh=null;
   bx("oak",   2.30,0.34,0.92, sofaX, y0+0.32, sofaZ, 0.6, 0, "#5c4029");
   bx("spread",2.20,0.26,0.82, sofaX, y0+0.60, sofaZ, 0.5, 0, "#5e7c6e");
   bx("spread",2.20,0.62,0.22, sofaX, y0+0.88, sofaZ-0.35, 0.5, 0, "#5e7c6e");   // back at the window
+  addSeat(sofaX-0.55, sofaZ+0.08, y0+0.66, Math.PI, "THE SOFA");
+  addSeat(sofaX+0.55, sofaZ+0.08, y0+0.66, Math.PI, "THE SOFA");
   bx("spread",0.22,0.40,0.86, sofaX-1.06, y0+0.76, sofaZ, 0.5, 0, "#4e6c5e");   // arms
   bx("spread",0.22,0.40,0.86, sofaX+1.06, y0+0.76, sofaZ, 0.5, 0, "#4e6c5e");
   push("spread", new T.CylinderGeometry(0.11,0.11,2.20,12), sofaX, y0+0.96, sofaZ-0.35,
@@ -3208,6 +3372,7 @@ let waterGeo=null, waterMesh=null;
   bx("oak",   2.00,0.32,0.84, bnX, y0+0.31, bnZ, 0.6, 0, "#5c4029");
   bx("spread",1.92,0.24,0.76, bnX, y0+0.57, bnZ, 0.5, 0, "#6a6f52");
   bx("spread",1.92,0.56,0.20, bnX, y0+0.83, bnZ-0.30, 0.5, 0, "#6a6f52");
+  addSeat(bnX, bnZ+0.06, y0+0.62, 0, "THE BENCH");
   push("spread", new T.CylinderGeometry(0.10,0.10,1.92,12), bnX, y0+0.90, bnZ-0.30, 0, "#6a6f52", 0, Math.PI/2);
   for(const cu of [-0.48,0.48]) bx("spread",0.86,0.14,0.70, bnX+cu, y0+0.66, bnZ+0.02, 0.5, 0, "#767c5c");
   addCol(bnX-1.02,bnX+1.02, bnZ-0.46, bnZ+0.46, y0, y0+0.9);
@@ -3803,7 +3968,21 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
     m.B("paint", 1.02,0.22,1.02, 0,2.30,0, 0.4, 0, "#4d7cb4");
     m.B("signlit", 0.72,0.15,0.03, 0,2.30,-0.44, 0, 0, "#e8e4d6");
     m.B("paint", 0.26,0.50,0.18, 0,1.34,0.34, 0, 0, "#2b2b2b");        // the phone
-    m.P("paint", new T.CylinderGeometry(0.03,0.03,0.34,8), -0.15,1.18,0.30, 0, "#1a1a19", 0.4, 0);
+    m.B("metal", 0.20,0.06,0.04, 0,1.52,0.24, 0, 0, "#b8bcbc");        // the hook
+    m.P("paint", new T.CylinderGeometry(0.035,0.035,0.30,8), -0.17,1.05,0.26, 0, "#1a1a19", 0.5, 0);
+    m.P("paint", new T.CylinderGeometry(0.012,0.012,0.46,6), -0.13,1.20,0.28, 0, "#222", 0.9, 0.3);
+    m.B("metal", 0.12,0.09,0.03, 0.02,1.10,0.26, 0, 0, "#9a9a94");     // coin return
+    m.B("paint", 0.14,0.18,0.02, -0.06,1.55,0.27, 0, 0, "#d8d2bc");    // the number card
+    // a directory on a chain, hanging open at the Bs
+    m.B("oak",  0.22,0.03,0.16, 0.22,1.02,0.22, 0, 0.3, "#c9bfa0");
+    m.B("oak",  0.20,0.10,0.15, 0.22,0.96,0.22, 0, 0.3, "#a89b7c");
+    m.P("metal", new T.CylinderGeometry(0.008,0.008,0.30,6), 0.22,1.17,0.24, 0, "#8f9aa0", 0.2, 0);
+    // one pane has been out for years — the frame is there, the glass is not
+    m.B("paint", 0.05,0.10,0.86, -0.42,2.08,0, 0, 0, "#4d7cb4");
+    for(const g2 of [[-0.30,0.06],[-0.10,-0.22],[0.16,0.18]])
+      m.P("glass", boxGeo(0.02,0.05,0.06,0), -0.44+g2[1]*0.02, 0.08, g2[0], 0, "#cfe0e6",
+          0, g2[1]*3.0);
+    m.P("soot", planeGeo(0.5,0.34,0), -0.40,1.40,0.05, -Math.PI/2, "#6a5a3a", 0, Math.PI/2);
     m.col(-0.5,0.5,-0.5,0.5, 0,2.4);
     m.zone(8, "A TELEPHONE");
     LAMPS.push({x:-96, y:m.y+2.24, z:196, color:0xd8e4ff, intensity:0.42, dist:12, decay:1.5,
@@ -3842,27 +4021,11 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
   }
   const TRK=-56;                                     // just off the highway shoulder
   dirtTrack(-118,TRK, -145,-359, 3.1);
-  dirtTrack(-145,-359, -311,-319, 2.8);
   dirtTrack(  42,TRK,  176,-433, 3.0);
   dirtTrack(  12,TRK,    0,-528, 2.6);
   dirtTrack(-378,TRK, -517,-222, 2.6);
   dirtTrack( -58,TRK,  -70,-129, 2.4);
   dirtTrack(-173,-74, -173,-118, 4.2);               // into the drive-in
-
-  /* --- five old cars stood on their noses in a row --------------------- */
-  (function(){
-    const m=mk(-311,-319), C=["#7a3a2a","#3a4d6a","#6a6a58","#5a3a5a","#7a6a30"];
-    for(let i=0;i<5;i++){
-      const px=(i-2)*4.6, lean=0.30+((i*7)%5)*0.05, ry=(i%2?0.10:-0.08);
-      m.P("weathered", boxGeo(1.90,0.52,4.10,0.4), px,1.62,0, ry, C[i], -1.22+lean, 0);
-      m.P("weathered", boxGeo(1.78,0.14,1.28,0.4), px,2.94,-0.70, ry, C[i], -1.22+lean, 0);
-      m.P("weathered", boxGeo(1.40,0.52,1.40,0.4), px,2.10,-1.10, ry, C[i], -1.22+lean, 0);
-      for(const w of [[-0.86,1.20],[0.86,1.20]])
-        m.C("tyre", 0.34,0.34,0.28,12, px+w[0], 3.30, w[1]-1.1, "#17150f", -1.22+lean, ry, Math.PI/2);
-      m.col(px-1.1,px+1.1,-1.2,1.2, 0,3.4);
-    }
-    m.rect(-14,14,-6,6, "FIVE CARS, NOSE DOWN");
-  })();
 
   /* --- a filling station that stopped selling anything ----------------- */
   (function(){
@@ -4105,7 +4268,9 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
   // roadside: billboard, mailbox, newspaper boxes, a bus bench, a water tower
   (function billboard(){
     const bx0=62, bz=ROADZ-13, yaw=Math.PI;
-    for(const d of [-3.6,3.6]){ bx("metal", 0.34,7.6,0.34, bx0+d, 3.8, bz, 0, 0, "#6b6156");
+    // the legs are deeper than the board, so they straddle it rather than
+    // stopping on its faces
+    for(const d of [-3.6,3.6]){ bx("metal", 0.34,7.6,0.44, bx0+d, 3.8, bz, 0, 0, "#6b6156");
       addCol(bx0+d-0.24, bx0+d+0.24, bz-0.24, bz+0.24, 0, 7.6); }
     bx("paint", 10.4,3.8,0.34, bx0, 6.6, bz, 0, 0, "#e6e2d6");
     const tex=signTex(768,280,(x,W,H)=>{
@@ -4130,6 +4295,7 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
   bx("oak", 1.90,0.09,0.42, 30.0, 0.50, -43.0, 0.6, 0, "#5c4029");            // bus bench
   bx("oak", 1.90,0.40,0.09, 30.0, 0.72, -43.2, 0.6, 0, "#5c4029");
   for(const d of [-0.8,0.8]) bx("metal", 0.09,0.46,0.38, 30.0+d, 0.25, -43.0, 0, 0, "#4b4f52");
+  addSeat(30.0, -42.9, 0.55, Math.PI, "THE BUS BENCH");        // watching the road
   addCol(29.0,31.0, -43.4,-42.7, 0, 0.95);
   (function watertower(){
     const wx=-168, wz=88, gy=Terrain.heightAt(wx,wz);
@@ -4365,7 +4531,7 @@ function updateLights(dark, camPos){
    14 · PLAYER
    ---------------------------------------------------------------------- */
 const player={ pos:new T.Vector3(SPAWN.x, 0, SPAWN.z), yaw:SPAWN.yaw, pitch:-0.02,
-               feetY:0, bob:0, step:0, swim:0 };
+               feetY:0, bob:0, step:0, swim:0, sit:0, moving:0 };
 player.feetY=surfaceY(player.pos.x, player.pos.z, 0);
 
 const keys={};
@@ -4424,8 +4590,33 @@ dom.addEventListener("touchmove",e=>{
 
 /* --- doors ------------------------------------------------------------ */
 let nearestDoor=null;
+let seated=null, nearestSeat=null;
+function standUp(){
+  if(!seated) return;
+  const nx=seated.x - Math.sin(seated.yaw)*0.85, nz=seated.z - Math.cos(seated.yaw)*0.85;
+  if(!blocked(nx,nz,seated.y)){ player.pos.x=nx; player.pos.z=nz; }
+  player.feetY=surfaceY(player.pos.x, player.pos.z, seated.y+0.6);
+  seated=null;
+}
+function updateSeats(){
+  if(seated){ nearestSeat=null; return; }
+  let best=null, bd=1e9;
+  for(const s of SEATS){
+    const d=Math.hypot(player.pos.x-s.x, player.pos.z-s.z);
+    if(Math.abs(player.feetY-s.y)<1.7 && d<2.0 && d<bd){ bd=d; best=s; }
+  }
+  nearestSeat=best;
+}
 function interact(){
   if(!started) return;
+  if(seated){ standUp(); return; }
+  if(nearestSeat && (!nearestDoor ||
+      Math.hypot(player.pos.x-nearestSeat.x, player.pos.z-nearestSeat.z) <
+      Math.hypot(player.pos.x-nearestDoor.x, player.pos.z-nearestDoor.z))){
+    seated=nearestSeat; player.yaw=nearestSeat.yaw;
+    toast("SITTING  ·  E TO GET UP","#ffb324");
+    return;
+  }
   if(nearestDoor){
     nearestDoor.manual = (nearestDoor.target>0.5) ? -1 : 1;
     return;
@@ -4450,8 +4641,13 @@ function updateDoors(dt){
     d.g.rotation.y = d.base + d.swing*d.open;
   }
   nearestDoor=best;
+  updateSeats();
   const el=document.getElementById("prompt");
-  if(best){ el.textContent = "E  ·  "+(best.label==="OFFICE" ? "OFFICE" : "ROOM "+best.label);
+  const seatFirst = nearestSeat && (!best ||
+      Math.hypot(px-nearestSeat.x, pz-nearestSeat.z) < Math.hypot(px-best.x, pz-best.z));
+  if(seated){ el.textContent="E  ·  STAND UP"; el.classList.add("show"); }
+  else if(seatFirst){ el.textContent="E  ·  SIT  ·  "+nearestSeat.label; el.classList.add("show"); }
+  else if(best){ el.textContent = "E  ·  "+(best.label==="OFFICE" ? "OFFICE" : "ROOM "+best.label);
             el.classList.add("show"); }
   else el.classList.remove("show");
 }
@@ -4467,6 +4663,18 @@ function inPool(x,z){
 function fixedUpdate(dt){
   const f=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
   const r=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
+  if(seated){                       // sitting: look where you like, go nowhere
+    if(f||r) standUp();
+    else{
+      player.pos.x += (seated.x-player.pos.x)*Math.min(1,dt*7);
+      player.pos.z += (seated.z-player.pos.z)*Math.min(1,dt*7);
+      player.feetY += (seated.y-player.feetY)*Math.min(1,dt*7);
+      player.sit   += (1-player.sit)*Math.min(1,dt*5);
+      player.bob   += (0-player.bob)*Math.min(1,dt*6);
+      return;
+    }
+  }
+  player.sit += (0-player.sit)*Math.min(1,dt*6);
   const underwater = player.feetY < POOL.water-0.05 &&
                      inPool(player.pos.x, player.pos.z);
   let sp=(keys.ShiftLeft||keys.ShiftRight?RUN:WALK)*(underwater?0.45:1);
@@ -4744,6 +4952,66 @@ function updateWeeds(dt){
   }
 }
 
+/* --- geckos ------------------------------------------------------------
+   Twelve of them, sitting out on warm rock near the things worth walking to.
+   They hold absolutely still until you are about four metres off, then bolt a
+   couple of metres and freeze again, which is the whole of a gecko's
+   behavioural repertoire and exactly what makes you notice one.          */
+const GECKOS=[];
+(function makeGeckos(){
+  const mk=(col)=>{
+    const ent=[], c=new T.Color(col), dark2=new T.Color(col).multiplyScalar(0.62);
+    const m4=(x,y,z)=>new T.Matrix4().makeTranslation(x,y,z);
+    ent.push({geo:boxGeo(0.055,0.030,0.115,0), matrix:m4(0,0.022,0), color:c});   // body
+    ent.push({geo:boxGeo(0.040,0.024,0.045,0), matrix:m4(0,0.024,0.075), color:c});// head
+    for(let k=0;k<4;k++)                                                           // tail
+      ent.push({geo:boxGeo(0.026-k*0.005,0.016-k*0.003,0.045,0),
+                matrix:m4(0,0.020,-0.070-k*0.042), color:k%2?dark2:c});
+    for(const q of [[-1,0.035],[1,0.035],[-1,-0.040],[1,-0.040]])                  // legs
+      ent.push({geo:boxGeo(0.048,0.010,0.014,0), matrix:m4(q[0]*0.036,0.010,q[1]), color:dark2});
+    for(let k=0;k<3;k++)                                                           // banding
+      ent.push({geo:boxGeo(0.058,0.032,0.012,0), matrix:m4(0,0.022,-0.030+k*0.030), color:dark2});
+    const mesh=new T.Mesh(mergeEntries(ent),
+      new T.MeshStandardMaterial({vertexColors:true, roughness:0.82}));
+    mesh.castShadow=true; return mesh;
+  };
+  const SPOTS=[[-95.2,194.4],[-97.1,197.8],[-71.6,-127.2],[-68.4,-131.0],
+               [-172.0,-96.0],[-147.5,-355.0],[-259.0,120.6],[181.0,-125.4],
+               [-166.6,-41.0],[75.5,244.0],[-516.0,-224.5],[-15.0,-63.0]];
+  for(let i=0;i<SPOTS.length;i++){
+    const sp=SPOTS[i], g=mk(["#7a7a52","#6b6b46","#8a7a56","#5f6b4a"][i%4]);
+    g.position.set(sp[0], Terrain.heightAt(sp[0],sp[1])+0.012, sp[1]);
+    g.rotation.y=rnd()*6.28;
+    scene.add(g);
+    GECKOS.push({m:g, hx:sp[0], hz:sp[1], t:0, run:0, dir:rnd()*6.28, wait:rr(0,4)});
+  }
+})();
+function updateGeckos(dt){
+  for(const k of GECKOS){
+    const d=Math.hypot(player.pos.x-k.m.position.x, player.pos.z-k.m.position.z);
+    if(k.run>0){
+      k.run-=dt;
+      const sp=3.4*Math.min(1, k.run*3);
+      k.m.position.x += Math.sin(k.dir)*sp*dt;
+      k.m.position.z += Math.cos(k.dir)*sp*dt;
+      k.m.position.y  = Terrain.heightAt(k.m.position.x, k.m.position.z)+0.012;
+      k.m.rotation.y  = k.dir + Math.sin(k.run*38)*0.22;      // the tail whips
+    }else if(d<4.0 && d>0.2){
+      k.dir=Math.atan2(k.m.position.x-player.pos.x, k.m.position.z-player.pos.z)
+            + (rnd()-0.5)*1.1;
+      k.run=0.45+rnd()*0.5;
+    }else{
+      k.wait-=dt;
+      if(k.wait<0){                                            // the odd head-bob
+        k.wait=2.5+rnd()*6;
+        k.dir=k.m.rotation.y+(rnd()-0.5)*2.2;
+        k.m.rotation.y=k.dir;
+      }
+      if(d>70){ k.m.position.set(k.hx, Terrain.heightAt(k.hx,k.hz)+0.012, k.hz); }
+    }
+  }
+}
+
 /* --- litter on the wind ------------------------------------------------
    Not a constant stream of it: one sheet of newspaper or one carrier bag
    goes past every minute or two, tumbling, and then the lot is empty again.
@@ -4825,6 +5093,7 @@ function frame(){
     updateWind(now, delta);
     updateWeeds(delta);
     updateFlyers(delta);
+    updateGeckos(delta);
     if(NEXT_SCENE_URL && !leaving && player.pos.z<ROADZ-6){
       leaving=true;
       if(document.pointerLockElement===dom) document.exitPointerLock();
@@ -4834,7 +5103,7 @@ function frame(){
   }
 
   /* ---- camera ---- */
-  const eyeY=player.feetY+EYE+player.bob;
+  const eyeY=player.feetY+EYE+player.bob-player.sit*0.66;   // seated, you sit lower
   camera.position.set(player.pos.x, eyeY, player.pos.z);
   const cp=Math.cos(player.pitch);
   camera.lookAt(player.pos.x - Math.sin(player.yaw)*cp,
@@ -4947,6 +5216,19 @@ function frame(){
     c.s.material.opacity = 0.28*(1-dn.nightAmount*0.85)*(0.6+0.4*Math.sin(i*2.3));
     c.s.material.color.copy(skyImg.low).lerp(WHITE_C, 0.74-dn.nightAmount*0.6);
   }
+  {                                    // balloons: only once you are out there
+    const far=Math.hypot(player.pos.x, player.pos.z+8);
+    const show=smoothstep(240, 620, far)*(1-dn.nightAmount*0.86);
+    for(let i=0;i<BALLOONS.length;i++){
+      const b2=BALLOONS[i];
+      b2.s.position.x += b2.sp*delta;
+      if(b2.s.position.x>9000) b2.s.position.x=-9000;
+      b2.s.position.y += Math.sin(now*0.07+b2.ph)*delta*1.6;
+      b2.s.visible = show>0.01;
+      b2.s.material.opacity = show*0.95;
+      b2.s.material.color.copy(skyImg.mid).lerp(WHITE_C, 0.82);
+    }
+  }
   updateTraffic(delta, dark);
   for(const b of BIRDS){
     b.a += b.sp*delta;
@@ -5006,6 +5288,11 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                weeds:WEEDS, flyers:FLYERS, blowLitter:()=>{ flyerWait=0; },
                wind:Wind, blow:(g)=>{ Wind.gust=(g===undefined?0.9:g); Wind.hold=Wind.gust>0; },
                terrain:Terrain, camera:camera, images:()=>IMG_STATUS,
+               gifDecode:gifDecode, gifFrames:gifFrames,
+               seats:SEATS, geckos:GECKOS, seatedNow:()=>!!seated,
+               press:(c)=>{ keys[c]=true; interact(); keys[c]=false; },
+               testGif:(u)=>{ IMAGES['tv:0']=u;
+                 const m=BUCKETS.get('pic:tv:0'); if(m&&m.mat) playGif('tv:0',u,m.mat.map); },
                pool:()=>({water:waterMesh, floor:poolFloorCaustic, glow:poolGlow,
                           mat:waterMat}),
                probe:(x,z,y)=>blocked(x,z,y===undefined?BASE:y) };

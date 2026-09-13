@@ -161,16 +161,23 @@ ten brochures wired up are dealt into them at random on load, so the office is
 different every visit. `tv:0` … `tv:3` are four screens dealt out across the
 rooms, so no two sets down a walkway are showing the same thing.
 
-**Animated GIFs work**, and getting them to needs three fallbacks, because two
-of the obvious approaches quietly do nothing. An `<img>` that is not *painted*
-in the document never advances a GIF's frames in Chrome, and a WebGL texture
-only changes when something re-uploads it. So: the GIF is decoded frame by
-frame through WebCodecs' `ImageDecoder` where that exists, which is exact and
-needs no DOM at all; failing that an `<img>` is kept four pixels square in the
-corner of the page where it really is painted, and blitted; and whatever
-happens the screens keep moving with procedural static, so a set is never a
-still photograph of snow. `MOTEL.images()` in the console reports what every
-slot actually did.
+**Animated GIFs work**, and the reason two earlier attempts did not is worth
+writing down: an `<img>` that is not actually *painted* in the document never
+advances a GIF's frames in Chrome, and a WebGL texture never changes unless
+something re-uploads it. So the GIF is not handed to the browser at all — it is
+decoded here, from its own bytes: header, colour tables, graphic control
+blocks, LZW, interlacing, per-frame delays and disposal. That behaves the same
+in every engine and gives us each frame's real timing. Underneath it the
+screens run procedural static, so a set is never a still photograph of snow
+even when the network gives us nothing, and `MOTEL.images()` in the console
+reports what every slot actually did.
+
+The one thing that can still stop a picture is the host refusing a cross-origin
+read — a browser will not put a texture on the GPU that it could not read under
+CORS, and nothing client-side can get round that. If the console says a fetch
+failed, setting `IMAGE_PROXY` at the top of the file to a CORS proxy prefix
+routes the request through it. It is empty by default, because turning it on
+sends your URLs to a third party.
 
 Pictures are **cover-cropped** to the slot, so a file at any shape lands square
 with nothing stretched — author close to the ratio and nothing is lost. If a
@@ -197,6 +204,7 @@ costs nothing in performance.
 | Nightfall / midday | `N` / `M` |
 | Scrub time | `[` `]` |
 | Plan view | `O` |
+| Sit down / stand up | `E` at any chair, bench or lounger |
 | Hide HUD | `H` |
 
 Touch: drag to look, on-screen pad to walk.

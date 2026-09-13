@@ -64,19 +64,29 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   facade.
 - **Twelve things to walk out and find**, with two-track roads worn out to
   them from the highway shoulder so the desert has a grain and you know where
-  to start walking. Further out, past the road: five cars stood on their noses
-  in a row; a filling station with its canopy still up and two pumps under it;
-  a forty-four metre radio mast whose red light still blinks after dark; the
-  concrete slab of a motel that did not make it, its pool filled to the brim
-  with sand; and three graves behind a wire fence. Nearer in: Far enough away to be a decision —
-  a hundred and fifty to three hundred metres, one to three minutes on foot —
-  each naming itself on the HUD when you reach it. A descanso on the shoulder
-  with plastic flowers and a ring of stones; somebody's pickup, rusted through and half sunk;
-  a windmill still turning over a stock tank; **a drive-in across the highway**,
-  its blank screen facing the road with the speaker posts still standing in
-  rows; a telephone booth alone in the open desert; a fence line that stops
-  mattering halfway along; and a cold fire ring with oil drums and a mattress
-  somebody slept on.
+  to start walking. Each is far enough away to be a decision — a hundred and
+  fifty to five hundred metres, one to five minutes on foot — and each names
+  itself on the HUD when you reach it. Nearer in: a descanso on the shoulder
+  with plastic flowers and a ring of stones; somebody's pickup, rusted through
+  and half sunk; a windmill still turning over a stock tank; **a drive-in
+  across the highway**, its blank screen facing the road with the speaker posts
+  still standing in rows; a telephone booth alone in the open desert; a fence
+  line that stops mattering halfway along; and a cold fire ring with oil drums
+  and a mattress somebody slept on. Further out, past the road: a filling
+  station with its canopy still up and two pumps under it; a forty-four metre
+  radio mast whose red light still blinks after dark; the concrete slab of a
+  motel that did not make it, its pool filled to the brim with sand; three
+  graves behind a wire fence; and **an abandoned trailer you can walk into**.
+- **The trailer.** Eight and a half metres of single-wide up on cinder blocks
+  at the end of its own two-track, the door hanging open on its hinges and the
+  awning sagging where a leg went. The windows are real holes in the wall, so
+  you can see through it before you reach it. Inside is a real room: panelled
+  walls, a floor you walk on at the height the blocks put it, a kitchen run
+  with the cupboard doors swinging, a dinette you can sit down in, a bed with
+  the mattress still on it, a ceiling panel that came down and the insulation
+  with it — and the whole floor under paper. Sixty-odd sheets of it drifted
+  into the corners, magazines gone to pulp, cans, bottles, a hand of playing
+  cards, glass under the window that went, and sand blown in through the door.
 - **Wind.** Three slow beats multiplied together, so mostly it is calm and then
   every couple of minutes a gust comes through for half a minute. Everything
   loose reads off it: the tumbleweeds run, litter comes loose more often, the
@@ -200,11 +210,12 @@ costs nothing in performance.
 | Look | drag, or pointer lock after a click |
 | Run | `Shift` |
 | Open door / use | `E` or `Space` |
+| Sit down / stand up | `C` |
+| Drone mode | `F` — then `WASD` to fly, `Space` up, `Shift` down |
 | Zoom | mouse wheel (45°–95°) |
 | Nightfall / midday | `N` / `M` |
 | Scrub time | `[` `]` |
 | Plan view | `O` |
-| Sit down / stand up | `E` at any chair, bench or lounger |
 | Hide HUD | `H` |
 
 Touch: drag to look, on-screen pad to walk.

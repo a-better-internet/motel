@@ -154,6 +154,9 @@
   <div class="row"><span>Look</span><span>drag · mouse</span></div>
   <div class="row"><span>Run</span><span><kbd>Shift</kbd></span></div>
   <div class="row"><span>Open door / use</span><span><kbd>E</kbd> · <kbd>Space</kbd></span></div>
+  <div class="row"><span>Sit / stand</span><span><kbd>C</kbd></span></div>
+  <div class="row"><span>Drone</span><span><kbd>F</kbd></span></div>
+  <div class="row"><span>Fly · up / down</span><span><kbd>WASD</kbd> · <kbd>Space</kbd><kbd>Shift</kbd></span></div>
   <div class="row"><span>Zoom</span><span>wheel</span></div>
   <div class="row"><span>Nightfall</span><span><kbd>N</kbd></span></div>
   <div class="row"><span>Midday</span><span><kbd>M</kbd></span></div>
@@ -978,6 +981,43 @@ TEX.streak=(function(){                       // rust bleeding down from a fitti
   return setSRGB(new T.CanvasTexture(c));
 })();
 
+TEX.paper=(function(){                        // a page of something, face down
+  const c=cvs(96,128), x=c.getContext("2d");
+  x.fillStyle="#e4dcc6"; x.fillRect(0,0,96,128);
+  noiseDots(x,96,128,420,["rgba(140,118,84,0.10)","rgba(255,255,255,0.20)"]);
+  x.fillStyle="#39342c";
+  for(let r=0;r<24;r++){                       // typed lines, broken up
+    const y=10+r*4.8; if(y>122) break;
+    x.globalAlpha=0.22+Math.random()*0.34;
+    x.fillRect(9, y, 30+Math.random()*48, 1.5);
+    if(Math.random()<0.6) x.fillRect(46+Math.random()*20, y, Math.random()*28, 1.5);
+  }
+  x.globalAlpha=1;
+  for(let i=0;i<5;i++){                        // damp stains, forty summers of them
+    x.fillStyle="rgba(150,118,72,"+(0.05+Math.random()*0.10).toFixed(3)+")";
+    x.beginPath(); x.ellipse(Math.random()*96, Math.random()*128,
+      6+Math.random()*22, 5+Math.random()*16, Math.random()*3, 0, 7); x.fill();
+  }
+  return setSRGB(new T.CanvasTexture(c));
+})();
+
+TEX.siding=(function(){                       // corrugated aluminium, chalked out
+  const c=cvs(128,128), x=c.getContext("2d");
+  x.fillStyle="#cfc9bb"; x.fillRect(0,0,128,128);
+  for(let i=0;i<128;i+=8){                     // the ribs, lit on one side
+    x.fillStyle="rgba(255,255,255,0.34)"; x.fillRect(i,0,3,128);
+    x.fillStyle="rgba(84,76,64,0.22)";    x.fillRect(i+4,0,3,128);
+  }
+  noiseDots(x,128,128,1300,["rgba(255,255,255,0.22)","rgba(96,78,58,0.14)"]);
+  for(let i=0;i<16;i++){                       // rust weeping out of the rivets
+    x.strokeStyle="rgba(128,72,40,"+(0.06+Math.random()*0.14).toFixed(3)+")";
+    x.lineWidth=1+Math.random()*3; x.beginPath();
+    const px=Math.random()*128, py=Math.random()*100;
+    x.moveTo(px,py); x.lineTo(px+(Math.random()-0.5)*4, py+10+Math.random()*28); x.stroke();
+  }
+  const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; return setSRGB(t);
+})();
+
 TEX.chain=(function(){                        // chain-link, alpha-cut
   const c=cvs(64,64), x=c.getContext("2d");
   x.clearRect(0,0,64,64);
@@ -1367,7 +1407,7 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
     const lobes=[];
     const put=(lx,ly,lr)=>{
       const r=Math.min(lr, lx-M, W-M-lx, ly-M, base+12-ly+lr*0.9);
-      if(r>6) lobes.push({x:lx, y:ly, r:r});
+      if(r>13) lobes.push({x:lx, y:ly, r:r});   // pellets read as debris, drop them
     };
     // the heap along the base: a hump curve with its own skew and wobble
     const n=Math.round(5+spread*9+rag*6), skew=(r2()-0.5)*0.9, cxx=M+IW*(0.30+r2()*0.40);
@@ -1377,19 +1417,39 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
       const hump=Math.pow(Math.sin(t*Math.PI), 0.7+skew*0.5);
       const lr=(15+hump*(26+spread*22))*(1-rag*0.34)+r2()*14;
       put(M+IW*0.05+t*IW*0.90+(r2()-0.5)*20*(1+rag),
-          base-lr*0.5-hump*(8+tower*26)*r2()-rag*r2()*26, lr);
+          base-lr*0.5-hump*(8+tower*26)*r2()-rag*r2()*lr*0.34, lr);
     }
-    // and, if it is building, a column that leans downwind as it rises
+    // and, if it is building, a stack of rounded tiers leaning downwind. The
+    // old version tapered by 20% a tier and finished on a 10 px lobe, and then
+    // scattered a few small ones above that — which is what the horns poking
+    // out of the tops were. Tiers now barely narrow, and the stack is closed
+    // by a cap lobe wider than anything beneath it, so the silhouette always
+    // rolls over into a dome. Nothing is ever drawn above the cap.
     if(tower>0.18){
-      let y=base-34-tower*22, r=30+tower*26, lean=0;
-      while(y>M+r*0.7 && r>10){
-        lean += shear*r*0.34;
-        put(cxx+lean+(r2()-0.5)*r*0.7, y, r*(0.9+r2()*0.25));
-        y-=r*(0.52+r2()*0.18); r*=0.80-r2()*0.08;
+      const tiers=2+Math.round(tower*2.6);
+      let y=base-30-tower*20, r=34+tower*26, lean=0;
+      for(let lvl=0; lvl<tiers && y>M+r*1.35; lvl++){
+        lean += shear*r*0.26;
+        const cl=2+((r2()*2)|0);
+        for(let k=0;k<cl;k++)
+          put(cxx+lean+(k-(cl-1)/2)*r*0.52, y+(r2()-0.5)*r*0.10, r*(0.88+r2()*0.16));
+        y -= r*(0.40+r2()*0.09);
+        r *= 0.91-r2()*0.05;
       }
-      if(Math.abs(shear)>0.45) for(let i=0;i<8;i++){      // the top sheared off
-        const t=i/7, lr=11+r2()*15;
-        put(cxx+lean*(0.6+t*1.5)+shear*IW*0.30*t, y+r*1.6+(r2()-0.5)*16, lr);
+      put(cxx+lean, y+r*0.30, r*1.14);                   // the cap
+    }
+    // Nothing floats free of the mass. The ends of the base heap used to land
+    // small and clear of their neighbours, which read as pellets beside the
+    // cloud rather than part of it.
+    if(lobes.length>4){
+      let bigI=0; for(let i=1;i<lobes.length;i++) if(lobes[i].r>lobes[bigI].r) bigI=i;
+      const big=lobes[bigI];
+      for(let i=lobes.length-1;i>=0;i--){
+        const L=lobes[i]; if(L===big) continue;
+        let touch=false;
+        for(const O of lobes)
+          if(O!==L && Math.hypot(O.x-L.x, O.y-L.y) < (O.r+L.r)*0.62){ touch=true; break; }
+        if(!touch) lobes.splice(i,1);
       }
     }
     for(const L of lobes){                                    // the mass
@@ -3839,6 +3899,7 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
       P:(bk,geo,x,y,z,ry,c,rx,rz)=>push(bk, geo, ox+x, gy+y, oz+z, ry||0, c, rx, rz),
       col:(x0,x1,z0,z1,h0,h1)=>addCol(ox+x0,ox+x1,oz+z0,oz+z1, gy+h0, gy+h1),
       zone:(r,name)=>addZone(ox-r,ox+r,oz-r,oz+r, gy-4, gy+14, name),
+      flat:(x0,x1,z0,z1,h)=>addFlat(ox+x0,ox+x1,oz+z0,oz+z1, gy+h),
       rect:(x0,x1,z0,z1,name)=>addZone(ox+x0,ox+x1,oz+z0,oz+z1, gy-4, gy+18, name)
     };
   };
@@ -4026,6 +4087,7 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
   dirtTrack(-378,TRK, -517,-222, 2.6);
   dirtTrack( -58,TRK,  -70,-129, 2.4);
   dirtTrack(-173,-74, -173,-118, 4.2);               // into the drive-in
+  dirtTrack(-232,TRK, -296,-186, 2.8);               // out to the trailer
 
   /* --- a filling station that stopped selling anything ----------------- */
   (function(){
@@ -4147,6 +4209,250 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
       m.P("bin", new T.CylinderGeometry(0.05,0.045,0.12,8), t2[0],0.06,t2[1], 0, "#9aa1a6", 1.4, 0);
     m.col(2.0,3.4,-1.2,1.9, 0,0.9);
     m.zone(10, "A COLD FIRE");
+  })();
+
+  /* --- a trailer somebody walked out of and never came back to ---------
+     Eight and a half metres of 1960s single-wide up on cinder blocks, with
+     the door hanging open and forty years of weather in it. You can walk
+     in: the floor is a real surface, the windows are real holes, and the
+     inside is knee-deep in what got left behind.                        */
+  (function(){
+    const OX=-296, OZ=-186;
+    const m=mk(OX,OZ);
+    let sd=20260913;                       // one seed, so the mess bakes the same
+    const rn=()=>{ sd=(sd*1103515245+12345)%2147483648; return sd/2147483648; };
+    const rr2=(a,b)=>a+rn()*(b-a);
+
+    const L=9.00, W=3.00, TT=0.10, FY=0.62, IH=2.06, RY=FY+IH;
+    const X0=-L/2, X1=L/2, ZS=W/2, ZN=-W/2;      // south wall is +z, north is -z
+    // the shell's inner faces. Everything inside laps INTO them by at least
+    // twenty millimetres — nothing lands flush, or it buzzes at range.
+    const IX0=X0+TT/2, IX1=X1-TT/2, IZ0=ZN+TT/2, IZ1=ZS-TT/2, PT=0.08;
+    const DOOR=[1.70,2.60], DH=1.88;             // the door opening
+    const SKIN="#cfc6b0", TRIM="#7e9aa6", DARK="#8d8474";
+
+    // the runs of wall left between a list of openings
+    const segs=(a0,a1,holes)=>{
+      const out=[]; let c=a0;
+      for(const h of holes){ if(h[0]>c) out.push([c,h[0]]); c=Math.max(c,h[1]); }
+      if(c<a1) out.push([c,a1]);
+      return out;
+    };
+    const band=(bk, zc, th, a0,a1, holes, yc, h, col)=>{
+      for(const g of segs(a0,a1,holes))
+        m.B(bk, g[1]-g[0], h, th, (g[0]+g[1])/2, yc, zc, 0.55, 0, col);
+    };
+
+    const WS=[[-3.95,-2.75],[-1.35,-0.15],[3.05,4.05]];      // south windows
+    const WN=[[-4.05,-2.85],[-0.60,0.60],[2.55,3.85]];       // north windows
+    const YS=FY+0.45, YW=FY+1.26, YH=FY+1.84;                // the three bands
+    const HS=0.90, HW=0.72, HH=0.44;
+
+    // ---- shell --------------------------------------------------------
+    m.B("weathered", L, 0.18, W, 0, FY-0.11, 0, 0.45, 0, DARK);          // the deck
+    const SDOOR=WS.concat([DOOR]).sort((a,b)=>a[0]-b[0]);
+    band("siding", ZS, TT, X0, X1, [DOOR], YS, HS, SKIN);                 // south
+    band("siding", ZS, TT, X0, X1, SDOOR,  YW, HW, SKIN);
+    band("siding", ZS, TT, X0, X1, [DOOR], YH, HH, SKIN);
+    m.B("siding", DOOR[1]-DOOR[0], RY-(FY+DH), TT,                        // lintel
+        (DOOR[0]+DOOR[1])/2, (FY+DH+RY)/2, ZS, 0.55, 0, SKIN);
+    band("siding", ZN, TT, X0, X1, [],     YS, HS, SKIN);                 // north
+    band("siding", ZN, TT, X0, X1, WN,     YW, HW, SKIN);
+    band("siding", ZN, TT, X0, X1, [],     YH, HH, SKIN);
+    for(const sx of [-1,1])                                               // the ends
+      m.B("siding", TT, IH, W-TT*2, sx*(L/2-TT/2), FY+IH/2, 0, 0.55, 0, SKIN);
+    // panelling on the inside, because nobody lined a trailer in aluminium.
+    // The sill band runs below the floor and the header above the ceiling, so
+    // neither ends on a plane the floor or the ceiling also ends on.
+    const PAN="#a48a63", PX0=X0+0.02, PX1=X1-0.02;
+    const inset=hs=>hs.map(h=>[h[0]+0.02, h[1]-0.02]);   // a reveal at every opening
+    // Its own three bands, stacked, and not one of them ending on a plane
+    // the aluminium outside also ends on.
+    for(const pz of [[IZ1-0.02, [DOOR], SDOOR], [IZ0+0.02, [], WN]]){
+      band("oak", pz[0], PT, PX0, PX1, inset(pz[1]), FY+0.44, 1.00, PAN);
+      band("oak", pz[0], PT, PX0, PX1, inset(pz[2]), FY+1.30, 0.72, PAN);
+      band("oak", pz[0], PT, PX0, PX1, inset(pz[1]),
+           (FY+1.66+RY+0.10)/2, (RY+0.10)-(FY+1.66), PAN);
+    }
+    for(const sx of [-1,1])
+      m.B("oak", PT, IH+0.16, (IZ1-IZ0)+0.11, sx*(IX1-0.02), FY+IH/2, 0, 0.5, 0, PAN);
+    // and sheet flooring, gone the colour of the dust on it
+    m.B("weathered", IX1-IX0, 0.04, IZ1-IZ0, 0, FY-0.02, 0, 0.30, 0, "#8a7a5c");
+    m.B("weathered", L+0.34, 0.14, W+0.26, 0, RY+0.07, 0, 0.40, 0, "#c8c0ae");  // roof
+    m.B("weathered", L+0.10, 0.07, W-0.30, 0, RY+0.16, 0, 0.40, 0, "#d2cab8");  // camber
+    for(const g of segs(X0-0.06, X1+0.06, [DOOR]))                        // belt line
+      m.B("teal", g[1]-g[0], 0.07, 0.05, (g[0]+g[1])/2, FY+0.92, ZS+0.05, 0, 0, TRIM);
+    m.B("teal", L+0.12, 0.07, 0.05, 0, FY+0.92, ZN-0.05, 0, 0, TRIM);
+    // rust weeping down the skin
+    for(let i=0;i<9;i++){
+      const zc=(i%2)?ZS+0.06:ZN-0.06;
+      m.P("rust", planeGeo(0.50,1.30,0), rr2(X0+0.5,X1-0.5), FY+1.10, zc,
+          (i%2)?0:Math.PI, "#6a3a20", 0, 0);
+    }
+    // ---- up on blocks, with the tongue still hitched to nothing --------
+    for(const px of [-3.5,0,3.5]) for(const pz of [-1.05,1.05]){
+      m.B("concrete", 0.42,0.44,0.22, px, 0.22, pz, 0.5, 0, "#9d968a");
+      m.B("concrete", 0.46,0.05,0.26, px, 0.46, pz, 0.5, 0, "#8b8478");
+    }
+    m.B("siding", L-0.4, 0.50, 0.06, 0, 0.26, ZN+0.02, 0.55, 0, "#b9b09c");  // skirting
+    for(const sx of [-1,1])                                                  // drawbar
+      m.P("teal", boxGeo(1.70,0.11,0.11,0), -L/2-0.70, 0.44, sx*0.42,
+          sx*0.26, "#6e6a62", 0, 0);
+    m.B("teal", 0.14,0.12,0.90, -L/2-1.46, 0.44, 0, 0, 0, "#6e6a62");
+    m.C("teal", 0.05,0.05,0.52,8, -L/2-1.40, 0.22, 0, "#6e6a62");
+    m.C("tyre",  0.13,0.13,0.07,10, -L/2-1.40, 0.06, 0, "#1b1914", 0,0,Math.PI/2);
+    // ---- the door itself, swung out and dropped on its hinges ----------
+    // hung from the jamb at DOOR[0], so it opens where a door would
+    const DA=-0.95, DW=0.86, DCX=DOOR[0]+DW/2*Math.cos(DA), DCZ=ZS-DW/2*Math.sin(DA);
+    m.P("siding", boxGeo(DW,DH,0.05,0.6), DCX, FY+DH/2-0.06, DCZ, DA, "#c3b9a2", 0, 0.05);
+    m.P("oak", boxGeo(DW-0.10,0.62,0.02,0.5), DCX-0.03, FY+0.28, DCZ-0.03, DA, "#8e8064", 0, 0.05);
+    m.P("glass", boxGeo(0.44,0.42,0.02,0), DCX+0.02, FY+1.34, DCZ-0.03, DA, "#93a49f", 0, 0.05);
+    m.P("teal", boxGeo(0.10,0.05,0.05,0), DOOR[0]+0.74, FY+0.96, ZS+0.10, DA, "#8e877a", 0, 0.05);
+    for(const hy of [FY+0.22, FY+1.66])                                  // the hinge straps
+      m.B("teal", 0.13,0.09,0.06, DOOR[0]+0.05, hy, ZS+0.04, 0, 0, "#7d766a");
+    // a notice nobody was left to read
+    m.P("paper", planeGeo(0.20,0.27,0), DOOR[1]-0.06, FY+1.44, ZS+0.03, 0, "#d8cfae", 0, 0.07);
+    // ---- two blocks for a step ----------------------------------------
+    m.B("concrete", 0.90,0.34,0.58, 2.15, 0.17, ZS+0.44, 0.5, 0, "#9d968a");
+    m.B("concrete", 0.94,0.04,0.62, 2.15, 0.36, ZS+0.44, 0.5, 0, "#8b8478");
+    // ---- where you may stand ------------------------------------------
+    m.flat(IX0, IX1, IZ0, IZ1, FY);                       // the floor
+    m.flat(DOOR[0]+0.04, DOOR[1]-0.04, IZ1-0.06, ZS+0.09, FY);   // the threshold
+    m.flat(1.72, 2.58, ZS+0.16, ZS+0.73, 0.34);           // the step
+    // ---- and where you may not -----------------------------------------
+    for(const g of segs(X0,X1,[DOOR])){                   // the walls, all three bands
+      m.col(g[0], g[1], ZS-TT/2, ZS+TT/2, FY, RY);
+      m.col(g[0], g[1], ZN-TT/2, ZN+TT/2, FY, RY);
+    }
+    for(const g of segs(X0,X1,[]))                        // the north wall has no door
+      m.col(g[0], g[1], ZN-TT/2, ZN+TT/2, FY, RY);
+    for(const sx of [-1,1]) m.col(sx*L/2-TT/2, sx*L/2+TT/2, ZN, ZS, FY, RY);
+    for(const g of segs(X0,X1,[DOOR]))                    // and the underbelly
+      m.col(g[0], g[1], ZN, ZS, -0.2, FY-0.03);
+
+    /* ---- the kitchen end, such as it is ------------------------------- */
+    m.B("lino", 2.30,0.86,0.60, -3.25, FY+0.41, IZ0+0.26, 0.5, 0, "#b6ac92");  // counter
+    m.B("oak",  2.36,0.06,0.62, -3.25, FY+0.83, IZ0+0.28, 0.5, 0, "#8e7f62");
+    m.B("teal", 0.56,0.10,0.40, -3.60, FY+0.83, IZ0+0.28, 0, 0, "#9aa29c");   // the sink
+    m.C("metal", 0.02,0.02,0.22,7, -3.60, FY+0.96, IZ0+0.12, "#9aa1a4");
+    m.B("oak",  1.50,0.52,0.30, -3.40, FY+1.62, IZ0+0.15, 0.5, 0, "#7d6f55");  // uppers
+    m.P("oak",  boxGeo(0.62,0.48,0.04,0.5), -2.40, FY+1.60, IZ0+0.44, -1.15, "#6f624a");
+    m.B("weathered", 0.60,1.28,0.58, -4.05, FY+0.64, IZ1-0.36, 0.4, 0, "#cdc6b4"); // icebox
+    m.P("weathered", boxGeo(0.05,1.16,0.54,0.4), -3.62, FY+0.64, IZ1-0.66, -1.05, "#c2bba8");
+    m.B("weathered", 0.52,0.96,0.54, -2.05, FY+0.40, IZ0+0.20, 0.4, 0, "#b8b1a0"); // stove
+    m.B("teal", 0.54,0.05,0.50, -2.05, FY+0.86, IZ0+0.26, 0, 0, "#7c8286");
+    m.col(-4.4,-1.7, IZ0, IZ0+0.62, FY, FY+0.9);
+    m.col(-4.4,-3.6, IZ1-0.7, IZ1, FY, FY+1.4);
+
+    /* ---- the dinette, one bench down --------------------------------- */
+    m.B("oak", 0.96,0.05,0.66, -0.55, FY+0.68, 0.05, 0.5, 0, "#8a7c60");       // table
+    m.C("metal", 0.05,0.09,0.66,10, -0.55, FY+0.34, 0.05, "#8d9498");
+    m.B("fabric", 1.00,0.40,0.52, -0.55, FY+0.20, IZ0+0.30, 0.5, 0, "#6f7a62"); // bench
+    m.B("fabric", 1.00,0.44,0.10, -0.55, FY+0.62, IZ0+0.06, 0.5, 0, "#65705a");
+    m.P("fabric", boxGeo(1.00,0.38,0.50,0.5), -0.55, FY+0.16, IZ1-0.34, 0, "#5d6754", 0.30, 0);
+    m.P("oak",   boxGeo(0.90,0.05,0.44,0.5), -0.55, FY+0.03, IZ1-0.62, 0, "#7b6e54", 0.12, 0);
+    addSeat(OX-0.55, OZ+IZ0+0.34, m.y+FY+0.42, Math.PI, "THE DINETTE");
+    m.col(-1.1,0.0, IZ0, IZ0+0.60, FY, FY+0.8);
+
+    /* ---- the bed end -------------------------------------------------- */
+    m.B("oak", 1.32,0.28,1.88, 3.55, FY+0.14, 0.10, 0.5, 0, "#7a6c52");
+    m.P("fabric", boxGeo(1.22,0.20,1.78,0.5), 3.55, FY+0.36, 0.10, 0, "#b3a88e", 0.03, 0.02);
+    m.P("fabric", boxGeo(0.70,0.09,0.90,0.5), 3.20, FY+0.50, 0.55, 0.4, "#8e8878", 0.05, 0.03);
+    m.B("oak", 0.80,0.74,0.44, 2.35, FY+0.37, IZ0+0.24, 0.5, 0, "#6f6249");     // dresser
+    m.P("oak", boxGeo(0.68,0.16,0.40,0.5), 2.45, FY+0.09, IZ0+0.66, 0.22, "#7f7256", 0, 0.1);
+    m.P("oak", boxGeo(0.66,0.15,0.38,0.5), 1.80, FY+0.08, 0.25, -0.5, "#7f7256", 0.06, 0);
+    m.col(2.9,4.4, -0.9, 1.1, FY, FY+0.5);
+    m.col(2.0,2.8, IZ0, IZ0+0.5, FY, FY+0.8);
+
+    /* ---- ceiling, and the bit of it that came down -------------------- */
+    m.B("ceil", IX1-IX0, 0.10, IZ1-IZ0, 0, RY-0.02, 0, 0.5, 0, "#cdc5ae");
+    m.P("ceil", boxGeo(1.10,0.05,1.00,0.5), 0.90, RY-0.26, -0.30, 0.1, "#a89e86", 0.34, 0.1);
+    m.P("fabric", boxGeo(1.00,0.14,0.86,0.5), 0.90, RY-0.44, -0.10, 0.1, "#a89b80", 0.30, 0.1);
+    for(const wx of [-2.2, 1.1])                       // insulation on the floor
+      m.P("fabric", boxGeo(0.86,0.10,0.62,0.5), wx, FY+0.05, rr2(IZ0+0.3,IZ1-0.3),
+          rr2(0,3), "#a2977e", 0.04, 0.03);
+    // a curtain still on one window, a rag on another
+    m.P("curtain", planeGeo(1.05,0.80,0), -3.35, FY+1.22, IZ1-0.02, 0, "#9c8f74", 0, 0.05);
+    m.P("curtain", planeGeo(0.42,0.62,0), 3.70, FY+1.28, IZ1-0.02, 0, "#8e8368", 0, -0.12);
+
+    /* ---- what got left behind ----------------------------------------- */
+    // papers, everywhere: on the floor, drifted into the corners, one or two
+    // still pinned where somebody put them
+    for(let i=0;i<62;i++){
+      const px=rr2(IX0+0.25, IX1-0.25), pz=rr2(IZ0+0.18, IZ1-0.18);
+      m.P("paper", planeGeo(rr2(0.16,0.24), rr2(0.22,0.31), 0), px, FY+0.012+i*0.0016, pz,
+          rr2(0,6.28), "#ffffff", -Math.PI/2 + rr2(-0.05,0.05), rr2(-0.05,0.05));
+    }
+    for(let i=0;i<7;i++){                              // banked against the walls
+      const px=rr2(IX0+0.4, IX1-0.4), pz=(i%2)?IZ1-0.09:IZ0+0.09;
+      m.P("paper", planeGeo(0.20,0.28,0), px, FY+0.13, pz, (i%2)?0:Math.PI, "#ffffff",
+          -1.05, rr2(-0.2,0.2));
+    }
+    // sand that has come in through the door and the broken windows
+    m.P("gravel", boxGeo(1.30,0.07,0.80,0.5), 2.15, FY+0.03, IZ1-0.34, 0.1, "#c0a87e", 0.03, 0);
+    m.P("gravel", boxGeo(0.90,0.05,0.55,0.5), -3.30, FY+0.02, IZ1-0.30, 0.3, "#c0a87e", 0.02, 0);
+    m.P("gravel", boxGeo(1.10,0.05,0.60,0.5), 3.55, FY+0.02, IZ1-0.30, -0.2, "#c0a87e", 0.02, 0);
+    // cans, a bottle, a bucket, a cassette, glass out of the east window
+    for(let i=0;i<19;i++)
+      m.C("teal", 0.033,0.033,0.12,9, rr2(IX0+0.3,IX1-0.3), FY+0.034, rr2(IZ0+0.2,IZ1-0.2),
+          ["#9aa1a6","#b4915c","#8c9a8e"][i%3], Math.PI/2, rr2(0,3.1), 0);
+    for(let i=0;i<4;i++)
+      m.C("glass", 0.037,0.037,0.24,9, rr2(IX0+0.4,IX1-0.4), FY+0.038, rr2(IZ0+0.25,IZ1-0.25),
+          "#6f7a5e", Math.PI/2, rr2(0,3.1), 0);
+    m.C("bin", 0.16,0.13,0.28,12, 0.60, FY+0.14, IZ0+0.36, "#8c9498", 0, 0, 0.22);
+    for(let i=0;i<9;i++)                               // glass on the floor, east end
+      m.P("glass", boxGeo(rr2(0.03,0.07),0.012,rr2(0.03,0.08),0),
+          rr2(3.4,4.3), FY+0.01, rr2(IZ0+0.2,IZ1-0.2), rr2(0,3.1), "#b9c6c2", 0, 0);
+    // a television with nothing left in it
+    m.B("weathered", 0.52,0.48,0.40, 1.15, FY+0.21, IZ0+0.17, 0.4, 0, "#b0a892");
+    m.B("tvglass", 0.40,0.32,0.03, 1.15, FY+0.24, IZ0-0.04, 0, 0, "#14191c");
+    // a chair on its side and a suitcase somebody gave up on
+    m.P("oak", boxGeo(0.42,0.05,0.40,0.5), 0.15, FY+0.24, IZ1-0.42, 0.7, "#7b6e54", 1.55, 0);
+    m.P("oak", boxGeo(0.40,0.44,0.05,0.5), 0.15, FY+0.45, IZ1-0.42, 0.7, "#7b6e54", 1.55, 0);
+    m.P("weathered", boxGeo(0.60,0.18,0.42,0.5), -1.55, FY+0.09, IZ1-0.36, -0.4, "#7c6a52", 0, 0.04);
+    m.P("weathered", boxGeo(0.58,0.16,0.40,0.5), -1.30, FY+0.17, IZ1-0.52, -0.9, "#8a7860", 0.55, 0);
+    // magazines gone to pulp, and a hand of cards somebody never finished
+    for(let i=0;i<5;i++)
+      m.P("paper", boxGeo(rr2(0.20,0.26), rr2(0.02,0.05), rr2(0.26,0.32), 0),
+          rr2(IX0+0.5,IX1-0.5), FY+0.03, rr2(IZ0+0.3,IZ1-0.3), rr2(0,3.1), "#c9bfa2", 0, 0);
+    for(let i=0;i<9;i++)
+      m.P("paper", planeGeo(0.055,0.082,0), rr2(-1.4,0.4), FY+0.014, rr2(IZ0+0.4,IZ1-0.4),
+          rr2(0,6.28), "#efe9d6", -Math.PI/2, 0);
+    // a calendar, still on a month in 1979
+    m.P("paper", planeGeo(0.26,0.34,0), -1.20, FY+1.52, IZ0+0.02, 0, "#ded4b4", 0, 0.03);
+
+    /* ---- outside ------------------------------------------------------ */
+    // the awning: bolted on high, sloping away, one leg gone and that corner
+    // sagging. You walk under it to reach the door.
+    m.P("weathered", boxGeo(3.40,0.05,1.60,0.5), 1.10, FY+1.74, ZS+0.92, 0, "#b6aa90", 0.21, 0.07);
+    m.P("weathered", boxGeo(3.44,0.10,0.07,0), 1.10, FY+1.52, ZS+1.70, 0, "#9d9280", 0, 0.07);
+    m.C("teal", 0.035,0.035,2.06,8, 2.72, 1.05, ZS+1.66, "#9aa1a4");         // the leg left
+    m.P("teal", boxGeo(0.05,1.90,0.05,0), -0.55, 0.20, ZS+2.20, 0.4, "#9aa1a4", 1.42, 0);
+    m.C("weathered", 0.16,0.16,0.62,12, -L/2+0.5, 0.31, ZS+0.70, "#b8613a", 0, 0, 0.08); // propane
+    m.C("metal", 0.05,0.05,0.10,8, -L/2+0.5, 0.66, ZS+0.70, "#8e877a");
+    m.B("weathered", 0.66,0.36,0.52, 3.90, 0.18, ZS+0.90, 0.4, 0.4, "#a89c84");   // a cooler
+    m.C("tyre", 0.34,0.34,0.22,14, -2.60, 0.11, ZS+1.90, "#1b1914", Math.PI/2, 0.3, 0);
+    m.P("oak", boxGeo(0.44,0.05,0.42,0.5), 0.90, 0.30, ZS+2.10, 0.9, "#6f624a", 1.4, 0);
+    // a swamp cooler that stopped cooling, up on the roof
+    m.B("weathered", 0.74,0.62,0.74, -1.80, RY+0.46, 0.20, 0.4, 0, "#b0a892");
+    m.B("teal", 0.68,0.42,0.03, -1.80, RY+0.46, -0.18, 0, 0, "#8d9498");
+    m.B("teal", 0.03,0.42,0.68, -2.18, RY+0.46, 0.20, 0, 0, "#8d9498");
+    m.C("teal", 0.07,0.07,0.70,8, -1.20, RY+0.40, 0.20, "#8e877a", 0, 0, 1.57);
+    // a clothesline with nothing on it but two pegs
+    for(const sx of [-1,1]){
+      m.C("oak", 0.06,0.07,2.10,7, 5.6, 1.05, sx*2.2, "#6b5947");
+      m.B("oak", 0.05,0.05,0.90, 5.6, 2.00, sx*1.85, 0, 0, "#6b5947");
+    }
+    m.P("teal", boxGeo(0.012,0.012,4.20,0), 5.6, 1.96, 0, 0, "#8a8274", 0, 0.03);
+    // weeds have taken the shady side
+    for(let i=0;i<12;i++)
+      m.P("foliage", new T.IcosahedronGeometry(rr2(0.12,0.28),0),
+          rr2(-5.4,5.4), 0.16, ZN-rr2(0.6,2.4), rr2(0,3), "#6d7a4e");
+    // the mailbox that stopped being checked
+    m.C("teal", 0.06,0.06,1.05,7, 7.2, 0.52, ZS+0.4, "#6e6a62");
+    m.B("weathered", 0.22,0.20,0.36, 7.2, 1.14, ZS+0.4, 0.4, 0.25, "#9a9284");
+
+    m.rect(-9, 11, -6, 7, "SOMEBODY'S TRAILER");
   })();
 })();
 
@@ -4353,6 +4659,10 @@ bucketOf("bedding", ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.
 bucketOf("clockled",()=>glowMat({color:0xffffff, emissive:0xff5a2a, emissiveIntensity:0.9}, "warm"));
 bucketOf("neonbox", ()=>glowMat({color:0xffffff, emissive:0xff3a2a, emissiveIntensity:0.5}, "warm"));
 bucketOf("fabric",  ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.96}));
+bucketOf("paper",   ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.paper,
+                          roughness:0.97, side:T.DoubleSide}));
+bucketOf("siding",  ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.siding,
+                          roughness:0.86, metalness:0.10}));
 // everything left out in the sun for forty years: chalky, no shine left on it
 bucketOf("weathered",()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.chalk,
                           roughness:0.95, metalness:0.04}));
@@ -4547,7 +4857,9 @@ addEventListener("keydown",e=>{
   if(e.code==="KeyM"){ DayNight.setHour(12.5); toast("MIDDAY","#ffb324"); }
   if(e.code==="BracketLeft")  DayNight.nudge(-0.02);
   if(e.code==="BracketRight") DayNight.nudge( 0.02);
-  if(e.code==="KeyE"||e.code==="Space") interact();
+  if(e.code==="KeyC" && !droneMode) sitToggle();
+  if(e.code==="KeyF") setDrone(!droneMode);
+  if((e.code==="KeyE"||e.code==="Space") && !droneMode) interact();
 });
 addEventListener("keyup",e=>{ keys[e.code]=false; });
 
@@ -4562,6 +4874,11 @@ addEventListener("mousemove",e=>{
   look(e.clientX-lastX, e.clientY-lastY); lastX=e.clientX; lastY=e.clientY;
 });
 function look(dx,dy){
+  if(droneMode){                       // the same stick, pointed at the drone
+    droneYaw  -= dx*0.0026;
+    dronePitch = clamp(dronePitch - dy*0.0026, -0.15, 1.35);
+    return;
+  }
   player.yaw   -= dx*0.0026;
   player.pitch  = clamp(player.pitch - dy*0.0024, -1.15, 1.15);
 }
@@ -4590,13 +4907,13 @@ dom.addEventListener("touchmove",e=>{
 
 /* --- doors ------------------------------------------------------------ */
 let nearestDoor=null;
-let seated=null, nearestSeat=null;
+let seated=null, nearestSeat=null, sitGuard=false;
 function standUp(){
   if(!seated) return;
   const nx=seated.x - Math.sin(seated.yaw)*0.85, nz=seated.z - Math.cos(seated.yaw)*0.85;
   if(!blocked(nx,nz,seated.y)){ player.pos.x=nx; player.pos.z=nz; }
   player.feetY=surfaceY(player.pos.x, player.pos.z, seated.y+0.6);
-  seated=null;
+  seated=null; sitGuard=false;
 }
 function updateSeats(){
   if(seated){ nearestSeat=null; return; }
@@ -4607,16 +4924,23 @@ function updateSeats(){
   }
   nearestSeat=best;
 }
+// Sitting used to share E with the doors, and lost: in a room the chair and
+// the front door are both in reach, so E swung the door instead. It has its
+// own key now, and nothing else is bound to it.
+function sitToggle(){
+  if(!started) return;
+  if(seated){ standUp(); toast("ON YOUR FEET","#ffb324"); return; }
+  updateSeats();
+  if(!nearestSeat){ toast("NOTHING TO SIT ON","#8fa0ad"); return; }
+  seated=nearestSeat; player.yaw=nearestSeat.yaw;
+  // You almost always arrive at a chair still holding W. Standing up is only
+  // armed once the movement keys have been let go of, or you would pop back
+  // up on the very next tick and think the key did nothing.
+  sitGuard=true;
+  toast("SITTING  ·  C TO GET UP","#ffb324");
+}
 function interact(){
   if(!started) return;
-  if(seated){ standUp(); return; }
-  if(nearestSeat && (!nearestDoor ||
-      Math.hypot(player.pos.x-nearestSeat.x, player.pos.z-nearestSeat.z) <
-      Math.hypot(player.pos.x-nearestDoor.x, player.pos.z-nearestDoor.z))){
-    seated=nearestSeat; player.yaw=nearestSeat.yaw;
-    toast("SITTING  ·  E TO GET UP","#ffb324");
-    return;
-  }
   if(nearestDoor){
     nearestDoor.manual = (nearestDoor.target>0.5) ? -1 : 1;
     return;
@@ -4642,13 +4966,16 @@ function updateDoors(dt){
   }
   nearestDoor=best;
   updateSeats();
+  // Doors and chairs are on different keys now, so both prompts can stand.
   const el=document.getElementById("prompt");
-  const seatFirst = nearestSeat && (!best ||
-      Math.hypot(px-nearestSeat.x, pz-nearestSeat.z) < Math.hypot(px-best.x, pz-best.z));
-  if(seated){ el.textContent="E  ·  STAND UP"; el.classList.add("show"); }
-  else if(seatFirst){ el.textContent="E  ·  SIT  ·  "+nearestSeat.label; el.classList.add("show"); }
-  else if(best){ el.textContent = "E  ·  "+(best.label==="OFFICE" ? "OFFICE" : "ROOM "+best.label);
-            el.classList.add("show"); }
+  if(droneMode){ el.classList.remove("show"); return; }
+  const bits=[];
+  if(seated) bits.push("C  ·  STAND UP");
+  else{
+    if(nearestSeat) bits.push("C  ·  SIT  ·  "+nearestSeat.label);
+    if(best) bits.push("E  ·  "+(best.label==="OFFICE" ? "OFFICE" : "ROOM "+best.label));
+  }
+  if(bits.length){ el.textContent=bits.join("      "); el.classList.add("show"); }
   else el.classList.remove("show");
 }
 
@@ -4664,7 +4991,8 @@ function fixedUpdate(dt){
   const f=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
   const r=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
   if(seated){                       // sitting: look where you like, go nowhere
-    if(f||r) standUp();
+    if(sitGuard && !f && !r) sitGuard=false;      // keys released — you may leave
+    if((f||r) && !sitGuard) standUp();
     else{
       player.pos.x += (seated.x-player.pos.x)*Math.min(1,dt*7);
       player.pos.z += (seated.z-player.pos.z)*Math.min(1,dt*7);
@@ -4697,6 +5025,82 @@ function fixedUpdate(dt){
   const target=surfaceY(player.pos.x, player.pos.z, player.feetY);
   const rate = target>player.feetY ? 14 : 9;               // step up snappy, drop softly
   player.feetY += (target-player.feetY)*Math.min(1, dt*rate);
+}
+
+/* --- drone (F) -------------------------------------------------------- */
+// A little quadcopter you fly in third person. Free flight, no collision but
+// the ground: it will not sink through the desert, the roofs or the deck.
+let droneMode=false, droneYaw=0, dronePitch=0.5, droneTiltX=0, droneTiltZ=0;
+const dronePos=new T.Vector3(), droneVel=new T.Vector3(), _dtmp=new T.Vector3();
+const DRONE_CEIL=210;                     // high enough to see the whole site
+const drone=(function(){
+  const g=new T.Group();
+  const bodyMat=mat(0x2b2f36,{roughness:0.5,metalness:0.35});
+  const body=new T.Mesh(new T.BoxGeometry(0.30,0.12,0.42), bodyMat); g.add(body);
+  const nose=new T.Mesh(new T.SphereGeometry(0.055,10,8),
+                        mat(0x0a0a0a,{roughness:0.25,metalness:0.3}));
+  nose.position.set(0,-0.03,-0.23); g.add(nose);   // nose points the way it flies
+  for(const rotY of [Math.PI/4,-Math.PI/4]){
+    const arm=new T.Mesh(new T.BoxGeometry(0.05,0.04,0.86), bodyMat);
+    arm.rotation.y=rotY; g.add(arm);
+  }
+  const ROTORS=[], d=0.30;
+  for(const c of [[d,d],[-d,d],[d,-d],[-d,-d]]){
+    const motor=new T.Mesh(new T.CylinderGeometry(0.05,0.05,0.09,10), bodyMat);
+    motor.position.set(c[0],0.02,c[1]); g.add(motor);
+    const rotor=new T.Mesh(new T.CylinderGeometry(0.21,0.21,0.012,18),
+                mat(0x80868e,{roughness:0.4,transparent:true,opacity:0.45}));
+    rotor.position.set(c[0],0.09,c[1]); g.add(rotor); ROTORS.push(rotor);
+  }
+  for(const sx of [-0.11,0.11]){
+    const skid=new T.Mesh(new T.BoxGeometry(0.02,0.02,0.36), bodyMat);
+    skid.position.set(sx,-0.11,0); g.add(skid);
+    for(const sz of [0.13,-0.13]){
+      const leg=new T.Mesh(new T.BoxGeometry(0.02,0.09,0.02), bodyMat);
+      leg.position.set(sx,-0.06,sz); g.add(leg);
+    }
+  }
+  for(const m of g.children) m.castShadow=true;
+  g.userData.rotors=ROTORS; g.visible=false; scene.add(g); return g;
+})();
+function setDrone(on){
+  droneMode=on; drone.visible=on;
+  if(on){
+    if(seated) standUp();
+    view="fp";
+    dronePos.set(player.pos.x, player.feetY+6, player.pos.z); droneVel.set(0,0,0);
+    droneYaw=player.yaw; dronePitch=0.5; droneTiltX=0; droneTiltZ=0;
+    camera.position.set(dronePos.x-Math.sin(droneYaw)*3.5, dronePos.y+2.2,
+                        dronePos.z-Math.cos(droneYaw)*3.5);
+    document.getElementById("prompt").classList.remove("show");
+    toast("DRONE  ·  WASD FLY  ·  SPACE UP  ·  SHIFT DOWN  ·  F TO LAND","#6fe3ff");
+  }else{
+    player.yaw=droneYaw;
+    toast("BACK ON YOUR FEET","#ffb324");
+  }
+}
+function droneUpdate(dt){
+  const sy=Math.sin(droneYaw), cy=Math.cos(droneYaw);
+  let ax=0, az=0, ay=0;
+  if(keys.KeyW||keys.ArrowUp)    { ax-=sy; az-=cy; }
+  if(keys.KeyS||keys.ArrowDown)  { ax+=sy; az+=cy; }
+  if(keys.KeyD||keys.ArrowRight) { ax+=cy; az-=sy; }
+  if(keys.KeyA||keys.ArrowLeft)  { ax-=cy; az+=sy; }
+  if(keys.Space) ay+=1;
+  if(keys.ShiftLeft||keys.ShiftRight) ay-=1;
+  const accel=16;
+  droneVel.x+=ax*accel*dt; droneVel.z+=az*accel*dt; droneVel.y+=ay*accel*dt;
+  droneVel.multiplyScalar(Math.max(0, 1-4.0*dt));                     // air drag
+  dronePos.x+=droneVel.x*dt; dronePos.y+=droneVel.y*dt; dronePos.z+=droneVel.z*dt;
+  dronePos.x=clamp(dronePos.x, -1400, 1400);
+  dronePos.z=clamp(dronePos.z, -1400, 1400);
+  const deck=surfaceY(dronePos.x, dronePos.z, dronePos.y)+0.30;
+  if(dronePos.y<deck){ dronePos.y=deck; if(droneVel.y<0) droneVel.y=0; }
+  if(dronePos.y>DRONE_CEIL){ dronePos.y=DRONE_CEIL; if(droneVel.y>0) droneVel.y=0; }
+  const localF=-(droneVel.x*sy+droneVel.z*cy),                   // lean into motion
+        localR=  droneVel.x*cy-droneVel.z*sy;
+  droneTiltX += (-localF*0.045 - droneTiltX)*Math.min(1,dt*6);
+  droneTiltZ += ( localR*0.045 - droneTiltZ)*Math.min(1,dt*6);
 }
 
 /* ----------------------------------------------------------------------
@@ -4742,15 +5146,17 @@ function toast(text,color){
 }
 function updateHUD(){
   // the camera looks down -Z at yaw 0, so -Z reads as north and +X as east
-  let deg=(-player.yaw*180/Math.PI)%360; if(deg<0) deg+=360;
+  let deg=(-(droneMode?droneYaw:player.yaw)*180/Math.PI)%360; if(deg<0) deg+=360;
   hud.hdg.textContent=Math.round(deg).toString().padStart(3,"0");
   hud.card.textContent=CARD[Math.round(deg/45)%8];
   hud.rose.setAttribute("transform","rotate("+(-deg)+" 100 100)");
   const h=DayNight.state.hour, hi=Math.floor(h), mi=Math.floor((h-hi)*60);
   hud.clock.textContent=(hi<10?"0":"")+hi+":"+(mi<10?"0":"")+mi;
-  const z=zoneAt(player.pos.x, player.pos.z, player.feetY);
+  const hx=droneMode?dronePos.x:player.pos.x, hz=droneMode?dronePos.z:player.pos.z;
+  if(droneMode){ hud.where.textContent="DRONE  ·  "+Math.round(dronePos.y-surfaceY(hx,hz,dronePos.y))+" M AGL"; return; }
+  const z=zoneAt(hx, hz, player.feetY);
   hud.where.textContent = z ||
-    (Math.abs(player.pos.z-ROADZ)<9 ? "ROUTE 66" : "OPEN DESERT");
+    (Math.abs(hz-ROADZ)<9 ? "ROUTE 66" : "OPEN DESERT");
 }
 
 /* --- painted site plan ------------------------------------------------ */
@@ -5088,7 +5494,7 @@ function frame(){
 
   if(started){
     acc+=delta; const STEP=1/60; let guard=0;
-    while(acc>=STEP && guard++<6){ fixedUpdate(STEP); acc-=STEP; }
+    while(acc>=STEP && guard++<6){ if(droneMode) droneUpdate(STEP); else fixedUpdate(STEP); acc-=STEP; }
     updateDoors(delta);
     updateWind(now, delta);
     updateWeeds(delta);
@@ -5103,6 +5509,18 @@ function frame(){
   }
 
   /* ---- camera ---- */
+  if(droneMode){
+    drone.position.set(dronePos.x, dronePos.y, dronePos.z);
+    drone.rotation.set(droneTiltX, droneYaw, droneTiltZ);
+    for(const r of drone.userData.rotors) r.rotation.y += delta*55;   // spinning blades
+    const horiz=3.6*Math.cos(dronePitch), camY=0.7+3.2*Math.sin(dronePitch);
+    _dtmp.set(dronePos.x-Math.sin(droneYaw)*horiz, dronePos.y+camY,
+              dronePos.z-Math.cos(droneYaw)*horiz);
+    camera.position.lerp(_dtmp, Math.min(1, delta*9));                // smooth chase
+    camera.up.set(0,1,0);
+    camera.lookAt(dronePos.x, dronePos.y+0.25, dronePos.z);
+    wetEl.classList.remove("on");
+  }else{
   const eyeY=player.feetY+EYE+player.bob-player.sit*0.66;   // seated, you sit lower
   camera.position.set(player.pos.x, eyeY, player.pos.z);
   const cp=Math.cos(player.pitch);
@@ -5110,6 +5528,7 @@ function frame(){
                 eyeY + Math.sin(player.pitch),
                 player.pos.z - Math.cos(player.yaw)*cp);
   wetEl.classList.toggle("on", eyeY < POOL.water && inPool(player.pos.x, player.pos.z));
+  }
 
   /* ---- day / night ---- */
   const dn=DayNight.tick(started?delta:delta*0.25);
@@ -5289,7 +5708,9 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                wind:Wind, blow:(g)=>{ Wind.gust=(g===undefined?0.9:g); Wind.hold=Wind.gust>0; },
                terrain:Terrain, camera:camera, images:()=>IMG_STATUS,
                gifDecode:gifDecode, gifFrames:gifFrames,
-               seats:SEATS, geckos:GECKOS, seatedNow:()=>!!seated,
+               seats:SEATS, geckos:GECKOS, seatedNow:()=>!!seated, sit:sitToggle,
+               drone:setDrone, dronePos:dronePos, droneOn:()=>droneMode,
+               droneStep:droneUpdate,
                press:(c)=>{ keys[c]=true; interact(); keys[c]=false; },
                testGif:(u)=>{ IMAGES['tv:0']=u;
                  const m=BUCKETS.get('pic:tv:0'); if(m&&m.mat) playGif('tv:0',u,m.mat.map); },

@@ -1018,6 +1018,118 @@ TEX.siding=(function(){                       // corrugated aluminium, chalked o
   const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; return setSRGB(t);
 })();
 
+TEX.brick=(function(){                        // a wall that has been leaned on
+  const c=cvs(256,256), x=c.getContext("2d");
+  x.fillStyle="#4c423c"; x.fillRect(0,0,256,256);          // mortar
+  const bw=64, bh=32;
+  for(let r=0;r<8;r++){
+    const off=(r%2)?bw/2:0;
+    for(let i=-1;i<5;i++){
+      const px=i*bw+off+2.5, py=r*bh+2.5, t=Math.random();
+      x.fillStyle="rgb("+(104+t*54|0)+","+(54+t*30|0)+","+(46+t*24|0)+")";
+      x.fillRect(px,py,bw-5,bh-5);
+      x.fillStyle="rgba(255,235,210,0.06)"; x.fillRect(px,py,bw-5,2);
+      x.fillStyle="rgba(20,12,10,0.16)";    x.fillRect(px,py+bh-7,bw-5,2);
+    }
+  }
+  noiseDots(x,256,256,3000,["rgba(0,0,0,0.16)","rgba(255,230,200,0.06)","rgba(70,40,30,0.18)"]);
+  for(let i=0;i<24;i++){                     // smoke and years on it
+    x.fillStyle="rgba(28,20,16,"+(0.03+Math.random()*0.09).toFixed(3)+")";
+    x.beginPath(); x.ellipse(Math.random()*256, Math.random()*256,
+      14+Math.random()*60, 8+Math.random()*34, Math.random()*3, 0, 7); x.fill();
+  }
+  const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; return setSRGB(t);
+})();
+
+TEX.plank=(function(){                        // board floor, scuffed down the middle
+  const c=cvs(256,256), x=c.getContext("2d");
+  const bh=32;
+  for(let r=0;r<8;r++){
+    const t=Math.random();
+    x.fillStyle="rgb("+(120+t*44|0)+","+(84+t*30|0)+","+(52+t*22|0)+")";
+    x.fillRect(0,r*bh,256,bh);
+    for(let g=0;g<16;g++){                   // grain
+      x.strokeStyle="rgba(58,38,22,"+(0.05+Math.random()*0.13).toFixed(3)+")";
+      x.lineWidth=0.7+Math.random()*1.4; x.beginPath();
+      const y0g=r*bh+2+Math.random()*(bh-4);
+      x.moveTo(0,y0g);
+      for(let k=1;k<=4;k++) x.lineTo(k*64, y0g+(Math.random()-0.5)*4);
+      x.stroke();
+    }
+    x.fillStyle="rgba(30,18,10,0.55)"; x.fillRect(0,r*bh,256,1.6);        // the joint
+    for(let n=0;n<2;n++){                    // butt ends, staggered
+      const px=Math.random()*256;
+      x.fillStyle="rgba(30,18,10,0.45)"; x.fillRect(px,r*bh,1.6,bh);
+    }
+  }
+  noiseDots(x,256,256,1800,["rgba(0,0,0,0.10)","rgba(255,236,200,0.06)"]);
+  const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; return setSRGB(t);
+})();
+
+// Six gig posters on one sheet, so the whole wall of them is a single draw.
+TEX.posters=(function(){
+  const CW=256, CH=256, c=cvs(CW*3, CH*2), x=c.getContext("2d");
+  const BG=["#c8202a","#f0a01e","#1d6f4e","#2b2f7a","#d24a12","#151515"];
+  const FG=["#f4e8c8","#151515","#f2ecd6","#f0c93a","#f7eede","#e8402a"];
+  const NAMES=[["THE","DESERT","RATS"],["SALT","FLATS","REVUE"],["DUO","DE","NADA"],
+               ["BLACK","MESA","BOYS"],["LOW","BEAM","LOW BEAM"],["NIGHT","SHIFT",""]];
+  for(let i=0;i<6;i++){
+    const ox=(i%3)*CW, oy=((i/3)|0)*CH;
+    x.fillStyle=BG[i]; x.fillRect(ox,oy,CW,CH);
+    x.save(); x.beginPath(); x.rect(ox,oy,CW,CH); x.clip();
+    x.fillStyle=FG[i];
+    for(let k=0;k<7;k++){                    // a screen-printed shape behind the type
+      x.globalAlpha=0.10+((k*7)%5)*0.04;
+      x.beginPath();
+      x.arc(ox+CW*(0.2+((k*13)%7)/9), oy+CH*(0.25+((k*29)%5)/7), 26+((k*17)%60), 0, 7);
+      x.fill();
+    }
+    x.globalAlpha=1;
+    x.textAlign="center";
+    NAMES[i].forEach((line,k)=>{
+      if(!line) return;
+      const sz=Math.round(CH*(k===1?0.20:0.14));
+      x.font="900 "+sz+"px 'Barlow Condensed', 'Arial Narrow', sans-serif";
+      x.fillText(line, ox+CW/2, oy+CH*(0.30+k*0.21));
+    });
+    x.font="700 "+Math.round(CH*0.058)+"px 'JetBrains Mono', monospace";
+    x.fillText("THE RUSTY CANTEEN", ox+CW/2, oy+CH*0.90);
+    x.globalAlpha=0.5; x.fillRect(ox+CW*0.18, oy+CH*0.94, CW*0.64, 2); x.globalAlpha=1;
+    for(let k=0;k<70;k++){                    // sun and cigarettes
+      x.fillStyle="rgba(0,0,0,"+(Math.random()*0.10).toFixed(3)+")";
+      x.fillRect(ox+Math.random()*CW, oy+Math.random()*CH, 1+Math.random()*3, 1+Math.random()*3);
+    }
+    x.restore();
+  }
+  return setSRGB(new T.CanvasTexture(c));
+})();
+
+TEX.rock=(function(){                         // desert stone: grain, grit, lichen
+  const c=cvs(128,128), x=c.getContext("2d");
+  x.fillStyle="#7a6551"; x.fillRect(0,0,128,128);
+  for(let i=0;i<20;i++){                       // bedding, banded and uneven
+    x.fillStyle="rgba("+(88+Math.random()*70|0)+","+(70+Math.random()*52|0)+","
+      +(56+Math.random()*44|0)+","+(0.10+Math.random()*0.22).toFixed(3)+")";
+    x.beginPath(); x.ellipse(Math.random()*128, Math.random()*128,
+      10+Math.random()*44, 3+Math.random()*13, Math.random()*3, 0, 7); x.fill();
+  }
+  noiseDots(x,128,128,3600,["rgba(255,244,226,0.16)","rgba(38,28,20,0.20)",
+                            "rgba(146,118,88,0.20)","rgba(92,72,54,0.22)"]);
+  for(let i=0;i<34;i++){                       // cracks
+    x.strokeStyle="rgba(34,26,19,"+(0.08+Math.random()*0.20).toFixed(3)+")";
+    x.lineWidth=0.6+Math.random()*1.6; x.beginPath();
+    let px=Math.random()*128, py=Math.random()*128; x.moveTo(px,py);
+    for(let k=0;k<4;k++){ px+=(Math.random()-0.5)*26; py+=(Math.random()-0.5)*26; x.lineTo(px,py); }
+    x.stroke();
+  }
+  for(let i=0;i<26;i++){                       // lichen, on the shaded faces
+    x.fillStyle="rgba("+(150+Math.random()*60|0)+","+(160+Math.random()*50|0)+",90,"
+      +(0.05+Math.random()*0.13).toFixed(3)+")";
+    x.beginPath(); x.arc(Math.random()*128, Math.random()*128, 2+Math.random()*9, 0, 7); x.fill();
+  }
+  const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; return setSRGB(t);
+})();
+
 TEX.chain=(function(){                        // chain-link, alpha-cut
   const c=cvs(64,64), x=c.getContext("2d");
   x.clearRect(0,0,64,64);
@@ -1106,7 +1218,8 @@ const Terrain=(function(){
   function fbm(x,y){ let f=0,a=0.5,fr=1; for(let i=0;i<5;i++){ f+=a*vnoise(x*fr,y*fr); fr*=2; a*=0.5; } return f; }
 
   // the graded pad: the lot plus the highway corridor, all dead flat at y = 0
-  const PAD={x0:LOT.x0-14, x1:LOT.x1+14, z0:ROADZ-16, z1:LOT.z1+12};
+  // west of the motel the pad now carries the bar's lot as well
+  const PAD={x0:LOT.x0-50, x1:LOT.x1+14, z0:ROADZ-16, z1:LOT.z1+12};
   // The highway keeps going after the pad does. Its corridor is graded flat
   // out to the edge of the world, and the badlands and buttes it crosses are
   // cut away on either side of it, so the road runs off to a vanishing point
@@ -1177,7 +1290,7 @@ const Terrain=(function(){
   return {heightAt:heightAt, fbm:fbm, PAD:PAD, PAD_Y:PAD_Y};
 })();
 
-const NEAR_SITE={x0:-92, x1:82, z0:-104, z1:74};
+const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
 (function buildTerrain(){
   const floorC=new T.Color(0xb99165), duneC=new T.Color(0xa47a4e),
         mountC=new T.Color(0x8a5540), peakC=new T.Color(0xbb9068), rockC=new T.Color(0x5e4032);
@@ -1540,10 +1653,13 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
     scene.add(sp); CIRRUS.push({s:sp, sp:0.9+Math.random()*0.8});
   }
   /* --- balloons ---------------------------------------------------------
-     Three of them, four to nine kilometres out, drifting on the same wind as
-     everything else. They only fade in once you are a few hundred metres from
-     the motel, so they read as something you found by walking out rather than
-     as scenery hung on the lot.                                           */
+     They were four to nine kilometres out and three hundred metres tall,
+     which put most of them past the far plane — so they came and went, and
+     the ones you could see were clipped by it. They are real size now, about
+     nineteen metres across and twenty-six tall, flying at a hundred to three
+     hundred metres, seven hundred to eighteen hundred metres out. That is a
+     shape a degree or so wide: small, unmistakable, and properly far away.
+     They still only fade in once you have walked away from the motel.      */
   const BALLOON_SKINS=[["#c3311f","#f1ead6","#13405e"],["#e0a52a","#3f6ea8","#f1ead6"],
                        ["#4f7a4a","#e0d24a","#c3562f"]];
   for(let i=0;i<5;i++){
@@ -1574,11 +1690,11 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
     x.fillStyle="#5c4029"; x.fillRect(56,150,16,3);
     const sp=new T.Sprite(new T.SpriteMaterial({map:setSRGB(new T.CanvasTexture(c)),
       transparent:true, depthWrite:false, fog:false, opacity:0}));
-    const sc=170+Math.random()*110;
+    const sc=16+Math.random()*7;                       // metres across the envelope
     sp.scale.set(sc, sc*1.40, 1);
-    const a=Math.random()*Math.PI*2, d=2600+Math.random()*3200;
-    sp.position.set(Math.cos(a)*d, 420+Math.random()*560, Math.sin(a)*d);
-    scene.add(sp); BALLOONS.push({s:sp, sp:0.8+Math.random()*0.9, ph:Math.random()*6});
+    const a=Math.random()*Math.PI*2, d=700+Math.random()*1100;
+    sp.position.set(Math.cos(a)*d, 105+Math.random()*195, Math.sin(a)*d+10);
+    scene.add(sp); BALLOONS.push({s:sp, sp:0.55+Math.random()*0.8, ph:Math.random()*6});
   }
 
   const bc=cvs(64,32), bx2=bc.getContext("2d");
@@ -1966,32 +2082,48 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
 /* --- desert dressing: cacti, sage, rocks, poles ------------------------ */
 (function scatterDesert(){
   const inLot=(x,z)=>x>LOT.x0-8&&x<LOT.x1+8&&z>ROADZ-14&&z<LOT.z1+8;
-  // saguaro + barrel cactus
+  // Nothing grows on the highway, and nothing rolls onto it either. The lot
+  // test only covers the motel's own frontage; the road runs out to the edge
+  // of the world, so the carriageway, both shoulders and the walk need their
+  // own exclusion or boulders end up sitting in the fast lane.
+  const onRoad=z=>Math.abs(z-ROADZ)<11.5;
+  // A saguaro is a fluted column with a domed top and elbowed arms, not a
+  // tube with a flat lid. Sixteen sides, a hemisphere on every growing tip,
+  // and the arms turn a real corner.
+  function saguaroArm(x,y,z, sd, up, green){
+    cyl("foliage", 0.20,0.23,0.62,14, x+sd*0.42, y, z, green, 0,0,Math.PI/2);   // out
+    push("foliage", new T.SphereGeometry(0.215,14,10), x+sd*0.70, y, z, 0, green);
+    cyl("foliage", 0.185,0.215,up,14, x+sd*0.70, y+up/2, z, green);             // and up
+    push("foliage", new T.SphereGeometry(0.187,14,10), x+sd*0.70, y+up, z, 0, green);
+  }
   for(let i=0;i<180;i++){
     const a=rnd()*Math.PI*2, r=70+rnd()*430;
     const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
-    if(inLot(x,z)) continue;
+    if(inLot(x,z)||onRoad(z)) continue;
     const y=Terrain.heightAt(x,z);
     if(y>26) continue;
     const green=pick(["#4f6b3a","#57713f","#465f34"]);
     if(rnd()<0.72){
-      const h=2.4+rnd()*2.8;
-      cyl("foliage", 0.34,0.42,h,10, x, y+h/2, z, green);
+      const h=2.4+rnd()*2.8, rt=0.30+rnd()*0.06, rb=rt+0.08;
+      cyl("foliage", rt,rb,h,16, x, y+h/2, z, green);
+      push("foliage", new T.SphereGeometry(rt,16,10), x, y+h, z, 0, green);     // the crown
       const arms=rnd()<0.75?2:1;
       for(let k=0;k<arms;k++){
-        const sd=k===0?1:-1, hy=y+h*(0.42+rnd()*0.26);
-        cyl("foliage", 0.2,0.24,0.9,8, x+sd*0.55, hy, z, green, 0,0,Math.PI/2);
-        cyl("foliage", 0.18,0.22,1.0+rnd(), 8, x+sd*0.95, hy+0.62, z, green);
+        const sd=k===0?1:-1, hy=y+h*(0.40+rnd()*0.24);
+        saguaroArm(x, hy, z, sd, 0.9+rnd()*0.9, green);
       }
-    }else{
-      push("foliage", new T.SphereGeometry(0.45+rnd()*0.3, 9, 7), x, y+0.32, z, 0, green);
+    }else{                                         // barrel cactus, squat and ribbed
+      const br=0.40+rnd()*0.26;
+      const g2=new T.SphereGeometry(br, 16, 12); g2.scale(1, 0.80, 1);
+      push("foliage", g2, x, y+br*0.70, z, rnd()*6, green);
+      push("foliage", new T.SphereGeometry(br*0.30,12,8), x, y+br*1.38, z, 0, green);
     }
   }
   // sage / creosote
   for(let i=0;i<420;i++){
     const a=rnd()*Math.PI*2, r=58+rnd()*380;
     const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
-    if(inLot(x,z)) continue;
+    if(inLot(x,z)||onRoad(z)) continue;
     const y=Terrain.heightAt(x,z); if(y>32) continue;
     const col=pick(["#6a6a3c","#75754a","#5e6036","#7d7a4d"]);
     const n=2+((rnd()*3)|0);
@@ -2001,15 +2133,38 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
         x+(rnd()-0.5)*0.95, y+rad*0.68, z+(rnd()-0.5)*0.95, rnd()*6, col);
     }
   }
-  // rocks
-  for(let i=0;i<150;i++){
+  // rocks: an icosahedron with every vertex pushed in or out, so no two are
+  // the same lump, and a stone map over the top of it
+  function rockGeo(s, seed){
+    const g=new T.IcosahedronGeometry(s, 1), pos=g.attributes.position;
+    let sd2=seed*9301+4;
+    const r3=()=>{ sd2=(sd2*9301+49297)%233280; return sd2/233280; };
+    const seen=new Map();
+    for(let i=0;i<pos.count;i++){
+      const kx=pos.getX(i).toFixed(4)+","+pos.getY(i).toFixed(4)+","+pos.getZ(i).toFixed(4);
+      let f=seen.get(kx);                       // shared vertices move together
+      if(f===undefined){ f=0.72+r3()*0.52; seen.set(kx,f); }
+      pos.setXYZ(i, pos.getX(i)*f, pos.getY(i)*f*(0.62+r3()*0.30), pos.getZ(i)*f);
+    }
+    pos.needsUpdate=true; g.computeVertexNormals();
+    return g;
+  }
+  for(let i=0;i<170;i++){
     const a=rnd()*Math.PI*2, r=64+rnd()*430;
     const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
-    if(inLot(x,z)) continue;
+    if(inLot(x,z)||onRoad(z)) continue;
     const y=Terrain.heightAt(x,z);
     const s=0.5+rnd()*2.6;
-    push("foliage", new T.DodecahedronGeometry(s,0), x, y+s*0.32, z, rnd()*6,
-      pick(["#5b4c3d","#6b5947","#4d4034"]), rnd()*0.5, rnd()*0.5);
+    push("rock", rockGeo(s, i*13+5), x, y+s*0.22, z, rnd()*6,
+      pick(["#8a7460","#7b6553","#9a8468","#6d5a49"]), rnd()*0.4-0.2, rnd()*0.4-0.2);
+  }
+  for(let i=0;i<130;i++){                       // and the small stuff, scattered
+    const a=rnd()*Math.PI*2, r=40+rnd()*470;
+    const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
+    if(inLot(x,z)||onRoad(z)) continue;
+    const s=0.13+rnd()*0.26;
+    push("rock", rockGeo(s, i*29+11), x, Terrain.heightAt(x,z)+s*0.30, z, rnd()*6,
+      pick(["#8a7460","#7b6553","#6d5a49"]), rnd()*0.6-0.3, rnd()*0.6-0.3);
   }
   // power poles along the highway (wires drawn as line segments afterwards)
   const tops=[];
@@ -3881,6 +4036,321 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
 })();
 
 /* ----------------------------------------------------------------------
+   11c · THE RUSTY CANTEEN
+   A separate business on the next lot west, fenced off from the motel's
+   asphalt and about twice the size of the office: a brick roadhouse with
+   an L of bar down one side, a pool table, booths, and the kind of gig
+   posters that go up and never come down. You can walk in.
+   ---------------------------------------------------------------------- */
+const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
+(function buildBar(){
+  const T2=0.26, H=4.20, FY=0.16;                       // wall, height, floor
+  const X0=BAR.x0, X1=BAR.x1, Z0=BAR.z0, Z1=BAR.z1;
+  const IX0=X0+T2, IX1=X1-T2, IZ0=Z0+T2, IZ1=Z1-T2;     // inner faces
+  const CY=FY+H/2, TOPY=FY+H;
+  const DOORW=1.02, DHX0=-80.72, DHX1=DHX0+DOORW;       // the front door opening
+  const BRICKC="#b4705a", TRIMC="#2a2622", VINYL="#7e3f4a", BARTOP="#241f1d",
+        WOODC="#7a5734", CHROME="#9aa4a8";
+  let sd=7734199;
+  const rn=()=>{ sd=(sd*1103515245+12345)%2147483648; return sd/2147483648; };
+  const rr=(a,b)=>a+rn()*(b-a);
+
+  // ---- the lot it stands on -------------------------------------------
+  const L={x0:-96.5, x1:-52.0, z0:-39.6, z1:-8.0};
+  bx("asphalt", L.x1-L.x0, 0.30, L.z1-L.z0, (L.x0+L.x1)/2, -0.15, (L.z0+L.z1)/2, 0.42);
+  addFlat(L.x0,L.x1,L.z0,L.z1, 0);
+  addZone(L.x0,L.x1,L.z0,L.z1, -1, 2.4, "THE RUSTY CANTEEN — LOT");
+  bx("asphalt", L.x1-L.x0+6, 0.20, 3.2, (L.x0+L.x1)/2, -0.14, L.z0-1.6, 0.42);   // sand shoulder
+  for(let i=0;i<9;i++){                                  // stalls facing the road
+    bx("paint", 0.11, 0.02, 5.0, L.x0+3.0+i*2.9, 0.008, L.z0+3.1, 0, 0, "#6a5b2e");
+  }
+  for(let i=0;i<7;i++){                                  // and a rank down the west side
+    bx("paint", 5.0, 0.02, 0.11, L.x0+3.0, 0.008, -26.0+i*2.9, 0, 0, "#6a5b2e");
+  }
+  // the fence that makes it somebody else's business
+  (function(){
+    const fx=-52.0;
+    push("chainlink", planeGeo(28.0, 2.10, 2.2), fx, 1.05, -24.0, Math.PI/2, "#b4b9bc");
+    bx("metal", 0.06, 0.06, 28.0, fx, 2.12, -24.0, 0, 0, "#9aa1a6");
+    for(let z=-38;z<=-10;z+=3.0) cyl("metal", 0.05,0.05,2.30,8, fx, 1.15, z, "#9aa1a6");
+    addCol(fx-0.12, fx+0.12, -38, -10, 0, 2.2);
+  })();
+
+  // ---- shell ------------------------------------------------------------
+  // runs of wall either side of an opening
+  const segs=(a0,a1,holes)=>{
+    const out=[]; let c=a0;
+    for(const h of holes){ if(h[0]>c) out.push([c,h[0]]); c=Math.max(c,h[1]); }
+    if(c<a1) out.push([c,a1]); return out;
+  };
+  bx("concrete", X1-X0+1.4, 0.34, Z1-Z0+1.4, (X0+X1)/2, FY-0.17, (Z0+Z1)/2, 0.45, 0, "#9b948a");
+  addFlat(X0-0.7, X1+0.7, Z0-0.7, Z1+0.7, FY);
+  // north wall, with the door and two high windows
+  const WINN=[[-85.9,-84.3],[-72.6,-71.0]];
+  for(const g of segs(X0, X1, [[DHX0,DHX1]].concat(WINN).sort((a,b)=>a[0]-b[0]))){
+    // below the window band
+    bx("brick", g[1]-g[0], 2.42, T2, (g[0]+g[1])/2, FY+1.21, Z0+T2/2, 0.42, 0, BRICKC);
+  }
+  for(const g of segs(X0, X1, [[DHX0,DHX1]])){
+    bx("brick", g[1]-g[0], 1.78, T2, (g[0]+g[1])/2, FY+3.31, Z0+T2/2, 0.42, 0, BRICKC);
+  }
+  bx("brick", DOORW, H-2.24, T2, (DHX0+DHX1)/2, FY+2.24+(H-2.24)/2, Z0+T2/2, 0.42, 0, BRICKC);
+  for(const w of WINN){                                   // glass block, grimy
+    bx("breeze", w[1]-w[0], 1.10, 0.10, (w[0]+w[1])/2, FY+1.72, Z0+T2/2, 0.5, 0, "#8e9a94");
+  }
+  bx("brick", X1-X0, H, T2, (X0+X1)/2, CY, Z1-T2/2, 0.42, 0, BRICKC);            // south
+  for(const sx of [X0+T2/2, X1-T2/2])                                            // ends
+    bx("brick", T2, H, Z1-Z0-T2*2, sx, CY, (Z0+Z1)/2, 0.42, 0, BRICKC);
+  addCol(X0, X1, Z1-T2, Z1, 0, TOPY);
+  addCol(X0, X0+T2, Z0, Z1, 0, TOPY);
+  addCol(X1-T2, X1, Z0, Z1, 0, TOPY);
+  for(const g of segs(X0, X1, [[DHX0,DHX1]])) addCol(g[0], g[1], Z0, Z0+T2, 0, TOPY);
+  // roof, parapet and a swamp cooler
+  bx("roofG", X1-X0+0.5, 0.26, Z1-Z0+0.5, (X0+X1)/2, TOPY+0.13, (Z0+Z1)/2, 0.35, 0, "#6d6660");
+  for(const e of [[0,Z0+0.05],[0,Z1-0.05]])
+    bx("brick", X1-X0+0.7, 0.62, 0.22, (X0+X1)/2, TOPY+0.57, e[1], 0.42, 0, "#a36653");
+  for(const sx of [X0+0.05, X1-0.05])
+    bx("brick", 0.22, 0.62, Z1-Z0+0.7, sx, TOPY+0.57, (Z0+Z1)/2, 0.42, 0, "#a36653");
+  bx("weathered", 1.10,0.92,1.10, X0+4.2, TOPY+0.72, Z0+4.0, 0.4, 0, "#b0a892");
+  cyl("metal", 0.14,0.14,1.30,10, X1-3.4, TOPY+0.9, Z1-3.0, "#8e877a");
+  cyl("metal", 0.26,0.26,0.30,12, X1-3.4, TOPY+1.6, Z1-3.0, "#8e877a");
+  // stoop, a step and a rail
+  bx("concrete", 3.20, 0.30, 1.50, (DHX0+DHX1)/2, FY-0.14, Z0-0.70, 0.45, 0, "#a8a094");
+  addFlat(DHX0-1.6, DHX1+1.6, Z0-1.45, Z0, FY-0.01);
+  for(const sx of [-1.45,1.45]){
+    cyl("metal", 0.035,0.035,1.00,8, (DHX0+DHX1)/2+sx, 0.55, Z0-0.66, CHROME);
+    bx("metal", 0.05,0.05,1.30, (DHX0+DHX1)/2+sx, 1.04, Z0-0.66, 0, 0, CHROME);
+  }
+  makeDoor(XF(DHX0+0.03, Z0+0.05, 0), 0, FY+0.02, 0, "THE RUSTY CANTEEN", true);
+
+  // ---- the sign, and the other one on a pole ---------------------------
+  const nameTex=signTex(1024, 232, (x,W,H2)=>{
+    x.fillStyle="#1b1614"; x.fillRect(0,0,W,H2);
+    x.strokeStyle="#caa23c"; x.lineWidth=7; x.strokeRect(9,9,W-18,H2-18);
+    x.fillStyle="#e8d9a6"; fitText(x,"THE RUSTY", W*0.74, H2*0.40, W/2, H2*0.40);
+    x.fillStyle="#c8432a"; fitText(x,"CANTEEN",  W*0.80, H2*0.40, W/2, H2*0.82);
+  });
+  NEON.push(signPanel(7.4, 1.68, nameTex, (X0+X1)/2, FY+3.10, Z0-0.06, Math.PI, true));
+  const smallTex=signTex(512, 256, (x,W,H2)=>{
+    x.fillStyle="#141211"; x.fillRect(0,0,W,H2);
+    x.fillStyle="#e8d9a6"; fitText(x,"COLD BEER", W*0.80, H2*0.26, W/2, H2*0.30);
+    x.fillStyle="#7fd8c8"; fitText(x,"POOL · DARTS", W*0.80, H2*0.22, W/2, H2*0.58);
+    x.fillStyle="#c8432a"; fitText(x,"OPEN TIL 2", W*0.66, H2*0.20, W/2, H2*0.86);
+  });
+  for(const px of [-94.0]){                               // the pole sign by the road
+    bx("paint", 0.28, 5.6, 0.28, px, 2.8, -36.0, 0, 0, "#cfc8bc");
+    bx("paint", 0.28, 5.6, 0.28, px+3.6, 2.8, -36.0, 0, 0, "#cfc8bc");
+    bx("weathered", 4.5, 0.22, 0.30, px+1.8, 5.62, -36.0, 0.4, 0, "#6e6862");
+    NEON.push(signPanel(4.0, 2.0, smallTex, px+1.8, 4.30, -36.16, Math.PI, true));
+    NEON.push(signPanel(4.0, 2.0, smallTex, px+1.8, 4.30, -35.84, 0, true));
+    addCol(px-0.2, px+3.8, -36.2, -35.8, 0, 5.8);
+    LAMPS.push({x:px+1.8, y:4.3, z:-36.6, color:0xffcf8a, intensity:0.55, dist:16, decay:1.5});
+  }
+  // a beer sign in one window and a bare bulb over the door
+  NEON.push(signPanel(1.30, 0.86, signTex(256,170,(x,W,H2)=>{
+    x.fillStyle="#120f0e"; x.fillRect(0,0,W,H2);
+    x.fillStyle="#e0402a"; fitText(x,"BEER", W*0.74, H2*0.44, W/2, H2*0.48);
+    x.fillStyle="#7fd8c8"; fitText(x,"ON TAP", W*0.56, H2*0.24, W/2, H2*0.84);
+  }), -85.1, FY+1.72, Z0-0.02, Math.PI, true));
+  push("ceilfix", new T.SphereGeometry(0.11,12,8), (DHX0+DHX1)/2, FY+2.50, Z0-0.34, 0, "#f2e9cf");
+  LAMPS.push({x:(DHX0+DHX1)/2, y:FY+2.4, z:Z0-0.45, color:0xffd8a0, intensity:0.85,
+              dist:14, decay:1.6, mothy:true});
+
+  /* ---- inside ---------------------------------------------------------- */
+  bx("plank", IX1-IX0, 0.06, IZ1-IZ0, (IX0+IX1)/2, FY-0.03, (IZ0+IZ1)/2, 0.52, 0, "#c0a074");
+  bx("ceil",  IX1-IX0, 0.10, IZ1-IZ0, (IX0+IX1)/2, TOPY-0.05, (IZ0+IZ1)/2, 0.4, 0, "#5a5048");
+  for(let i=0;i<6;i++)                                    // ceiling joists
+    bx("oak", IX1-IX0, 0.18, 0.16, (IX0+IX1)/2, TOPY-0.19, IZ0+1.3+i*2.4, 0.4, 0, "#4e4238");
+  addZone(IX0, IX1, IZ0, IZ1, 0, TOPY, "THE RUSTY CANTEEN");
+
+  // ---- the bar: a long run down the east side with a return ------------
+  const BX=IX1-2.20, BZ0=-27.4, BZ1=-16.9, BH2=1.16;     // counter front face / extent
+  bx("oak",  0.70, BH2, BZ1-BZ0, BX+0.35, FY+BH2/2, (BZ0+BZ1)/2, 0.45, 0, WOODC);
+  bx("stairs", 0.92, 0.09, BZ1-BZ0+0.10, BX+0.30, FY+BH2+0.045, (BZ0+BZ1)/2, 0.5, 0, BARTOP);
+  bx("metal", 0.06, 0.06, BZ1-BZ0, BX-0.16, FY+0.17, (BZ0+BZ1)/2, 0, 0, BRASS);   // foot rail
+  addCol(BX, BX+0.72, BZ0, BZ1, 0, FY+BH2);
+  const RX0=IX1-6.60, RZ=BZ1-0.35;                        // the return along the north end
+  bx("oak",  RX0-BX+0.70, BH2, 0.70, (RX0+BX+0.70)/2, FY+BH2/2, RZ, 0.45, 0, WOODC);
+  bx("stairs", RX0-BX+0.70, 0.09, 0.92, (RX0+BX+0.70)/2, FY+BH2+0.045, RZ-0.05, 0.5, 0, BARTOP);
+  bx("metal", RX0-BX+0.70, 0.06, 0.06, (RX0+BX+0.70)/2, FY+0.17, RZ-0.44, 0, 0, BRASS);
+  addCol(RX0, BX+0.72, RZ-0.36, RZ+0.36, 0, FY+BH2);
+  // back bar: shelving, bottles and a stopped clock
+  bx("oak", 0.46, 2.70, BZ1-BZ0+0.6, IX1-0.23, FY+1.35, (BZ0+BZ1)/2-0.3, 0.45, 0, "#4c3a26");
+  addCol(IX1-0.50, IX1, BZ0-0.4, BZ1+0.4, 0, FY+2.7);
+  for(let r=0;r<4;r++){
+    bx("oak", 0.34, 0.05, BZ1-BZ0+0.4, IX1-0.30, FY+0.92+r*0.46, (BZ0+BZ1)/2-0.2, 0.45, 0, "#6a5236");
+    for(let i=0;i<Math.round((BZ1-BZ0+0.4)/0.155);i++){
+      const z2=BZ0-0.2+0.09+i*0.155;
+      if(z2>BZ1+0.2) break;
+      const tall=0.20+rn()*0.12;
+      cyl("glass", 0.036,0.042,tall,8, IX1-0.30, FY+0.945+r*0.46+tall/2, z2,
+          ["#2f5e34","#4a6b2a","#6a4a22","#2a3c46","#7a6a2a"][(i+r)%5]);
+      cyl("glass", 0.014,0.016,0.07,6, IX1-0.30, FY+0.945+r*0.46+tall+0.035, z2, "#c8b88a");
+    }
+  }
+  push("clockface", planeGeo(0.44,0.44,0), IX1-0.50, FY+3.10, BZ0-0.9, -Math.PI/2, "#e8e2cf");
+  // taps, a till, glasses drying, an ashtray somebody forgot
+  for(let i=0;i<6;i++){
+    cyl("metal", 0.026,0.026,0.30,8, BX+0.26, FY+BH2+0.19, -25.9+i*0.20, CHROME);
+    bx("metal", 0.05,0.05,0.14, BX+0.19, FY+BH2+0.32, -25.9+i*0.20, 0, 0, BRASS);
+  }
+  bx("metal", 0.44,0.34,0.40, BX+0.30, FY+BH2+0.22, -19.6, 0.4, 0, "#5f676b");
+  bx("tvglass", 0.34,0.14,0.02, BX+0.10, FY+BH2+0.30, -19.6, 0, 0, "#18201f");
+  for(let i=0;i<14;i++)
+    cyl("glass", 0.038,0.030,0.13,9, BX+0.20+((i%2)*0.22), FY+BH2+0.155, -23.4+((i/2)|0)*0.21, "#cfe0e6");
+  // stools, and somewhere to sit on each of them
+  for(let i=0;i<12;i++){
+    const z2=BZ0+0.55+i*0.86;
+    if(z2>BZ1-0.4) break;
+    cyl("metal", 0.05,0.06,0.72,10, BX-0.62, FY+0.36, z2, CHROME);
+    cyl("metal", 0.20,0.20,0.03,12, BX-0.62, FY+0.06, z2, CHROME);
+    cyl("fabric", 0.19,0.19,0.10,14, BX-0.62, FY+0.77, z2, VINYL);
+    addSeat(BX-0.62, z2, FY+0.82, -Math.PI/2, "THE BAR");
+  }
+  for(let i=0;i<5;i++){
+    const x2=RX0+0.55+i*0.86;
+    cyl("metal", 0.05,0.06,0.72,10, x2, FY+0.36, RZ-0.98, CHROME);
+    cyl("metal", 0.20,0.20,0.03,12, x2, FY+0.06, RZ-0.98, CHROME);
+    cyl("fabric", 0.19,0.19,0.10,14, x2, FY+0.77, RZ-0.98, VINYL);
+    addSeat(x2, RZ-0.98, FY+0.82, 0, "THE BAR");
+  }
+
+  // ---- the pool table ---------------------------------------------------
+  (function(){
+    const px=-81.6, pz=-21.4, PW=2.34, PD=1.30;
+    for(const c of [[-1,-1],[1,-1],[-1,1],[1,1]])
+      bx("oak", 0.16,0.72,0.16, px+c[0]*(PW/2-0.18), FY+0.36, pz+c[1]*(PD/2-0.16), 0.4, 0, "#4a3526");
+    bx("oak", PW, 0.22, PD, px, FY+0.83, pz, 0.45, 0, "#5c4029");
+    bx("baize", PW-0.22, 0.05, PD-0.22, px, FY+0.955, pz, 0, 0, "#2f7a44");   // cloth
+    for(const sd2 of [-1,1]){                                                 // rails
+      bx("oak", PW, 0.11, 0.13, px, FY+0.99, pz+sd2*(PD/2-0.065), 0.45, 0, "#4a3526");
+      bx("oak", 0.13, 0.11, PD-0.26, px+sd2*(PW/2-0.065), FY+0.99, pz, 0.45, 0, "#4a3526");
+    }
+    for(const c of [[-1,-1],[0,-1],[1,-1],[-1,1],[0,1],[1,1]])               // pockets
+      push("bin", new T.CylinderGeometry(0.07,0.06,0.10,10),
+           px+c[0]*(PW/2-0.10), FY+0.985, pz+c[1]*(PD/2-0.07), 0, "#1d1a17");
+    const BALLC=["#e8d24a","#2f5eb4","#c8342a","#6a3a8e","#e07a1e","#2f7a44",
+                 "#8a2a2a","#1d1a17","#e8d24a","#2f5eb4","#c8342a","#6a3a8e","#e07a1e","#2f7a44"];
+    let n=0;
+    for(let r=0;r<5;r++) for(let k=0;k<=r;k++){                               // the rack
+      push("plaster", new T.SphereGeometry(0.029,10,8),
+           px+0.52+r*0.050, FY+1.008, pz-(r*0.029)+k*0.058, 0, BALLC[n%BALLC.length]);
+      n++;
+    }
+    push("plaster", new T.SphereGeometry(0.029,10,8), px-0.62, FY+1.008, pz+0.05, 0, "#efe9dc");
+    push("oak", new T.CylinderGeometry(0.008,0.017,1.45,8), px-0.15, FY+1.010, pz-0.34,
+         0.34, "#b08c52", 0, Math.PI/2);                                      // a cue left on it
+    addCol(px-PW/2, px+PW/2, pz-PD/2, pz+PD/2, 0, FY+1.02);
+    // two pendants over it, which is where the light in here comes from
+    for(const sd2 of [-0.62, 0.62]){
+      cyl("metal", 0.012,0.012,1.30,6, px+sd2, TOPY-0.75, pz, "#3a342e");
+      push("lampshade", new T.CylinderGeometry(0.26,0.10,0.20,14), px+sd2, TOPY-1.48, pz, 0, "#2e2822");
+      push("ceilfix", new T.SphereGeometry(0.075,10,8), px+sd2, TOPY-1.60, pz, 0, "#f2e9cf");
+      LAMPS.push({x:px+sd2, y:TOPY-1.62, z:pz, color:0xffd2a0, intensity:1.0, dist:9, decay:1.7});
+    }
+    // a cue rack on the wall behind it
+    bx("oak", 0.10, 1.05, 0.90, IX0+0.06, FY+1.30, pz, 0.45, 0, "#4c3a26");
+    for(let i=0;i<4;i++)
+      push("oak", new T.CylinderGeometry(0.010,0.019,1.42,8), IX0+0.13, FY+1.02, pz-0.32+i*0.21,
+           0, "#b08c52", 0.06, 0);
+  })();
+
+  // ---- booths down the west wall ---------------------------------------
+  for(let i=0;i<3;i++){
+    const bz=-27.4+i*3.9;
+    for(const sd2 of [-1,1]){
+      bx("fabric", 1.60, 0.42, 0.58, IX0+0.92, FY+0.21, bz+sd2*0.86, 0.5, 0, VINYL);
+      bx("fabric", 1.60, 1.05, 0.14, IX0+0.92, FY+0.95, bz+sd2*1.21, 0.5, 0, "#6d3540");
+      addSeat(IX0+0.92, bz+sd2*0.86, FY+0.44, sd2>0?0:Math.PI, "A BOOTH");
+    }
+    bx("oak", 1.40, 0.06, 0.78, IX0+0.92, FY+0.72, bz, 0.5, 0, "#6a4a2c");
+    cyl("metal", 0.07,0.12,0.70,10, IX0+0.92, FY+0.35, bz, "#4a4440");
+    for(let k=0;k<2;k++)                                    // glasses left on it
+      cyl("glass", 0.036,0.030,0.12,9, IX0+0.70+k*0.34, FY+0.81, bz+(k?0.18:-0.16), "#cfe0e6");
+    cyl("glass", 0.033,0.038,0.24,9, IX0+1.30, FY+0.87, bz+0.20, "#2f5e34");
+    addCol(IX0, IX0+1.8, bz-1.35, bz+1.35, 0, FY+1.5);
+  }
+
+  // ---- loose tables in the middle of the room --------------------------
+  const TBL=[[-84.6,-24.4],[-84.2,-18.6],[-79.0,-17.2],[-76.0,-22.6]];
+  for(let t=0;t<TBL.length;t++){
+    const tx=TBL[t][0], tz=TBL[t][1];
+    bx("oak", 0.94, 0.07, 0.94, tx, FY+0.74, tz, 0.5, 0, "#7a5734");
+    cyl("metal", 0.06,0.16,0.72,10, tx, FY+0.36, tz, "#3e3a36");
+    addCol(tx-0.5, tx+0.5, tz-0.5, tz+0.5, 0, FY+0.8);
+    for(let k=0;k<3;k++){                                   // candle, glasses
+      cyl("glass", 0.034,0.028,0.12,9, tx+Math.cos(k*2.1)*0.26, FY+0.83, tz+Math.sin(k*2.1)*0.26,
+          "#cfe0e6");
+    }
+    push("ceilfix", new T.CylinderGeometry(0.035,0.035,0.09,10), tx, FY+0.82, tz-0.02, 0, "#f2e4c0");
+    const ch=3+((t%2));
+    for(let k=0;k<ch;k++){                                  // chairs round it
+      const a=k*(6.283/ch)+t*0.7, cxx=tx+Math.cos(a)*0.86, czz=tz+Math.sin(a)*0.86;
+      bx("oak", 0.42,0.05,0.42, cxx, FY+0.45, czz, 0.5, -a, "#5c4029");
+      bx("oak", 0.42,0.50,0.05, cxx+Math.cos(a)*0.19, FY+0.72, czz+Math.sin(a)*0.19, 0.5, -a, "#4a3526");
+      for(const c of [[-1,-1],[1,-1],[-1,1],[1,1]])
+        bx("metal", 0.03,0.45,0.03, cxx+c[0]*0.16, FY+0.22, czz+c[1]*0.16, 0, 0, "#3a3632");
+      addSeat(cxx, czz, FY+0.48, Math.atan2(tx-cxx, tz-czz), "A TABLE");
+    }
+  }
+
+  // ---- what is on the walls --------------------------------------------
+  function poster(w,h,i,x,y,z,ry){                          // one sheet, six designs
+    const g=new T.PlaneGeometry(w,h), a=g.attributes.uv;
+    const cx2=i%3, cy2=(i/3)|0;
+    for(let k=0;k<a.count;k++)
+      a.setXY(k, (cx2+a.getX(k))/3, 1-(cy2+1-a.getY(k))/2);
+    a.needsUpdate=true;
+    push("posters", g, x, y, z, ry, "#ffffff");
+  }
+  const PW2=[[0,IX0+0.04,-25.0,Math.PI/2],[1,IX0+0.04,-16.2,Math.PI/2],
+             [2,-86.4,IZ0+0.04,0],[3,-74.6,IZ0+0.04,0],
+             [4,IX1-0.52,-15.4,-Math.PI/2],[5,-77.4,IZ1-0.04,Math.PI]];
+  for(const q of PW2) poster(0.86, 1.22, q[0], q[1], FY+1.95+rr(-0.12,0.12), q[2], q[3]);
+  poster(0.72, 1.02, 3, -83.2, FY+2.62, IZ0+0.04, 0);
+  poster(0.72, 1.02, 5, -70.6, FY+1.90, IZ1-0.04, Math.PI);
+  // dartboard, with the throw line scuffed into the boards
+  push("bin", new T.CylinderGeometry(0.24,0.24,0.06,18), -75.6, FY+1.72, IZ0+0.07,
+       0, "#2a2622", Math.PI/2, 0);
+  push("baize", new T.CylinderGeometry(0.21,0.21,0.02,18), -75.6, FY+1.72, IZ0+0.11,
+       0, "#1f5c38", Math.PI/2, 0);
+  push("plaster", new T.CylinderGeometry(0.035,0.035,0.02,12), -75.6, FY+1.72, IZ0+0.13,
+       0, "#e8e2cf", Math.PI/2, 0);
+  bx("oak", 1.00, 1.00, 0.06, -75.6, FY+1.72, IZ0+0.04, 0.5, 0, "#3e342c");
+  bx("paint", 0.90, 0.02, 0.08, -75.6, FY+0.02, IZ0+2.38, 0, 0, "#c9bb92");
+  // a screen nobody is watching, and a jukebox
+  bx("weathered", 1.90, 1.20, 0.08, IX0+0.10, FY+2.60, -20.6, 0.4, Math.PI/2, "#d6cfba");
+  bx("tvglass", 1.74, 1.06, 0.03, IX0+0.17, FY+2.60, -20.6, 0, Math.PI/2, "#141a1c");
+  (function(){
+    const jx=IX1-1.10, jz=IZ1-0.90;
+    bx("oak", 0.86, 1.42, 0.56, jx, FY+0.71, jz, 0.45, 0, "#5c3a28");
+    bx("tvglass", 0.70, 0.46, 0.04, jx, FY+1.08, jz-0.30, 0, 0, "#1b2226");
+    NEON.push(signPanel(0.72, 0.16, signTex(256,64,(x,W,H2)=>{
+      x.fillStyle="#120f0e"; x.fillRect(0,0,W,H2);
+      x.fillStyle="#f0b83a"; fitText(x,"SELECT", W*0.7, H2*0.66, W/2, H2*0.74);
+    }), jx, FY+1.38, jz-0.31, 0, true));
+    addCol(jx-0.5, jx+0.5, jz-0.35, jz+0.35, 0, FY+1.5);
+    LAMPS.push({x:jx, y:FY+1.3, z:jz-0.6, color:0xffb84a, intensity:0.42, dist:5, decay:1.7});
+  })();
+  // pendants over the bar and the tables
+  for(const q of [[BX-0.5,-25.6],[BX-0.5,-21.0],[RX0+1.8,RZ-1.4],[-84.4,-21.4],[-77.6,-19.6]]){
+    cyl("metal", 0.012,0.012,1.05,6, q[0], TOPY-0.62, q[1], "#3a342e");
+    push("lampshade", new T.ConeGeometry(0.22,0.22,14), q[0], TOPY-1.24, q[1], 0, "#3a3028");
+    push("ceilfix", new T.SphereGeometry(0.065,10,8), q[0], TOPY-1.34, q[1], 0, "#f2e9cf");
+    LAMPS.push({x:q[0], y:TOPY-1.36, z:q[1], color:0xffcf96, intensity:0.80, dist:8, decay:1.7});
+  }
+  // the door to the rest of it, which does not open
+  bx("oak", 0.96, 2.05, 0.08, -86.2, FY+1.03, IZ1-0.05, 0.5, 0, "#4a3a2c");
+  bx("paint", 0.22, 0.16, 0.02, -86.2, FY+1.80, IZ1-0.10, 0, 0, "#d8d2be");
+  // and the bits that make it a bar: a mat, crates, a mop bucket, a sign
+  bx("fabric", 2.60, 0.03, 1.10, (DHX0+DHX1)/2, FY+0.02, Z0+1.10, 0.5, 0, "#3a342e");
+  for(let i=0;i<3;i++)
+    bx("oak", 0.46,0.30,0.34, IX1-0.9, FY+0.15+i*0.31, BZ0-1.5, 0.5, 0.3, "#6a4a2c");
+  cyl("bin", 0.20,0.17,0.32,12, IX1-0.8, FY+0.16, BZ1+1.2, "#5f7a6b");
+  addCol(IX1-1.3, IX1-0.4, BZ0-1.9, BZ0-1.1, 0, FY+1.1);
+})();
+
+/* ----------------------------------------------------------------------
    11b · WHAT IS OUT THERE
    Seven things to walk out and find. They are far enough away to be a
    decision — a hundred and fifty to three hundred and fifty metres, one to
@@ -4452,6 +4922,97 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
     m.C("teal", 0.06,0.06,1.05,7, 7.2, 0.52, ZS+0.4, "#6e6a62");
     m.B("weathered", 0.22,0.20,0.36, 7.2, 1.14, ZS+0.4, 0.4, 0.25, "#9a9284");
 
+
+    /* ---- the rest of the detail --------------------------------------- */
+    // a half-partition where the bathroom door was, with the folding door
+    // still hanging off one of its runners
+    const WVIS0=IZ0+0.06, WVIS1=IZ1-0.06;
+    m.B("oak", 0.09, IH-0.10, 0.82, 1.42, FY+0.98, WVIS1-0.41, 0.5, 0, "#9c8259");
+    m.B("oak", 0.09, IH-0.10, 0.52, 1.42, FY+0.98, WVIS0+0.26, 0.5, 0, "#9c8259");
+    m.P("oak", boxGeo(0.04,1.74,0.54,0.5), 1.47, FY+0.90, WVIS0+0.62, 0, "#8a7350", 0, 0.16);
+    // the bathroom itself: a pan with no lid, a basin, and where a mirror was
+    m.B("plaster", 0.36,0.40,0.34, 1.90, FY+0.20, WVIS0+0.24, 0.5, 0, "#cdc6b6");
+    push("plaster", new T.CylinderGeometry(0.17,0.19,0.16,14), OX+1.90, m.y+FY+0.46, OZ+WVIS0+0.24,
+         0, new T.Color("#cdc6b6"));
+    m.B("plaster", 0.34,0.14,0.28, 2.42, FY+0.74, WVIS0+0.20, 0.5, 0, "#c7c0b0");
+    m.B("teal",   0.02,0.02,0.16, 2.42, FY+0.84, WVIS0+0.30, 0, 0, "#9aa1a4");
+    m.B("oak",    0.42,0.52,0.03, 2.42, FY+1.40, WVIS0+0.07, 0.5, 0, "#6f6048");   // mirror, gone
+    m.P("glass",  boxGeo(0.16,0.20,0.01,0), 2.34, FY+1.44, WVIS0+0.09, 0, "#9fb0ab", 0, 0.2);
+    // fittings: a fixture hanging by its wires, switches, a stopped clock
+    m.C("teal", 0.015,0.015,0.34,6, -0.30, RY-0.24, 0.10, "#6e6a62", 0.3, 0, 0.2);
+    m.P("ceil", new T.SphereGeometry(0.15,12,8), -0.34, RY-0.44, 0.16, 0, "#d8d0b8", 0.4, 0.2);
+    m.B("plaster", 0.10,0.14,0.02, 2.90, FY+1.26, WVIS1-0.02, 0, 0, "#ded6c2");     // switch
+    m.B("plaster", 0.09,0.12,0.02, -2.60, FY+0.36, WVIS0+0.02, 0, 0, "#ded6c2");    // outlet
+    m.B("plaster", 0.14,0.10,0.02, -1.05, FY+1.34, WVIS0+0.02, 0, 0, "#e2dac6");    // thermostat
+    m.P("clockface", planeGeo(0.24,0.24,0), 0.35, FY+1.44, WVIS0+0.03, 0, "#e8e2cf", 0, 0);
+    // kitchen: what was on the counter when they left
+    m.C("teal", 0.09,0.10,0.17,12, -2.05, FY+0.95, IZ0+0.36, "#b2b8b8");            // kettle
+    m.B("teal", 0.06,0.02,0.09, -1.94, FY+1.00, IZ0+0.36, 0, 0.5, "#b2b8b8");
+    for(let i=0;i<4;i++)
+      push("plaster", new T.CylinderGeometry(0.11,0.11,0.02,14),
+           OX-3.90, m.y+FY+0.87+i*0.022, OZ+IZ0+0.30, 0, new T.Color("#d6cfbc"));   // plates
+    for(let i=0;i<6;i++)                                                            // cans
+      m.C("teal", 0.035,0.035,0.11,10, -3.05+((i%3)*0.10), FY+1.44+((i/3)|0)*0.13,
+          IZ0+0.20, ["#9a5a3a","#5f7a52","#8a8256"][i%3]);
+    m.P("paper", planeGeo(0.05,0.44,0), -2.55, RY-0.30, IZ0+0.30, 0.4, "#d8cfa8", 0, 0.05);// fly strip
+    // the rest of what is on the floor
+    m.P("weathered", boxGeo(0.30,0.11,0.42,0.5), -1.05, FY+0.06, WVIS1-0.34, 0.8, "#6a5a48", 0, 0.05);
+    m.P("weathered", boxGeo(0.12,0.09,0.27,0.5), 0.62, FY+0.05, WVIS0+0.40, -0.6, "#4a3c2e", 0.05, 0.1);
+    m.C("teal", 0.02,0.02,1.16,7, -0.10, FY+0.10, WVIS0+0.30, "#8a8274", 1.50, 0.7, 0);  // broom
+    m.P("fabric", boxGeo(0.22,0.06,0.20,0.5), -0.02, FY+0.09, WVIS0+0.62, 0.7, "#9a9482", 0, 0);
+    m.C("bin", 0.19,0.16,0.30,12, -4.05, FY+0.15, WVIS1-0.34, "#7f8a86", 0, 0, 0.10);    // pail
+    for(let i=0;i<5;i++)                                                                  // bottle crate
+      m.C("glass", 0.036,0.036,0.22,9, 0.92+((i%3)*0.09), FY+0.11, WVIS1-0.52+((i/3)|0)*0.09,
+          "#5f7a4a", 0, 0, 0);
+    m.P("weathered", boxGeo(0.34,0.24,0.28,0.5), 0.95, FY+0.12, WVIS1-0.48, 0.15, "#8a6a42", 0, 0);
+    // the bed end: bedding half off it, a case, a photograph face down
+    m.P("fabric", boxGeo(1.18,0.10,0.92,0.5), 3.40, FY+0.50, -0.55, 0.1, "#8e8266", 0.10, 0.05);
+    m.P("fabric", boxGeo(0.62,0.09,0.70,0.5), 2.90, FY+0.07, -0.72, 0.5, "#8e8266", 0.03, 0.02);
+    m.P("weathered", boxGeo(0.54,0.16,0.38,0.5), 4.05, FY+0.09, WVIS1-0.36, 0.25, "#7a6850", 0, 0.03);
+    m.P("oak", boxGeo(0.20,0.02,0.26,0.5), 2.72, FY+0.03, 0.62, 0.9, "#6f6048", -Math.PI/2, 0);
+    // stains: water down the panelling, soot where a heater was
+    for(const st of [[-2.30,WVIS0+0.02,0],[2.05,WVIS1-0.02,Math.PI],[3.95,WVIS0+0.02,0]])
+      m.P("soot", planeGeo(0.80,1.30,0), st[0], FY+1.05, st[1], st[2], "#6a5a3a", 0, 0);
+    m.P("soot", planeGeo(1.60,0.90,0), 0.20, RY-0.11, -0.20, 0, "#5a4a30", -Math.PI/2, 0);
+
+    /* ---- and outside --------------------------------------------------- */
+    // the aerial that never got taken down
+    m.C("teal", 0.035,0.035,1.60,8, 2.60, RY+0.86, -0.90, "#9aa1a4");
+    for(let i=0;i<7;i++){
+      const w=0.86-i*0.09;
+      m.B("teal", 0.02,0.02,w, 2.60, RY+0.34+i*0.20, -0.90, 0, 0, "#9aa1a4");
+    }
+    // a window unit that quit, and the bracket under it
+    m.B("weathered", 0.62,0.42,0.38, -0.75, FY+1.16, ZS+0.16, 0.4, 0, "#b6ae9a");
+    m.B("teal", 0.56,0.03,0.30, -0.75, FY+0.93, ZS+0.16, 0, 0, "#8d9498");
+    for(let i=0;i<6;i++) m.B("teal", 0.50,0.02,0.02, -0.75, FY+1.02+i*0.055, ZS+0.34, 0, 0, "#79807f");
+    // a handrail beside the step
+    m.C("teal", 0.030,0.030,1.15,8, 1.62, 0.58, ZS+0.52, "#8a8274");
+    m.C("teal", 0.030,0.030,0.72,8, 1.62, 1.10, ZS+0.22, "#8a8274", 0, 0, 1.25);
+    // a barbecue, a jerry can, a stack of tyres, a bowl on a chain
+    m.C("weathered", 0.26,0.26,0.20,14, 4.60, 0.62, ZS+1.10, "#6e6862");
+    for(let i=0;i<3;i++) m.C("teal", 0.02,0.02,0.56,6, 4.60+Math.cos(i*2.1)*0.20, 0.28,
+                             ZS+1.10+Math.sin(i*2.1)*0.20, "#6e6a62", 0.18, i*2.1, 0.12);
+    m.B("weathered", 0.24,0.36,0.16, 5.40, 0.18, ZS+0.55, 0.4, 0.3, "#8a6a3a");
+    for(let i=0;i<3;i++)
+      m.C("tyre", 0.33,0.33,0.19,14, -4.10, 0.10+i*0.19, ZS+1.30, "#1b1914");
+    push("plaster", new T.CylinderGeometry(0.13,0.10,0.07,14), OX+3.10, m.y+0.04, OZ+ZS+1.60,
+         0, new T.Color("#b9b2a2"));
+    // stepping stones from the track to the step
+    for(let i=0;i<6;i++)
+      m.P("concrete", boxGeo(0.42,0.06,0.40,0.5), 2.15+Math.sin(i*1.4)*0.55, 0.03,
+          ZS+1.35+i*0.95, i*0.5, "#a09888", 0, 0);
+    // the skirting torn open, and what has got in under there
+    m.P("siding", boxGeo(0.90,0.52,0.05,0.55), -1.30, 0.30, ZN-0.16, 0.25, "#b0a793", 0.12, 0.30);
+    for(let i=0;i<5;i++)
+      m.P("paper", planeGeo(0.18,0.25,0), rr2(-4.0,4.0), 0.02, ZN-rr2(0.5,1.9),
+          rr2(0,6.28), "#ffffff", -Math.PI/2, 0);
+    // sand banked up the shaded side, and a drift across the north skirt
+    m.P("gravel", boxGeo(7.40,0.34,1.10,0.4), -0.40, 0.10, ZN-0.52, 0, "#c0a87e", 0, 0.02);
+    // a plate nailed to the end wall, and the number the mail came to
+    m.P("paint", planeGeo(0.30,0.16,0), -L/2-0.06, FY+1.30, -0.35, -Math.PI/2, "#c8c2ae", 0, 0);
+    m.P("paint", planeGeo(0.34,0.12,0), 7.2, 1.30, ZS+0.30, 0, "#d8d2be", 0, 0);
+
     m.rect(-9, 11, -6, 7, "SOMEBODY'S TRAILER");
   })();
 })();
@@ -4659,6 +5220,16 @@ bucketOf("bedding", ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.
 bucketOf("clockled",()=>glowMat({color:0xffffff, emissive:0xff5a2a, emissiveIntensity:0.9}, "warm"));
 bucketOf("neonbox", ()=>glowMat({color:0xffffff, emissive:0xff3a2a, emissiveIntensity:0.5}, "warm"));
 bucketOf("fabric",  ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.96}));
+// Boulders were flat-shaded dodecahedra in the foliage bucket — twelve faces
+// and one colour. They get their own stone map, and enough facets to read as
+// rock rather than as dice.
+bucketOf("rock",    ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.rock,
+                          roughness:0.97, metalness:0.0, flatShading:true}));
+bucketOf("brick",   ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.brick, roughness:0.95}));
+bucketOf("plank",   ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.plank, roughness:0.72}));
+bucketOf("baize",   ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.98}));
+bucketOf("posters", ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.posters,
+                          roughness:0.92, side:T.DoubleSide}));
 bucketOf("paper",   ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.paper,
                           roughness:0.97, side:T.DoubleSide}));
 bucketOf("siding",  ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.siding,
@@ -4908,11 +5479,27 @@ dom.addEventListener("touchmove",e=>{
 /* --- doors ------------------------------------------------------------ */
 let nearestDoor=null;
 let seated=null, nearestSeat=null, sitGuard=false;
+// Getting up used to try one spot — straight ahead, tested at seat height —
+// and if that was blocked it left you standing inside the chair with every
+// direction blocked, which is what "stuck" was. Now it fans out from the way
+// you were facing, at three distances, and tests each candidate standing on
+// the floor rather than sitting on the cushion.
 function standUp(){
   if(!seated) return;
-  const nx=seated.x - Math.sin(seated.yaw)*0.85, nz=seated.z - Math.cos(seated.yaw)*0.85;
-  if(!blocked(nx,nz,seated.y)){ player.pos.x=nx; player.pos.z=nz; }
-  player.feetY=surfaceY(player.pos.x, player.pos.z, seated.y+0.6);
+  const s=seated, base=surfaceY(s.x, s.z, s.y);
+  let stood=false;
+  for(const d of [0.95, 1.35, 0.65]){
+    for(let k=0;k<13;k++){
+      const a=s.yaw + ((k%2)?1:-1)*Math.ceil(k/2)*0.52;
+      const nx=s.x - Math.sin(a)*d, nz=s.z - Math.cos(a)*d;
+      const fy=surfaceY(nx, nz, base+0.45);
+      if(Math.abs(fy-base)<0.9 && !blocked(nx, nz, fy)){
+        player.pos.x=nx; player.pos.z=nz; player.feetY=fy; stood=true; break;
+      }
+    }
+    if(stood) break;
+  }
+  if(!stood) player.feetY=base;          // nowhere to go: at least stand up
   seated=null; sitGuard=false;
 }
 function updateSeats(){
@@ -4973,7 +5560,7 @@ function updateDoors(dt){
   if(seated) bits.push("C  ·  STAND UP");
   else{
     if(nearestSeat) bits.push("C  ·  SIT  ·  "+nearestSeat.label);
-    if(best) bits.push("E  ·  "+(best.label==="OFFICE" ? "OFFICE" : "ROOM "+best.label));
+    if(best) bits.push("E  ·  "+(best.label.length>3 ? best.label : "ROOM "+best.label));
   }
   if(bits.length){ el.textContent=bits.join("      "); el.classList.add("show"); }
   else el.classList.remove("show");
@@ -5039,7 +5626,7 @@ const drone=(function(){
   const body=new T.Mesh(new T.BoxGeometry(0.30,0.12,0.42), bodyMat); g.add(body);
   const nose=new T.Mesh(new T.SphereGeometry(0.055,10,8),
                         mat(0x0a0a0a,{roughness:0.25,metalness:0.3}));
-  nose.position.set(0,-0.03,-0.23); g.add(nose);   // nose points the way it flies
+  nose.position.set(0,-0.03,0.23); g.add(nose);    // the camera looks over its tail
   for(const rotY of [Math.PI/4,-Math.PI/4]){
     const arm=new T.Mesh(new T.BoxGeometry(0.05,0.04,0.86), bodyMat);
     arm.rotation.y=rotY; g.add(arm);
@@ -5069,38 +5656,46 @@ function setDrone(on){
     if(seated) standUp();
     view="fp";
     dronePos.set(player.pos.x, player.feetY+6, player.pos.z); droneVel.set(0,0,0);
-    droneYaw=player.yaw; dronePitch=0.5; droneTiltX=0; droneTiltZ=0;
+    // the chase camera looks along +(sin,cos) — the opposite of the way you
+    // walk — so the drone's yaw is your yaw turned round. Take off looking
+    // where you were already looking.
+    droneYaw=player.yaw+Math.PI; dronePitch=0.5; droneTiltX=0; droneTiltZ=0;
     camera.position.set(dronePos.x-Math.sin(droneYaw)*3.5, dronePos.y+2.2,
                         dronePos.z-Math.cos(droneYaw)*3.5);
     document.getElementById("prompt").classList.remove("show");
     toast("DRONE  ·  WASD FLY  ·  SPACE UP  ·  SHIFT DOWN  ·  F TO LAND","#6fe3ff");
   }else{
-    player.yaw=droneYaw;
+    player.yaw=droneYaw+Math.PI;
     toast("BACK ON YOUR FEET","#ffb324");
   }
 }
 function droneUpdate(dt){
   const sy=Math.sin(droneYaw), cy=Math.cos(droneYaw);
   let ax=0, az=0, ay=0;
-  if(keys.KeyW||keys.ArrowUp)    { ax-=sy; az-=cy; }
-  if(keys.KeyS||keys.ArrowDown)  { ax+=sy; az+=cy; }
+  // W is the way the camera is pointing, which is +(sin,cos) — the chase view
+  // sits behind the drone, so this is forward on the screen.
+  if(keys.KeyW||keys.ArrowUp)    { ax+=sy; az+=cy; }
+  if(keys.KeyS||keys.ArrowDown)  { ax-=sy; az-=cy; }
   if(keys.KeyD||keys.ArrowRight) { ax+=cy; az-=sy; }
   if(keys.KeyA||keys.ArrowLeft)  { ax-=cy; az+=sy; }
   if(keys.Space) ay+=1;
   if(keys.ShiftLeft||keys.ShiftRight) ay-=1;
-  const accel=16;
-  droneVel.x+=ax*accel*dt; droneVel.z+=az*accel*dt; droneVel.y+=ay*accel*dt;
-  droneVel.multiplyScalar(Math.max(0, 1-4.0*dt));                     // air drag
+  // The point of it is to get somewhere. Drag caps the speed at accel/drag,
+  // so 62 against 2.3 settles around 27 m/s — nine times walking pace, and
+  // the far side of the desert in half a minute.
+  const accel=62, ACCEL_Y=34;
+  droneVel.x+=ax*accel*dt; droneVel.z+=az*accel*dt; droneVel.y+=ay*ACCEL_Y*dt;
+  droneVel.multiplyScalar(Math.max(0, 1-2.3*dt));                     // air drag
   dronePos.x+=droneVel.x*dt; dronePos.y+=droneVel.y*dt; dronePos.z+=droneVel.z*dt;
   dronePos.x=clamp(dronePos.x, -1400, 1400);
   dronePos.z=clamp(dronePos.z, -1400, 1400);
   const deck=surfaceY(dronePos.x, dronePos.z, dronePos.y)+0.30;
   if(dronePos.y<deck){ dronePos.y=deck; if(droneVel.y<0) droneVel.y=0; }
   if(dronePos.y>DRONE_CEIL){ dronePos.y=DRONE_CEIL; if(droneVel.y>0) droneVel.y=0; }
-  const localF=-(droneVel.x*sy+droneVel.z*cy),                   // lean into motion
-        localR=  droneVel.x*cy-droneVel.z*sy;
-  droneTiltX += (-localF*0.045 - droneTiltX)*Math.min(1,dt*6);
-  droneTiltZ += ( localR*0.045 - droneTiltZ)*Math.min(1,dt*6);
+  const localF=droneVel.x*sy+droneVel.z*cy,                      // lean into motion
+        localR=droneVel.x*cy-droneVel.z*sy;
+  droneTiltX += (-localF*0.013 - droneTiltX)*Math.min(1,dt*6);
+  droneTiltZ += ( localR*0.013 - droneTiltZ)*Math.min(1,dt*6);
 }
 
 /* ----------------------------------------------------------------------
@@ -5146,7 +5741,7 @@ function toast(text,color){
 }
 function updateHUD(){
   // the camera looks down -Z at yaw 0, so -Z reads as north and +X as east
-  let deg=(-(droneMode?droneYaw:player.yaw)*180/Math.PI)%360; if(deg<0) deg+=360;
+  let deg=(-(droneMode?droneYaw+Math.PI:player.yaw)*180/Math.PI)%360; if(deg<0) deg+=360;
   hud.hdg.textContent=Math.round(deg).toString().padStart(3,"0");
   hud.card.textContent=CARD[Math.round(deg/45)%8];
   hud.rose.setAttribute("transform","rotate("+(-deg)+" 100 100)");
@@ -5513,7 +6108,9 @@ function frame(){
     drone.position.set(dronePos.x, dronePos.y, dronePos.z);
     drone.rotation.set(droneTiltX, droneYaw, droneTiltZ);
     for(const r of drone.userData.rotors) r.rotation.y += delta*55;   // spinning blades
-    const horiz=3.6*Math.cos(dronePitch), camY=0.7+3.2*Math.sin(dronePitch);
+    // it pulls back a little as it picks up speed, the way a chase cam should
+    const sp2=Math.min(1, Math.hypot(droneVel.x,droneVel.z)/26);
+    const horiz=(3.6+sp2*2.9)*Math.cos(dronePitch), camY=0.7+(3.2+sp2*1.4)*Math.sin(dronePitch);
     _dtmp.set(dronePos.x-Math.sin(droneYaw)*horiz, dronePos.y+camY,
               dronePos.z-Math.cos(droneYaw)*horiz);
     camera.position.lerp(_dtmp, Math.min(1, delta*9));                // smooth chase
@@ -5641,11 +6238,15 @@ function frame(){
     for(let i=0;i<BALLOONS.length;i++){
       const b2=BALLOONS[i];
       b2.s.position.x += b2.sp*delta;
-      if(b2.s.position.x>9000) b2.s.position.x=-9000;
-      b2.s.position.y += Math.sin(now*0.07+b2.ph)*delta*1.6;
-      b2.s.visible = show>0.01;
-      b2.s.material.opacity = show*0.95;
-      b2.s.material.color.copy(skyImg.mid).lerp(WHITE_C, 0.82);
+      if(b2.s.position.x> 2400) b2.s.position.x=-2400;
+      b2.s.position.y += Math.sin(now*0.07+b2.ph)*delta*0.9;
+      // they sit in the same haze as the mountains behind them, or they read
+      // as decals pasted on the sky
+      const d2=b2.s.position.distanceTo(camera.position);
+      const haze=clamp((d2-scene.fog.near)/Math.max(1,(scene.fog.far*1.35-scene.fog.near)),0,1);
+      b2.s.visible = show>0.01 && haze<0.97;
+      b2.s.material.opacity = show*0.95*(1-haze*0.80);
+      b2.s.material.color.copy(skyImg.mid).lerp(WHITE_C, 0.82).lerp(scene.fog.color, haze*0.72);
     }
   }
   updateTraffic(delta, dark);
@@ -5710,6 +6311,8 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                gifDecode:gifDecode, gifFrames:gifFrames,
                seats:SEATS, geckos:GECKOS, seatedNow:()=>!!seated, sit:sitToggle,
                drone:setDrone, dronePos:dronePos, droneOn:()=>droneMode,
+               droneSet:(x,y,z,yaw,pitch)=>{ dronePos.set(x,y,z); droneVel.set(0,0,0);
+                 droneYaw=yaw; if(pitch!==undefined) dronePitch=pitch; },
                droneStep:droneUpdate,
                press:(c)=>{ keys[c]=true; interact(); keys[c]=false; },
                testGif:(u)=>{ IMAGES['tv:0']=u;

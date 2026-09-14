@@ -2059,7 +2059,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
 /* --- desert dressing: cacti, sage, rocks, poles ------------------------ */
 (function scatterDesert(){
   const inLot=(x,z)=>(x>LOT.x0-8&&x<LOT.x1+8&&z>ROADZ-14&&z<LOT.z1+8) ||
-                     (x>-99&&x<-50&&z>-42&&z<-5);          // and the bar's lot
+                     (x>-99&&x<-50&&z>-42&&z<27);          // and the bar's lot
   // Nothing grows on the highway, and nothing rolls onto it either. The lot
   // test only covers the motel's own frontage; the road runs out to the edge
   // of the world, so the carriageway, both shoulders and the walk need their

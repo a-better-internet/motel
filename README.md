@@ -44,6 +44,21 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   New Mexico, an aerial photograph of the property, a cork board of curling
   notices and a clock that stopped at 3:47 — all drawn in canvas like every
   other texture in the scene.
+- **The Rusty Canteen**, a dive bar on the next lot west — a separate
+  business, fenced off from the motel's asphalt, with its own parking, its own
+  pole sign out by the road and a neon BEER ON TAP in the window. It is about
+  twice the size of the office: a brick roadhouse, twenty-one metres by
+  fifteen, and you let yourself in the front door like any other building.
+  Inside is a board floor, brick walls and a low ceiling on exposed joists: an
+  L of bar down the east side with a brass foot rail, six taps, a till, glasses
+  drying and four shelves of bottles behind it; seventeen stools you can sit on;
+  a pool table racked and waiting under two low pendants, with a cue rack on the
+  wall; three high-backed booths down the west wall, each with a table and
+  somebody's glasses still on it; four loose tables with chairs; a dartboard
+  with the throw line scuffed into the boards; a jukebox; a screen nobody is
+  watching; and eight gig posters that went up and never came down — all six
+  designs drawn in canvas onto one sheet, so the whole wall of them is a single
+  draw call.
 - **The pool**: a real tank with a sloped floor, waterline tile, bullnosed
   coping that laps out over the water, walk-in steps at the shallow end and a
   deep-end ladder you can climb out on. Loungers line the south deck, reclined
@@ -87,6 +102,11 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   with it — and the whole floor under paper. Sixty-odd sheets of it drifted
   into the corners, magazines gone to pulp, cans, bottles, a hand of playing
   cards, glass under the window that went, and sand blown in through the door.
+- **Hot-air balloons** off in the distance once you have walked away from the
+  motel — real size now, about nineteen metres across and twenty-six tall,
+  flying at a hundred to three hundred metres and seven hundred to eighteen
+  hundred metres out, so they sit a degree or so wide and take the same haze as
+  the mountains behind them.
 - **Wind.** Three slow beats multiplied together, so mostly it is calm and then
   every couple of minutes a gust comes through for half a minute. Everything
   loose reads off it: the tumbleweeds run, litter comes loose more often, the
@@ -97,7 +117,11 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   point in both directions — its corridor is graded flat to the edge of the
   world and the badlands and buttes it crosses are cut away either side of it,
   so it recedes into the haze instead of stopping in mid-desert — with power
-  poles and sagging wires marching out with it, saguaro and creosote, boulders,
+  poles and sagging wires marching out with it, saguaro drawn as a fluted
+  column with a domed crown and elbowed arms rather than a capped tube, barrel
+  cactus, creosote, and boulders that are icosahedra with every vertex pushed
+  in or out under a drawn stone map, so no two are the same lump — and none of
+  it on the carriageway,
   and tumbleweeds grown the way a Russian
   thistle actually grows — nine stems out of the crown, each kinking and forking
   twice more, so the silhouette is ragged and no two are alike. They wander
@@ -212,6 +236,7 @@ costs nothing in performance.
 | Open door / use | `E` or `Space` |
 | Sit down / stand up | `C` |
 | Drone mode | `F` — then `WASD` to fly, `Space` up, `Shift` down |
+| | it tops out near 27 m/s, nine times walking pace |
 | Zoom | mouse wheel (45°–95°) |
 | Nightfall / midday | `N` / `M` |
 | Scrub time | `[` `]` |

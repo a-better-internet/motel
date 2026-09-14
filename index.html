@@ -1093,7 +1093,7 @@ TEX.posters=(function(){
       x.fillText(line, ox+CW/2, oy+CH*(0.30+k*0.21));
     });
     x.font="700 "+Math.round(CH*0.058)+"px 'JetBrains Mono', monospace";
-    x.fillText("THE RUSTY CANTEEN", ox+CW/2, oy+CH*0.90);
+    x.fillText("The Rusty Canteen", ox+CW/2, oy+CH*0.90);
     x.globalAlpha=0.5; x.fillRect(ox+CW*0.18, oy+CH*0.94, CW*0.64, 2); x.globalAlpha=1;
     for(let k=0;k<70;k++){                    // sun and cigarettes
       x.fillStyle="rgba(0,0,0,"+(Math.random()*0.10).toFixed(3)+")";
@@ -1637,20 +1637,22 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
     const big=Math.max(t.tower, t.spread*0.8);
     const sc=240+big*1250+Math.random()*260;
     sp.scale.set(sc, sc*t.aspect, 1);
-    const zMin=420+big*1500, zMax=zMin+900+big*1700;
-    sp.position.set((Math.random()*2-1)*4600,
-                    600+big*760+Math.random()*420,
-                    (Math.random()<0.5?-1:1)*(zMin+Math.random()*(zMax-zMin)));
-    scene.add(sp); CLOUDS.push({s:sp, sp:1.2+Math.random()*1.8});
+    const zMin=420+big*820, zMax=zMin+700+big*900;
+    const oz=(Math.random()<0.5?-1:1)*(zMin+Math.random()*(zMax-zMin));
+    sp.position.set((Math.random()*2-1)*2100, 600+big*760+Math.random()*420, oz);
+    // They are pinned to the camera in x and z. Loose in the world they drifted
+    // past the 2400 m sky dome and the far plane and vanished mid-sky; at this
+    // altitude and distance the parallax you lose by pinning them is nothing.
+    scene.add(sp); CLOUDS.push({s:sp, sp:1.2+Math.random()*1.8, ox:sp.position.x, oz:oz});
   }
   for(let i=0;i<10;i++){
     const m=new T.SpriteMaterial({map:cirrusTex(i*53+9), transparent:true, depthWrite:false,
       fog:false, opacity:0.0});
     const sp=new T.Sprite(m), sc=1400+Math.random()*900;
     sp.scale.set(sc, sc*0.25, 1);
-    sp.position.set((Math.random()*2-1)*5400, 2200+Math.random()*900,
-                    (Math.random()<0.5?-1:1)*(900+Math.random()*3200));
-    scene.add(sp); CIRRUS.push({s:sp, sp:0.9+Math.random()*0.8});
+    const oz=(Math.random()<0.5?-1:1)*(700+Math.random()*1500);
+    sp.position.set((Math.random()*2-1)*2200, 2200+Math.random()*900, oz);
+    scene.add(sp); CIRRUS.push({s:sp, sp:0.9+Math.random()*0.8, ox:sp.position.x, oz:oz});
   }
   /* --- balloons ---------------------------------------------------------
      They were four to nine kilometres out and three hundred metres tall,
@@ -1926,7 +1928,19 @@ function addFlat(x0,x1,z0,z1,y){ SURF.push({flat:true,x0:x0,x1:x1,z0:z0,z1:z1,y:
 function addRamp(x0,x1,z0,z1,axis,a0,a1,y0,y1){
   SURF.push({flat:false,x0:x0,x1:x1,z0:z0,z1:z1,axis:axis,a0:a0,a1:a1,y0:y0,y1:y1});
 }
-function addZone(x0,x1,z0,z1,y0,y1,name){ ZONES.push({x0:x0,x1:x1,z0:z0,z1:z1,y0:y0,y1:y1,name:name}); }
+// `indoor` marks a volume that has a roof on it. Blown sand and lot dust are
+// drawn as a field around the camera with no idea what it is standing in, so
+// without this the storm came inside with you.
+function addZone(x0,x1,z0,z1,y0,y1,name,indoor){
+  ZONES.push({x0:x0,x1:x1,z0:z0,z1:z1,y0:y0,y1:y1,name:name,indoor:!!indoor});
+}
+function indoorsAt(x,z,y){
+  for(let i=0;i<ZONES.length;i++){
+    const q=ZONES[i];
+    if(q.indoor && x>q.x0&&x<q.x1&&z>q.z0&&z<q.z1&&y>=q.y0&&y<q.y1) return true;
+  }
+  return false;
+}
 
 const PAVED={x0:LOT.x0, x1:LOT.x1, z0:ROADZ+4.5, z1:LOT.z1};
 // pool basin profile — the ground itself dips inside the tank
@@ -2137,16 +2151,23 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   }
   // rocks: an icosahedron with every vertex pushed in or out, so no two are
   // the same lump, and a stone map over the top of it
+  // IcosahedronGeometry is NOT indexed — every triangle carries its own copy
+  // of each corner. The first version looked up a shared radial factor but
+  // then multiplied Y by a SECOND random factor drawn per copy, so the three
+  // copies of a corner went to three different places and the rock came apart
+  // into shards with gaps between them. Both factors are shared now, and the
+  // squash is per-rock rather than per-vertex.
   function rockGeo(s, seed){
     const g=new T.IcosahedronGeometry(s, 1), pos=g.attributes.position;
     let sd2=seed*9301+4;
     const r3=()=>{ sd2=(sd2*9301+49297)%233280; return sd2/233280; };
+    const squash=0.62+r3()*0.34;                // one rock, one profile
     const seen=new Map();
     for(let i=0;i<pos.count;i++){
-      const kx=pos.getX(i).toFixed(4)+","+pos.getY(i).toFixed(4)+","+pos.getZ(i).toFixed(4);
-      let f=seen.get(kx);                       // shared vertices move together
-      if(f===undefined){ f=0.72+r3()*0.52; seen.set(kx,f); }
-      pos.setXYZ(i, pos.getX(i)*f, pos.getY(i)*f*(0.62+r3()*0.30), pos.getZ(i)*f);
+      const k=pos.getX(i).toFixed(3)+","+pos.getY(i).toFixed(3)+","+pos.getZ(i).toFixed(3);
+      let f=seen.get(k);
+      if(f===undefined){ f=0.76+r3()*0.44; seen.set(k,f); }
+      pos.setXYZ(i, pos.getX(i)*f, pos.getY(i)*f*squash, pos.getZ(i)*f);
     }
     pos.needsUpdate=true; g.computeVertexNormals();
     return g;
@@ -2230,9 +2251,10 @@ function lflat(xf, lx0,lx1,lz0,lz1, y){
   const a=[xf.x(lx0,lz0),xf.z(lx0,lz0)], b=[xf.x(lx1,lz1),xf.z(lx1,lz1)];
   addFlat(Math.min(a[0],b[0]),Math.max(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[1],b[1]), y);
 }
-function lzone(xf, lx0,lx1,lz0,lz1, y0,y1, name){
+function lzone(xf, lx0,lx1,lz0,lz1, y0,y1, name, indoor){
   const a=[xf.x(lx0,lz0),xf.z(lx0,lz0)], b=[xf.x(lx1,lz1),xf.z(lx1,lz1)];
-  addZone(Math.min(a[0],b[0]),Math.max(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[1],b[1]), y0,y1, name);
+  addZone(Math.min(a[0],b[0]),Math.max(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[1],b[1]),
+          y0,y1, name, indoor);
 }
 
 /* --- door leaf: its own little merged mesh so it can swing ------------- */
@@ -2380,7 +2402,7 @@ function buildBay(xf, level, kind, roomNo, lit){
       // a couple of paper cups that never made the bin
       AP("bin", new T.CylinderGeometry(0.042,0.034,0.09,10), 1.12, y0+0.045, 2.40, "#efeee6", 0.6, 0.2);
       AP("bin", new T.CylinderGeometry(0.042,0.034,0.09,10), -1.40, y0+0.045, 1.60, "#e6e2d2", 1.2, 0.5);
-      lzone(xf,-2.6,2.6, 0.0,6.6, y0-0.5, y0+2.4, "ICE & VENDING");
+      lzone(xf,-2.6,2.6, 0.0,6.6, y0-0.5, y0+2.4, "ICE & VENDING", true);
       LAMPS.push({x:xf.x(-0.4,5.4), y:y0+2.30, z:xf.z(-0.4,5.4), color:0xbfe9ff,
                   intensity:0.55, dist:10, decay:1.4, indoor:true});
     }else{
@@ -2450,7 +2472,7 @@ function buildBay(xf, level, kind, roomNo, lit){
       for(const d2 of [[-0.16,-0.16],[0.16,-0.16],[-0.16,0.16],[0.16,0.16]])
         A("metal", 0.04,0.44,0.04, 1.90+d2[0], 0.22, 2.20+d2[1], 0, "#8f9aa0");
       AC(0.46,0.50, 1.90,2.28, 0.9);
-      lzone(xf,-2.6,2.6, 0.0,6.6, y0-0.5, y0+2.4, "GUEST LAUNDRY");
+      lzone(xf,-2.6,2.6, 0.0,6.6, y0-0.5, y0+2.4, "GUEST LAUNDRY", true);
       LAMPS.push({x:xf.x(0.2,5.4), y:y0+2.30, z:xf.z(0.2,5.4), color:0xdff0ff,
                   intensity:0.50, dist:10, decay:1.4, indoor:true, flicker:true});
     }
@@ -2537,7 +2559,7 @@ function buildBay(xf, level, kind, roomNo, lit){
   lbx(xf,"carpet", 5.40,0.04,6.42, 0, y0+0.02, 3.41, 0.5, pal.carpet);
   lbx(xf,"ceil", 5.44,0.08,6.46, 0, y0+ROOM_H, 3.40, 0.45, "#efe6d2");
   lflat(xf, -2.7,2.7, -0.05,6.60, y0);
-  lzone(xf, -2.6,2.6, 0.30,6.55, y0-0.5, y0+2.4, "ROOM "+roomNo);
+  lzone(xf, -2.6,2.6, 0.30,6.55, y0-0.5, y0+2.4, "ROOM "+roomNo, true);
   ROOMS.push({no:roomNo, x:xf.x(0,3.4), z:xf.z(0,3.4), y:y0, lit:lit, level:level});
   LAMPS.push({x:xf.x(0,2.60), y:y0+ROOM_H-0.34, z:xf.z(0,2.60), color:0xffe2b4,
               intensity:0.58, dist:13, decay:1.15, indoor:true});
@@ -2638,7 +2660,7 @@ function furnishRoom(xf, y0, roomNo){
   B("paint",0.30,0.09,0.24, 1.90, 0.96, 6.30, 0, "#e4e2d6");
   B("paint",0.68,0.03,0.46, 1.20, 0.05, 5.44, 0, "#c8bda4");                 // bath mat
   B("paint",0.09,0.04,0.06, vaX+0.32, 0.83, vaZ-0.06, 0, "#e6d9a8");
-  lzone(xf, 0.20,2.66, 4.50,6.55, y0-0.5, y0+2.4, "ROOM "+roomNo+" · BATH");
+  lzone(xf, 0.20,2.66, 4.50,6.55, y0-0.5, y0+2.4, "ROOM "+roomNo+" · BATH", true);
 
   /* --- one queen, headboard against the right-hand wall ---------------- */
   const bz=2.50;
@@ -3397,7 +3419,7 @@ let waterGeo=null, waterMesh=null;
   bx("concrete", w+1.8, 0.32, d+1.8, cx, y0-0.16, cz, 0.45, 0, "#b6afa0");
   addFlat(O.x0-0.9,O.x1+0.9,O.z0-0.9,O.z1+0.9, y0);
   bx("lino", w-0.4, 0.04, d-0.4, cx, y0+0.02, cz, 0.85, 0, "#c4baa2");
-  addZone(O.x0,O.x1,O.z0,O.z1, y0-0.5, y0+3.0, "FRONT DESK OFFICE");
+  addZone(O.x0,O.x1,O.z0,O.z1, y0-0.5, y0+3.0, "FRONT DESK OFFICE", true);
 
   const glazeX0=O.x0+3.4, glazeX1=O.x1-1.2, doorZ0=cz-0.5, doorZ1=cz+0.5;
   // north / west solid walls
@@ -3934,6 +3956,16 @@ function fitText(x, str, maxW, size, cx, cy){
   while(x.measureText(str).width>maxW && s>6);
   x.fillText(str, cx, cy);
 }
+// The bar's own hand: a serif, set in title case, and never allowed to come
+// closer than its own padding to the edge of the board it is painted on.
+function fitSerif(x, str, maxW, size, cx, cy, weight){
+  x.textAlign="center"; x.textBaseline="middle";
+  let s=size;
+  do{ x.font=(weight||"700")+" "+s+"px Georgia, 'Times New Roman', Times, serif"; s-=1; }
+  while(x.measureText(str).width>maxW && s>6);
+  x.fillText(str, cx, cy);
+  return s+1;
+}
 function signTex(w,h,draw){
   const c=cvs(w,h), x=c.getContext("2d");
   draw(x,w,h);
@@ -4092,18 +4124,25 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   // on FY and fighting over it, which is why the floor came out white
   bx("concrete", X1-X0+1.4, 0.34, Z1-Z0+1.4, (X0+X1)/2, FY-0.27, (Z0+Z1)/2, 0.45, 0, "#9b948a");
   addFlat(X0-0.7, X1+0.7, Z0-0.7, Z1+0.7, FY);
-  // north wall, with the door and two high windows
+  // North wall, in three bands so the windows are holes in the MIDDLE band
+  // only. The first version cut the whole 2.42 m lower band away at every
+  // window, which left the wall open from the floor up — that is where the
+  // light and the blown sand were getting in.
   const WINN=[[-85.9,-84.3],[-72.6,-71.0]];
-  for(const g of segs(X0, X1, [[DHX0,DHX1]].concat(WINN).sort((a,b)=>a[0]-b[0]))){
-    // below the window band
-    bx("brick", g[1]-g[0], 2.42, T2, (g[0]+g[1])/2, FY+1.21, Z0+T2/2, 0.42, 0, BRICKC);
-  }
-  for(const g of segs(X0, X1, [[DHX0,DHX1]])){
-    bx("brick", g[1]-g[0], 1.78, T2, (g[0]+g[1])/2, FY+3.31, Z0+T2/2, 0.42, 0, BRICKC);
-  }
-  bx("brick", DOORW, H-2.24, T2, (DHX0+DHX1)/2, FY+2.24+(H-2.24)/2, Z0+T2/2, 0.42, 0, BRICKC);
-  for(const w of WINN){                                   // glass block, grimy
-    bx("breeze", w[1]-w[0], 1.10, 0.10, (w[0]+w[1])/2, FY+1.72, Z0+T2/2, 0.5, 0, "#8e9a94");
+  const WSILL=FY+1.17, WHEAD=FY+2.27, DOORTOP=FY+2.24;
+  const DOORH=[[DHX0,DHX1]];
+  const band3=(a0,a1,holes,y0,y1)=>{
+    for(const g of segs(a0,a1,holes))
+      bx("brick", g[1]-g[0], y1-y0, T2, (g[0]+g[1])/2, (y0+y1)/2, Z0+T2/2, 0.42, 0, BRICKC);
+  };
+  band3(X0, X1, DOORH, FY, WSILL);                                     // under the sills
+  band3(X0, X1, DOORH.concat(WINN).sort((a,b)=>a[0]-b[0]), WSILL, WHEAD);
+  band3(X0, X1, DOORH, WHEAD, TOPY);                                   // over the heads
+  bx("brick", DOORW, TOPY-DOORTOP, T2, (DHX0+DHX1)/2, (DOORTOP+TOPY)/2, Z0+T2/2,
+     0.42, 0, BRICKC);                                                 // and over the door
+  for(const w of WINN){                                   // glass block, filling the hole
+    bx("breeze", w[1]-w[0], WHEAD-WSILL, T2*0.62, (w[0]+w[1])/2, (WSILL+WHEAD)/2,
+       Z0+T2/2, 0.5, 0, "#8e9a94");
   }
   bx("brick", X1-X0, H, T2, (X0+X1)/2, CY, Z1-T2/2, 0.42, 0, BRICKC);            // south
   for(const sx of [X0+T2/2, X1-T2/2])                                            // ends
@@ -4133,18 +4172,26 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   makeDoor(XF(DHX0+0.03, Z0+0.05, 0), 0, FY+0.02, 0, "THE RUSTY CANTEEN", true);
 
   // ---- the sign, and the other one on a pole ---------------------------
-  const nameTex=signTex(1024, 232, (x,W,H2)=>{
+  const nameTex=signTex(1200, 300, (x,W,H2)=>{
+    const PAD=W*0.055;                            // the board's own margin
     x.fillStyle="#1b1614"; x.fillRect(0,0,W,H2);
-    x.strokeStyle="#caa23c"; x.lineWidth=7; x.strokeRect(9,9,W-18,H2-18);
-    x.fillStyle="#e8d9a6"; fitText(x,"THE RUSTY", W*0.74, H2*0.40, W/2, H2*0.40);
-    x.fillStyle="#c8432a"; fitText(x,"CANTEEN",  W*0.80, H2*0.40, W/2, H2*0.82);
+    x.strokeStyle="#caa23c"; x.lineWidth=6;
+    x.strokeRect(PAD*0.52, PAD*0.52, W-PAD*1.04, H2-PAD*1.04);
+    x.strokeStyle="rgba(202,162,60,0.42)"; x.lineWidth=2;
+    x.strokeRect(PAD*0.90, PAD*0.90, W-PAD*1.80, H2-PAD*1.80);
+    const inner=W-PAD*2.6;
+    x.fillStyle="#efe0b2"; fitSerif(x,"The Rusty", inner*0.80, H2*0.36, W/2, H2*0.365);
+    x.fillStyle="#d4573a"; fitSerif(x,"Canteen",   inner*0.86, H2*0.40, W/2, H2*0.715);
   });
   NEON.push(signPanel(7.4, 1.68, nameTex, (X0+X1)/2, FY+3.10, Z0-0.06, Math.PI, true));
   const smallTex=signTex(512, 256, (x,W,H2)=>{
     x.fillStyle="#141211"; x.fillRect(0,0,W,H2);
-    x.fillStyle="#e8d9a6"; fitText(x,"COLD BEER", W*0.80, H2*0.26, W/2, H2*0.30);
-    x.fillStyle="#7fd8c8"; fitText(x,"POOL · DARTS", W*0.80, H2*0.22, W/2, H2*0.58);
-    x.fillStyle="#c8432a"; fitText(x,"OPEN TIL 2", W*0.66, H2*0.20, W/2, H2*0.86);
+    x.strokeStyle="rgba(202,162,60,0.55)"; x.lineWidth=3;
+    x.strokeRect(11,11,W-22,H2-22);
+    const inner=W*0.76;
+    x.fillStyle="#efe0b2"; fitSerif(x,"Cold Beer",    inner, H2*0.22, W/2, H2*0.295);
+    x.fillStyle="#8fdfd0"; fitSerif(x,"Pool · Darts", inner, H2*0.19, W/2, H2*0.565);
+    x.fillStyle="#d4573a"; fitSerif(x,"Open Til Two", inner, H2*0.17, W/2, H2*0.825);
   });
   for(const px of [-94.0]){                               // the pole sign by the road
     bx("paint", 0.28, 5.6, 0.28, px, 2.8, -36.0, 0, 0, "#cfc8bc");
@@ -4158,8 +4205,9 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   // a beer sign in one window and a bare bulb over the door
   NEON.push(signPanel(1.30, 0.86, signTex(256,170,(x,W,H2)=>{
     x.fillStyle="#120f0e"; x.fillRect(0,0,W,H2);
-    x.fillStyle="#e0402a"; fitText(x,"BEER", W*0.74, H2*0.44, W/2, H2*0.48);
-    x.fillStyle="#7fd8c8"; fitText(x,"ON TAP", W*0.56, H2*0.24, W/2, H2*0.84);
+    x.strokeStyle="rgba(224,64,42,0.45)"; x.lineWidth=2; x.strokeRect(8,8,W-16,H2-16);
+    x.fillStyle="#e0402a"; fitSerif(x,"Beer",   W*0.60, H2*0.38, W/2, H2*0.44);
+    x.fillStyle="#8fdfd0"; fitSerif(x,"On Tap", W*0.48, H2*0.21, W/2, H2*0.80);
   }), -85.1, FY+1.72, Z0-0.02, Math.PI, true));
   push("ceilfix", new T.SphereGeometry(0.11,12,8), (DHX0+DHX1)/2, FY+2.50, Z0-0.34, 0, "#f2e9cf");
   LAMPS.push({x:(DHX0+DHX1)/2, y:FY+2.4, z:Z0-0.45, color:0xffd8a0, intensity:0.85,
@@ -4170,7 +4218,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   bx("ceil",  IX1-IX0, 0.10, IZ1-IZ0, (IX0+IX1)/2, TOPY-0.05, (IZ0+IZ1)/2, 0.4, 0, "#5a5048");
   for(let i=0;i<6;i++)                                    // ceiling joists
     bx("oak", IX1-IX0, 0.18, 0.16, (IX0+IX1)/2, TOPY-0.19, IZ0+1.3+i*2.4, 0.4, 0, "#4e4238");
-  addZone(IX0, IX1, IZ0, IZ1, 0, TOPY, "THE RUSTY CANTEEN");
+  addZone(IX0, IX1, IZ0, IZ1, 0, TOPY, "THE RUSTY CANTEEN", true);
 
   // ---- the bar: a long run down the east side with a return ------------
   const BX=IX1-2.20, BZ0=-27.4, BZ1=-16.9, BH2=1.16;     // counter front face / extent
@@ -4297,6 +4345,23 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   }
 
   // ---- loose tables in the middle of the room --------------------------
+  // One chair, built round the direction it faces. The back used to be a
+  // 0.42-wide box left thin on the z axis and then turned with the chair, so
+  // it ended up across the seat instead of behind it.
+  function chair(cxx, czz, a, tx, tz){
+    const ca=Math.cos(a), sa=Math.sin(a);
+    bx("oak", 0.44, 0.06, 0.44, cxx, FY+0.45, czz, 0.5, -a, "#5c4029");     // seat
+    bx("oak", 0.06, 0.52, 0.44, cxx+ca*0.19, FY+0.74, czz+sa*0.19, 0.5, -a, "#4a3526");
+    for(let i=0;i<2;i++)                                                     // back slats
+      bx("oak", 0.05, 0.05, 0.36, cxx+ca*0.16, FY+0.60+i*0.15, czz+sa*0.16, 0.5, -a, "#4a3526");
+    for(const c of [[-1,-1],[1,-1],[-1,1],[1,1]]){                           // legs, turned
+      const lx=cxx + (c[0]*0.17)*ca - (c[1]*0.17)*sa;
+      const lz=czz + (c[0]*0.17)*sa + (c[1]*0.17)*ca;
+      bx("metal", 0.035, 0.45, 0.035, lx, FY+0.22, lz, 0, 0, "#3a3632");
+    }
+    addCol(cxx-0.28, cxx+0.28, czz-0.28, czz+0.28, 0, FY+0.44);
+    addSeat(cxx, czz, FY+0.49, Math.atan2(cxx-tx, czz-tz), "A TABLE");       // facing in
+  }
   const TBL=[[-84.6,-24.4],[-84.2,-18.6],[-79.0,-17.2],[-76.0,-22.6]];
   for(let t=0;t<TBL.length;t++){
     const tx=TBL[t][0], tz=TBL[t][1];
@@ -4309,14 +4374,9 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     }
     push("ceilfix", new T.CylinderGeometry(0.035,0.035,0.09,10), tx, FY+0.82, tz-0.02, 0, "#f2e4c0");
     const ch=3+((t%2));
-    for(let k=0;k<ch;k++){                                  // chairs round it
-      const a=k*(6.283/ch)+t*0.7, cxx=tx+Math.cos(a)*0.86, czz=tz+Math.sin(a)*0.86;
-      bx("oak", 0.42,0.05,0.42, cxx, FY+0.45, czz, 0.5, -a, "#5c4029");
-      bx("oak", 0.42,0.50,0.05, cxx+Math.cos(a)*0.19, FY+0.72, czz+Math.sin(a)*0.19, 0.5, -a, "#4a3526");
-      for(const c of [[-1,-1],[1,-1],[-1,1],[1,1]])
-        bx("metal", 0.03,0.45,0.03, cxx+c[0]*0.16, FY+0.22, czz+c[1]*0.16, 0, 0, "#3a3632");
-      addSeat(cxx, czz, FY+0.48, Math.atan2(cxx-tx, czz-tz), "A TABLE");   // facing in
-    }
+    for(let k=0;k<ch;k++) chair(tx+Math.cos(k*(6.283/ch)+t*0.7)*0.86,
+                                tz+Math.sin(k*(6.283/ch)+t*0.7)*0.86,
+                                k*(6.283/ch)+t*0.7, tx, tz);
   }
 
   // ---- what is on the walls --------------------------------------------
@@ -4352,7 +4412,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     bx("tvglass", 0.70, 0.46, 0.04, jx, FY+1.08, jz-0.30, 0, 0, "#1b2226");
     NEON.push(signPanel(0.72, 0.16, signTex(256,64,(x,W,H2)=>{
       x.fillStyle="#120f0e"; x.fillRect(0,0,W,H2);
-      x.fillStyle="#f0b83a"; fitText(x,"SELECT", W*0.7, H2*0.66, W/2, H2*0.74);
+      x.fillStyle="#f0b83a"; fitSerif(x,"Make Your Selection", W*0.78, H2*0.56, W/2, H2*0.56);
     }), jx, FY+1.38, jz-0.31, 0, true));
     addCol(jx-0.5, jx+0.5, jz-0.35, jz+0.35, 0, FY+1.5);
     LAMPS.push({x:jx, y:FY+1.3, z:jz-0.6, color:0xffb84a, intensity:0.42, dist:5,
@@ -4385,12 +4445,8 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     addCol(q[0]-0.48, q[0]+0.48, q[1]-0.48, q[1]+0.48, 0, FY+0.8);
     push("ceilfix", new T.CylinderGeometry(0.035,0.035,0.09,10), q[0], FY+0.82, q[1], 0, "#f2e4c0");
     for(let k=0;k<2;k++){
-      const a=k*3.14+0.6, cxx=q[0]+Math.cos(a)*0.84, czz=q[1]+Math.sin(a)*0.84;
-      bx("oak", 0.42,0.05,0.42, cxx, FY+0.45, czz, 0.5, -a, "#5c4029");
-      bx("oak", 0.42,0.50,0.05, cxx+Math.cos(a)*0.19, FY+0.72, czz+Math.sin(a)*0.19, 0.5, -a, "#4a3526");
-      for(const c of [[-1,-1],[1,-1],[-1,1],[1,1]])
-        bx("metal", 0.03,0.45,0.03, cxx+c[0]*0.16, FY+0.22, czz+c[1]*0.16, 0, 0, "#3a3632");
-      addSeat(cxx, czz, FY+0.48, Math.atan2(cxx-q[0], czz-q[1]), "A TABLE");
+      const a=k*3.14+0.6;
+      chair(q[0]+Math.cos(a)*0.84, q[1]+Math.sin(a)*0.84, a, q[0], q[1]);
     }
   }
   // stools stacked in a corner, and a crate of empties by the door
@@ -4406,6 +4462,76 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     bx("oak", 0.46,0.30,0.34, IX1-0.9, FY+0.15+i*0.31, BZ0-1.5, 0.5, 0.3, "#6a4a2c");
   cyl("bin", 0.20,0.17,0.32,12, IX1-0.8, FY+0.16, BZ1+1.2, "#5f7a6b");
   addCol(IX1-1.3, IX1-0.4, BZ0-1.9, BZ0-1.1, 0, FY+1.1);
+
+  /* ---- the rest of the room -------------------------------------------- */
+  // the screen they used to show fights on, hung off the west wall
+  bx("oak", 0.09, 1.66, 2.70, IX0+0.10, FY+2.72, -24.6, 0.45, 0, "#3a3028");
+  bx("plaster", 0.04, 1.50, 2.54, IX0+0.17, FY+2.72, -24.6, 0.4, 0, "#cfcabb");
+  bx("oak", 0.09, 0.09, 2.70, IX0+0.13, FY+3.58, -24.6, 0, 0, "#2e261f");
+  // bar-top furniture: napkins, caddies, a tip jar, ashtrays
+  for(let i=0;i<7;i++){
+    const z2=BZ0+0.9+i*1.45;
+    if(z2>BZ1-0.5) break;
+    cyl("plaster", 0.055,0.055,0.13,12, BX-0.06, FY+BH2+0.17, z2, "#e6e0d0");     // napkins
+    bx("oak", 0.12,0.09,0.16, BX+0.10, FY+BH2+0.15, z2+0.30, 0.5, 0, "#6a4a2c");  // caddy
+    if(i%2) push("bin", new T.CylinderGeometry(0.075,0.065,0.03,12),
+                 BX-0.02, FY+BH2+0.12, z2-0.52, 0, "#3a3632");                    // ashtray
+  }
+  cyl("glass", 0.075,0.075,0.17,12, BX+0.14, FY+BH2+0.19, BZ1-1.1, "#cfe0e6");    // tip jar
+  cyl("glass", 0.072,0.072,0.02,12, BX+0.14, FY+BH2+0.29, BZ1-1.1, "#b9c6c2");
+  // crates of empties stacked along the wall, and a keg
+  for(let k=0;k<3;k++){
+    const kx=IX1-0.55, kz=BZ1+1.9+k*0.02, ky=FY+0.14+k*0.27;
+    bx("oak", 0.40,0.26,0.56, kx, ky, kz, 0.5, 0, "#5f4a2c");
+    for(let i=0;i<8;i++)
+      cyl("glass", 0.030,0.030,0.20,8, kx-0.12+((i%2)*0.24), ky+0.19,
+          kz-0.21+(((i/2)|0)*0.14), "#3f8a46");
+  }
+  cyl("metal", 0.22,0.22,0.56,14, IX1-0.62, FY+0.28, BZ0-2.4, "#8d9498");
+  cyl("metal", 0.24,0.24,0.05,14, IX1-0.62, FY+0.58, BZ0-2.4, "#6d7377");
+  // a proper spirits gantry over the back bar
+  for(let i=0;i<10;i++){
+    const z2=BZ0+0.9+i*0.95;
+    if(z2>BZ1-0.4) break;
+    cyl("glass", 0.042,0.048,0.26,9, IX1-0.62, FY+2.06, z2,
+        ["#8a6026","#3a5060","#9a8a34"][i%3]);
+    cyl("metal", 0.016,0.016,0.10,6, IX1-0.62, FY+1.88, z2, "#b8bcbc");
+  }
+  bx("oak", 0.28, 0.06, BZ1-BZ0-0.6, IX1-0.62, FY+1.86, (BZ0+BZ1)/2, 0.45, 0, "#4c3a26");
+  // the restrooms, with the sign nobody has repainted
+  bx("oak", 1.00, 2.08, 0.08, -84.2, FY+1.04, IZ1-0.05, 0.5, 0, "#4a3a2c");
+  bx("paint", 0.26, 0.20, 0.02, -84.2, FY+1.86, IZ1-0.10, 0, 0, "#d8d2be");
+  push("bin", new T.CylinderGeometry(0.035,0.035,0.02,10), -84.28, FY+1.90, IZ1-0.12,
+       0, "#2a2622", Math.PI/2, 0);
+  push("bin", new T.CylinderGeometry(0.035,0.035,0.02,10), -84.12, FY+1.90, IZ1-0.12,
+       0, "#2a2622", Math.PI/2, 0);
+  // six more posters, because they go up and they do not come down
+  for(const q of [[2,IX0+0.04,-28.0,Math.PI/2],[5,IX0+0.04,-19.4,Math.PI/2],
+                  [1,-88.0+2.4,IZ0+0.04,0],[4,-69.9,IZ0+0.04,0],
+                  [0,-82.2,IZ1-0.04,Math.PI],[3,-73.4,IZ1-0.04,Math.PI]])
+    poster(0.80, 1.14, q[0], q[1], FY+2.02+rr(-0.14,0.14), q[2], q[3]);
+  // two speakers up in the corners, wired back along the joists
+  for(const q of [[IX0+0.55, IZ0+0.45, 0.5],[IX1-0.55, IZ0+0.45, -0.5]]){
+    bx("weathered", 0.38, 0.58, 0.32, q[0], FY+3.26, q[1], 0.4, q[2], "#4a423a");
+    push("bin", new T.CylinderGeometry(0.11,0.11,0.03,12), q[0], FY+3.34, q[1]-0.16,
+         q[2], "#2a2622", Math.PI/2, 0);
+  }
+  // a ceiling fan that has not turned in a while
+  cyl("metal", 0.030,0.030,0.34,8, -79.0, TOPY-0.34, -21.8, "#3a342e");
+  cyl("weathered", 0.13,0.13,0.14,12, -79.0, TOPY-0.56, -21.8, "#4a423a");
+  for(let i=0;i<4;i++)
+    push("oak", boxGeo(1.10,0.02,0.20,0.5), -79.0+Math.cos(i*1.571)*0.62, TOPY-0.60,
+         -21.8+Math.sin(i*1.571)*0.62, -i*1.571, "#5c4029", 0, 0.05);
+  // chalk and a triangle by the table, bottles left on the rail
+  bx("oak", 0.26, 0.05, 0.26, -84.9, FY+0.98, -21.4, 0.5, 0.4, "#4a3526");
+  push("baize", new T.BoxGeometry(0.05,0.05,0.05), -84.9, FY+1.02, -21.4, 0.4, "#2f7a44");
+  // the years on the brick: smoke above the bar, a wear patch on the boards
+  for(const q of [[-88.0+0.30, -23.0, Math.PI/2],[IX1-0.02, -20.0, -Math.PI/2],
+                  [-80.0, IZ1-0.02, Math.PI]])
+    push("soot", planeGeo(2.20, 1.60, 0), q[0], FY+3.10, q[1], q[2], "#4a3a2a");
+  push("soot", planeGeo(9.0, 2.2, 0), BX-1.6, FY+0.012, (BZ0+BZ1)/2, Math.PI/2, "#6a5a3a",
+       -Math.PI/2, 0);
+  push("soot", planeGeo(3.4, 2.6, 0), -81.6, FY+0.014, -21.4, 0.2, "#6a5a3a", -Math.PI/2, 0);
 })();
 
 /* ----------------------------------------------------------------------
@@ -4519,7 +4645,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   (function(){
     // across the highway, on the flattest ground within a quarter mile, with
     // the screen facing back toward the road
-    const m=mk(-173, -118);
+    const OX=-173, OZ=-118, m=mk(OX, OZ);
     m.B("paint", 26.0,12.0,0.55, 0,6.9,0, 0.30, 0, "#d8d2c4");        // the screen
     m.B("paint", 27.2,0.60,0.90, 0,13.2,0, 0.30, 0, "#b9b2a2");
     m.B("paint", 27.2,0.70,0.90, 0,0.60,0, 0.30, 0, "#b9b2a2");
@@ -4528,10 +4654,135 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       m.P("weathered", boxGeo(0.16,0.16,Math.hypot(13.0,4.2),0), bx2,6.5,-2.9, 0, "#6b6f72",
           -Math.atan2(13.0,4.2), 0);
     }
-    m.B("stucco", 5.4,3.0,4.0, -1.0,1.5,44.0, 0.3, 0, "#8e9cb4");     // projection booth
-    m.B("roofG", 6.0,0.24,4.6, -1.0,3.1,44.0, 0.3, 0, "#4b7a62");
-    m.B("teal", 1.0,2.1,0.14, 1.0,1.05,41.98, 0, 0, "#2f6c62");
-    m.B("glass", 0.9,0.6,0.06, -2.4,2.1,41.98, 0, 0, "#cfe0e6");
+    /* ---- the projection room, which you can let yourself into --------- */
+    (function(){
+      const PX0=-3.70, PX1=1.70, PZ0=42.00, PZ1=46.00, PT=0.22, PH=3.00, PF=0.10;
+      const QX0=PX0+PT, QX1=PX1-PT, QZ0=PZ0+PT, QZ1=PZ1-PT;   // inner faces
+      const DOOR=[-0.22,0.80], WALLC="#8e9cb4";
+      const runs=(a0,a1,holes)=>{
+        const out=[]; let c=a0;
+        for(const h of holes){ if(h[0]>c) out.push([c,h[0]]); c=Math.max(c,h[1]); }
+        if(c<a1) out.push([c,a1]); return out;
+      };
+      m.B("concrete", PX1-PX0+0.7, 0.30, PZ1-PZ0+0.7, (PX0+PX1)/2, PF-0.15, (PZ0+PZ1)/2,
+          0.45, 0, "#9b948a");
+      m.flat(PX0-0.35, PX1+0.35, PZ0-0.35, PZ1+0.35, PF);
+      // the wall facing the screen, with two projection ports cut in it
+      const PORT=[[-2.45,-1.75],[-1.15,-0.45]], PS=PF+1.62, PHd=PF+2.22;
+      for(const g of runs(PX0,PX1,[])) {
+        m.B("stucco", g[1]-g[0], PS-PF, PT, (g[0]+g[1])/2, (PF+PS)/2, PZ0+PT/2, 0.3, 0, WALLC);
+        m.B("stucco", g[1]-g[0], PF+PH-PHd, PT, (g[0]+g[1])/2, (PHd+PF+PH)/2, PZ0+PT/2,
+            0.3, 0, WALLC);
+      }
+      for(const g of runs(PX0,PX1,PORT))
+        m.B("stucco", g[1]-g[0], PHd-PS, PT, (g[0]+g[1])/2, (PS+PHd)/2, PZ0+PT/2, 0.3, 0, WALLC);
+      for(const w of PORT){                                    // the glass, filthy
+        m.B("glass", w[1]-w[0], PHd-PS, PT*0.5, (w[0]+w[1])/2, (PS+PHd)/2, PZ0+PT/2,
+            0, 0, "#93a49f");
+        m.B("metal", w[1]-w[0]+0.10, 0.06, 0.06, (w[0]+w[1])/2, PS-0.05, PZ0+0.02, 0,0,"#6b6f72");
+      }
+      // the back wall, with the door
+      for(const g of runs(PX0,PX1,[DOOR]))
+        m.B("stucco", g[1]-g[0], PH, PT, (g[0]+g[1])/2, PF+PH/2, PZ1-PT/2, 0.3, 0, WALLC);
+      m.B("stucco", DOOR[1]-DOOR[0], PH-2.10, PT, (DOOR[0]+DOOR[1])/2, PF+2.10+(PH-2.10)/2,
+          PZ1-PT/2, 0.3, 0, WALLC);
+      for(const sx of [PX0+PT/2, PX1-PT/2])                    // the ends
+        m.B("stucco", PT, PH, PZ1-PZ0-PT*2, sx, PF+PH/2, (PZ0+PZ1)/2, 0.3, 0, WALLC);
+      m.B("roofG", PX1-PX0+0.6, 0.24, PZ1-PZ0+0.6, (PX0+PX1)/2, PF+PH+0.12, (PZ0+PZ1)/2,
+          0.3, 0, "#4b7a62");
+      m.B("stucco", PX1-PX0+0.7, 0.26, 0.20, (PX0+PX1)/2, PF+PH+0.35, PZ1+0.25, 0.3,0,"#7c8a9e");
+      // colliders: everything but the doorway
+      m.col(PX0, PX1, PZ0, PZ0+PT, 0, PF+PH);
+      m.col(PX0, PX0+PT, PZ0, PZ1, 0, PF+PH);
+      m.col(PX1-PT, PX1, PZ0, PZ1, 0, PF+PH);
+      for(const g of runs(PX0,PX1,[DOOR])) m.col(g[0], g[1], PZ1-PT, PZ1, 0, PF+PH);
+      // a step up to the door and a rail
+      m.B("concrete", 1.70, 0.24, 1.00, (DOOR[0]+DOOR[1])/2, PF-0.13, PZ1+0.48, 0.45,0,"#a8a094");
+      m.flat(DOOR[0]-0.8, DOOR[1]+0.8, PZ1, PZ1+0.95, PF-0.02);
+      makeDoor(XF(OX+DOOR[1]-0.02, OZ+PZ1-0.03, Math.PI), 0, m.y+PF+0.02, 0,
+               "PROJECTION ROOM", true);
+
+      /* ---- inside ---------------------------------------------------- */
+      m.B("concrete", QX1-QX0, 0.05, QZ1-QZ0, (QX0+QX1)/2, PF-0.015, (QZ0+QZ1)/2,
+          0.5, 0, "#8d877c");
+      m.B("ceil", QX1-QX0, 0.08, QZ1-QZ0, (QX0+QX1)/2, PF+PH-0.05, (QZ0+QZ1)/2,
+          0.4, 0, "#b6ae9c");
+      // the projector: off its mount, lens down, one reel arm snapped
+      (function(){
+        const jx=-1.55, jz=PZ0+1.30, jy=PF+0.62;
+        m.B("metal", 0.70,0.10,0.52, jx, PF+0.30, jz, 0.4, 0, "#5e6468");     // the pedestal
+        m.C("metal", 0.10,0.13,0.52,10, jx, PF+0.26, jz, "#5e6468");
+        m.P("weathered", boxGeo(0.86,0.46,0.42,0.4), jx, jy, jz, 0.06, "#4a4f52", -0.22, 0.05);
+        m.P("weathered", boxGeo(0.40,0.40,0.40,0.4), jx-0.52, jy+0.04, jz+0.05, 0.06,
+            "#3f4447", -0.22, 0.05);                                           // lamp house
+        m.P("metal", new T.CylinderGeometry(0.075,0.095,0.44,12), jx+0.62, jy-0.10, jz-0.04,
+            0.06, "#2b2f31", 1.35, 0.05);                                      // the lens, drooping
+        m.P("glass", new T.CylinderGeometry(0.068,0.068,0.02,12), jx+0.62, jy-0.31, jz-0.04,
+            0.06, "#9fb0ab", 1.35, 0.05);
+        for(const q of [[0.30,0.52],[-0.34,-0.40]]){                           // reel arms
+          m.P("metal", boxGeo(0.05,0.44,0.05,0), jx+q[0], jy+q[1], jz, 0.06, "#5e6468",
+              -0.22+ (q[1]<0?0.9:0), 0.05);
+          m.P("metal", new T.CylinderGeometry(0.30,0.30,0.035,18), jx+q[0], jy+q[1]+0.26, jz+0.16,
+              0.06, "#6b7072", 1.35, 0.05);
+        }
+        m.P("weathered", boxGeo(0.34,0.03,0.30,0.4), jx+0.10, PF+0.02, jz+0.70, 0.7,
+            "#3a3f42", 0, 0.02);                                               // a cover on the floor
+      })();
+      // film: reels stacked, cans on the shelf, and a spool unwound across it all
+      const REEL=["#4a4f52","#6b4a2a","#3f4447","#5a4030"];
+      for(let i=0;i<7;i++)
+        m.P("metal", new T.CylinderGeometry(0.19,0.19,0.035,16), QX0+0.55+((i%3)*0.44),
+            PF+0.02+(((i/3)|0)*0.045), QZ1-0.52, i, REEL[i%4], Math.PI/2, 0);
+      for(let i=0;i<5;i++)
+        m.P("metal", new T.CylinderGeometry(0.17,0.17,0.06,16), QX1-0.42,
+            PF+1.55+i*0.075, QZ0+0.90+i*0.03, 0, REEL[(i+1)%4], Math.PI/2, 0);
+      m.B("oak", 0.42, 0.05, 1.40, QX1-0.42, PF+1.50, QZ0+1.10, 0.5, 0, "#6f6048");
+      for(let i=0;i<16;i++){                                   // film, unspooled
+        const t=i/15, ax=QX0+0.6+t*3.2+Math.sin(t*9.1)*0.26, az=QZ1-0.9-Math.sin(t*5.7)*0.55;
+        m.P("soot", planeGeo(0.34,0.035,0), ax, PF+0.012, az, Math.sin(t*7.3)*1.4,
+            "#2a2420", -Math.PI/2, 0);
+      }
+      // two filing cabinets, one drawer never closed
+      for(let k=0;k<2;k++){
+        const fx=QX0+0.42+k*0.58;
+        m.B("metal", 0.52, 1.28, 0.62, fx, PF+0.64, QZ0+0.46, 0.45, 0, "#6d7377");
+        for(let d=0;d<4;d++){
+          m.B("metal", 0.46, 0.27, 0.03, fx, PF+0.22+d*0.31, QZ0+0.16, 0, 0, "#7d8387");
+          m.B("metal", 0.14, 0.03, 0.03, fx, PF+0.22+d*0.31, QZ0+0.13, 0, 0, "#9aa1a4");
+        }
+        if(k===1){                                             // one hanging open
+          m.B("metal", 0.46, 0.27, 0.46, fx, PF+0.84, QZ0+0.02, 0.4, 0, "#7d8387");
+          for(let f=0;f<5;f++)
+            m.P("paper", planeGeo(0.20,0.27,0), fx-0.15+f*0.07, PF+1.02, QZ0-0.02,
+                0, "#ffffff", -0.25, 0.02);
+        }
+        m.col(fx-0.3, fx+0.3, QZ0, QZ0+0.8, 0, PF+1.3);
+      }
+      // a rewind bench, a stool, a bulb, and the paperwork nobody filed
+      m.B("oak", 2.10, 0.06, 0.58, (QX0+QX1)/2-0.4, PF+0.86, QZ1-0.42, 0.5, 0, "#7a6746");
+      for(const lx of [QX0+0.7, QX0+2.5])
+        m.C("metal", 0.035,0.035,0.84,8, lx, PF+0.43, QZ1-0.42, "#5e6468");
+      m.col(QX0, QX1-0.9, QZ1-0.75, QZ1, 0, PF+0.9);
+      m.C("metal", 0.04,0.05,0.62,8, QX1-1.15, PF+0.31, QZ1-1.05, "#5e6468");
+      m.C("fabric", 0.17,0.17,0.07,12, QX1-1.15, PF+0.65, QZ1-1.05, "#6d3540");
+      addSeat(OX+QX1-1.15, OZ+QZ1-1.05, m.y+PF+0.70, Math.PI, "THE REWIND BENCH");
+      m.C("teal", 0.012,0.012,0.36,6, -1.0, PF+PH-0.26, (QZ0+QZ1)/2, "#6e6a62");
+      m.P("ceilfix", new T.SphereGeometry(0.075,10,8), -1.0, PF+PH-0.46, (QZ0+QZ1)/2, 0, "#f2e9cf");
+      LAMPS.push({x:OX-1.0, y:m.y+PF+PH-0.50, z:OZ+(QZ0+QZ1)/2, color:0xffd6a2,
+                  intensity:0.72, dist:6, decay:1.7, indoor:true});
+      for(let i=0;i<9;i++)                                     // schedules on the wall
+        m.P("paper", planeGeo(0.19,0.26,0), QX0+0.35+ (i%5)*0.30, PF+1.95+(((i/5)|0)*0.34),
+            QZ0+PT+0.02, 0, "#ffffff", 0, ((i*7)%5-2)*0.03);
+      for(let i=0;i<11;i++)                                    // and on the floor
+        m.P("paper", planeGeo(0.19,0.26,0), QX0+0.4+((i*0.37)%3.9), PF+0.014+i*0.0015,
+            QZ0+0.9+((i*0.53)%2.0), i*1.7, "#ffffff", -Math.PI/2, 0);
+      m.P("clockface", planeGeo(0.30,0.30,0), QX1-0.06, PF+2.10, (QZ0+QZ1)/2, -Math.PI/2,
+          "#e8e2cf");
+      for(const st of [[QX0+0.9, QZ0+PT+0.03, 0],[QX1-0.9, QZ1-PT-0.03, Math.PI]])
+        m.P("soot", planeGeo(1.10,1.50,0), st[0], PF+1.30, st[1], st[2], "#6a5a3a", 0, 0);
+      addZone(OX+QX0, OX+QX1, OZ+QZ0, OZ+QZ1, m.y+PF-0.3, m.y+PF+PH,
+              "THE PROJECTION ROOM", true);
+    })();
     for(let r=0;r<6;r++) for(let k=-4;k<=4;k++){                       // the speaker posts
       if((r*9+k+4)%7===3) continue;
       const px=k*4.4+(r%2)*1.1, pz=11+r*5.4;
@@ -4540,7 +4791,6 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       m.B("gravel", 3.6,0.05,0.5, px,0.03,pz-2.2, 0.5, 0, "#8a7a62");  // the ramp
     }
     m.col(-13.6,13.6,-0.5,1.0, 0,13.4);
-    m.col(-3.7,1.7,42.0,46.0, 0,3.1);
     m.rect(-26,26,-8,54, "THE DRIVE-IN");
   })();
 
@@ -5072,6 +5322,8 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     m.P("paint", planeGeo(0.34,0.12,0), 7.2, 1.30, ZS+0.30, 0, "#d8d2be", 0, 0);
 
     m.rect(-9, 11, -6, 7, "SOMEBODY'S TRAILER");
+    addZone(OX+IX0, OX+IX1, OZ+IZ0, OZ+IZ1, m.y+FY-0.2, m.y+RY,
+            "SOMEBODY'S TRAILER", true);
   })();
 })();
 
@@ -5677,6 +5929,12 @@ function fixedUpdate(dt){
 // the ground: it will not sink through the desert, the roofs or the deck.
 let droneMode=false, droneYaw=0, dronePitch=0.5, droneTiltX=0, droneTiltZ=0;
 const dronePos=new T.Vector3(), droneVel=new T.Vector3(), _dtmp=new T.Vector3();
+// The drone moves on the fixed 1/60 step but the camera is drawn every frame,
+// and a frame takes five steps as often as six. Rendering it at its raw
+// stepped position made the whole view surge and stall — these hold the
+// position before this frame's steps and the interpolated one drawn from it.
+const dronePrev=new T.Vector3(), droneShown=new T.Vector3(), droneLook=new T.Vector3();
+let droneAlpha=0;
 const DRONE_CEIL=210;                     // high enough to see the whole site
 const drone=(function(){
   const g=new T.Group();
@@ -5718,6 +5976,7 @@ function setDrone(on){
     // walk — so the drone's yaw is your yaw turned round. Take off looking
     // where you were already looking.
     droneYaw=player.yaw+Math.PI; dronePitch=0.5; droneTiltX=0; droneTiltZ=0;
+    dronePrev.copy(dronePos); droneShown.copy(dronePos); droneLook.copy(dronePos);
     camera.position.set(dronePos.x-Math.sin(droneYaw)*3.5, dronePos.y+2.2,
                         dronePos.z-Math.cos(droneYaw)*3.5);
     document.getElementById("prompt").classList.remove("show");
@@ -5944,37 +6203,115 @@ const SAND={n:1100, m:170, sn:230};
   SAND.sheet=layer(SAND.sn, 9.00, grain(0.30,0.12), ()=>0.2+Math.pow(rnd(),1.8)*2.4);
 })();
 /* --- a dust devil, but only in a real gust ---------------------------- */
-const DEVIL={s:null, x:0, z:0, seeded:false};
+/* --- the dust devil ----------------------------------------------------
+   It used to be one flat sprite of speckle, which is a picture of a dust
+   devil rather than a dust devil: nothing turned, and there was no inside to
+   it. It is a stack of open cylinders now — you see the far wall through the
+   near one, which is where the depth comes from — each turning on its own at
+   a rate that falls off with height, each with its texture creeping round the
+   other way, the whole column leaning and bending downwind as it rises, with
+   a skirt of lifted dust at the bottom and grit orbiting in it.          */
+const DEVIL={g:null, bands:[], x:0, z:0, seeded:false, t:0};
 (function buildDevil(){
-  const c=cvs(64,256), x=c.getContext("2d");
-  for(let i=0;i<1600;i++){
-    const t=Math.random(), y=(1-t)*256;
-    const w=5+t*26, cxx=32+Math.sin(t*6.4+1.1)*6.5;
-    x.fillStyle="rgba(200,170,126,"+(0.05+Math.random()*0.17*(1-t*0.55)).toFixed(3)+")";
-    x.fillRect(cxx+(Math.random()-0.5)*w, y, 2+Math.random()*3, 2+Math.random()*5);
+  // one wispy, horizontally tiling sheet of dust
+  const c=cvs(256,128), x=c.getContext("2d");
+  x.clearRect(0,0,256,128);
+  for(let i=0;i<340;i++){                        // torn vertical streaks
+    const px=Math.random()*256, w=2+Math.random()*13, h=14+Math.random()*96;
+    const g=x.createLinearGradient(0, 64-h/2, 0, 64+h/2);
+    const a=(0.05+Math.random()*0.16).toFixed(3);
+    g.addColorStop(0,"rgba(214,184,138,0)");
+    g.addColorStop(0.5,"rgba(214,184,138,"+a+")");
+    g.addColorStop(1,"rgba(214,184,138,0)");
+    x.fillStyle=g;
+    x.fillRect(px, 64-h/2, w, h);
+    if(px>256-w) x.fillRect(px-256, 64-h/2, w, h);   // keep the wrap seamless
   }
-  const sp=new T.Sprite(new T.SpriteMaterial({map:setSRGB(new T.CanvasTexture(c)),
-    transparent:true, depthWrite:false, fog:true, opacity:0}));
-  sp.scale.set(24,96,1); sp.visible=false; scene.add(sp);
-  DEVIL.s=sp;
+  for(let i=0;i<900;i++){                        // grit in suspension
+    x.fillStyle="rgba(186,152,108,"+(0.05+Math.random()*0.20).toFixed(3)+")";
+    x.fillRect(Math.random()*256, Math.random()*128, 1+Math.random()*2.5, 1+Math.random()*3);
+  }
+  const tex=setSRGB(new T.CanvasTexture(c));
+  tex.wrapS=tex.wrapT=T.RepeatWrapping;
+  const g2=new T.Group(); g2.visible=false; scene.add(g2);
+  const N=13, TOP=58;
+  for(let i=0;i<N;i++){
+    const u=i/(N-1);
+    // narrow and hard at the foot, flaring and ragged at the top
+    const r=1.5+Math.pow(u,1.35)*9.0, h=TOP/N*1.9;
+    const m=new T.MeshBasicMaterial({map:tex.clone(), transparent:true, depthWrite:false,
+      side:T.DoubleSide, fog:true, opacity:0, toneMapped:false, color:0xd8bc92});
+    m.map.wrapS=m.map.wrapT=T.RepeatWrapping;
+    m.map.repeat.set(2.0+u*1.6, 1);
+    const mesh=new T.Mesh(new T.CylinderGeometry(r*1.10, r*0.90, h, 20, 1, true), m);
+    mesh.position.y=TOP*u*0.98+1.0;
+    mesh.renderOrder=3;
+    g2.add(mesh);
+    DEVIL.bands.push({m:mesh, u:u, r:r,
+                      spin:(1.9-u*1.25)*(1+((i%3)-1)*0.09),   // faster at the foot
+                      drift:0.09+u*0.16, ph:Math.random()*6.28,
+                      base:0.30*(1-u*0.42)});
+  }
+  // the skirt: dust being picked up off the ground, wider and much flatter
+  const sk=new T.Mesh(new T.CylinderGeometry(7.5, 3.2, 3.4, 22, 1, true),
+    new T.MeshBasicMaterial({map:tex.clone(), transparent:true, depthWrite:false,
+      side:T.DoubleSide, fog:true, opacity:0, toneMapped:false, color:0xcaae86}));
+  sk.material.map.wrapS=sk.material.map.wrapT=T.RepeatWrapping;
+  sk.material.map.repeat.set(3.2,1);
+  sk.position.y=1.5; sk.renderOrder=3; g2.add(sk);
+  DEVIL.bands.push({m:sk, u:-1, r:7.5, spin:2.6, drift:0.30, ph:0, base:0.34});
+  // grit thrown out of it
+  const gm=new T.MeshBasicMaterial({color:0x6b5540, transparent:true, opacity:0,
+    depthWrite:false, toneMapped:false});
+  DEVIL.grit=[];
+  for(let i=0;i<14;i++){
+    const q=new T.Mesh(new T.PlaneGeometry(0.5+Math.random()*0.9, 0.3+Math.random()*0.6), gm);
+    q.renderOrder=4; g2.add(q);
+    DEVIL.grit.push({m:q, a:Math.random()*6.28, r:2.0+Math.random()*7.0,
+                     y:1.5+Math.random()*26, sp:1.4+Math.random()*1.9});
+  }
+  DEVIL.gritMat=gm;
+  DEVIL.g=g2;
 })();
 function updateDevil(dt){
-  const a=Math.max(0,(Wind.gust-0.42)/0.58), m=DEVIL.s.material;
-  if(a<=0.002){ DEVIL.s.visible=false; DEVIL.seeded=false; return; }
+  const a=Math.max(0,(Wind.gust-0.42)/0.58);
+  if(a<=0.002){ DEVIL.g.visible=false; DEVIL.seeded=false; return; }
   if(!DEVIL.seeded){
     const th=rnd()*Math.PI*2, r=130+rnd()*190;   // near enough to see through the dust
     DEVIL.x=player.pos.x+Math.cos(th)*r; DEVIL.z=player.pos.z+Math.sin(th)*r;
     DEVIL.seeded=true;
   }
+  DEVIL.t+=dt;
   DEVIL.x+=WIND.x*6.5*dt; DEVIL.z+=WIND.z*6.5*dt;
-  DEVIL.s.visible=true;
-  DEVIL.s.position.set(DEVIL.x, Terrain.heightAt(DEVIL.x,DEVIL.z)+48, DEVIL.z);
-  m.opacity=a*0.46;
+  DEVIL.g.visible=true;
+  const gy=Terrain.heightAt(DEVIL.x,DEVIL.z);
+  DEVIL.g.position.set(DEVIL.x, gy, DEVIL.z);
+  for(const b of DEVIL.bands){
+    b.m.rotation.y += b.spin*dt;
+    b.m.material.map.offset.x -= b.drift*dt;     // the sheet creeps the other way
+    b.m.material.opacity = a*b.base;
+    if(b.u>=0){                                  // the column bends downwind
+      const lean=Math.pow(b.u,1.7)*7.0;
+      const wob=Math.sin(DEVIL.t*0.9+b.ph)*b.u*1.1;
+      b.m.position.x = WIND.x*lean + wob;
+      b.m.position.z = WIND.z*lean + Math.cos(DEVIL.t*0.8+b.ph)*b.u*1.1;
+      b.m.scale.setScalar(1 + Math.sin(DEVIL.t*1.3+b.ph)*0.06);
+    }
+  }
+  DEVIL.gritMat.opacity=a*0.55;
+  for(const q of DEVIL.grit){
+    q.a += q.sp*dt*(1.6-q.y/60);
+    const lean=Math.pow(q.y/58,1.7)*7.0;
+    q.m.position.set(WIND.x*lean+Math.cos(q.a)*q.r, q.y, WIND.z*lean+Math.sin(q.a)*q.r);
+    q.m.rotation.set(0, -q.a, DEVIL.t*2.1+q.a);
+    q.y += dt*3.4; if(q.y>52) q.y=1.4;
+  }
 }
 function updateSand(dt, dark){
   updateDevil(dt);
   const g=Wind.gust;
-  const on=g>0.03;
+  const shelter=indoorsAt(camera.position.x, camera.position.z, camera.position.y) ? 0 : 1;
+  const on=g>0.03 && shelter>0;
   SAND.fine.p.visible=on; SAND.sheet.p.visible=on;
   if(!on) return;
   SAND.fine.p.material.opacity =g*0.50*(0.30+0.70*(1-dark));
@@ -6147,7 +6484,9 @@ function frame(){
 
   if(started){
     acc+=delta; const STEP=1/60; let guard=0;
+    if(droneMode) dronePrev.copy(dronePos);
     while(acc>=STEP && guard++<6){ if(droneMode) droneUpdate(STEP); else fixedUpdate(STEP); acc-=STEP; }
+    droneAlpha=clamp(acc/STEP, 0, 1);
     updateDoors(delta);
     updateWind(now, delta);
     updateWeeds(delta);
@@ -6163,19 +6502,27 @@ function frame(){
 
   /* ---- camera ---- */
   if(droneMode){
-    drone.position.set(dronePos.x, dronePos.y, dronePos.z);
+    // draw it where it actually is between the two fixed steps either side
+    droneShown.lerpVectors(dronePrev, dronePos, droneAlpha);
+    drone.position.copy(droneShown);
     drone.rotation.set(droneTiltX, droneYaw, droneTiltZ);
     for(const r of drone.userData.rotors) r.rotation.y += delta*55;   // spinning blades
     // it pulls back a little as it picks up speed, the way a chase cam should
     const sp2=Math.min(1, Math.hypot(droneVel.x,droneVel.z)/26);
     const horiz=(3.6+sp2*2.9)*Math.cos(dronePitch), camY=0.7+(3.2+sp2*1.4)*Math.sin(dronePitch);
-    _dtmp.set(dronePos.x-Math.sin(droneYaw)*horiz, dronePos.y+camY,
-              dronePos.z-Math.cos(droneYaw)*horiz);
-    camera.position.lerp(_dtmp, Math.min(1, delta*9));                // smooth chase
+    _dtmp.set(droneShown.x-Math.sin(droneYaw)*horiz, droneShown.y+camY,
+              droneShown.z-Math.cos(droneYaw)*horiz);
+    // exponential, not a fixed fraction per frame: a lerp by delta*k lags by
+    // an amount that changes with the frame time, and at 26 m/s that reads as
+    // the whole world shuddering
+    camera.position.lerp(_dtmp, 1-Math.exp(-11*delta));
+    if(droneLook.lengthSq()===0) droneLook.copy(droneShown);
+    droneLook.lerp(droneShown, 1-Math.exp(-16*delta));                // and so does the aim
     camera.up.set(0,1,0);
-    camera.lookAt(dronePos.x, dronePos.y+0.25, dronePos.z);
+    camera.lookAt(droneLook.x, droneLook.y+0.25, droneLook.z);
     wetEl.classList.remove("on");
   }else{
+    droneLook.set(0,0,0);
   const eyeY=player.feetY+EYE+player.bob-player.sit*0.66;   // seated, you sit lower
   camera.position.set(player.pos.x, eyeY, player.pos.z);
   const cp=Math.cos(player.pitch);
@@ -6278,15 +6625,17 @@ function frame(){
   // clouds drift downwind and are tinted by whatever the sky is doing
   for(let i=0;i<CLOUDS.length;i++){
     const c=CLOUDS[i];
-    c.s.position.x += c.sp*delta;
-    if(c.s.position.x>4600) c.s.position.x=-4600;
+    c.ox += c.sp*delta;
+    if(c.ox>2100) c.ox=-2100;
+    c.s.position.set(camera.position.x+c.ox, c.s.position.y, camera.position.z+c.oz);
     c.s.material.opacity = (0.18+0.76*(1-dn.nightAmount))*(0.78+0.22*Math.sin(i*1.7));
     c.s.material.color.copy(skyImg.mid).lerp(WHITE_C, 0.70-dn.nightAmount*0.62);
   }
   for(let i=0;i<CIRRUS.length;i++){
     const c=CIRRUS[i];
-    c.s.position.x += c.sp*delta;
-    if(c.s.position.x>5400) c.s.position.x=-5400;
+    c.ox += c.sp*delta;
+    if(c.ox>2200) c.ox=-2200;
+    c.s.position.set(camera.position.x+c.ox, c.s.position.y, camera.position.z+c.oz);
     c.s.material.opacity = 0.28*(1-dn.nightAmount*0.85)*(0.6+0.4*Math.sin(i*2.3));
     c.s.material.color.copy(skyImg.low).lerp(WHITE_C, 0.74-dn.nightAmount*0.6);
   }
@@ -6328,7 +6677,8 @@ function frame(){
                      L.position.z + Math.sin(m.a)*m.r);
     m.s.material.opacity = 0.75*Math.min(1,(dark-0.25)*3);
   }
-  // dust lifting off the lot in the daytime wind
+  // dust lifting off the lot in the daytime wind — not once you are inside
+  const shelteredNow=indoorsAt(camera.position.x, camera.position.z, camera.position.y);
   for(const d of DUST){
     d.life -= delta*0.16;
     if(d.life<=0){
@@ -6340,7 +6690,8 @@ function frame(){
     d.p.addScaledVector(WIND, d.v*delta*4.0);
     d.p.y += delta*0.22;
     d.s.position.copy(d.p);
-    d.s.material.opacity = 0.16*Math.sin(d.life*Math.PI)*(1-dn.nightAmount);
+    d.s.material.opacity = shelteredNow ? 0 :
+                           0.16*Math.sin(d.life*Math.PI)*(1-dn.nightAmount);
   }
 
   updateHUD();
@@ -6371,6 +6722,9 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                gifDecode:gifDecode, gifFrames:gifFrames,
                seats:SEATS, geckos:GECKOS, seatedNow:()=>!!seated, sit:sitToggle,
                drone:setDrone, dronePos:dronePos, droneOn:()=>droneMode,
+               zoneNow:()=>zoneAt(camera.position.x, camera.position.z, camera.position.y),
+               indoorsNow:()=>indoorsAt(camera.position.x, camera.position.z, camera.position.y),
+               sandOn:()=>SAND.fine.p.visible, devil:DEVIL,
                droneSet:(x,y,z,yaw,pitch)=>{ dronePos.set(x,y,z); droneVel.set(0,0,0);
                  droneYaw=yaw; if(pitch!==undefined) dronePitch=pitch; },
                droneStep:droneUpdate,

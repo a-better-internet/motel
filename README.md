@@ -203,6 +203,10 @@ the picture lands square on the surface, no stretching and no cropping.
 | `vendFront:snack` | 1 : 2 | 900 × 1800 | the snack machine, alcove and office |
 | `vendFront:soda` | 1 : 2 | 900 × 1800 | the soda machine in the alcove |
 | `vendHeader` | 3 : 1 | 1200 × 400 | the lit ICE header over the ice machine |
+| `poster:0` … `:5` | 5 : 7 | 1000 × 1400 | the six gig posters in The Rusty Canteen, 0.85 × 1.19 m each — fourteen sheets on the walls, two of each design |
+| `barSign` | 22 : 5 | 1408 × 320 | the name board over the Canteen's door, 7.40 × 1.68 m |
+| `barPole` | 2 : 1 | 1024 × 512 | the Canteen's pole sign by the road, both faces, 4.00 × 2.00 m |
+| `beerSign` | 3 : 2 | 900 × 600 | the lit sign in the Canteen's window, 1.30 × 0.87 m |
 
 Some slots take more than one picture. `brochure:0` … `brochure:9` are ten
 slots — six in the wall rack beside the desk and four on the spinner — and the
@@ -235,8 +239,14 @@ simply stays up.
 
 Four more surfaces take a picture at their own shape rather than a listed slot:
 `map` and `aerial` (the framed map and the aerial photograph in the office,
-512 × 384 each), `poolRules` (384 × 256), and the three faces of the pole sign —
-`sign:name` (1024 × 276), `sign:rates` (768 × 319) and `sign:vacancy` (512 × 108).
+512 × 384 each), `poolRules` (384 × 256), and the three faces of the motel's
+pole sign — `sign:name` (3.71 : 1, 1480 × 400, 6.60 × 1.78 m on the post),
+`sign:rates` (2.41 : 1, 1200 × 498, 6.60 × 2.74 m) and `sign:vacancy`
+(4.87 : 1, 1024 × 210, 3.80 × 0.78 m).
+
+Every one of these cover-crops to the shape of the surface it lands on, so a
+picture at roughly the right ratio is never stretched — it is trimmed on the
+long side and centred.
 
 Instances sharing a key share one image and one draw call, so adding pictures
 costs nothing in performance.

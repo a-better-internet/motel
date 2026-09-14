@@ -3959,7 +3959,7 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
     x.strokeStyle="#e6e2d6"; x.lineWidth=9;  x.strokeRect(13,13,W-26,H-26);
     x.strokeStyle="#7fd2ff"; x.lineWidth=3;  x.strokeRect(30,30,W-60,H-60);
     x.fillStyle="#f1ead6"; fitText(x,"Low Desert Motel", W-150, 116, W/2, H/2+6);
-  }));
+  }), {aspect:6.6/1.78});
   bx("paint", BOARD_W, 1.95, 0.28, sx, 5.35, sz, 0, 0, "#e6e2d6");
   NEON.push(signPanel(6.6,1.78,mainTex, sx, 5.35, sz-0.16, Math.PI, true));
   NEON.push(signPanel(6.6,1.78,mainTex, sx, 5.35, sz+0.16, 0, true));
@@ -3974,17 +3974,17 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
     x.fillStyle="#13405e"; fitText(x,"HIGH SPEED INTERNET", W-2*PAD, 42, W/2, 178);
     x.fillStyle="#13405e"; fitText(x,"MICROWAVE & FRIDGE", W-2*PAD, 42, W/2, 226);
     x.fillStyle="#c3311f"; x.fillRect(PAD,268,W-2*PAD,7);
-  }));
+  }), {aspect:6.6/2.74});
   // the reader board stops just under the name board. Overlapping, its
   // printed face landed on the plane of the name board's cream frame.
   bx("paint", BOARD_W-0.06, 2.92, 0.24, sx, 2.91, sz, 0, 0, "#e6e2d6");
   NEON.push(signPanel(6.6,2.74,rateTex, sx, 2.91, sz-0.14, Math.PI, true));
   NEON.push(signPanel(6.6,2.74,rateTex, sx, 2.91, sz+0.14, 0, true));
   // VACANCY neon strip on top
-  const vacTex=hosted("sign:vacancy", signTex(512,108,(x,W,H)=>{
+  const vacTex=hosted("sign:vacancy", signTex(512,105,(x,W,H)=>{
     x.fillStyle="#150c08"; x.fillRect(0,0,W,H);
-    x.fillStyle="#ff8a3a"; fitText(x,"VACANCY", W*0.68, 62, W/2, H/2+3);
-  }));
+    x.fillStyle="#ff8a3a"; fitText(x,"VACANCY", W*0.68, 60, W/2, H/2+3);
+  }), {aspect:3.8/0.78});
   bx("paint", 4.0, 0.9, 0.26, sx, 6.85, sz, 0, 0, "#22201c");
   // the VACANCY tube has never quite struck properly since about 1988
   VAC_NEON.push(signPanel(3.8,0.78,vacTex, sx, 6.85, sz-0.15, Math.PI, true));

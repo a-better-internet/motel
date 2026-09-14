@@ -2179,7 +2179,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     const y=Terrain.heightAt(x,z);
     const s=0.5+rnd()*2.6;
     push("rock", rockGeo(s, i*13+5), x, y+s*0.22, z, rnd()*6,
-      pick(["#8a7460","#7b6553","#9a8468","#6d5a49"]), rnd()*0.4-0.2, rnd()*0.4-0.2);
+      pick(["#d8c6ac","#c6b298","#e2d0b6","#b9a68e"]), rnd()*0.4-0.2, rnd()*0.4-0.2);
   }
   for(let i=0;i<130;i++){                       // and the small stuff, scattered
     const a=rnd()*Math.PI*2, r=40+rnd()*470;
@@ -2187,7 +2187,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     if(inLot(x,z)||onRoad(z)) continue;
     const s=0.13+rnd()*0.26;
     push("rock", rockGeo(s, i*29+11), x, Terrain.heightAt(x,z)+s*0.30, z, rnd()*6,
-      pick(["#8a7460","#7b6553","#6d5a49"]), rnd()*0.6-0.3, rnd()*0.6-0.3);
+      pick(["#d8c6ac","#c6b298","#b9a68e"]), rnd()*0.6-0.3, rnd()*0.6-0.3);
   }
   // power poles along the highway (wires drawn as line segments afterwards)
   const tops=[];
@@ -4180,8 +4180,8 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     x.strokeStyle="rgba(202,162,60,0.42)"; x.lineWidth=2;
     x.strokeRect(PAD*0.90, PAD*0.90, W-PAD*1.80, H2-PAD*1.80);
     const inner=W-PAD*2.6;
-    x.fillStyle="#efe0b2"; fitSerif(x,"The Rusty", inner*0.80, H2*0.36, W/2, H2*0.365);
-    x.fillStyle="#d4573a"; fitSerif(x,"Canteen",   inner*0.86, H2*0.40, W/2, H2*0.715);
+    x.fillStyle="#efe0b2"; fitSerif(x,"The Rusty", inner*0.78, H2*0.34, W/2, H2*0.345);
+    x.fillStyle="#d4573a"; fitSerif(x,"Canteen",   inner*0.84, H2*0.38, W/2, H2*0.695);
   });
   NEON.push(signPanel(7.4, 1.68, nameTex, (X0+X1)/2, FY+3.10, Z0-0.06, Math.PI, true));
   const smallTex=signTex(512, 256, (x,W,H2)=>{
@@ -4705,8 +4705,8 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       /* ---- inside ---------------------------------------------------- */
       m.B("concrete", QX1-QX0, 0.05, QZ1-QZ0, (QX0+QX1)/2, PF-0.015, (QZ0+QZ1)/2,
           0.5, 0, "#8d877c");
-      m.B("ceil", QX1-QX0, 0.08, QZ1-QZ0, (QX0+QX1)/2, PF+PH-0.05, (QZ0+QZ1)/2,
-          0.4, 0, "#b6ae9c");
+      m.B("plaster", QX1-QX0, 0.08, QZ1-QZ0, (QX0+QX1)/2, PF+PH-0.05, (QZ0+QZ1)/2,
+          0.4, 0, "#a49e92");
       // the projector: off its mount, lens down, one reel arm snapped
       (function(){
         const jx=-1.55, jz=PZ0+1.30, jy=PF+0.62;
@@ -4780,6 +4780,26 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
           "#e8e2cf");
       for(const st of [[QX0+0.9, QZ0+PT+0.03, 0],[QX1-0.9, QZ1-PT-0.03, Math.PI]])
         m.P("soot", planeGeo(1.10,1.50,0), st[0], PF+1.30, st[1], st[2], "#6a5a3a", 0, 0);
+      // the rest of what is in here: a toolboard, a spares shelf, cable, and
+      // the calendar that stopped being turned over
+      m.B("oak", 0.90, 0.72, 0.05, QX0+1.30, PF+1.86, QZ1-PT-0.03, 0.5, 0, "#5b4632");
+      for(let i=0;i<7;i++){
+        m.C("metal", 0.012,0.012,0.16+((i*7)%4)*0.05,6, QX0+0.95+i*0.12, PF+1.84,
+            QZ1-PT-0.06, "#8a8274");
+        m.B("metal", 0.05,0.03,0.02, QX0+0.95+i*0.12, PF+1.95, QZ1-PT-0.07, 0, 0, "#9aa1a4");
+      }
+      m.B("oak", 1.30, 0.05, 0.28, QX1-0.85, PF+2.34, QZ1-0.20, 0.5, 0, "#6f6048");
+      for(let i=0;i<5;i++)
+        m.C("metal", 0.055,0.055,0.15,10, QX1-1.35+i*0.24, PF+2.44, QZ1-0.20,
+            ["#7a5a2a","#4a5f52","#6d6a62"][i%3]);
+      m.P("paper", planeGeo(0.24,0.34,0), QX0+2.55, PF+1.92, QZ1-PT-0.03, Math.PI,
+          "#ded4b4", 0, 0.02);
+      m.C("metal", 0.075,0.075,0.40,12, QX1-0.30, PF+0.30, QZ0+0.60, "#a82e22");  // extinguisher
+      for(let i=0;i<9;i++){                                    // cable, looped along the wall
+        const t=i/8;
+        m.P("teal", boxGeo(0.60,0.02,0.02,0), QX0+0.6+t*3.6, PF+2.62-Math.sin(t*3.14)*0.12,
+            QZ0+PT+0.04, 0, "#3a342e", 0, Math.sin(t*3.14)*0.22);
+      }
       addZone(OX+QX0, OX+QX1, OZ+QZ0, OZ+QZ1, m.y+PF-0.3, m.y+PF+PH,
               "THE PROJECTION ROOM", true);
     })();
@@ -6234,32 +6254,35 @@ const DEVIL={g:null, bands:[], x:0, z:0, seeded:false, t:0};
   const tex=setSRGB(new T.CanvasTexture(c));
   tex.wrapS=tex.wrapT=T.RepeatWrapping;
   const g2=new T.Group(); g2.visible=false; scene.add(g2);
-  const N=13, TOP=58;
+  const N=15, TOP=44;
   for(let i=0;i<N;i++){
     const u=i/(N-1);
-    // narrow and hard at the foot, flaring and ragged at the top
-    const r=1.5+Math.pow(u,1.35)*9.0, h=TOP/N*1.9;
+    // narrow and hard at the foot, flaring and ragged at the top. Each band is
+    // three times its own spacing tall, so every height is covered by three of
+    // them and the stack reads as one column rather than as a pile of hoops.
+    const r=1.0+Math.pow(u,1.5)*7.4, h=TOP/N*3.0;
     const m=new T.MeshBasicMaterial({map:tex.clone(), transparent:true, depthWrite:false,
       side:T.DoubleSide, fog:true, opacity:0, toneMapped:false, color:0xd8bc92});
     m.map.wrapS=m.map.wrapT=T.RepeatWrapping;
     m.map.repeat.set(2.0+u*1.6, 1);
+    m.map.offset.y=(i*0.37)%1;                  // so the streaks never line up
     const mesh=new T.Mesh(new T.CylinderGeometry(r*1.10, r*0.90, h, 20, 1, true), m);
-    mesh.position.y=TOP*u*0.98+1.0;
+    mesh.position.y=TOP*u*0.97+1.2;
     mesh.renderOrder=3;
     g2.add(mesh);
     DEVIL.bands.push({m:mesh, u:u, r:r,
-                      spin:(1.9-u*1.25)*(1+((i%3)-1)*0.09),   // faster at the foot
-                      drift:0.09+u*0.16, ph:Math.random()*6.28,
-                      base:0.30*(1-u*0.42)});
+                      spin:(2.3-u*1.5)*(1+((i%3)-1)*0.09),    // faster at the foot
+                      drift:0.10+u*0.18, ph:Math.random()*6.28,
+                      base:0.21*(1-u*0.30)});
   }
   // the skirt: dust being picked up off the ground, wider and much flatter
-  const sk=new T.Mesh(new T.CylinderGeometry(7.5, 3.2, 3.4, 22, 1, true),
+  const sk=new T.Mesh(new T.CylinderGeometry(6.6, 2.4, 4.2, 22, 1, true),
     new T.MeshBasicMaterial({map:tex.clone(), transparent:true, depthWrite:false,
       side:T.DoubleSide, fog:true, opacity:0, toneMapped:false, color:0xcaae86}));
   sk.material.map.wrapS=sk.material.map.wrapT=T.RepeatWrapping;
   sk.material.map.repeat.set(3.2,1);
-  sk.position.y=1.5; sk.renderOrder=3; g2.add(sk);
-  DEVIL.bands.push({m:sk, u:-1, r:7.5, spin:2.6, drift:0.30, ph:0, base:0.34});
+  sk.position.y=1.8; sk.renderOrder=3; g2.add(sk);
+  DEVIL.bands.push({m:sk, u:-1, r:6.6, spin:3.1, drift:0.34, ph:0, base:0.30});
   // grit thrown out of it
   const gm=new T.MeshBasicMaterial({color:0x6b5540, transparent:true, opacity:0,
     depthWrite:false, toneMapped:false});
@@ -6291,7 +6314,7 @@ function updateDevil(dt){
     b.m.material.map.offset.x -= b.drift*dt;     // the sheet creeps the other way
     b.m.material.opacity = a*b.base;
     if(b.u>=0){                                  // the column bends downwind
-      const lean=Math.pow(b.u,1.7)*7.0;
+      const lean=Math.pow(b.u,1.8)*9.5;
       const wob=Math.sin(DEVIL.t*0.9+b.ph)*b.u*1.1;
       b.m.position.x = WIND.x*lean + wob;
       b.m.position.z = WIND.z*lean + Math.cos(DEVIL.t*0.8+b.ph)*b.u*1.1;
@@ -6301,10 +6324,10 @@ function updateDevil(dt){
   DEVIL.gritMat.opacity=a*0.55;
   for(const q of DEVIL.grit){
     q.a += q.sp*dt*(1.6-q.y/60);
-    const lean=Math.pow(q.y/58,1.7)*7.0;
+    const lean=Math.pow(q.y/44,1.8)*9.5;
     q.m.position.set(WIND.x*lean+Math.cos(q.a)*q.r, q.y, WIND.z*lean+Math.sin(q.a)*q.r);
     q.m.rotation.set(0, -q.a, DEVIL.t*2.1+q.a);
-    q.y += dt*3.4; if(q.y>52) q.y=1.4;
+    q.y += dt*3.4; if(q.y>40) q.y=1.4;
   }
 }
 function updateSand(dt, dark){
@@ -6723,7 +6746,8 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                seats:SEATS, geckos:GECKOS, seatedNow:()=>!!seated, sit:sitToggle,
                drone:setDrone, dronePos:dronePos, droneOn:()=>droneMode,
                zoneNow:()=>zoneAt(camera.position.x, camera.position.z, camera.position.y),
-               indoorsNow:()=>indoorsAt(camera.position.x, camera.position.z, camera.position.y),
+               indoorsNow:()=>indoorsAt(player.pos.x, player.pos.z, player.feetY+EYE),
+               indoorsAt:indoorsAt, zoneAt:zoneAt,
                sandOn:()=>SAND.fine.p.visible, devil:DEVIL,
                droneSet:(x,y,z,yaw,pitch)=>{ dronePos.set(x,y,z); droneVel.set(0,0,0);
                  droneYaw=yaw; if(pitch!==undefined) dronePitch=pitch; },

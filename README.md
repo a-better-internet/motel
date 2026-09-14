@@ -56,9 +56,18 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   wall; three high-backed booths down the west wall, each with a table and
   somebody's glasses still on it; four loose tables with chairs; a dartboard
   with the throw line scuffed into the boards; a jukebox; a screen nobody is
-  watching; and eight gig posters that went up and never came down — all six
-  designs drawn in canvas onto one sheet, so the whole wall of them is a single
-  draw call.
+  watching; a jukebox, a cigarette machine, a chalkboard, a ceiling fan that
+  has not turned in a while, crates of empties and a keg; and fourteen gig
+  posters that went up and never came down — all six designs drawn in canvas
+  onto one sheet, so the whole wall of them is a single draw call. Its signs
+  are set in a serif, in title case, with their own padding off the edge of
+  every board.
+- **The projection room** at the drive-in, which you can let yourself into the
+  same way. Two ports cut through the wall facing the screen, a projector off
+  its mount with the lens drooping and a reel arm snapped, film unspooled
+  across the floor, reels stacked and shelved, two filing cabinets with a
+  drawer that never closed, a rewind bench you can sit at, and the paperwork
+  nobody filed still on the wall.
 - **The pool**: a real tank with a sloped floor, waterline tile, bullnosed
   coping that laps out over the water, walk-in steps at the shallow end and a
   deep-end ladder you can climb out on. Loungers line the south deck, reclined
@@ -112,7 +121,13 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   loose reads off it: the tumbleweeds run, litter comes loose more often, the
   ground starts to smoke, the haze closes in and goes the colour of dust, and
   in a real blow a dust devil stands up a couple of hundred metres off and
-  walks downwind.
+  walks downwind. The devil is a stack of open cylinders rather than a flat
+  sprite — you see its far wall through its near one, which is where the depth
+  comes from — each turning at its own rate, faster at the foot than the top,
+  each with its sheet of dust creeping round the other way, the whole column
+  leaning and bending downwind as it rises over a skirt of lifted dust, with
+  grit orbiting in it. Indoors, none of it comes in with you: every roofed
+  volume is marked, and the blown sand and the lot dust stop at the door.
 - **The desert**: a graded pad, a two-lane highway that runs to a vanishing
   point in both directions — its corridor is graded flat to the edge of the
   world and the badlands and buttes it crosses are cut away either side of it,

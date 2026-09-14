@@ -2093,10 +2093,10 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   // silhouette is round, a hemisphere on every growing tip, and the arms
   // turn a real corner out and then up.
   function saguaroArm(x,y,z, sd, up, green){
-    cyl("foliage", 0.20,0.23,0.62,14, x+sd*0.42, y, z, green, 0,0,Math.PI/2);   // out
-    push("foliage", new T.SphereGeometry(0.215,14,10), x+sd*0.70, y, z, 0, green);
-    cyl("foliage", 0.185,0.215,up,14, x+sd*0.70, y+up/2, z, green);             // and up
-    push("foliage", new T.SphereGeometry(0.187,14,10), x+sd*0.70, y+up, z, 0, green);
+    cyl("foliage", 0.20,0.23,0.62,12, x+sd*0.42, y, z, green, 0,0,Math.PI/2);   // out
+    push("foliage", new T.SphereGeometry(0.215,10,6), x+sd*0.70, y, z, 0, green);
+    cyl("foliage", 0.185,0.215,up,12, x+sd*0.70, y+up/2, z, green);             // and up
+    push("foliage", new T.SphereGeometry(0.187,10,6), x+sd*0.70, y+up, z, 0, green);
   }
   for(let i=0;i<180;i++){
     const a=rnd()*Math.PI*2, r=70+rnd()*430;
@@ -2107,8 +2107,8 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     const green=pick(["#4f6b3a","#57713f","#465f34"]);
     if(rnd()<0.72){
       const h=2.4+rnd()*2.8, rt=0.30+rnd()*0.06, rb=rt+0.08;
-      cyl("foliage", rt,rb,h,16, x, y+h/2, z, green);
-      push("foliage", new T.SphereGeometry(rt,16,10), x, y+h, z, 0, green);     // the crown
+      cyl("foliage", rt,rb,h,14, x, y+h/2, z, green);
+      push("foliage", new T.SphereGeometry(rt,12,7), x, y+h, z, 0, green);      // the crown
       const arms=rnd()<0.75?2:1;
       for(let k=0;k<arms;k++){
         const sd=k===0?1:-1, hy=y+h*(0.40+rnd()*0.24);
@@ -2116,9 +2116,9 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
       }
     }else{                                         // barrel cactus, squat and ribbed
       const br=0.40+rnd()*0.26;
-      const g2=new T.SphereGeometry(br, 16, 12); g2.scale(1, 0.80, 1);
+      const g2=new T.SphereGeometry(br, 12, 8); g2.scale(1, 0.80, 1);
       push("foliage", g2, x, y+br*0.70, z, rnd()*6, green);
-      push("foliage", new T.SphereGeometry(br*0.30,12,8), x, y+br*1.38, z, 0, green);
+      push("foliage", new T.SphereGeometry(br*0.30,10,6), x, y+br*1.38, z, 0, green);
     }
   }
   // sage / creosote
@@ -4125,8 +4125,10 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   bx("concrete", 3.20, 0.30, 1.50, (DHX0+DHX1)/2, FY-0.14, Z0-0.70, 0.45, 0, "#a8a094");
   addFlat(DHX0-1.6, DHX1+1.6, Z0-1.45, Z0, FY-0.01);
   for(const sx of [-1.45,1.45]){
-    cyl("metal", 0.035,0.035,1.00,8, (DHX0+DHX1)/2+sx, 0.55, Z0-0.66, CHROME);
-    bx("metal", 0.05,0.05,1.30, (DHX0+DHX1)/2+sx, 1.04, Z0-0.66, 0, 0, CHROME);
+    const hx=(DHX0+DHX1)/2+sx;
+    for(const hz of [Z0-1.22, Z0-0.14])                  // a post at each end of it
+      cyl("metal", 0.035,0.035,0.98,8, hx, 0.54, hz, CHROME);
+    bx("metal", 0.05,0.05,1.18, hx, 1.01, Z0-0.68, 0, 0, CHROME);
   }
   makeDoor(XF(DHX0+0.03, Z0+0.05, 0), 0, FY+0.02, 0, "THE RUSTY CANTEEN", true);
 

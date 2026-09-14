@@ -4173,10 +4173,17 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     for(const q of [[-80.0,-8.0,3.2],[-88.0,4.0,2.4],[-66.0,2.0,2.0]])
       push("soot", planeGeo(q[2], q[2]*0.7, 0), q[0], 0.012, q[1], q[0]*0.1, "#2a2420",
            -Math.PI/2, 0);
-    for(let i=0;i<26;i++){
-      const wx=-95+((i*4.7)%42), wz=-6+((i*7.3)%30);
-      push("foliage", new T.IcosahedronGeometry(0.11+((i%3)*0.05),0), wx, 0.09, wz,
-           i*1.7, "#6d7a4e");
+    // grass in the cracks, not boulders on the tarmac: thin blades, low and
+    // dark, and only where a crack would actually be — the edges and the fence
+    for(let i=0;i<30;i++){
+      const edge=i%3;
+      const wx = edge===0 ? -52.6 : edge===1 ? -96.0 : -95+((i*5.3)%43);
+      const wz = edge===2 ? 25.1 : -6+((i*7.3)%30);
+      for(let k=0;k<5;k++){
+        const h2=0.10+((i*k)%4)*0.045;
+        push("foliage", boxGeo(0.018,h2,0.018,0), wx+((k-2)*0.045), h2/2,
+             wz+(((i+k)%3)-1)*0.05, i+k, "#5a6a3c", ((k%3)-1)*0.22, ((i%3)-1)*0.22);
+      }
     }
     // a stack of stools that gave out, and a sand pile
     for(let i=0;i<4;i++){
@@ -4583,7 +4590,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
        0, "#2a2622", Math.PI/2, 0);
   // six more posters, because they go up and they do not come down
   for(const q of [[2,IX0+0.04,-28.0,Math.PI/2],[5,IX0+0.04,-19.4,Math.PI/2],
-                  [1,-88.0+2.4,IZ0+0.04,0],[4,-69.9,IZ0+0.04,0],
+                  [1,-84.55,IZ0+0.04,0],[4,-69.9,IZ0+0.04,0],
                   [0,-82.2,IZ1-0.04,Math.PI],[3,-73.4,IZ1-0.04,Math.PI]])
     poster(q[0], q[1], FY+2.06+rr(-0.14,0.14), q[2], q[3]);
   // two speakers up in the corners, wired back along the joists
@@ -4616,8 +4623,10 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
         const sx=p1[0]-p0[0], sy=p1[1]-p0[1], sz=p1[2]-p0[2], SL=Math.hypot(sx,sy,sz);
         push("teal", boxGeo(SL,0.012,0.012,0), (p0[0]+p1[0])/2, (p0[1]+p1[1])/2,
              (p0[2]+p1[2])/2, Math.atan2(-sz,sx), "#2e2a26", 0, Math.asin(sy/SL));
-        push("xmas", new T.SphereGeometry(0.031,6,5), p0[0], p0[1]-0.035, p0[2],
-             0, XCOL[seq++%XCOL.length]);
+        // on the middle of each little span, not its end — two runs that meet
+        // at a corner would otherwise drop two bulbs in exactly one place
+        push("xmas", new T.SphereGeometry(0.031,6,5), (p0[0]+p1[0])/2,
+             (p0[1]+p1[1])/2-0.035, (p0[2]+p1[2])/2, 0, XCOL[seq++%XCOL.length]);
       }
     }
   }
@@ -4630,6 +4639,10 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     lights([[a,LY,c2],[b2,LY-0.55,(c2+d2)/2],[a,LY,d2]], 0.42, 0.32);   // and two swags
     lights([[b2,LY,c2],[a,LY-0.55,(c2+d2)/2],[b2,LY,d2]], 0.42, 0.32);
     lights([[BX-0.30,FY+2.30,BZ0-0.4],[BX-0.30,FY+2.30,BZ1+0.3]], 0.10, 0.26);  // over the bar
+    // and along the front eave outside, which is how you find the place at night
+    // hung high enough that the sag never touches the roof slab's underside
+    lights([[X0+0.5,TOPY+0.52,Z0-0.34],[X1-0.5,TOPY+0.52,Z0-0.34]], 0.34, 0.34);
+    lights([[X0-0.32,TOPY+0.52,Z0+0.6],[X0-0.32,TOPY+0.52,Z1-0.6]], 0.30, 0.36);
     LAMPS.push({x:-79.0, y:TOPY-0.6, z:IZ0+0.9, color:0xff4a3a, intensity:0.30, dist:9,
                 decay:1.8, indoor:true});
     LAMPS.push({x:-76.0, y:TOPY-0.6, z:IZ1-0.9, color:0x35b0ff, intensity:0.26, dist:9,
@@ -4640,21 +4653,25 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
 
   /* ---- a dado of panelling, because every bar like this has one -------- */
   {
-    const DY0=FY-0.06, DY1=FY+1.06, DT=0.08, DC="#6b4a2c";
-    const run=(zc,a0,a1,holes,horiz)=>{
-      for(const g of segs(a0,a1,holes)){
-        if(horiz) bx("oak", g[1]-g[0], DY1-DY0, DT, (g[0]+g[1])/2, (DY0+DY1)/2, zc, 0.5,0,DC);
-        else      bx("oak", DT, DY1-DY0, g[1]-g[0], zc, (DY0+DY1)/2, (g[0]+g[1])/2, 0.5,0,DC);
-      }
-    };
-    run(IZ0-0.02, X0, X1, [[DHX0-0.06,DHX1+0.06]], true);
-    run(IZ1+0.02, X0, X1, [], true);
-    run(IX0-0.02, Z0, Z1, [], false);
-    run(IX1+0.02, Z0, Z1, [], false);
-    for(const q of [[IZ0+0.02,1],[IZ1-0.02,1]])                  // the capping rail
-      bx("oak", X1-X0, 0.05, 0.13, (X0+X1)/2, DY1+0.025, q[0], 0.5, 0, "#4e3720");
-    for(const q of [IX0+0.02, IX1-0.02])
-      bx("oak", 0.13, 0.05, Z1-Z0, q, DY1+0.025, (Z0+Z1)/2, 0.5, 0, "#4e3720");
+    // It stands two centimetres proud of the brick and laps two into it, and
+    // every run stops inside the wall it meets rather than on that wall's own
+    // plane — flush was forty-six overlapping faces.
+    const DY0=FY-0.10, DY1=FY+1.06, DT=0.08, DC="#6b4a2c";
+    const EY1=DY1+0.006;                     // the side runs stand a hair taller
+    const NS=(zc,holes)=>{ for(const g of segs(IX0-0.01, IX1+0.01, holes))
+        bx("oak", g[1]-g[0], DY1-DY0, DT, (g[0]+g[1])/2, (DY0+DY1)/2, zc, 0.5, 0, DC); };
+    const EW=(xc)=>{ bx("oak", DT, EY1-DY0, Z1-Z0-0.12, xc, (DY0+EY1)/2, (Z0+Z1)/2,
+                        0.5, 0, DC); };
+    NS(IZ0+0.02, [[DHX0-0.06, DHX1+0.06]]);
+    NS(IZ1-0.02, []);
+    EW(IX0+0.02); EW(IX1-0.02);
+    // the capping rails mitre with a hair's gap rather than crossing, or the
+    // four of them share a plane in every corner
+    for(const zc of [IZ0+0.04, IZ1-0.04])
+      bx("oak", (IX1-0.13)-(IX0+0.13), 0.060, 0.13, (IX0+IX1)/2, DY1+0.010, zc,
+         0.5, 0, "#4e3720");
+    for(const xc of [IX0+0.04, IX1-0.04])
+      bx("oak", 0.13, 0.064, Z1-Z0-0.12, xc, DY1+0.014, (Z0+Z1)/2, 0.5, 0, "#4e3720");
   }
 
   /* ---- the clutter that makes it somebody's bar ------------------------ */
@@ -4714,6 +4731,15 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   push("soot", planeGeo(9.0, 2.2, 0), BX-1.6, FY+0.012, (BZ0+BZ1)/2, Math.PI/2, "#6a5a3a",
        -Math.PI/2, 0);
   push("soot", planeGeo(3.4, 2.6, 0), -81.6, FY+0.014, -21.4, 0.2, "#6a5a3a", -Math.PI/2, 0);
+  push("soot", planeGeo(2.2, 7.0, 0), -79.6, FY+0.016, -24.6, 0.05, "#6a5a3a", -Math.PI/2, 0);
+  // ends and caps trodden into the boards
+  for(let i=0;i<40;i++){
+    const fx=IX0+0.8+((i*1.37)%18.4), fz=IZ0+0.8+((i*2.11)%13.0);
+    if(i%3) push("plaster", boxGeo(0.042,0.011,0.011,0), fx, FY+0.011, fz, i*1.1,
+                 "#e8e2cf", 0, 0);
+    else    push("bin", new T.CylinderGeometry(0.014,0.014,0.006,8), fx, FY+0.010, fz,
+                 0, ["#c8342a","#2f7a44","#d8b23a"][i%3], Math.PI/2, 0);
+  }
 })();
 
 /* ----------------------------------------------------------------------

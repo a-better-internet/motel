@@ -57,11 +57,23 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   somebody's glasses still on it; four loose tables with chairs; a dartboard
   with the throw line scuffed into the boards; a jukebox; a screen nobody is
   watching; a jukebox, a cigarette machine, a chalkboard, a ceiling fan that
-  has not turned in a while, crates of empties and a keg; and fourteen gig
+  has not turned in a while, crates of empties and a keg; a dado of panelling
+  with a capping rail, a shelf of caps over the back bar, framed photographs, a
+  crisps rack, a microwave, a receipt spike, bar towels, ends and bottle caps
+  trodden into the boards; coloured fairy lights round the walls, two swags
+  across the room, a run over the bar and more along the front eave outside,
+  which is how you find the place after dark; and fourteen gig
   posters that went up and never came down — all six designs drawn in canvas
   onto one sheet, so the whole wall of them is a single draw call. Its signs
   are set in a serif, in title case, with their own padding off the edge of
   every board.
+- **The back of the Canteen.** Its lot runs back as far as the motel's does, so
+  the two read as one graded site with a fence down the middle rather than an
+  island of asphalt. Behind the bar: a padlocked shed with pallets and kegs
+  stacked against it, two dumpsters with their lids thrown back, bins by a
+  service door, a bench to smoke on with the ends ground out around it, two
+  yard lights, oil where the delivery truck stands, grass in the cracks and a
+  pile of sand.
 - **The projection room** at the drive-in, which you can let yourself into the
   same way. Two ports cut through the wall facing the screen, a projector off
   its mount with the lens drooping and a reel arm snapped, film unspooled
@@ -154,7 +166,8 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   chain-link fence around the back; a service yard with a dumpster, a propane
   tank, condensers, oil drums, a laundry line and stacked mattresses; and
   benches, planters, ice chests and cigarette urns along the walkways.
-- **A full day/night cycle** — sun and moon discs, a repainted gradient sky, and
+- **A full day/night cycle** — six minutes fifty-four seconds for a full
+  twenty-four hours — sun and moon discs, a repainted gradient sky, and
   every artificial light in the scene ramping up as the sun goes down. The night
   sky is built in magnitude classes: a handful of named stars with diffraction
   spikes, a few hundred of second magnitude, thousands of faint ones, colour

@@ -10,6 +10,12 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
 
 ## What is in it
 
+- **No two rooms are lit the same.** Somebody left the overhead on and the
+  lamps off; next door it is the other way round; one along the row is dark but
+  for the bathroom fluorescent, and that is going. Occupied rooms draw from the
+  brighter half of the range and empty ones from the dimmer, so a walk down the
+  balcony at night reads as a row of separate lives rather than one lighting
+  rig repeated twenty-four times.
 - **24 guest rooms**, all enterable, all furnished, all laid out the same
   sensible way: one queen with its headboard against the right-hand wall,
   nightstands either side with a lamp and a clock radio, the dresser, television,
@@ -54,7 +60,8 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   drying and four shelves of bottles behind it; seventeen stools you can sit on;
   a pool table racked and waiting under two low pendants, with a cue rack on the
   wall; three high-backed booths down the west wall, each with a table and
-  somebody's glasses still on it; four loose tables with chairs; a dartboard
+  somebody's glasses still on it; six tables laid out in two rows parallel to
+  the bar with a lane between them, and two high tops; a dartboard
   with the throw line scuffed into the boards; a jukebox; a screen nobody is
   watching; a jukebox, a cigarette machine, a chalkboard, a ceiling fan that
   has not turned in a while, crates of empties and a keg; a dado of panelling
@@ -73,7 +80,8 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   stacked against it, two dumpsters with their lids thrown back, bins by a
   service door, a bench to smoke on with the ends ground out around it, two
   yard lights, oil where the delivery truck stands, grass in the cracks and a
-  pile of sand.
+  pile of sand. The shed opens: chest coolers with a lid propped up, dead kegs
+  stacked three deep, a shelf of bottles, a mop and a stack of crates.
 - **The projection room** at the drive-in, which you can let yourself into the
   same way. Two ports cut through the wall facing the screen, a projector off
   its mount with the lens drooping and a reel arm snapped, film unspooled
@@ -144,7 +152,10 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   point in both directions — its corridor is graded flat to the edge of the
   world and the badlands and buttes it crosses are cut away either side of it,
   so it recedes into the haze instead of stopping in mid-desert — with power
-  poles and sagging wires marching out with it, saguaro drawn as a fluted
+  poles and sagging wires marching out with it — and the scatter runs to a mile
+  and a half rather than stopping dead at five hundred metres, sparser and
+  simpler the further out it goes, so the distance sells itself. Saguaro drawn
+  as a fluted
   column with a domed crown and elbowed arms rather than a capped tube, barrel
   cactus, creosote, and boulders that are icosahedra with every vertex pushed
   in or out under a drawn stone map, so no two are the same lump — and none of

@@ -2263,6 +2263,12 @@ function lflat(xf, lx0,lx1,lz0,lz1, y){
   const a=[xf.x(lx0,lz0),xf.z(lx0,lz0)], b=[xf.x(lx1,lz1),xf.z(lx1,lz1)];
   addFlat(Math.min(a[0],b[0]),Math.max(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[1],b[1]), y);
 }
+// the same rectangle as an array, for a lamp that must not shine through walls
+function lvol(xf, lx0,lx1,lz0,lz1, y0,y1){
+  const a=[xf.x(lx0,lz0),xf.z(lx0,lz0)], b=[xf.x(lx1,lz1),xf.z(lx1,lz1)];
+  return [Math.min(a[0],b[0]),Math.max(a[0],b[0]),
+          Math.min(a[1],b[1]),Math.max(a[1],b[1]), y0,y1];
+}
 function lzone(xf, lx0,lx1,lz0,lz1, y0,y1, name, indoor){
   const a=[xf.x(lx0,lz0),xf.z(lx0,lz0)], b=[xf.x(lx1,lz1),xf.z(lx1,lz1)];
   addZone(Math.min(a[0],b[0]),Math.max(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[1],b[1]),
@@ -2633,6 +2639,13 @@ function buildBay(xf, level, kind, roomNo, lit){
     [0.00, 0.11, 0.00, 0.15, -1],   // all but out
   ];
   const md=MOOD[(lit ? rn2%3 : 3+(rn2%3))];
+  // Point lights here cast no shadows, so a lamp in 104 was lighting 103 and
+  // 105 straight through the party walls. With ninety-six room lamps on the
+  // property and only seven real lights to hand out, a room with its own lamps
+  // off was simply being lit by next door's — which is why every room looked
+  // the same however they were set. Each lamp now only counts while you are in
+  // the room it hangs in.
+  const vol=lvol(xf, -2.72,2.72, 0.10,6.70, y0-0.6, y0+2.7);
   const LMP=[[0, 2.60, y0+ROOM_H-0.34, 0xffe2b4, 13, 1.15],
              [-2.30, 0.60, y0+1.72,    0xffd39a, 5.5, 1.5],
              [1.40, 5.30, y0+ROOM_H-0.34, 0xf6f0e2, 6, 1.55],   // white tile blows easily
@@ -2641,7 +2654,7 @@ function buildBay(xf, level, kind, roomNo, lit){
     if(md[i]<=0) continue;
     LAMPS.push({x:xf.x(LMP[i][0],LMP[i][1]), y:LMP[i][2], z:xf.z(LMP[i][0],LMP[i][1]),
                 color:LMP[i][3], intensity:md[i], dist:LMP[i][4], decay:LMP[i][5],
-                indoor:true, flicker:(md[4]===i)});
+                indoor:true, vol:vol, flicker:(md[4]===i)});
   }
 
   furnishRoom(xf, y0, roomNo);
@@ -6171,6 +6184,10 @@ function tickFlicker(dt){
 function updateLights(dark, camPos){
   _lampSort.length=0;
   for(const l of LAMPS){
+    // a lamp with a volume is behind a wall unless you are inside that volume
+    if(l.vol && !(camPos.x>l.vol[0] && camPos.x<l.vol[1] &&
+                  camPos.z>l.vol[2] && camPos.z<l.vol[3] &&
+                  camPos.y>l.vol[4] && camPos.y<l.vol[5])) continue;
     const d2=(l.x-camPos.x)*(l.x-camPos.x)+(l.y-camPos.y)*(l.y-camPos.y)+(l.z-camPos.z)*(l.z-camPos.z);
     if(d2 < 46*46) _lampSort.push({l:l, d2:d2});
   }

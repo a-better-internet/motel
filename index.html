@@ -2152,6 +2152,55 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     push("rock", rockGeo(s, i*29+11), x, Terrain.heightAt(x,z)+s*0.30, z, rnd()*6,
       pick(["#d8c6ac","#c6b298","#b9a68e"]), rnd()*0.6-0.3, rnd()*0.6-0.3);
   }
+  /* ---- and the same again, sparser, out to a mile and a half ---------
+     Everything used to stop at about five hundred metres, so past that the
+     floor read as bare ground and the distance stopped selling itself. These
+     are simpler — fewer segments, one detail level down — because at that
+     range nothing of them survives but the silhouette.                   */
+  for(let i=0;i<300;i++){                                   // far cacti
+    const a=rnd()*Math.PI*2, r=470+rnd()*980;
+    const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
+    if(onRoad(z)) continue;
+    const y=Terrain.heightAt(x,z); if(y>30) continue;
+    const green=pick(["#4f6b3a","#57713f","#465f34"]);
+    if(rnd()<0.74){
+      const h=2.6+rnd()*2.6, rt=0.30+rnd()*0.06;
+      cyl("foliage", rt,rt+0.08,h,10, x, y+h/2, z, green);
+      push("foliage", new T.SphereGeometry(rt,8,5), x, y+h, z, 0, green);
+      if(rnd()<0.6){
+        const sd=rnd()<0.5?1:-1, hy=y+h*0.46, up=0.9+rnd()*0.8;
+        cyl("foliage", 0.20,0.22,0.60,8, x+sd*0.40, hy, z, green, 0,0,Math.PI/2);
+        cyl("foliage", 0.185,0.21,up,8, x+sd*0.68, hy+up/2, z, green);
+        push("foliage", new T.SphereGeometry(0.19,8,5), x+sd*0.68, hy+up, z, 0, green);
+      }
+    }else{
+      const br=0.40+rnd()*0.26, g3=new T.SphereGeometry(br,10,6); g3.scale(1,0.80,1);
+      push("foliage", g3, x, y+br*0.70, z, rnd()*6, green);
+    }
+  }
+  for(let i=0;i<520;i++){                                   // far sage
+    const a=rnd()*Math.PI*2, r=450+rnd()*1050;
+    const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
+    if(onRoad(z)) continue;
+    const y=Terrain.heightAt(x,z); if(y>36) continue;
+    const col=pick(["#6a6a3c","#75754a","#5e6036","#7d7a4d"]);
+    const rad=0.34+rnd()*0.40;
+    push("foliage", new T.IcosahedronGeometry(rad,0), x, y+rad*0.68, z, rnd()*6, col);
+    if(rnd()<0.5){
+      const r2b=0.26+rnd()*0.30;
+      push("foliage", new T.IcosahedronGeometry(r2b,0),
+           x+(rnd()-0.5)*1.1, y+r2b*0.68, z+(rnd()-0.5)*1.1, rnd()*6, col);
+    }
+  }
+  for(let i=0;i<380;i++){                                   // far rocks
+    const a=rnd()*Math.PI*2, r=460+rnd()*1060;
+    const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
+    if(onRoad(z)) continue;
+    const sc=0.7+rnd()*3.2;
+    push("rock", rockGeo(sc, i*17+3), x, Terrain.heightAt(x,z)+sc*0.22, z, rnd()*6,
+      pick(["#d8c6ac","#c6b298","#e2d0b6","#b9a68e"]), rnd()*0.4-0.2, rnd()*0.4-0.2);
+  }
+
   // power poles along the highway (wires drawn as line segments afterwards)
   const tops=[];
   for(let x=-704;x<=704;x+=44){
@@ -2223,26 +2272,71 @@ function lzone(xf, lx0,lx1,lz0,lz1, y0,y1, name, indoor){
 /* --- door leaf: its own little merged mesh so it can swing ------------- */
 // `ajar` leaves a door standing part-open for good: the one down the far end
 // of the walkway with the light on behind it and nobody in the room.
-function makeDoor(xf, lx, ly, lz, roomNo, opensIn, ajar){
-  const ent=[], leafW=0.92, leafH=2.02, leafT=0.055;
+// Three doors, because three different businesses hung them. `style` picks
+// which: the motel's painted panel door, the Canteen's oxblood steel one with
+// a brass kick plate and a push bar, or the drive-in booth's louvred grey one
+// with a hasp on it.
+function makeDoor(xf, lx, ly, lz, roomNo, opensIn, ajar, style){
+  const ent=[], leafH=2.02, leafT=0.055;
+  const leafW = style ? 0.98 : 0.92;
   const m4=(x,y,z)=>new T.Matrix4().makeTranslation(x,y,z);
+  const rot=(x,y,z,rx,ry,rz)=>new T.Matrix4().compose(new T.Vector3(x,y,z),
+    new T.Quaternion().setFromEuler(new T.Euler(rx||0,ry||0,rz||0)), new T.Vector3(1,1,1));
   const cream=new T.Color(0xd9d3c1), tealc=new T.Color(0x2f8b83), brass=new T.Color(0xcaa23c);
-  // pivot sits at the hinge edge; leaf extends +x from it
-  ent.push({geo:boxGeo(leafW,leafH,leafT,0.5), matrix:m4(leafW/2, leafH/2, 0), color:cream});
-  for(const sd of [1,-1]){                      // panels on BOTH faces of the leaf
-    ent.push({geo:boxGeo(leafW-0.16,0.50,0.02,0.5), matrix:m4(leafW/2, 0.46, sd*(leafT/2+0.012)), color:tealc});
-    ent.push({geo:boxGeo(leafW-0.16,0.74,0.02,0.5), matrix:m4(leafW/2, 1.42, sd*(leafT/2+0.012)), color:tealc});
-    ent.push({geo:boxGeo(leafW-0.10,0.03,0.03,0.5), matrix:m4(leafW/2, 0.99, sd*(leafT/2+0.010)), color:cream});
+  const steel=new T.Color(0x8e968c), dark=new T.Color(0x3a332e);
+  if(style==="bar"){
+    const ox=new T.Color(0x5e2a24), edge=new T.Color(0x7a3a30), gl=new T.Color(0x17201f);
+    ent.push({geo:boxGeo(leafW,leafH,leafT,0.5), matrix:m4(leafW/2, leafH/2, 0), color:ox});
+    for(const sd of [1,-1]){
+      ent.push({geo:boxGeo(leafW-0.05,0.30,0.012,0.5),                     // kick plate
+                matrix:m4(leafW/2, 0.17, sd*(leafT/2+0.007)), color:brass});
+      ent.push({geo:boxGeo(leafW-0.05,0.025,0.012,0.5),                    // a rail line
+                matrix:m4(leafW/2, 1.62, sd*(leafT/2+0.006)), color:edge});
+      ent.push({geo:boxGeo(0.40,0.40,0.02,0.5),                            // the port
+                matrix:m4(leafW*0.50, 1.44, sd*(leafT/2+0.008)), color:edge});
+      ent.push({geo:boxGeo(0.32,0.32,0.02,0.5),
+                matrix:m4(leafW*0.50, 1.44, sd*(leafT/2+0.013)), color:gl});
+      ent.push({geo:boxGeo(leafW-0.22,0.055,0.055,0.5),                    // the push bar
+                matrix:m4(leafW/2, 1.02, sd*(leafT/2+0.055)), color:brass});
+      for(const q of [-1,1])
+        ent.push({geo:boxGeo(0.05,0.05,0.07,0.5),
+                  matrix:m4(leafW/2+q*(leafW/2-0.13), 1.02, sd*(leafT/2+0.028)), color:brass});
+    }
+  }else if(style==="booth"){
+    const oliv=new T.Color(0x6f7566), rib=new T.Color(0x5b6154);
+    ent.push({geo:boxGeo(leafW,leafH,leafT,0.5), matrix:m4(leafW/2, leafH/2, 0), color:oliv});
+    for(const sd of [1,-1]){
+      for(let i=0;i<4;i++)                                                 // louvres
+        ent.push({geo:boxGeo(leafW-0.26,0.045,0.03,0.5),
+                  matrix:rot(leafW/2, 1.52+i*0.09, sd*(leafT/2+0.010), -0.34*sd), color:rib});
+      ent.push({geo:boxGeo(leafW-0.20,0.60,0.015,0.5),                     // a dented panel
+                matrix:m4(leafW/2, 0.52, sd*(leafT/2+0.006)), color:rib});
+      ent.push({geo:boxGeo(0.16,0.09,0.02,0.5),                            // the hasp plate
+                matrix:m4(leafW-0.10, 1.10, sd*(leafT/2+0.010)), color:steel});
+      ent.push({geo:boxGeo(0.13,0.030,0.030,0.5),                          // a lever handle
+                matrix:m4(leafW-0.20, 0.98, sd*(leafT/2+0.030)), color:steel});
+      ent.push({geo:boxGeo(0.035,0.035,0.045,0.5),
+                matrix:m4(leafW-0.13, 0.98, sd*(leafT/2+0.020)), color:steel});
+    }
+    ent.push({geo:new T.CylinderGeometry(0.030,0.030,0.020,10),
+              matrix:rot(leafW-0.10, 1.03, 0, Math.PI/2), color:dark});
+  }else{
+    // pivot sits at the hinge edge; leaf extends +x from it
+    ent.push({geo:boxGeo(leafW,leafH,leafT,0.5), matrix:m4(leafW/2, leafH/2, 0), color:cream});
+    for(const sd of [1,-1]){                    // panels on BOTH faces of the leaf
+      ent.push({geo:boxGeo(leafW-0.16,0.50,0.02,0.5), matrix:m4(leafW/2, 0.46, sd*(leafT/2+0.012)), color:tealc});
+      ent.push({geo:boxGeo(leafW-0.16,0.74,0.02,0.5), matrix:m4(leafW/2, 1.42, sd*(leafT/2+0.012)), color:tealc});
+      ent.push({geo:boxGeo(leafW-0.10,0.03,0.03,0.5), matrix:m4(leafW/2, 0.99, sd*(leafT/2+0.010)), color:cream});
+    }
+    for(const sd of [1,-1]){
+      ent.push({geo:new T.CylinderGeometry(0.035,0.035,0.10,10),
+                matrix:rot(leafW-0.14,1.02,sd*(leafT/2+0.05), Math.PI/2), color:brass});
+      ent.push({geo:new T.SphereGeometry(0.055,10,8),
+                matrix:m4(leafW-0.14,1.02,sd*(leafT/2+0.10)), color:brass});
+    }
   }
-  ent.push({geo:new T.CylinderGeometry(0.035,0.035,0.10,10),
-            matrix:new T.Matrix4().compose(new T.Vector3(leafW-0.14,1.02,leafT/2+0.05),
-              new T.Quaternion().setFromEuler(new T.Euler(Math.PI/2,0,0)), new T.Vector3(1,1,1)), color:brass});
-  ent.push({geo:new T.SphereGeometry(0.055,10,8), matrix:m4(leafW-0.14,1.02,leafT/2+0.10), color:brass});
-  ent.push({geo:new T.CylinderGeometry(0.035,0.035,0.10,10),
-            matrix:new T.Matrix4().compose(new T.Vector3(leafW-0.14,1.02,-leafT/2-0.05),
-              new T.Quaternion().setFromEuler(new T.Euler(Math.PI/2,0,0)), new T.Vector3(1,1,1)), color:brass});
-  ent.push({geo:new T.SphereGeometry(0.055,10,8), matrix:m4(leafW-0.14,1.02,-leafT/2-0.10), color:brass});
-  const mesh=new T.Mesh(mergeEntries(ent), new T.MeshStandardMaterial({vertexColors:true, roughness:0.6}));
+  const mesh=new T.Mesh(mergeEntries(ent), new T.MeshStandardMaterial({vertexColors:true,
+    roughness: style==="booth" ? 0.78 : 0.6, metalness: style ? 0.22 : 0}));
   mesh.castShadow=true; mesh.receiveShadow=true;
   const g=new T.Group();
   g.position.set(xf.x(lx,lz), ly, xf.z(lx,lz));
@@ -2524,14 +2618,31 @@ function buildBay(xf, level, kind, roomNo, lit){
   lflat(xf, -2.7,2.7, -0.05,6.60, y0);
   lzone(xf, -2.6,2.6, 0.30,6.55, y0-0.5, y0+2.4, "ROOM "+roomNo, true);
   ROOMS.push({no:roomNo, x:xf.x(0,3.4), z:xf.z(0,3.4), y:y0, lit:lit, level:level});
-  LAMPS.push({x:xf.x(0,2.60), y:y0+ROOM_H-0.34, z:xf.z(0,2.60), color:0xffe2b4,
-              intensity:0.58, dist:13, decay:1.15, indoor:true});
-  LAMPS.push({x:xf.x(-2.30,0.60), y:y0+1.72, z:xf.z(-2.30,0.60), color:0xffd39a,
-              intensity:0.20, dist:5.5, decay:1.5, indoor:true});
-  LAMPS.push({x:xf.x(1.40,5.30),  y:y0+ROOM_H-0.34, z:xf.z(1.40,5.30),  color:0xf6f0e2,
-              intensity:0.16, dist:6,  decay:1.55, indoor:true});   // white tile blows easily
-  LAMPS.push({x:xf.x(2.42,1.32), y:y0+1.04, z:xf.z(2.42,1.32), color:0xffd39a,
-              intensity:0.22, dist:6,  decay:1.45, indoor:true});
+  // No two rooms are lit the same. Somebody left the overhead on and the
+  // lamps off; next door it is the other way round; one along the row is dark
+  // but for the bathroom fluorescent, and it is going. Occupied rooms get the
+  // brighter half of the range, the empty ones the dimmer.
+  const rn2=parseInt(roomNo,10)||0;
+  const MOOD=[
+    // [overhead, bedside lamp, bath overhead, vanity lamp, which one flickers]
+    [0.58, 0.20, 0.16, 0.22, -1],   // everything on, the way housekeeping left it
+    [0.00, 0.34, 0.14, 0.30, -1],   // lamps only
+    [0.62, 0.00, 0.18, 0.00,  2],   // overhead only, and the bathroom stutters
+    [0.00, 0.40, 0.00, 0.00, -1],   // one lamp by the bed
+    [0.00, 0.00, 0.30, 0.00,  2],   // dark but for the bathroom, which is going
+    [0.00, 0.11, 0.00, 0.15, -1],   // all but out
+  ];
+  const md=MOOD[(lit ? rn2%3 : 3+(rn2%3))];
+  const LMP=[[0, 2.60, y0+ROOM_H-0.34, 0xffe2b4, 13, 1.15],
+             [-2.30, 0.60, y0+1.72,    0xffd39a, 5.5, 1.5],
+             [1.40, 5.30, y0+ROOM_H-0.34, 0xf6f0e2, 6, 1.55],   // white tile blows easily
+             [2.42, 1.32, y0+1.04,     0xffd39a, 6, 1.45]];
+  for(let i=0;i<4;i++){
+    if(md[i]<=0) continue;
+    LAMPS.push({x:xf.x(LMP[i][0],LMP[i][1]), y:LMP[i][2], z:xf.z(LMP[i][0],LMP[i][1]),
+                color:LMP[i][3], intensity:md[i], dist:LMP[i][4], decay:LMP[i][5],
+                indoor:true, flicker:(md[4]===i)});
+  }
 
   furnishRoom(xf, y0, roomNo);
 }
@@ -4086,26 +4197,73 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   /* ---- the back yard: where the bar keeps what it does not want seen ---- */
   (function(){
     const RUSTC="#9c5232", GALV="#9aa1a6";
-    // a shed, shut up with a padlock
+    // a shed you can get into, where the cold stock and the dead kegs live
     (function(){
-      const sx=-90.0, sz=9.0, SW=4.60, SD=3.60, SH=2.55;
-      bx("concrete", SW+0.5, 0.26, SD+0.5, sx, 0.11, sz, 0.45, 0, "#9b948a");
-      bx("siding", SW, SH, 0.12, sx, 0.24+SH/2, sz-SD/2, 0.55, 0, "#9aa8a2");
-      bx("siding", SW, SH, 0.12, sx, 0.24+SH/2, sz+SD/2, 0.55, 0, "#9aa8a2");
+      const sx=-90.0, sz=9.0, SW=5.20, SD=4.00, SH=2.62, ST=0.12, SF=0.24;
+      const SX0=sx-SW/2, SX1=sx+SW/2, SZ0=sz-SD/2, SZ1=sz+SD/2;
+      const QX0=SX0+ST, QX1=SX1-ST, QZ0=SZ0+ST, QZ1=SZ1-ST;      // inner faces
+      const SDOOR=[sx-1.24, sx-0.22];                            // 1.02 m opening
+      const runs=(a0,a1,holes)=>{
+        const out=[]; let c=a0;
+        for(const h of holes){ if(h[0]>c) out.push([c,h[0]]); c=Math.max(c,h[1]); }
+        if(c<a1) out.push([c,a1]); return out;
+      };
+      bx("concrete", SW+0.6, 0.26, SD+0.6, sx, SF-0.13, sz, 0.45, 0, "#9b948a");
+      addFlat(SX0-0.3, SX1+0.3, SZ0-0.3, SZ1+0.3, SF);
+      for(const g of runs(SX0,SX1,[SDOOR]))                       // front, with the door
+        bx("siding", g[1]-g[0], SH, ST, (g[0]+g[1])/2, SF+SH/2, SZ0+ST/2, 0.55, 0, "#9aa8a2");
+      bx("siding", SDOOR[1]-SDOOR[0], SH-2.10, ST, (SDOOR[0]+SDOOR[1])/2,
+         SF+2.10+(SH-2.10)/2, SZ0+ST/2, 0.55, 0, "#9aa8a2");
+      bx("siding", SW, SH, ST, sx, SF+SH/2, SZ1-ST/2, 0.55, 0, "#9aa8a2");
       for(const q of [-1,1])
-        bx("siding", 0.12, SH, SD, sx+q*SW/2, 0.24+SH/2, sz, 0.55, 0, "#8c9a94");
-      push("siding", boxGeo(SW+0.5, 0.10, SD+0.7, 0.5), sx, 0.24+SH+0.30, sz, 0,
+        bx("siding", ST, SH, SD-ST*2, sx+q*(SW/2-ST/2), SF+SH/2, sz, 0.55, 0, "#8c9a94");
+      push("siding", boxGeo(SW+0.5, 0.10, SD+0.7, 0.5), sx, SF+SH+0.30, sz, 0,
            "#7f8d88", 0.13, 0);                                   // a roof with a fall on it
-      bx("teal", 1.00, 2.05, 0.06, sx-0.7, 0.24+1.02, sz-SD/2-0.05, 0, 0, "#3f5c46");
-      bx("metal", 0.16, 0.10, 0.05, sx-0.24, 0.24+1.05, sz-SD/2-0.10, 0, 0, GALV);
-      push("metal", new T.CylinderGeometry(0.05,0.05,0.03,10), sx-0.24, 0.24+1.05,
-           sz-SD/2-0.13, 0, "#6d7377", Math.PI/2, 0);            // the padlock
-      bx("glass", 0.62, 0.42, 0.04, sx+1.30, 0.24+1.62, sz-SD/2-0.04, 0, 0, "#8e9a94");
-      bx("oak", 0.70, 0.05, 0.05, sx+1.30, 0.24+1.86, sz-SD/2-0.06, 0, 0, "#6b5947");
+      bx("plaster", QX1-QX0, 0.06, QZ1-QZ0, sx, SF+SH-0.03, sz, 0.4, 0, "#8e897e");
+      bx("concrete", QX1-QX0, 0.05, QZ1-QZ0, sx, SF-0.015, sz, 0.5, 0, "#8d877c");
+      for(const g of runs(SX0,SX1,[SDOOR])) addCol(g[0], g[1], SZ0, SZ0+ST, 0, SF+SH);
+      addCol(SX0, SX1, SZ1-ST, SZ1, 0, SF+SH);
+      addCol(SX0, SX0+ST, SZ0, SZ1, 0, SF+SH);
+      addCol(SX1-ST, SX1, SZ0, SZ1, 0, SF+SH);
+      makeDoor(XF(SDOOR[1]-0.02, SZ0+0.04, 0), 0, SF+0.02, 0, "THE SHED", true, 0, "booth");
+      bx("glass", 0.62, 0.42, 0.06, sx+1.50, SF+1.70, SZ0+ST/2, 0, 0, "#8e9a94");
+      bx("oak", 0.70, 0.05, 0.05, sx+1.50, SF+1.94, SZ0-0.02, 0, 0, "#6b5947");
       for(let i=0;i<4;i++)                                        // rust down the seams
-        push("rust", planeGeo(0.44,1.60,0), sx-1.6+i*1.1, 1.20, sz-SD/2-0.08, 0, "#6a3a20");
-      addCol(sx-SW/2-0.1, sx+SW/2+0.1, sz-SD/2-0.1, sz+SD/2+0.1, 0, 0.24+SH+0.4);
-      addZone(sx-4, sx+4, sz-4, sz+4, -1, 4, "BEHIND THE CANTEEN");
+        push("rust", planeGeo(0.44,1.60,0), SX0+0.5+i*1.35, 1.20, SZ0-0.07, 0, "#6a3a20");
+      /* ---- and what is in it ---------------------------------------- */
+      for(let k=0;k<2;k++){                                       // chest coolers
+        const cx2=QX0+0.78+k*1.62;
+        bx("weathered", 1.42, 0.86, 0.70, cx2, SF+0.43, QZ1-0.44, 0.45, 0, k?"#b6ada0":"#9cb0b4");
+        push("weathered", boxGeo(1.46,0.10,0.74,0.45), cx2, SF+0.90, QZ1-0.44, 0,
+             k?"#c2b9ab":"#a9bdc1", k?0.0:-0.42, 0);              // one lid propped open
+        bx("metal", 0.30, 0.05, 0.04, cx2, SF+0.62, QZ1-0.80, 0, 0, "#8d9498");
+        addCol(cx2-0.75, cx2+0.75, QZ1-0.82, QZ1-0.06, 0, SF+0.95);
+      }
+      for(let k=0;k<5;k++){                                       // kegs, dead and stacked
+        const kx=QX0+0.55+((k%3)*0.58), kz=QZ0+0.62+(((k/3)|0)*0.62);
+        cyl("metal", 0.23,0.23,0.58,14, kx, SF+0.29, kz, k%2?"#8d9498":"#7d858a");
+        cyl("metal", 0.25,0.25,0.05,14, kx, SF+0.60, kz, "#6d7377");
+        addCol(kx-0.26, kx+0.26, kz-0.26, kz+0.26, 0, SF+0.62);
+      }
+      cyl("metal", 0.23,0.23,0.58,14, QX0+0.84, SF+0.91, QZ0+0.62, "#8d9498", 0.12, 0.4, 0.1);
+      bx("oak", 0.36, 1.70, 1.30, QX1-0.20, SF+0.85, sz+0.40, 0.5, 0, "#5b4632");  // shelving
+      for(let r=0;r<3;r++){
+        bx("oak", 0.34, 0.04, 1.26, QX1-0.21, SF+0.46+r*0.52, sz+0.40, 0.5, 0, "#6f6048");
+        for(let i=0;i<4;i++)
+          cyl("glass", 0.035,0.035,0.22,9, QX1-0.21, SF+0.59+r*0.52, sz-0.08+i*0.30,
+              ["#3f8a46","#8a6026","#9a8a34"][(i+r)%3]);
+      }
+      addCol(QX1-0.40, QX1, sz-0.30, sz+1.05, 0, SF+1.7);
+      cyl("teal", 0.020,0.020,1.20,6, QX0+0.30, SF+0.60, sz+0.30, "#8a8274", 0.22, 0.8, 0.15);
+      push("fabric", boxGeo(0.24,0.08,0.20,0.5), QX0+0.34, SF+1.18, sz+0.44, 0.8, "#9a9482", 0.22, 0);
+      for(let i=0;i<3;i++)                                        // a stack of crates
+        bx("oak", 0.42,0.26,0.56, QX0+0.45, SF+0.14+i*0.27, QZ1-1.55, 0.5, 0.2, "#5f4a2c");
+      cyl("teal", 0.012,0.012,0.36,6, sx, SF+SH-0.26, sz, "#6e6a62");
+      push("ceilfix", new T.SphereGeometry(0.075,10,8), sx, SF+SH-0.50, sz, 0, "#f2e9cf");
+      LAMPS.push({x:sx, y:SF+SH-0.54, z:sz, color:0xffd6a2, intensity:0.52, dist:6,
+                  decay:1.8, indoor:true});
+      addZone(QX0, QX1, QZ0, QZ1, SF-0.3, SF+SH, "THE SHED", true);
+      addZone(sx-5, sx+5, sz-5, sz+5, -1, 4, "BEHIND THE CANTEEN");
       // what is stacked against it
       for(let i=0;i<5;i++)
         push("oak", boxGeo(1.15,0.11,0.95,0.5), sx+2.9, 0.06+i*0.13, sz+0.4+(i%2)*0.12,
@@ -4253,7 +4411,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       cyl("metal", 0.035,0.035,0.98,8, hx, 0.54, hz, CHROME);
     bx("metal", 0.05,0.05,1.18, hx, 1.01, Z0-0.68, 0, 0, CHROME);
   }
-  makeDoor(XF(DHX0+0.03, Z0+0.05, 0), 0, FY+0.02, 0, "THE RUSTY CANTEEN", true);
+  makeDoor(XF(DHX0+0.02, Z0+0.05, 0), 0, FY+0.02, 0, "THE RUSTY CANTEEN", true, 0, "bar");
 
   // ---- the sign, and the other one on a pole ---------------------------
   const nameTex=hosted("barSign", signTex(1408, 320, (x,W,H2)=>{
@@ -4328,17 +4486,61 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     bx("oak", 0.42, 2.74, 0.09, IX1-0.26, FY+1.37, ez, 0.45, 0, "#513f2a");
   bx("oak", 0.38, 0.10, BZ1-BZ0+0.7, IX1-0.26, FY+2.75, (BZ0+BZ1)/2-0.35, 0.45, 0, "#513f2a");
   addCol(IX1-0.50, IX1, BZ0-0.4, BZ1+0.4, 0, FY+2.7);
+  // The back bar was four shelves of one bottle repeated eighty times, which
+  // reads as a warehouse rack. A real one is mostly brown and clear — whiskey
+  // and well vodka — in a dozen different heights, with gaps where something
+  // ran out, labels on about half of it, and a top shelf of dusty display
+  // bottles nobody has poured from in years.
+  const BOT=["#8a5a24","#6a4018","#7c4a1c","#cfd8d4","#dfe4e0","#3f8a46","#2f5a8a",
+             "#9a2a26","#c8b070","#4a3018","#b98a3a"];
+  const LAB=["#e8dcc0","#d8c07a","#c8443a","#2f3a4a","#1d1a17","#dfd4a8"];
   for(let r=0;r<4;r++){
-    bx("oak", 0.34, 0.05, BZ1-BZ0+0.4, IX1-0.30, FY+0.92+r*0.46, (BZ0+BZ1)/2-0.2, 0.45, 0, "#6a5236");
-    for(let i=0;i<Math.round((BZ1-BZ0+0.4)/0.145);i++){
-      const z2=BZ0-0.2+0.09+i*0.145;
-      if(z2>BZ1+0.2) break;
-      const tall=0.24+rn()*0.12;
-      cyl("glass", 0.046,0.053,tall,9, IX1-0.30, FY+0.945+r*0.46+tall/2, z2,
-          ["#3f8a46","#5c8a30","#8a6026","#3a5060","#9a8a34","#7a2a26"][(i+r)%6]);
-      cyl("glass", 0.017,0.019,0.08,6, IX1-0.30, FY+0.945+r*0.46+tall+0.04, z2, "#d8c89a");
+    const sy=FY+0.945+r*0.46;
+    bx("oak", 0.34, 0.05, BZ1-BZ0+0.5, IX1-0.30, sy-0.028, (BZ0+BZ1)/2-0.25, 0.45, 0, "#6a5236");
+    const gap=(r===3?0.30:0.128);
+    let z2=BZ0-0.20+gap*0.6;
+    while(z2 < BZ1+0.22){
+      if(rn() < (r===3?0.36:0.16)){ z2+=gap; continue; }        // where one ran out
+      const tall=(r===3?0.30:0.21)+rn()*(r===3?0.13:0.17);
+      const rad=0.039+rn()*0.021, col=BOT[(rn()*BOT.length)|0];
+      cyl("glass", rad, rad*1.10, tall*0.70, 10, IX1-0.30, sy+tall*0.35, z2, col);
+      cyl("glass", rad*0.96, rad*0.40, tall*0.17, 9, IX1-0.30, sy+tall*0.785, z2, col);
+      cyl("glass", rad*0.33, rad*0.33, tall*0.22, 7, IX1-0.30, sy+tall*0.98, z2, col);
+      if(rn()<0.58)
+        cyl("paper", rad*1.05, rad*1.05, tall*0.28, 10, IX1-0.30, sy+tall*0.33, z2,
+            LAB[(rn()*LAB.length)|0]);
+      if(rn()<0.14)                                            // a pourer left in
+        cyl("metal", rad*0.22, rad*0.30, 0.055, 6, IX1-0.30, sy+tall*1.12, z2, "#b8bcbc");
+      z2+=gap*(0.88+rn()*0.42);
     }
   }
+  // the mirror they all stand in front of
+  bx("mirror", 0.02, 1.86, BZ1-BZ0+0.2, IX1-0.118, FY+1.82, (BZ0+BZ1)/2-0.1, 0, 0, "#cfd8dc");
+  // the speed rail on the working side, and what lives under the counter
+  bx("metal", 0.10, 0.06, 1.90, BX+0.80, FY+0.86, BZ0+2.6, 0, 0, "#8d9498");
+  for(let i=0;i<7;i++)
+    cyl("glass", 0.036,0.040,0.29,9, BX+0.80, FY+1.04, BZ0+1.78+i*0.26,
+        ["#cfd8d4","#8a5a24","#6a4018","#3f8a46"][i%4]);
+  (function(){                                                 // a bottle fridge
+    const fx=IX1-0.62, fz=BZ0+4.6;
+    bx("weathered", 0.58, 0.86, 0.56, fx, FY+0.43, fz, 0.4, 0, "#8d9498");
+    bx("tvglass", 0.46, 0.66, 0.03, fx-0.30, FY+0.46, fz, 0, Math.PI/2, "#20302e");
+    for(let i=0;i<9;i++)
+      cyl("glass", 0.030,0.030,0.20,8, fx-0.08+((i%3)*0.09), FY+0.24+(((i/3)|0)*0.24), fz-0.16,
+          "#3f8a46");
+    addCol(fx-0.34, fx+0.34, fz-0.34, fz+0.34, 0, FY+0.9);
+  })();
+  // stacked cups, a blender that has seen things, limes, a jar of eggs
+  for(let i=0;i<7;i++)
+    cyl("plaster", 0.043,0.037,0.055,10, BX+0.42, FY+BH2+0.14+i*0.048, BZ0+5.9, "#e6e0d0");
+  bx("weathered", 0.16,0.16,0.16, BX+0.34, FY+BH2+0.14, BZ0+6.5, 0.4, 0, "#3a3632");
+  cyl("glass", 0.055,0.045,0.24,10, BX+0.34, FY+BH2+0.34, BZ0+6.5, "#c6d2d0");
+  cyl("bin", 0.10,0.10,0.06,12, BX+0.30, FY+BH2+0.12, BZ0+7.1, "#5f7a4a");
+  for(let i=0;i<5;i++)
+    push("foliage", new T.SphereGeometry(0.028,8,6), BX+0.30+Math.cos(i*1.3)*0.05,
+         FY+BH2+0.17, BZ0+7.1+Math.sin(i*1.3)*0.05, 0, "#8aa83a");
+  cyl("glass", 0.075,0.075,0.22,12, BX+0.26, FY+BH2+0.20, BZ0+7.7, "#d8d2b8");
+  cyl("metal", 0.078,0.078,0.03,12, BX+0.26, FY+BH2+0.32, BZ0+7.7, "#9aa1a4");
   push("clockface", planeGeo(0.44,0.44,0), IX1-0.50, FY+3.10, BZ0-0.9, -Math.PI/2, "#e8e2cf");
   for(const bz2 of [BZ0+2.2, (BZ0+BZ1)/2, BZ1-2.2]){     // the strip that lights the bottles
     bx("ceilfix", 0.10,0.05,1.60, IX1-0.62, FY+2.66, bz2, 0, 0, "#f2e9cf");
@@ -4373,7 +4575,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
 
   // ---- the pool table ---------------------------------------------------
   (function(){
-    const px=-81.6, pz=-21.4, PW=2.34, PD=1.30;
+    const px=-83.2, pz=-25.4, PW=2.34, PD=1.30;
     for(const c of [[-1,-1],[1,-1],[-1,1],[1,1]])
       bx("oak", 0.16,0.72,0.16, px+c[0]*(PW/2-0.18), FY+0.36, pz+c[1]*(PD/2-0.16), 0.4, 0, "#4a3526");
     bx("oak", PW, 0.22, PD, px, FY+0.83, pz, 0.45, 0, "#5c4029");
@@ -4406,10 +4608,10 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
                   decay:1.7, indoor:true});
     }
     // a cue rack on the wall behind it
-    bx("oak", 0.10, 1.05, 0.90, IX0+0.06, FY+1.30, pz, 0.45, 0, "#4c3a26");
+    bx("oak", 0.10, 1.05, 0.90, IX0+0.06, FY+1.30, IZ0+1.30, 0.45, 0, "#4c3a26");
     for(let i=0;i<4;i++)
-      push("oak", new T.CylinderGeometry(0.010,0.019,1.42,8), IX0+0.13, FY+1.02, pz-0.32+i*0.21,
-           0, "#b08c52", 0.06, 0);
+      push("oak", new T.CylinderGeometry(0.010,0.019,1.42,8), IX0+0.13, FY+1.02,
+           IZ0+0.98+i*0.21, 0, "#b08c52", 0.06, 0);
   })();
 
   // ---- booths down the west wall ---------------------------------------
@@ -4446,7 +4648,11 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     addCol(cxx-0.28, cxx+0.28, czz-0.28, czz+0.28, 0, FY+0.44);
     addSeat(cxx, czz, FY+0.49, Math.atan2(cxx-tx, czz-tz), "A TABLE");       // facing in
   }
-  const TBL=[[-84.6,-24.4],[-84.2,-18.6],[-79.0,-17.2],[-76.0,-22.6]];
+  // Two rows parallel to the bar with a clear lane between them, the way the
+  // reference lays them out. The first arrangement was scattered at random and
+  // two of them were standing in the booths.
+  const TBL=[[-76.4,-26.0,2],[-76.4,-22.4,4],[-76.4,-18.8,2],
+             [-81.6,-20.4,2],[-81.6,-16.8,2],[-84.9,-16.3,2]];
   for(let t=0;t<TBL.length;t++){
     const tx=TBL[t][0], tz=TBL[t][1];
     bx("oak", 0.94, 0.07, 0.94, tx, FY+0.74, tz, 0.5, 0, "#7a5734");
@@ -4457,10 +4663,11 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
           "#cfe0e6");
     }
     push("ceilfix", new T.CylinderGeometry(0.035,0.035,0.09,10), tx, FY+0.82, tz-0.02, 0, "#f2e4c0");
-    const ch=3+((t%2));
-    for(let k=0;k<ch;k++) chair(tx+Math.cos(k*(6.283/ch)+t*0.7)*0.86,
-                                tz+Math.sin(k*(6.283/ch)+t*0.7)*0.86,
-                                k*(6.283/ch)+t*0.7, tx, tz);
+    const ch=TBL[t][2];                       // two facing across it, or four round
+    for(let k=0;k<ch;k++){
+      const a=(ch===2 ? (k?Math.PI:0) : k*Math.PI/2);
+      chair(tx+Math.cos(a)*0.86, tz+Math.sin(a)*0.86, a, tx, tz);
+    }
   }
 
   // ---- what is on the walls --------------------------------------------
@@ -4521,15 +4728,19 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   for(let i=0;i<6;i++) cyl("metal", 0.016,0.016,0.10,6, -79.4+i*0.40, FY+1.80, IZ1-0.14,
                            CHROME, Math.PI/2, 0, 0);
   cyl("bin", 0.23,0.19,0.52,14, -87.2, FY+0.26, IZ1-0.70, "#3e443f");
-  // two more tables so the middle of the room is not a dance floor
-  for(const q of [[-86.0,-21.0],[-74.2,-25.8]]){
-    bx("oak", 0.88, 0.07, 0.88, q[0], FY+0.74, q[1], 0.5, 0, "#7a5734");
-    cyl("metal", 0.06,0.16,0.72,10, q[0], FY+0.36, q[1], "#3e3a36");
-    addCol(q[0]-0.48, q[0]+0.48, q[1]-0.48, q[1]+0.48, 0, FY+0.8);
-    push("ceilfix", new T.CylinderGeometry(0.035,0.035,0.09,10), q[0], FY+0.82, q[1], 0, "#f2e4c0");
-    for(let k=0;k<2;k++){
-      const a=k*3.14+0.6;
-      chair(q[0]+Math.cos(a)*0.84, q[1]+Math.sin(a)*0.84, a, q[0], q[1]);
+  // a high top by the window, and one against the dado under the screen
+  for(const q of [[-79.6,-28.4],[-85.6,-21.6]]){
+    bx("oak", 0.76, 0.07, 0.76, q[0], FY+1.04, q[1], 0.5, 0, "#7a5734");
+    cyl("metal", 0.06,0.15,1.02,10, q[0], FY+0.51, q[1], "#3e3a36");
+    cyl("metal", 0.34,0.34,0.03,14, q[0], FY+0.03, q[1], "#4a4640");
+    addCol(q[0]-0.42, q[0]+0.42, q[1]-0.42, q[1]+0.42, 0, FY+1.1);
+    push("ceilfix", new T.CylinderGeometry(0.035,0.035,0.09,10), q[0], FY+1.12, q[1], 0, "#f2e4c0");
+    for(const sd2 of [-1,1]){                              // two bar stools at it
+      const sx2=q[0]+sd2*0.82;
+      cyl("metal", 0.05,0.06,0.74,10, sx2, FY+0.37, q[1], CHROME);
+      cyl("metal", 0.20,0.20,0.03,12, sx2, FY+0.06, q[1], CHROME);
+      cyl("fabric", 0.19,0.19,0.10,14, sx2, FY+0.79, q[1], VINYL);
+      addSeat(sx2, q[1], FY+0.84, sd2>0?Math.PI/2:-Math.PI/2, "A HIGH TOP");
     }
   }
   // stools stacked in a corner, and a crate of empties by the door
@@ -4667,9 +4878,13 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     EW(IX0+0.02); EW(IX1-0.02);
     // the capping rails mitre with a hair's gap rather than crossing, or the
     // four of them share a plane in every corner
-    for(const zc of [IZ0+0.04, IZ1-0.04])
-      bx("oak", (IX1-0.13)-(IX0+0.13), 0.060, 0.13, (IX0+IX1)/2, DY1+0.010, zc,
-         0.5, 0, "#4e3720");
+    // and it stops either side of the doorway, which it was running clean
+    // across at waist height
+    for(const zc of [IZ0+0.04, IZ1-0.04]){
+      const holes = zc<(IZ0+IZ1)/2 ? [[DHX0-0.10, DHX1+0.10]] : [];
+      for(const g of segs(IX0+0.13, IX1-0.13, holes))
+        bx("oak", g[1]-g[0], 0.060, 0.13, (g[0]+g[1])/2, DY1+0.010, zc, 0.5, 0, "#4e3720");
+    }
     for(const xc of [IX0+0.04, IX1-0.04])
       bx("oak", 0.13, 0.064, Z1-Z0-0.12, xc, DY1+0.014, (Z0+Z1)/2, 0.5, 0, "#4e3720");
   }
@@ -4908,7 +5123,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       m.B("concrete", 1.70, 0.24, 1.00, (DOOR[0]+DOOR[1])/2, PF-0.13, PZ1+0.48, 0.45,0,"#a8a094");
       m.flat(DOOR[0]-0.8, DOOR[1]+0.8, PZ1, PZ1+0.95, PF-0.02);
       makeDoor(XF(OX+DOOR[1]-0.02, OZ+PZ1-0.03, Math.PI), 0, m.y+PF+0.02, 0,
-               "PROJECTION ROOM", true);
+               "PROJECTION ROOM", true, 0, "booth");
 
       /* ---- inside ---------------------------------------------------- */
       m.B("concrete", QX1-QX0, 0.05, QZ1-QZ0, (QX0+QX1)/2, PF-0.015, (QZ0+QZ1)/2,

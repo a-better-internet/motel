@@ -4202,7 +4202,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       const sx=-90.0, sz=9.0, SW=5.20, SD=4.00, SH=2.62, ST=0.12, SF=0.24;
       const SX0=sx-SW/2, SX1=sx+SW/2, SZ0=sz-SD/2, SZ1=sz+SD/2;
       const QX0=SX0+ST, QX1=SX1-ST, QZ0=SZ0+ST, QZ1=SZ1-ST;      // inner faces
-      const SDOOR=[sx-1.24, sx-0.22];                            // 1.02 m opening
+      const SDOOR=[sx-0.51, sx+0.51];                            // 1.02 m opening, centred
       const runs=(a0,a1,holes)=>{
         const out=[]; let c=a0;
         for(const h of holes){ if(h[0]>c) out.push([c,h[0]]); c=Math.max(c,h[1]); }
@@ -4729,7 +4729,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
                            CHROME, Math.PI/2, 0, 0);
   cyl("bin", 0.23,0.19,0.52,14, -87.2, FY+0.26, IZ1-0.70, "#3e443f");
   // a high top by the window, and one against the dado under the screen
-  for(const q of [[-79.6,-28.4],[-85.6,-21.6]]){
+  for(const q of [[-74.2,-28.5],[-85.6,-21.6]]){   // clear of the lane in from the door
     bx("oak", 0.76, 0.07, 0.76, q[0], FY+1.04, q[1], 0.5, 0, "#7a5734");
     cyl("metal", 0.06,0.15,1.02,10, q[0], FY+0.51, q[1], "#3e3a36");
     cyl("metal", 0.34,0.34,0.03,14, q[0], FY+0.03, q[1], "#4a4640");

@@ -1019,6 +1019,45 @@ TEX.siding=(function(){                       // corrugated aluminium, chalked o
   const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; return setSRGB(t);
 })();
 
+TEX.sidewalk=(function(){                     // poured walk: aggregate, joints, stains
+  const c=cvs(256,256), x=c.getContext("2d");
+  x.fillStyle="#6a665c"; x.fillRect(0,0,256,256);  // reads pale in sun; anything lighter blows out
+  for(let i=0;i<5200;i++){                     // the aggregate showing through
+    const g=(92+Math.random()*64)|0;
+    x.fillStyle="rgba("+g+","+((g-8)|0)+","+((g-22)|0)+","+(0.10+Math.random()*0.30).toFixed(2)+")";
+    x.beginPath(); x.arc(Math.random()*256, Math.random()*256, 0.5+Math.random()*1.9, 0, 7); x.fill();
+  }
+  for(let i=0;i<22;i++){                       // where the float dragged
+    x.strokeStyle="rgba(255,255,255,"+(0.02+Math.random()*0.05).toFixed(3)+")";
+    x.lineWidth=2+Math.random()*7; x.beginPath();
+    const y0s=Math.random()*256;
+    x.moveTo(0,y0s); x.bezierCurveTo(90,y0s+(Math.random()-0.5)*26, 170,y0s+(Math.random()-0.5)*26,
+                                     256,y0s+(Math.random()-0.5)*16);
+    x.stroke();
+  }
+  // The control joint runs ACROSS the walk, one per slab. u maps along the
+  // road here, so a cross joint is a column, not a row.
+  x.fillStyle="rgba(78,72,64,0.46)"; x.fillRect(0,0,3.0,256);
+  x.fillStyle="rgba(255,255,255,0.09)"; x.fillRect(3.0,0,1.6,256);
+  x.fillStyle="rgba(78,72,64,0.20)"; x.fillRect(253,0,3,256);
+  for(let i=0;i<7;i++){                        // cracks wandering off the joint
+    x.strokeStyle="rgba(66,60,52,"+(0.12+Math.random()*0.20).toFixed(3)+")";
+    x.lineWidth=0.7+Math.random()*1.3; x.beginPath();
+    let px=Math.random()<0.5?4:252, py=Math.random()*256;
+    x.moveTo(px,py);
+    for(let k=0;k<4;k++){ px+=(px<128?1:-1)*(6+Math.random()*26); py+=(Math.random()-0.5)*40; x.lineTo(px,py); }
+    x.stroke();
+  }
+  for(let i=0;i<16;i++){                       // oil, gum, forty summers
+    x.fillStyle="rgba("+(90+Math.random()*40|0)+","+(84+Math.random()*34|0)+","
+      +(76+Math.random()*30|0)+","+(0.05+Math.random()*0.13).toFixed(3)+")";
+    x.beginPath(); x.ellipse(Math.random()*256, Math.random()*256,
+      5+Math.random()*30, 4+Math.random()*20, Math.random()*3, 0, 7); x.fill();
+  }
+  noiseDots(x,256,256,2200,["rgba(255,255,255,0.10)","rgba(60,56,50,0.12)"]);
+  const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; return setSRGB(t);
+})();
+
 TEX.brick=(function(){                        // a wall that has been leaned on
   const c=cvs(256,256), x=c.getContext("2d");
   x.fillStyle="#4c423c"; x.fillRect(0,0,256,256);          // mortar
@@ -2014,12 +2053,13 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   bx("gravel", ROAD_L, 0.26, 2.6, 0, -0.13, ROADZ-roadW/2-1.3, 0.42, 0, "#9b8a70");
   bx("gravel", ROAD_L, 0.26, 1.2, 0, -0.13, ROADZ+roadW/2+0.6, 0.42, 0, "#9b8a70");
   // shoulder + sidewalk + painted curb between highway and lot
-  bx("concrete", ROAD_L, 0.30, 3.2, 0, 0.11, ROADZ+roadW/2+1.6, 0.40);
-  addFlat(-340,340, ROADZ+roadW/2, ROADZ+roadW/2+3.2, 0.26);
-  bx("paint", ROAD_L, 0.30, 0.42, 0, 0.15, ROADZ+roadW/2+3.3, 0, 0, "#d6c07a");
+  const WALK_W=2.55;                            // it was 3.2 and read as a runway
+  bx("walk", ROAD_L, 0.30, WALK_W, 0, 0.11, ROADZ+roadW/2+WALK_W/2, 0.62);
+  addFlat(-340,340, ROADZ+roadW/2, ROADZ+roadW/2+WALK_W, 0.26);
+  bx("paint", ROAD_L, 0.30, 0.42, 0, 0.15, ROADZ+roadW/2+WALK_W+0.10, 0, 0, "#d6c07a");
 
   // ---- parking lot -----------------------------------------------------
-  const L={x0:LOT.x0, x1:LOT.x1, z0:ROADZ+roadW/2+3.5, z1:LOT.z1}, D=POOL.deck;
+  const L={x0:LOT.x0, x1:LOT.x1, z0:ROADZ+roadW/2+WALK_W+0.30, z1:LOT.z1}, D=POOL.deck;
   const lot=(x0,x1,z0,z1)=>{
     if(x1-x0<0.05 || z1-z0<0.05) return;
     bx("asphalt", x1-x0, 0.30, z1-z0, (x0+x1)/2, -0.15, (z0+z1)/2, 0.42);
@@ -2045,10 +2085,6 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   for(let x=-24;x<=-4;x+=2.9)  stripe(x, 9.0, 4.2, false);       // courtyard, west of the stair
   for(let z=-21;z<=-7;z+=2.9)  stripe(21.4, z, 5.0, true);       // alongside wing B
   // accessible stall by the office: blue field with a white hatched aisle
-  bx("paint", 2.6, 0.02, 5.0, -32.6, 0.009, -19.0, 0, 0, "#2f5c8f");
-  for(let i=0;i<7;i++) bx("paint", 2.3, 0.02, 0.10, -29.7, 0.011, -21.3+i*0.78, 0, 0, "#a9a293");
-  bx("paint", 0.10, 0.02, 5.0, -30.85, 0.011, -19.0, 0, 0, "#a9a293");
-  bx("paint", 0.10, 0.02, 5.0, -28.55, 0.011, -19.0, 0, 0, "#a9a293");
 
   // ---- xeriscape bed along the office / street frontage ---------------
   bx("gravel", 16.5, 0.22, 4.0, -38.5, -0.02, -14.2, 0.22);
@@ -2637,8 +2673,10 @@ function buildBay(xf, level, kind, roomNo, lit){
     [0.00, 0.40, 0.00, 0.00, -1],   // one lamp by the bed
     [0.00, 0.00, 0.30, 0.00,  2],   // dark but for the bathroom, which is going
     [0.00, 0.11, 0.00, 0.15, -1],   // all but out
+    [0.00, 0.00, 0.00, 0.00, -1],   // dark. Nobody has opened this one in months
+    [0.00, 0.00, 0.09, 0.00,  2],   // and one where only the bathroom tube ticks over
   ];
-  const md=MOOD[(lit ? rn2%3 : 3+(rn2%3))];
+  const md=MOOD[(lit ? rn2%3 : 3+(rn2%5))];
   // Point lights here cast no shadows, so a lamp in 104 was lighting 103 and
   // 105 straight through the party walls. With ninety-six room lamps on the
   // property and only seven real lights to hand out, a room with its own lamps
@@ -3338,21 +3376,34 @@ let waterGeo=null, waterMesh=null;
 "  float band = smoothstep(0.8, 6.0, dist) * (1.0 - smoothstep(24.0, 64.0, dist)*0.62);",
 "  vec3 A = pat(vWorld.xz, vec2( 0.055, 0.034), 1.95, uTime);",
 "  vec3 B = pat(vWorld.xz, vec2(-0.041, 0.068), 1.02, uTime);",
-"  float chop = A.x + B.x;",
-"  vec2  slope = (A.yz + B.yz) * 0.155 * band * vFall;",
+// a third, much finer pattern that only exists close to you. Water has ripples
+// smaller than the swell, but at fifteen metres they alias into noise, so they
+// fade out rather than being drawn everywhere
+"  float fine = 1.0 - smoothstep(2.5, 15.0, dist);",
+"  vec3 C = pat(vWorld.xz, vec2( 0.112,-0.086), 4.60, uTime);",
+"  float chop = A.x + B.x + C.x*0.42*fine;",
+"  vec2  slope = (A.yz + B.yz) * 0.155 * band * vFall",
+"              +  C.yz * 0.052 * fine * vFall;",
 "  vec3 N = normalize(vNrm + vec3(-slope.x, 0.0, -slope.y));",
 "  if(!gl_FrontFacing) N = -N;",
 // depth, straight off the tank's own floor profile
-"  float u = clamp((vWorld.x - uProf.x) / (uProf.y - uProf.x), 0.0, 1.0);",
+// The depth this pixel reads is displaced by the surface slope, which is what
+// refraction actually does to the floor you are looking at: the shallow end
+// wobbles instead of sitting behind flat glass.
+"  float u = clamp((vWorld.x - uProf.x) / (uProf.y - uProf.x) + slope.x*0.085, 0.0, 1.0);",
 "  float floorY = mix(uProf.z, uProf.w, u);",
 "  float depth = max(0.0, uSurfY - floorY);",
 "  float dN = clamp(depth / 1.85, 0.0, 1.0);",
+// water absorbs on a curve, not a straight line — the first half metre takes
+// far less out of the light than the last
+"  float dA = dN*dN*0.62 + dN*0.38;",
 // the shore: how close this pixel is to a wall
 "  float edge = min(min(vWorld.x-uRect.x, uRect.y-vWorld.x),",
 "                   min(vWorld.z-uRect.z, uRect.w-vWorld.z));",
 "  float shore = 1.0 - smoothstep(0.0, 0.70, edge);",
-"  vec3 body = mix(uShallow, uDeep, dN);",
-"  float alpha = mix(0.50, 0.92, dN) * (1.0 - shore*0.40);",
+"  vec3 body = mix(uShallow, uDeep, dA);",
+"  body *= 1.0 - shore*0.09;",          // the wet ring just inside the wall
+"  float alpha = mix(0.48, 0.93, dA) * (1.0 - shore*0.40);",
 // Fresnel: a window from above, a mirror across
 "  float fres = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 5.0);",
 "  fres = clamp(0.02 + 0.98*fres, 0.0, 1.0) * uReflect;",
@@ -3365,16 +3416,21 @@ let waterGeo=null, waterMesh=null;
 "  float sh = pow(max(dot(N,H), 0.0), 18.0);",
 "  col += uSunCol * (sp*2.2 + sh*0.10) * uSunStr * band;",
 // caustic filaments where the two patterns pile up, strongest over shallow water
-"  float caus = pow(max(chop*0.80, 0.0), 6.0) * 1.5;",
-"  col += vec3(0.62,0.92,1.00) * caus * (0.30 + 0.55*(1.0-dN)) * band;",
-"  alpha += caus*0.10;",
+// caustics: where the two swells pile up AND the fine ripple agrees, which is
+// what makes them read as filaments rather than as a second sine wave
+"  vec3 K = pat(vWorld.xz, vec2( 0.086, 0.052), 5.20, uTime*0.92);",
+"  float kn = clamp((K.x + C.x*0.55) * 0.40, -1.0, 1.0);",
+"  float caus = pow(max(kn, 0.0), 3.6) * 0.72 * (1.0 - smoothstep(16.0, 40.0, dist));",
+"  caus *= 0.50 + 0.50*max(A.x*0.8, 0.0);",
+"  col += vec3(0.62,0.92,1.00) * caus * (0.18 + 0.62*(1.0-dN)) * band;",
+"  alpha += caus*0.08;",
 // a foam line at the wall, moving with the swell, so the edge is never hard
 "  float f = shore * (0.42 + 0.58*sin(edge*19.0 - uTime*1.9 + chop*2.4));",
 "  f = clamp(f,0.0,1.0) * uFoam * shore;",
 "  col = mix(col, vec3(0.95,0.99,1.0), f*0.75);",
 "  alpha = max(alpha, f*0.55);",
 // after dark the niche lights take over and the whole sheet glows
-"  col += uNight * uGlow * (0.42 + 0.46*chop + caus*0.9);",
+"  col += uNight * uGlow * (0.42 + 0.18*chop + caus*0.7);",
 "  alpha = clamp(mix(alpha, alpha*0.80 + 0.34, uDark), 0.0, 1.0);",
 "  if(!gl_FrontFacing){",         // seen from underneath: bright, near-mirrored
 "    col = mix(col, vec3(0.72,0.92,1.00), 0.42);",
@@ -3538,7 +3594,7 @@ let waterGeo=null, waterMesh=null;
   bx("stucco", 0.22, h, O.z1-doorZ1, O.x1-0.11, y0+h/2, (doorZ1+O.z1)/2, 0.3, 0, SLATE);
   addCol(O.x1-0.22,O.x1, doorZ1, O.z1, y0, y0+h);
   bx("stucco", 0.22, h-2.12, doorZ1-doorZ0, O.x1-0.11, y0+2.12+(h-2.12)/2, cz, 0.3, 0, SLATE);
-  bx("teal", 0.28, 0.14, 1.2, O.x1-0.11, y0+2.14, cz, 0, 0, TEAL_D);
+  bx("teal", 0.28, 0.17, 1.2, O.x1-0.11, y0+2.155, cz, 0, 0, TEAL_D);
   makeDoor(XF(O.x1-0.08, cz-0.49, -Math.PI/2), 0, y0+0.02, 0, "OFFICE", true);
   // green roof: shallow gable with a deep eave, plus the drive-through canopy
   const rw=w+2.6, rd=d+2.6, ry=y0+h;
@@ -3639,7 +3695,7 @@ let waterGeo=null, waterMesh=null;
   cyl("metal", 0.03,0.03,1.52,8,  sofaX-1.55, y0+0.78, sofaZ-0.30, "#6b6156");
   push("lampshade", new T.CylinderGeometry(0.20,0.28,0.30,14),
        sofaX-1.55, y0+1.66, sofaZ-0.30, 0, "#e2d2a8");
-  LAMPS.push({x:sofaX-1.55, y:y0+1.60, z:sofaZ-0.30, color:0xffd9a0,
+  LAMPS.push({x:sofaX-1.55, y:y0+1.60, z:sofaZ-0.30, color:0xffeed6,
               intensity:0.30, dist:8, decay:1.3, indoor:true});
   addCol(sofaX-1.78,sofaX-1.32, sofaZ-0.53, sofaZ-0.07, y0, y0+1.8);
   // coffee urn station
@@ -3693,15 +3749,9 @@ let waterGeo=null, waterMesh=null;
   bx("paint", 0.10,0.34,0.10, wcX+0.32, y0+0.78, wcZ-0.14, 0, 0, "#d8d4c8");    // cup dispenser
   addCol(wcX-0.26,wcX+0.30, wcZ-0.30, wcZ+0.26, y0, y0+1.1);
 
-  // second bench under the television, with a side table and a lamp
+  // The second bench used to sit here, a metre from the water cooler and in
+  // the way of it. The lamp table it shared stays; the bench does not.
   const bnX=O.x1-2.9, bnZ=O.z1-1.00;
-  bx("oak",   2.00,0.32,0.84, bnX, y0+0.31, bnZ, 0.6, 0, "#5c4029");
-  bx("spread",1.92,0.24,0.76, bnX, y0+0.57, bnZ, 0.5, 0, "#6a6f52");
-  bx("spread",1.92,0.56,0.20, bnX, y0+0.83, bnZ-0.30, 0.5, 0, "#6a6f52");
-  addSeat(bnX, bnZ+0.06, y0+0.62, 0, "THE BENCH");
-  push("spread", new T.CylinderGeometry(0.10,0.10,1.92,12), bnX, y0+0.90, bnZ-0.30, 0, "#6a6f52", 0, Math.PI/2);
-  for(const cu of [-0.48,0.48]) bx("spread",0.86,0.14,0.70, bnX+cu, y0+0.66, bnZ+0.02, 0.5, 0, "#767c5c");
-  addCol(bnX-1.02,bnX+1.02, bnZ-0.46, bnZ+0.46, y0, y0+0.9);
   bx("oak", 0.52,0.05,0.52, bnX+1.42, y0+0.54, bnZ+0.05, 0.7, 0, "#6f4a2c");    // side table
   for(const dd of [[-0.20,-0.20],[0.20,-0.20],[-0.20,0.20],[0.20,0.20]])
     bx("oak", 0.06,0.52,0.06, bnX+1.42+dd[0], y0+0.27, bnZ+0.05+dd[1], 0, 0, "#5c4029");
@@ -3709,7 +3759,7 @@ let waterGeo=null, waterMesh=null;
   push("lampshade", new T.CylinderGeometry(0.14,0.19,0.22,12), bnX+1.42, y0+0.91, bnZ+0.05, 0, "#e8dcc0");
   addCol(bnX+1.14,bnX+1.70, bnZ-0.23, bnZ+0.33, y0, y0+0.6);
   bx("art", 0.26,0.02,0.20, bnX+1.34, y0+0.58, bnZ-0.10, 0, 0, "#c9a24b");      // an old magazine
-  bx("fabric", 2.70,0.03,1.90, bnX+0.1, y0+0.04, bnZ+0.75, 0, 0, "#6a5a4e");    // rug under the bench
+  bx("fabric", 2.30,0.03,1.60, bnX+0.5, y0+0.04, bnZ+0.95, 0, 0, "#6a5a4e");    // the rug it stood on
   bx("fabric", 2.26,0.015,1.50, bnX+0.1, y0+0.052, bnZ+0.75, 0, 0, "#9a8468");
   LAMPS.push({x:bnX+1.42, y:y0+0.95, z:bnZ+0.05, color:0xffd9a0,
               intensity:0.26, dist:7, decay:1.35, indoor:true});
@@ -3797,7 +3847,18 @@ let waterGeo=null, waterMesh=null;
          cx+1.2+Math.cos(a)*0.52, y0+h-0.50, cz+0.4+Math.sin(a)*0.52, 0, "#f0e0b0");
   }
   OC("metal", 0.02,0.02,0.50,6, cx+1.2, h-0.30, cz+0.4, "#6b6f72");
-  LAMPS.push({x:cx+1.2, y:y0+h-0.75, z:cz+0.4, color:0xffdca8, intensity:0.55, dist:14, decay:1.2, indoor:true});
+  // The office read as one flat wash of amber. The chandelier stays warm but
+  // goes paler, and three low fills — a cool one off the shopfront glazing and
+  // two soft ones down the room — give it somewhere for the light to fall off
+  // to instead of a single colour everywhere.
+  LAMPS.push({x:cx+1.2, y:y0+h-0.75, z:cz+0.4, color:0xfff0d8, intensity:0.50,
+              dist:15, decay:1.25, indoor:true});
+  LAMPS.push({x:O.x1-2.4, y:y0+2.10, z:O.z0+1.40, color:0xd8e6f2, intensity:0.30,
+              dist:12, decay:1.5, indoor:true});                    // daylight off the glass
+  LAMPS.push({x:O.x0+4.4, y:y0+2.30, z:(O.z0+O.z1)/2, color:0xf6efdf, intensity:0.26,
+              dist:11, decay:1.5, indoor:true});
+  LAMPS.push({x:O.x1-4.6, y:y0+2.30, z:O.z1-2.2, color:0xf2ead8, intensity:0.24,
+              dist:11, decay:1.5, indoor:true});
   // longhorn skull over the key board, and a jackalope beside it
   O_("paint", 0.22,0.26,0.52, O.x0+0.40, 2.30, cz-1.6, 0, "#e6e0cc");
   for(const sd of [-1,1]){
@@ -3886,11 +3947,11 @@ let waterGeo=null, waterMesh=null;
     x.fillStyle="#f1ead6"; x.fillRect(0,H-40,W,40);
     x.fillStyle="#13405e"; fitText(x,"LOW DESERT MOTEL  ·  ROUTE 66", W*0.86, 26, W/2, H-20);
   }));
-  push("art", boxGeo(0.05,0.64,0.92,0), O.x1-0.36, y0+2.02, cz+2.1, 0, "#5c4029");
-  signPanel(0.84,0.56, mapTex, O.x1-0.40, y0+2.02, cz+2.1, -Math.PI/2, false);
+  push("art", boxGeo(0.05,0.64,0.92,0), O.x1-0.36, y0+2.02, cz+1.5, 0, "#5c4029");
+  signPanel(0.84,0.56, mapTex, O.x1-0.40, y0+2.02, cz+1.5, -Math.PI/2, false);
   push("art", boxGeo(1.20,0.92,0.05,0), O.x0+7.2, y0+2.00, O.z1-0.38, 0, "#5c4029");
   signPanel(1.04,0.78, aerialTex, O.x0+7.2, y0+2.00, O.z1-0.42, Math.PI, false);
-  push("art", boxGeo(0.05,0.44,0.60,0), O.x1-0.36, y0+2.06, cz+3.3, 0, "#9a7a4c");
+  push("art", boxGeo(0.05,0.44,0.60,0), O.x1-0.36, y0+2.06, cz+4.0, 0, "#9a7a4c");
   // a second framed map on the north wall, beside the aerial
   push("art", boxGeo(0.68,0.48,0.05,0), O.x0+9.4, y0+2.02, O.z1-0.38, 0, "#7a6a4c");
   signPanel(0.60,0.40, mapTex, O.x0+9.4, y0+2.02, O.z1-0.42, Math.PI, false);
@@ -3922,7 +3983,7 @@ let waterGeo=null, waterMesh=null;
   // three warm ceiling pans
   for(const p of [[O.x0+2.6,cz-2.4],[O.x0+6.4,cz],[O.x1-2.4,cz+2.2]]){
     push("ceilfix", new T.CylinderGeometry(0.34,0.40,0.14,14), p[0], y0+h-0.30, p[1], 0, "#e8dcc0");
-    LAMPS.push({x:p[0], y:y0+h-0.45, z:p[1], color:0xffe9c4, intensity:0.68, dist:16, decay:1.15, indoor:true});
+    LAMPS.push({x:p[0], y:y0+h-0.45, z:p[1], color:0xfff2e0, intensity:0.62, dist:16, decay:1.2, indoor:true});
   }
 })();
 
@@ -4664,8 +4725,11 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   // Two rows parallel to the bar with a clear lane between them, the way the
   // reference lays them out. The first arrangement was scattered at random and
   // two of them were standing in the booths.
-  const TBL=[[-76.4,-26.0,2],[-76.4,-22.4,4],[-76.4,-18.8,2],
-             [-81.6,-20.4,2],[-81.6,-16.8,2],[-84.9,-16.3,2]];
+  // Two rows on a 3.8 m pitch with a walking lane between them and a metre of
+  // daylight off the booths. Nothing sits west of -84.7, which is where the
+  // booth backs and the pool table's cueing room begin.
+  const TBL=[[-76.2,-26.4,2],[-76.2,-22.6,4],[-76.2,-18.8,2],
+             [-80.6,-21.2,2],[-80.6,-17.4,2],[-84.2,-16.8,2]];
   for(let t=0;t<TBL.length;t++){
     const tx=TBL[t][0], tz=TBL[t][1];
     bx("oak", 0.94, 0.07, 0.94, tx, FY+0.74, tz, 0.5, 0, "#7a5734");
@@ -4742,7 +4806,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
                            CHROME, Math.PI/2, 0, 0);
   cyl("bin", 0.23,0.19,0.52,14, -87.2, FY+0.26, IZ1-0.70, "#3e443f");
   // a high top by the window, and one against the dado under the screen
-  for(const q of [[-74.2,-28.5],[-85.6,-21.6]]){   // clear of the lane in from the door
+  for(const q of [[-74.2,-28.5],[-77.9,-28.5]]){   // a pair along the front wall
     bx("oak", 0.76, 0.07, 0.76, q[0], FY+1.04, q[1], 0.5, 0, "#7a5734");
     cyl("metal", 0.06,0.15,1.02,10, q[0], FY+0.51, q[1], "#3e3a36");
     cyl("metal", 0.34,0.34,0.03,14, q[0], FY+0.03, q[1], "#4a4640");
@@ -4952,14 +5016,50 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     push("fabric", new T.ConeGeometry(0.11,0.24,3), px2, py-0.12, IZ0+0.55, i*0.7,
          ["#c8202a","#f0a01e","#1d6f4e","#2b2f7a"][i%4], Math.PI, 0);
   }
+  /* ---- and the things that make it feel like nobody is coming --------- */
+  // one tube over the pool table has been going for weeks
+  LAMPS.push({x:-83.2, y:TOPY-1.62, z:-25.4, color:0xcfe0d8, intensity:0.42, dist:8,
+              decay:1.7, indoor:true, flicker:true});
+  // a payphone by the restrooms with the receiver off the hook
+  (function(){
+    const px2=-83.0, pz2=IZ1-0.12;
+    bx("paint", 0.28,0.52,0.18, px2, FY+1.34, pz2, 0, 0, "#2b3b34");
+    bx("metal", 0.22,0.07,0.04, px2, FY+1.60, pz2-0.10, 0, 0, "#b8bcbc");
+    push("paint", new T.CylinderGeometry(0.035,0.035,0.26,8), px2-0.20, FY+0.92, pz2-0.14,
+         0, "#1a1a19", 0.35, 0);                                  // hanging off its cord
+    push("paint", new T.CylinderGeometry(0.010,0.010,0.52,6), px2-0.16, FY+1.22, pz2-0.13,
+         0, "#222", 0.15, 0.22);
+    bx("paper", 0.16,0.20,0.02, px2+0.30, FY+1.46, pz2-0.02, 0, 0, "#d8d2bc");
+    addCol(px2-0.3, px2+0.3, pz2-0.25, pz2+0.12, 0, FY+1.7);
+  })();
+  // an OUT OF ORDER card, a NO MINORS notice, a coat nobody came back for
+  bx("paper", 0.22,0.14,0.02, -86.6, FY+1.38, IZ0+0.06, 0, 0, "#e6dcbe");
+  bx("paper", 0.20,0.26,0.02, -75.0, FY+1.64, IZ0+0.05, 0, 0, "#ded4b4");
+  push("fabric", boxGeo(0.34,0.72,0.16,0.5), -78.6, FY+1.46, IZ1-0.12, 0.2, "#3a4a52", 0, 0.06);
+  // rings where glasses have stood, and the pools the pendants throw
+  for(const q of [[-76.2,-26.4],[-76.2,-22.6],[-76.2,-18.8],[-80.6,-21.2],
+                  [-80.6,-17.4],[-84.2,-16.8]])
+    for(let k=0;k<3;k++)
+      push("soot", planeGeo(0.10,0.10,0), q[0]+Math.cos(k*2.3)*0.24, FY+0.782,
+           q[1]+Math.sin(k*2.3)*0.24, k, "#5a4a32", -Math.PI/2, 0);
+  for(const q of [[-83.2,-25.4],[-76.2,-22.6],[BX-0.5,-25.6],[BX-0.5,-21.0],[-77.6,-19.6]])
+    push("soot", planeGeo(2.6,2.6,0), q[0], FY+0.034, q[1], 0, "#6a5a3a", -Math.PI/2, 0);
+  // a cobweb in the corner the mop never reaches
+  for(let i=0;i<4;i++)
+    push("soot", planeGeo(0.5-i*0.10, 0.5-i*0.10, 0), IX0+0.35+i*0.10, TOPY-0.35-i*0.09,
+         IZ1-0.35-i*0.10, -Math.PI/4, "#cfcabb", -0.7, 0);
+  // one glass left standing on the bar, and the stool pushed out
+  cyl("glass", 0.038,0.030,0.13,10, BX+0.30, FY+BH2+0.155, BZ1-4.2, "#cfe0e6");
+  push("soot", planeGeo(0.13,0.13,0), BX+0.30, FY+BH2+0.092, BZ1-4.2, 0, "#5a4a32",
+       -Math.PI/2, 0);
   // the years on the brick: smoke above the bar, a wear patch on the boards
   for(const q of [[-88.0+0.30, -23.0, Math.PI/2],[IX1-0.02, -20.0, -Math.PI/2],
                   [-80.0, IZ1-0.02, Math.PI]])
     push("soot", planeGeo(2.20, 1.60, 0), q[0], FY+3.10, q[1], q[2], "#4a3a2a");
-  push("soot", planeGeo(9.0, 2.2, 0), BX-1.6, FY+0.012, (BZ0+BZ1)/2, Math.PI/2, "#6a5a3a",
+  push("soot", planeGeo(9.0, 2.2, 0), BX-1.6, FY+0.010, (BZ0+BZ1)/2, Math.PI/2, "#6a5a3a",
        -Math.PI/2, 0);
-  push("soot", planeGeo(3.4, 2.6, 0), -81.6, FY+0.014, -21.4, 0.2, "#6a5a3a", -Math.PI/2, 0);
-  push("soot", planeGeo(2.2, 7.0, 0), -79.6, FY+0.016, -24.6, 0.05, "#6a5a3a", -Math.PI/2, 0);
+  push("soot", planeGeo(3.4, 2.6, 0), -81.6, FY+0.018, -21.4, 0.2, "#6a5a3a", -Math.PI/2, 0);
+  push("soot", planeGeo(2.2, 7.0, 0), -79.6, FY+0.026, -24.6, 0.05, "#6a5a3a", -Math.PI/2, 0);
   // ends and caps trodden into the boards
   for(let i=0;i<40;i++){
     const fx=IX0+0.8+((i*1.37)%18.4), fz=IZ0+0.8+((i*2.11)%13.0);
@@ -5081,7 +5181,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   (function(){
     // across the highway, on the flattest ground within a quarter mile, with
     // the screen facing back toward the road
-    const OX=-173, OZ=-118, m=mk(OX, OZ);
+    const OX=-173, OZ=-182, m=mk(OX, OZ);   // well back off the highway
     m.B("paint", 26.0,12.0,0.55, 0,6.9,0, 0.30, 0, "#d8d2c4");        // the screen
     m.B("paint", 27.2,0.60,0.90, 0,13.2,0, 0.30, 0, "#b9b2a2");
     m.B("paint", 27.2,0.70,0.90, 0,0.60,0, 0.30, 0, "#b9b2a2");
@@ -5199,9 +5299,10 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       for(const lx of [QX0+0.7, QX0+2.5])
         m.C("metal", 0.035,0.035,0.84,8, lx, PF+0.43, QZ1-0.42, "#5e6468");
       m.col(QX0, QX1-0.9, QZ1-0.75, QZ1, 0, PF+0.9);
-      m.C("metal", 0.04,0.05,0.62,8, QX1-1.15, PF+0.31, QZ1-1.05, "#5e6468");
-      m.C("fabric", 0.17,0.17,0.07,12, QX1-1.15, PF+0.65, QZ1-1.05, "#6d3540");
-      addSeat(OX+QX1-1.15, OZ+QZ1-1.05, m.y+PF+0.70, Math.PI, "THE REWIND BENCH");
+      // tucked under the bench, not in the doorway
+      m.C("metal", 0.04,0.05,0.62,8, -1.40, PF+0.31, QZ1-1.02, "#5e6468");
+      m.C("fabric", 0.17,0.17,0.07,12, -1.40, PF+0.65, QZ1-1.02, "#6d3540");
+      addSeat(OX-1.40, OZ+QZ1-1.02, m.y+PF+0.70, Math.PI, "THE REWIND BENCH");
       m.C("teal", 0.012,0.012,0.62,6, -1.0, PF+PH-0.33, (QZ0+QZ1)/2, "#6e6a62");
       m.P("ceilfix", new T.SphereGeometry(0.075,10,8), -1.0, PF+PH-0.72, (QZ0+QZ1)/2, 0, "#f2e9cf");
       LAMPS.push({x:OX-1.0, y:m.y+PF+PH-0.76, z:OZ+(QZ0+QZ1)/2, color:0xffd6a2,
@@ -5320,8 +5421,8 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   dirtTrack(  12,TRK,    0,-528, 2.6);
   dirtTrack(-378,TRK, -517,-222, 2.6);
   dirtTrack( -58,TRK,  -70,-129, 2.4);
-  dirtTrack(-173,-74, -173,-118, 4.2);               // into the drive-in
-  dirtTrack(-232,TRK, -296,-186, 2.8);               // out to the trailer
+  dirtTrack(-173,-74, -173,-182, 4.2);              // the long run in to the drive-in
+  dirtTrack(-232,TRK, -356,-246, 2.8);               // out to the trailer
 
   /* --- a filling station that stopped selling anything ----------------- */
   (function(){
@@ -5372,10 +5473,6 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     }
     m.P("neonbox", new T.SphereGeometry(0.42,10,8), 0,H2+0.7,0, 0, "#ff3a2a");
     m.B("concrete", 1.4,0.5,1.4, 0,0.25,0, 0.45,0, "#a9a294");
-    for(const q of [[-1,-1],[1,-1],[-1,1],[1,1]])                          // guy wires
-      m.P("metal", boxGeo(0.05,Math.hypot(H2*0.62,22),0.05,0),
-          q[0]*11, H2*0.31, q[1]*11, Math.atan2(q[0],q[1]), ST,
-          Math.atan2(22*1.414, H2*0.62), 0);
     m.col(-2.0,2.0,-2.0,2.0, 0,44);
     m.zone(26, "A RADIO MAST");
     LAMPS.push({x:0, y:m.y+H2+0.7, z:-528, color:0xff3a2a, intensity:0.5, dist:30, decay:1.4});
@@ -5451,7 +5548,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
      in: the floor is a real surface, the windows are real holes, and the
      inside is knee-deep in what got left behind.                        */
   (function(){
-    const OX=-296, OZ=-186;
+    const OX=-356, OZ=-246;                  // a good two hundred metres off the drive-in
     const m=mk(OX,OZ);
     let sd=20260913;                       // one seed, so the mess bakes the same
     const rn=()=>{ sd=(sd*1103515245+12345)%2147483648; return sd/2147483648; };
@@ -5832,7 +5929,11 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   for(let i=0;i<3;i++)                                                       // stacked old mattresses
     bx("spread", 1.95,0.24,1.42, 20.0, 0.13+i*0.26, 23.2, 0.4, 0, ["#8f5a4a","#5e7c6e","#8a7440"][i]);
   addCol(19.0,21.0, 22.4, 24.0, 0, 0.9);
-  for(let i=0;i<4;i++) cyl("metal", 0.02,0.02,7.0,6, -4.0+i*0.02, 2.10, 21.9+i*0.6, GALV, 0,0,Math.PI/2);
+  for(const q of [[-7.6,22.2],[0.4,22.2]]){                                  // two posts
+    cyl("metal", 0.05,0.06,2.30,8, q[0], 1.15, q[1], GALV);
+    addCol(q[0]-0.08,q[0]+0.08, q[1]-0.08,q[1]+0.08, 0, 2.3);
+  }
+  push("metal", boxGeo(8.0,0.014,0.014,0), -3.6, 2.22, 22.2, 0, GALV, 0, 0);  // and one line
   for(let i=0;i<6;i++) bx("fabric", 0.70,0.90,0.03, -6.6+i*0.9, 1.62, 22.2, 0, 0,   // laundry line
                           ["#e6e2d6","#dfe6e4","#e8dcc0"][i%3]);
   cyl("metal", 0.06,0.06,2.60,8, -7.6, 1.30, 22.2, GALV);
@@ -5992,6 +6093,7 @@ bucketOf("fabric",  ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.
 bucketOf("rock",    ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.rock,
                           roughness:0.97, metalness:0.0, flatShading:true}));
 bucketOf("brick",   ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.brick, roughness:0.95}));
+bucketOf("walk",    ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.sidewalk, roughness:0.96}));
 bucketOf("plank",   ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.plank, roughness:0.72}));
 bucketOf("baize",   ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.98}));
 // Fairy lights. A basic material takes its colour straight from the vertex
@@ -6620,7 +6722,7 @@ const WEEDS=[];
 (function makeWeeds(){
   const UP=V3(0,1,0);
   for(let i=0;i<7;i++){
-    const ent=[], hue=0.085+rnd()*0.035, R=0.42+rnd()*0.26;
+    const ent=[], hue=0.085+rnd()*0.035, R=(0.42+rnd()*0.26)*0.75;
     const col=new T.Color();
     function twig(from, dir, len, rad, depth){
       const to=from.clone().addScaledVector(dir, len);
@@ -6838,7 +6940,11 @@ function updateWeeds(dt){
     w.pos.y=Terrain.heightAt(w.pos.x,w.pos.z)+w.R*0.94+hop;
     w.m.position.copy(w.pos);
     w.m.quaternion.setFromAxisAngle(w.axis, w.spin);
-    if(Math.hypot(w.pos.x-player.pos.x, w.pos.z-player.pos.z)>210){
+    // They roll with nothing to stop them, so they were rolling through walls
+    // and coming to rest in the middle of a room. Anything that ends up under
+    // a roof is picked up and put back out upwind.
+    const gone=Math.hypot(w.pos.x-player.pos.x, w.pos.z-player.pos.z)>210;
+    if(gone || indoorsAt(w.pos.x, w.pos.z, w.pos.y)){
       const a=rnd()*Math.PI*2, r=90+rnd()*70;
       w.pos.set(player.pos.x - WIND.x*r + Math.cos(a)*40, 0, player.pos.z - WIND.z*r + Math.sin(a)*40);
     }

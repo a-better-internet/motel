@@ -12,7 +12,10 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
 
 - **No two rooms are lit the same.** Somebody left the overhead on and the
   lamps off; next door it is the other way round; one along the row is dark but
-  for the bathroom fluorescent, and that is going. Occupied rooms draw from the
+  for the bathroom fluorescent, and that is going; and a couple have not been
+  opened in months and are simply dark. A lamp only lights the room it hangs
+  in — these point lights cast no shadows, so without that a lamp in 104 lit
+  103 and 105 straight through the party walls. Occupied rooms draw from the
   brighter half of the range and empty ones from the dimmer, so a walk down the
   balcony at night reads as a row of separate lives rather than one lighting
   rig repeated twenty-four times.
@@ -35,6 +38,11 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   floor; a guest laundry above with a washer and dryer, a folding counter, wire
   shelving stacked with linen, a housekeeping cart, a mop bucket and an ironing
   board leaning where somebody left it.
+- **The sidewalk** along the frontage: poured concrete with aggregate showing
+  through, float marks where the finisher dragged, a tooled control joint
+  across the walk every metre and a half, cracks wandering off it and forty
+  summers of stains. It is 2.55 m wide, not the 3.2 m it started at, which
+  read as a runway.
 - **The pole sign** on the highway frontage: VACANCY neon on top, the name
   board, and a reader board underneath, all hung between two posts that stand
   clear of the boards rather than across them.
@@ -99,7 +107,9 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   depth taken analytically from the tank's own floor profile, so the shallow
   end is pale and see-through and the drain end is dark; a shore blend and a
   moving foam band so the water never ends in a hard line at the wall; a tight
-  specular for the glitter; caustics; a ring that travels out from wherever you
+  specular for the glitter; caustics drawn from their own fine, fast pattern
+  and bounded, because taking a seventh power of the swell itself gave
+  metre-wide white blobs rather than filaments; a ring that travels out from wherever you
   are standing in it; and a distance band so the same pattern is never equally
   obvious everywhere. One draw call, no render targets, and no per-frame CPU
   work at all — the swell and its normals are computed in the vertex shader,
@@ -165,7 +175,9 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   twice more, so the silhouette is ragged and no two are alike. They wander
   across the wind and hop, because a lopsided ball does not roll smoothly. Every
   minute or two a sheet of newspaper or a carrier bag comes through on the same
-  wind, tumbling and lifting and dropping back, and then the lot is empty again. Two escarpments with
+  wind, tumbling and lifting and dropping back, and then the lot is empty
+  again. Nothing loose rolls indoors: anything that ends up under a roof is
+  picked up and put back out upwind. Two escarpments with
   wandering rim lines close the valley, with steep-sided buttes standing clear
   of them and sedimentary strata banding every cliff face. Clouds drift, birds
   circle, and the roadside carries a billboard, a mailbox, newspaper boxes and a

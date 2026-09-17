@@ -18,7 +18,15 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   103 and 105 straight through the party walls. Occupied rooms draw from the
   brighter half of the range and empty ones from the dimmer, so a walk down the
   balcony at night reads as a row of separate lives rather than one lighting
-  rig repeated twenty-four times.
+  rig repeated twenty-four times. Nor was any of them left the same way:
+  one bed is made, the next has the near side turned back, one was slept in
+  and the spread shoved down to the foot, one is stripped to the ticking with
+  the linen heaped on it, one has somebody's coat thrown down and never picked
+  up, one lost a pillow to the floor. The curtains are two panels, not one
+  sheet, and how far apart they are is the first thing you read about a room
+  from the balcony. One chair usually got pulled out and turned and stayed
+  that way, and there is a towel, a bin, a pair of shoes or a magazine left
+  where somebody dropped it.
 - **24 guest rooms**, all enterable, all furnished, all laid out the same
   sensible way: one queen with its headboard against the right-hand wall,
   nightstands either side with a lamp and a clock radio, the dresser, television,
@@ -32,6 +40,10 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   guest left: magazines fanned on the table, a cigarette still glowing in the
   ashtray, an open suitcase, boots and a newspaper, a room-service tray, a hat
   on the dresser, a guitar case. Doors swing open as you reach them, or on `E`.
+- **The gable at each end of each wing** is cut from the roof's own numbers.
+  It used to be a fixed triangle apexed 30 cm off the real ridge with none of
+  the second wing's roof lift in it, so it fell away from the slabs toward
+  both eaves and left a long wedge of daylight down the end of each wing.
 - **Two wings in an L** around the courtyard — nine bays and five bays, with an
   outdoor stair up to the balcony and a service alcove cut into each wing: ice,
   snacks and a soda machine with an OUT OF ORDER card taped to it on the ground
@@ -75,7 +87,13 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   has not turned in a while, crates of empties and a keg; a dado of panelling
   with a capping rail, a shelf of caps over the back bar, framed photographs, a
   crisps rack, a microwave, a receipt spike, bar towels, ends and bottle caps
-  trodden into the boards; coloured fairy lights round the walls, two swags
+  — and nothing in there is left on a square arris. The booth squabs have a
+  rolled nose on the front, the backs are buttoned and seamed and rolled over
+  at the top under a capping rail, the exposed end of every divider has a
+  vertical roll and a ball where the two meet, the stools have a dished pad
+  with a rolled rim, the chairs have a rolled seat edge and a shaped top rail
+  on two stiles, and every table top and both runs of counter carry a
+  bullnose. Also trodden into the boards: coloured fairy lights round the walls, two swags
   across the room, a run over the bar and more along the front eave outside,
   which is how you find the place after dark; and fourteen gig
   posters that went up and never came down — all six designs drawn in canvas
@@ -90,12 +108,25 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   yard lights, oil where the delivery truck stands, grass in the cracks and a
   pile of sand. The shed opens: chest coolers with a lid propped up, dead kegs
   stacked three deep, a shelf of bottles, a mop and a stack of crates.
+- **The snack bar** west of the drive-in. A concrete block shed with a serving
+  hatch down the lot side, the shutter jammed most of the way down and a bird
+  getting in under it. Inside: a checkered lino floor gone to cracks and grit
+  and droppings, two popcorn poppers seized solid in their rusted cases, a
+  fountain with one valve hanging off its arm, stainless counters with the rust
+  running down them, menu boards with a quarter of the letter tiles fallen out,
+  a register somebody left open, a chest freezer with the lid up, a mop that
+  set in its bucket, cardboard going soft, cup sleeves, napkins welded into one
+  brick, condiment pumps rotting on their stems, wrappers and popcorn bags
+  frozen where they stopped, and forty years of fryer smoke up the wall behind
+  where the fryers were.
 - **The projection room** at the drive-in, which you can let yourself into the
   same way. Two ports cut through the wall facing the screen, a projector off
   its mount with the lens drooping and a reel arm snapped, film unspooled
   across the floor, reels stacked and shelved, two filing cabinets with a
   drawer that never closed, a rewind bench you can sit at, and the paperwork
-  nobody filed still on the wall.
+  nobody filed still on the wall. Nothing in there has had power for thirty
+  years, so the bulb is dead and what light you get comes through the door and
+  the two ports.
 - **The pool**: a real tank with a sloped floor, waterline tile, bullnosed
   coping that laps out over the water, walk-in steps at the shallow end and a
   deep-end ladder you can climb out on. Loungers line the south deck, reclined
@@ -116,7 +147,7 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   and the whole per-frame cost is eight uniforms. After dark the niche lights
   take over and the sheet throws light blue across the courtyard and up the
   facade.
-- **Twelve things to walk out and find**, with two-track roads worn out to
+- **Fourteen things to walk out and find**, with two-track roads worn out to
   them from the highway shoulder so the desert has a grain and you know where
   to start walking. Each is far enough away to be a decision — a hundred and
   fifty to five hundred metres, one to five minutes on foot — and each names
@@ -130,7 +161,12 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   station with its canopy still up and two pumps under it; a forty-four metre
   radio mast whose red light still blinks after dark; the concrete slab of a
   motel that did not make it, its pool filled to the brim with sand; three
-  graves behind a wire fence; and **an abandoned trailer you can walk into**.
+  graves behind a wire fence; **an abandoned snack bar** on the far side of the
+  drive-in that you can let yourself into; and **an abandoned trailer you can
+  walk into**. A long way west, off the highway shoulder past everything else,
+  there is a burying ground: twelve stones behind a wire, three of them down,
+  one plot that only ever got two boards and a nail, and a dead tree at the
+  corner which is all you see of it from the road.
 - **The trailer.** Eight and a half metres of single-wide up on cinder blocks
   at the end of its own two-track, the door hanging open on its hinges and the
   awning sagging where a leg went. The windows are real holes in the wall, so
@@ -179,8 +215,20 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   again. Nothing loose rolls indoors: anything that ends up under a roof is
   picked up and put back out upwind. Two escarpments with
   wandering rim lines close the valley, with steep-sided buttes standing clear
-  of them and sedimentary strata banding every cliff face. Clouds drift, birds
-  circle, and the roadside carries a billboard, a mailbox, newspaper boxes and a
+  of them and sedimentary strata banding every cliff face. Six kinds of plant
+  grow out there, not one: saguaro and barrel cactus, ocotillo throwing a fan
+  of canes out of one crown, cholla forking into short fat joints, prickly
+  pear growing pad off pad, yucca rosettes with a spent flower stalk, bunch
+  grass, and creosote — which is a thin crown with twigs through it and a lot
+  of gaps, not the smooth ball it used to be. They are thickest close in,
+  because at four hundred metres nothing of a bush survives but a dot.
+  The sky has three decks in it — cumulus low and near, a raft of altocumulus
+  in rows above that, cirrus above them — and each cumulus is tinted toward
+  the haze by how far out it is, so the far ones sit back instead of every
+  sprite reading as one pasted plane. The zenith-to-horizon ramp is bent the
+  way air actually scatters, with most of the change in the last few degrees,
+  because an even three-stop gradient is exactly what makes a clear sky read
+  as a flat wash. Birds circle, and the roadside carries a billboard, a mailbox, newspaper boxes and a
   bus bench, with a water tower away to the west.
 - **The rest of the property**: thirteen parked cars — sedans, a pickup, a panel
   van — built from the same primitive stack as the Project 76 chassis, with

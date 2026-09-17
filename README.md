@@ -69,7 +69,20 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   nobody came back for parked by the door. On the walls: a framed road map of
   New Mexico, an aerial photograph of the property, a cork board of curling
   notices and a clock that stopped at 3:47 — all drawn in canvas like every
-  other texture in the scene.
+  other texture in the scene. The working side of the desk is somebody's
+  desk: an adding machine with its tape run out onto the floor, the
+  knuckle-buster for cards nobody takes any more, a receipt spike, a stamp
+  and its pad, a tray of matchbooks, a pen on a chain because they walked, a
+  card index of everyone who ever stayed, a jar of something nobody has taken
+  one of in years, a PLEASE RING card propped against the register, an
+  ashtray belonging to whoever works nights, and sixty years of burns along
+  the counter edge. A fan has been oscillating since 1974, a radio is tuned
+  to whatever still comes in, and the cat has the warm end of the counter.
+  There is a door behind the desk that is not for guests, with a light under
+  it; a board of guests pinned up over thirty summers by the entrance;
+  venetian blinds half drawn over the bay nearest the desk; a floor fan and
+  the lead it runs off; and a bucket under the corner where the ceiling has
+  been letting go for years.
 - **The Rusty Canteen**, a dive bar on the next lot west — a separate
   business, fenced off from the motel's asphalt, with its own parking, its own
   pole sign out by the road and a neon BEER ON TAP in the window. It is about
@@ -80,7 +93,7 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   drying and four shelves of bottles behind it; seventeen stools you can sit on;
   a pool table racked and waiting under two low pendants, with a cue rack on the
   wall; three high-backed booths down the west wall, each with a table and
-  somebody's glasses still on it; six tables laid out in two rows parallel to
+  somebody's glasses still on it; five tables laid out in two rows parallel to
   the bar with a lane between them, and two high tops; a dartboard
   with the throw line scuffed into the boards; a jukebox; a screen nobody is
   watching; a jukebox, a cigarette machine, a chalkboard, a ceiling fan that
@@ -93,7 +106,25 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   vertical roll and a ball where the two meet, the stools have a dished pad
   with a rolled rim, the chairs have a rolled seat edge and a shaped top rail
   on two stiles, and every table top and both runs of counter carry a
-  bullnose. Also trodden into the boards: coloured fairy lights round the walls, two swags
+  bullnose. Off the back wall there is a block with two doors in it and a
+  dropped ceiling — **the restrooms**, which is what the payphone has always
+  stood next to, and which is also what the room needed: somewhere for it to
+  have a corner. Both open. Tile to shoulder height and a tiled floor, a
+  cubicle at the back with its door hanging open and what people wrote on it,
+  a pan with the seat never down, a basin with a tap that drips into a trap,
+  a mirror the silvering has left, a dispenser hanging off one screw, a bin
+  that overflowed, a floor drain and the water that never quite goes. The
+  tube in the gents has been going for months. In the south-west corner
+  there is **a stage** — a plywood riser with a scuffed nosing and a step up
+  to it, and the backline nobody came back for: a 4x12 with a head on it and
+  one valve still lit, a combo, a wedge, a mic on a boom, a stool, a lead
+  somebody coiled badly, gaffer over the cable run, and two par cans on a bar.
+  Behind the counter: a rubber mat, a sink with a drainer, an ice well, a
+  soda gun on its hose, a register, a tip jar and a bell. Overhead, a vent, a
+  mirror ball somebody put up one New Year, and smoke on the boards. By the
+  door, a board of cards and polaroids, coat hooks, a fish in a hat that is
+  not his, and a shelf of things won at darts, none of it recent. Also
+  trodden into the boards: coloured fairy lights round the walls, two swags
   across the room, a run over the bar and more along the front eave outside,
   which is how you find the place after dark; and fourteen gig
   posters that went up and never came down — all six designs drawn in canvas
@@ -118,7 +149,16 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   set in its bucket, cardboard going soft, cup sleeves, napkins welded into one
   brick, condiment pumps rotting on their stems, wrappers and popcorn bags
   frozen where they stopped, and forty years of fryer smoke up the wall behind
-  where the fryers were.
+  where the fryers were. Down the east wall there is a cook line: a twin
+  fryer with the oil gone to varnish, a griddle with forty years of carbon on
+  it and a trough at the front, a hot dog roller that stopped mid-turn, and
+  the hood over all of it with the filter nobody ever changed and the grease
+  down the wall behind. An upright cooler stands against the west wall with
+  its door hanging open on empty shelves and four cans left in it, and a
+  ceiling fan turns over none of it. Outside, the roof sign still says SNA K
+  BA — two letters came off in some wind and left their ghosts — the
+  restrooms are round the side behind two rusting doors, and there are weeds
+  through every crack in the apron.
 - **The projection room** at the drive-in, which you can let yourself into the
   same way. Two ports cut through the wall facing the screen, a projector off
   its mount with the lens drooping and a reel arm snapped, film unspooled

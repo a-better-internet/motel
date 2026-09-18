@@ -555,6 +555,27 @@ function boxGeo(w,h,d,uvScale){
   return g;
 }
 
+// An icosahedron is twenty flat facets and shades like a cut gem, which is
+// what made every bush out there read as a pile of pebbles. Its corners all
+// lie on a sphere, so pointing each normal straight out from the centre makes
+// the same twenty triangles shade as a smooth ball — a soft lump for a fifth
+// of the cost of subdividing it. Cached by radius; mergeEntries only reads.
+const _BLOBS=new Map();
+function blobGeo(r){
+  const k=r.toFixed(3);
+  let g=_BLOBS.get(k);
+  if(g) return g;
+  g=new T.IcosahedronGeometry(r,0);
+  const pos=g.attributes.position, nrm=new Float32Array(pos.count*3);
+  for(let i=0;i<pos.count;i++){
+    const x=pos.getX(i), y=pos.getY(i), z=pos.getZ(i), L=Math.hypot(x,y,z)||1;
+    nrm[i*3]=x/L; nrm[i*3+1]=y/L; nrm[i*3+2]=z/L;
+  }
+  g.setAttribute("normal", new T.BufferAttribute(nrm,3));
+  _BLOBS.set(k,g);
+  return g;
+}
+
 // flat panel with world-scaled UVs, for alpha-cut things like chain-link
 function planeGeo(w,h,uvScale){
   const g=new T.PlaneGeometry(w,h);
@@ -731,14 +752,68 @@ TEX.concrete=(function(){                     // walkway slab, curbs, pool deck
 })();
 
 TEX.asphalt=(function(){                      // parking lot + highway
-  const c=cvs(256,256), x=c.getContext("2d");
-  x.fillStyle="#2f2c28"; x.fillRect(0,0,256,256);
-  noiseDots(x,256,256,9000,["rgba(255,255,255,0.05)","rgba(0,0,0,0.25)","rgba(160,150,135,0.06)"]);
-  for(let i=0;i<26;i++){                       // patched cracks
-    x.strokeStyle="rgba(20,18,16,0.22)"; x.lineWidth=0.7+Math.random()*0.6;
-    x.beginPath(); let px=Math.random()*256, py=Math.random()*256; x.moveTo(px,py);
-    for(let k=0;k<5;k++){ px+=(Math.random()-0.5)*40; py+=(Math.random()-0.5)*40; x.lineTo(px,py); }
+  // A lot that has been down sixty summers is not one flat grey. It has
+  // patches darker than the rest where it was cut and made good, ravelling
+  // at the edges where the binder gave up, alligator cracking in the wheel
+  // paths, sealed cracks standing proud, bleached aggregate where the sun
+  // gets it, and stains under wherever anything ever parked.
+  const c=cvs(512,512), x=c.getContext("2d");
+  const rnd2=(function(){ let sd=20997; return ()=>{ sd=(sd*1103515245+12345)%2147483648;
+    return sd/2147483648; }; })();
+  x.fillStyle="#34302b"; x.fillRect(0,0,512,512);
+  // Nothing big goes in the tile. A patch a third of a tile across repeats
+  // every 1.6 m and the whole lot reads as a chequerboard, which is exactly
+  // what happened; everything at that scale is a world-space decal instead.
+  for(let i=0;i<40;i++){                       // just a wash, to break the flatness
+    const r=14+rnd2()*34;
+    x.fillStyle="rgba(150,142,126,"+(0.015+rnd2()*0.028).toFixed(3)+")";
+    x.beginPath(); x.arc(rnd2()*512, rnd2()*512, r, 0, 7); x.fill();
+  }
+  noiseDots(x,512,512,24000,["rgba(255,255,255,0.05)","rgba(0,0,0,0.26)",
+                             "rgba(168,158,140,0.07)","rgba(120,112,98,0.05)"]);
+  for(let i=0;i<300;i++){                      // the aggregate that has ravelled out
+    const px=rnd2()*512, py=rnd2()*512, r=0.8+rnd2()*2.2;
+    x.fillStyle="rgba("+(120+rnd2()*70|0)+","+(112+rnd2()*60|0)+","+(98+rnd2()*50|0)+",0.34)";
+    x.beginPath(); x.arc(px,py,r,0,7); x.fill();
+    x.fillStyle="rgba(10,9,8,0.30)";
+    x.beginPath(); x.arc(px+r*0.5,py+r*0.5,r*0.8,0,7); x.fill();
+  }
+  // alligator cracking: a patch of cells, not a scatter of lines
+  for(let i=0;i<5;i++){
+    const cx=rnd2()*512, cy=rnd2()*512, R=40+rnd2()*60;
+    for(let k=0;k<34;k++){
+      x.strokeStyle="rgba(16,15,14,"+(0.20+rnd2()*0.24).toFixed(3)+")";
+      x.lineWidth=0.6+rnd2()*0.7;
+      const a=rnd2()*Math.PI*2, r0=rnd2()*R;
+      let px=cx+Math.cos(a)*r0, py=cy+Math.sin(a)*r0;
+      x.beginPath(); x.moveTo(px,py);
+      for(let j=0;j<3;j++){
+        px+=(rnd2()-0.5)*26; py+=(rnd2()-0.5)*26;
+        if(Math.hypot(px-cx,py-cy)>R*1.15) break;
+        x.lineTo(px,py);
+      }
+      x.stroke();
+    }
+  }
+  for(let i=0;i<20;i++){                       // long cracks, most of them sealed
+    const sealed=rnd2()<0.55;
+    let px=rnd2()*512, py=rnd2()*512;
+    x.strokeStyle= sealed ? "rgba(20,19,18,0.66)" : "rgba(14,13,12,0.34)";
+    x.lineWidth= sealed ? 2.2+rnd2()*2.4 : 0.7+rnd2()*0.8;
+    x.lineCap="round"; x.beginPath(); x.moveTo(px,py);
+    for(let k=0;k<7;k++){ px+=(rnd2()-0.5)*90; py+=(rnd2()-0.5)*90; x.lineTo(px,py); }
     x.stroke();
+    if(sealed){                                // the tar stands proud and shines
+      x.strokeStyle="rgba(120,116,108,0.14)"; x.lineWidth=0.9; x.stroke();
+    }
+  }
+  for(let i=0;i<14;i++){                       // whatever leaked out of whatever parked
+    const px=rnd2()*512, py=rnd2()*512, r=7+rnd2()*22;
+    const g=x.createRadialGradient(px,py,0,px,py,r);
+    g.addColorStop(0,"rgba(10,9,8,"+(0.30+rnd2()*0.30).toFixed(2)+")");
+    g.addColorStop(0.6,"rgba(14,13,12,0.16)");
+    g.addColorStop(1,"rgba(14,13,12,0)");
+    x.fillStyle=g; x.beginPath(); x.arc(px,py,r,0,7); x.fill();
   }
   return rep(setSRGB(new T.CanvasTexture(c)),1,1);
 })();
@@ -1981,7 +2056,9 @@ scene.background=new T.Color(0xc37946);
 const COL=[];    // {x0,x1,z0,z1,y0,y1}
 const SEATS=[];  // somewhere to sit: the cushion's x/z/height, which way it
                  // faces, and what the prompt should call it
-function addSeat(x,z,y,yaw,label){ SEATS.push({x:x, z:z, y:y, yaw:yaw, label:label}); }
+function addSeat(x,z,y,yaw,label,lie){
+  SEATS.push({x:x, z:z, y:y, yaw:yaw, label:label, lie:!!lie});
+}
 const SURF=[];   // flat {x0,x1,z0,z1,y} | ramp {axis:'x'|'z',a0,a1,y0,y1}
 const ZONES=[];  // {x0,x1,z0,z1,y0,y1,name}
 
@@ -2131,7 +2208,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   const L={x0:LOT.x0, x1:LOT.x1, z0:ROADZ+roadW/2+WALK_W+0.30, z1:LOT.z1}, D=POOL.deck;
   const lot=(x0,x1,z0,z1)=>{
     if(x1-x0<0.05 || z1-z0<0.05) return;
-    bx("asphalt", x1-x0, 0.30, z1-z0, (x0+x1)/2, -0.15, (z0+z1)/2, 0.42);
+    bx("asphalt", x1-x0, 0.30, z1-z0, (x0+x1)/2, -0.15, (z0+z1)/2, 0.62);
     addFlat(x0,x1,z0,z1, 0);
   };
   lot(L.x0, L.x1, L.z0, D.z0);
@@ -2139,6 +2216,46 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   lot(L.x0, D.x0, D.z0, D.z1);
   lot(D.x1, L.x1, D.z0, D.z1);
   addZone(L.x0,L.x1,L.z0,L.z1, -1, 2.4, "PARKING LOT");
+  /* The asphalt map carries its own cracking and patching, but a texture tile
+     is 2.4 m across and a lot has things on it much bigger than that: whole
+     bays gone dark where they were dug up and made good, the ruts down the
+     driving lanes, the dark patch under wherever a car stands all summer, and
+     the scuffs where they swing in. These go on in world scale so they read
+     at the size of the lot rather than the size of the tile.             */
+  (function lotWear(){
+    let sd=88317; const r2=()=>{ sd=(sd*1103515245+12345)%2147483648; return sd/2147483648; };
+    const on=(x,z)=> x>L.x0+1 && x<L.x1-1 && z>L.z0+1 && z<L.z1-1 &&
+                     !(x>D.x0-1&&x<D.x1+1&&z>D.z0-1&&z<D.z1+1);
+    let laid=0;
+    for(let i=0;i<220 && laid<120;i++){
+      const x=L.x0+r2()*(L.x1-L.x0), z=L.z0+r2()*(L.z1-L.z0);
+      if(!on(x,z)) continue;
+      laid++;
+      const q=r2();
+      if(q<0.30){                                   // a bay cut out and made good
+        push("soot", planeGeo(2.2+r2()*3.6, 2.0+r2()*3.0, 0), x, 0.012+laid*0.0006, z,
+             r2()*6, "#2a2722", -Math.PI/2, 0);
+      }else if(q<0.55){                             // bleached where the sun gets it
+        push("soot", planeGeo(2.6+r2()*4.4, 2.2+r2()*3.4, 0), x, 0.012+laid*0.0006, z,
+             r2()*6, "#b8ae98", -Math.PI/2, 0);
+      }else if(q<0.80){                             // whatever leaked out of whatever parked
+        push("soot", planeGeo(0.9+r2()*1.3, 1.5+r2()*1.6, 0), x, 0.012+laid*0.0006, z,
+             r2()*6, "#211e1a", -Math.PI/2, 0);
+      }else{                                        // a scuff where they swing in
+        const a=r2()*Math.PI*2;
+        for(let k=0;k<5;k++)
+          push("soot", planeGeo(0.24, 1.5+r2()*0.8, 0), x+Math.cos(a)*k*0.9,
+               0.012+laid*0.0006+k*0.0001, z+Math.sin(a)*k*0.9, a+k*0.13,
+               "#1d1b18", -Math.PI/2, 0);
+      }
+    }
+    // and the ruts down the two driving lanes, which is where it wears most
+    for(const lz of [-31.0, -21.6]){
+      for(let i=0;i<26;i++)
+        push("soot", planeGeo(3.4, 0.55, 0), L.x0+3+i*3.2, 0.0138, lz+((i*7)%3-1)*0.16,
+             ((i*5)%5-2)*0.02, "#242119", -Math.PI/2, 0);
+    }
+  })();
   // sand shoulder between the asphalt edge and the graded sub-base
   bx("asphalt", 700, 0.20, 3.4, 0, -0.14, L.z0-1.7, 0.42);
 
@@ -2236,40 +2353,72 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   const GREENS=["#4f6b3a","#57713f","#465f34","#5d6b45","#6b7448"];
   const GREYGRN=["#6e7a56","#7a8460","#63704c","#808a66"];
   const STRAW=["#9a8f70","#8a7f63","#a89a76","#7d7357"];
+  const DEADW=["#7e755e","#6f6754","#877d64"];      // a dead bush, not a white one
 
-  // ocotillo: a fan of whippy canes out of one crown, nothing in between
+  // Every one of these is built end-to-end out of cylinders, and a cylinder
+  // has two flat cut ends on it. Without something at each joint the result is
+  // a scatter of sawn logs rather than a plant, which is exactly what the
+  // first cholla looked like. A ball at each joint fixes it; an icosahedron
+  // is a ball at this size and costs 20 triangles instead of seventy.
+  function knuckle(x,y,z,r,col){ push("foliage", blobGeo(r), x,y,z, 0, col); }
+
+  // ocotillo: a vase of whippy canes out of one crown. Each segment leans a
+  // little further out than the one below it, so the cane curves instead of
+  // pointing, and they carry leaf along their length rather than being bare
+  // sticks in a fan. Rare on purpose — it is the one plant out here with a
+  // silhouette you recognise from a mile off.
   function ocotillo(x,y,z,sc){
-    const n=7+((rnd()*6)|0), col=pick(GREYGRN);
+    const n=8+((rnd()*4)|0), col=pick(GREYGRN), leaf=pick(["#5f7a42","#6b8449"]);
+    const flower=rnd()<0.45;
+    knuckle(x, y+0.06*sc, z, 0.11*sc, col);
     for(let i=0;i<n;i++){
-      const a=rnd()*Math.PI*2, lean=0.10+rnd()*0.30, L=(1.7+rnd()*2.0)*sc;
-      const t1=stem("foliage", 0.045*sc,0.070*sc, L*0.55, 5, x,y,z, col, lean*0.55, a);
-      const t2=stem("foliage", 0.026*sc,0.045*sc, L*0.52, 5, t1[0],t1[1],t1[2], col, lean, a);
-      if(rnd()<0.5)                                      // a few are in flower
-        push("foliage", new T.SphereGeometry(0.05*sc,6,4), t2[0],t2[1],t2[2], 0, "#a8402a");
+      const a=(i/n)*Math.PI*2 + rnd()*0.5;
+      const out=0.32+rnd()*0.36, L=(2.1+rnd()*2.0)*sc;
+      let px=x, py=y+0.04*sc, pz=z, r=0.052*sc;
+      for(let k=0;k<3;k++){
+        const lean=out*(0.26+k*0.42);            // it opens as it rises
+        const seg=L*(0.40-k*0.05), r2=r*0.68;
+        // start each segment a little inside the last, so the joints close up
+        const t=stem("foliage", r2, r, seg, 5, px,py,pz, col, lean, a);
+        if(k<2) knuckle(t[0],t[1],t[2], r2*1.15, col);
+        knuckle(px+(t[0]-px)*0.55, py+(t[1]-py)*0.55, pz+(t[2]-pz)*0.55, 0.033*sc, leaf);
+        px=t[0]; py=t[1]; pz=t[2]; r=r2;
+      }
+      if(flower && rnd()<0.6)                    // and the spike on the end of it
+        knuckle(px, py+0.05*sc, pz, 0.042*sc, "#a8402a");
     }
   }
-  // cholla: a trunk that keeps forking into short fat joints
+  // cholla: a stout trunk that forks into short fat joints, each one shorter
+  // than the last and balled at its end, so the whole thing reads as one mass
+  // rather than a dropped bundle of sticks. The pale sleeve is the spines.
   function cholla(x,y,z,sc){
-    const col=pick(["#7d8a52","#8a9160","#6f7c48"]);
-    const t0=stem("foliage", 0.075*sc,0.095*sc, 0.46*sc, 6, x,y,z, col, 0.06, rnd()*6);
-    const arms=3+((rnd()*3)|0);
-    for(let k=0;k<arms;k++){
-      const a=rnd()*Math.PI*2;
-      const t1=stem("foliage", 0.058*sc,0.075*sc, (0.34+rnd()*0.26)*sc, 6,
-                    t0[0],t0[1],t0[2], col, 0.55+rnd()*0.45, a);
-      const t2=stem("foliage", 0.042*sc,0.058*sc, (0.26+rnd()*0.24)*sc, 6,
-                    t1[0],t1[1],t1[2], col, 0.20+rnd()*0.40, a+(rnd()-0.5)*1.4);
-      if(rnd()<0.6)
-        stem("foliage", 0.030*sc,0.042*sc, (0.20+rnd()*0.18)*sc, 5,
-             t2[0],t2[1],t2[2], col, 0.30+rnd()*0.50, a+(rnd()-0.5)*2.2);
+    const col=pick(["#6f7c48","#78854f","#657342"]), SPINE="#bdbb9a";
+    function joint(px,py,pz, r, L, lean, a, depth){
+      const r2=r*0.82;
+      const t=stem("foliage", r2, r, L, 7, px,py,pz, col, lean, a);
+      if(depth>0)                                // the spines, on the fat joints
+        cyl("foliage", r2*1.45, r*1.45, L*0.88, 6,
+            (px+t[0])/2, (py+t[1])/2, (pz+t[2])/2, SPINE, lean, a, 0);
+      knuckle(t[0],t[1],t[2], r2*1.18, col);
+      if(depth<=0) return;
+      for(let k=0;k<2;k++)
+        joint(t[0],t[1],t[2], r2, L*(0.74+rnd()*0.14),
+              0.32+rnd()*0.32, a+(k-0.5)*1.4+(rnd()-0.5)*0.6, depth-1);
     }
+    knuckle(x, y+0.05*sc, z, 0.115*sc, col);
+    joint(x, y+0.02*sc, z, 0.105*sc, 0.44*sc, 0.05, rnd()*6, 2);
+    for(let i=0;i<2+((rnd()*3)|0);i++)           // the joints that dropped off
+      push("foliage", new T.CylinderGeometry(0.055*sc,0.070*sc,0.17*sc,6),
+           x+(rnd()-0.5)*0.9*sc, y+0.05*sc, z+(rnd()-0.5)*0.9*sc, rnd()*6,
+           "#9a9878", Math.PI/2, (rnd()-0.5)*0.6);
   }
   // prickly pear: flat pads, each growing off the rim of the last
   function pricklyPear(x,y,z,sc){
     const col=pick(["#5f7a42","#6b8449","#56703b"]);
     const pad=(px,py,pz,w,tilt,face)=>{
-      const g=new T.SphereGeometry(w,8,5); g.scale(1.0, 1.22, 0.20);
+      const g=new T.SphereGeometry(w,10,6); g.scale(1.0, 1.22, 0.17);
       push("foliage", g, px,py,pz, face, col, tilt, 0);
+      push("foliage", blobGeo(w*0.30), px, py-w*0.92, pz, 0, col);   // where it joins
       return [px+Math.sin(face)*0.02, py+w*1.05*Math.cos(tilt), pz+Math.cos(face)*0.02];
     };
     const n=3+((rnd()*4)|0), face=rnd()*Math.PI*2;
@@ -2310,21 +2459,27 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
            x-Math.sin(a)*si*L/2, y+co*L/2, z-Math.cos(a)*si*L/2, a, col, lean, 0);
     }
   }
-  // creosote / sage: a thin crown with twigs through it, not a solid lump
+  // creosote / sage: ONE crown, not a scatter of chips. The lumps overlap
+  // into a single mound and the twigs come out from under it. Spread over
+  // eighty centimetres they read as debris, which is what they were doing.
   function sagebush(x,y,z,sc){
-    const col=pick(["#6a6a3c","#75754a","#5e6036","#7d7a4d","#6f7350"]);
-    const dead=rnd()<0.14;
-    const n=4+((rnd()*4)|0);
+    const col=pick(["#556040","#5e6a46","#4c583a","#63704c","#586348"]);
+    const dead=rnd()<0.13;
+    // lumps packed into a low, wide dome. Sized up a row at a time they
+    // stacked into a snowman; scattered through the volume they mass.
+    const R=(0.28+rnd()*0.12)*sc, H=(0.34+rnd()*0.16)*sc;
+    const n=8+((rnd()*4)|0);
     for(let b=0;b<n;b++){
-      const rad=(0.10+rnd()*0.15)*sc;
-      push("foliage", new T.IcosahedronGeometry(rad,0),
-        x+(rnd()-0.5)*0.80*sc, y+0.10*sc+rnd()*0.34*sc, z+(rnd()-0.5)*0.80*sc, rnd()*6,
-        dead?pick(STRAW):col);
+      const a=rnd()*Math.PI*2, u=Math.sqrt(rnd());
+      const rad=(0.13+rnd()*0.05)*sc*(1.0-u*0.28);
+      push("foliage", blobGeo(rad),
+        x+Math.cos(a)*R*u, y+0.10*sc+rnd()*H*(1.0-u*0.45), z+Math.sin(a)*R*u, rnd()*6,
+        dead?pick(DEADW):col);
     }
-    for(let k=0;k<6+((rnd()*5)|0);k++)                   // the twigs that show
-      stem("foliage", 0.009*sc,0.016*sc, (0.24+rnd()*0.34)*sc, 4,
-           x+(rnd()-0.5)*0.6*sc, y+0.02, z+(rnd()-0.5)*0.6*sc,
-           pick(STRAW), 0.20+rnd()*0.70, rnd()*Math.PI*2);
+    for(let k=0;k<5+((rnd()*4)|0);k++)                   // the twigs, under the crown
+      stem("foliage", 0.008*sc,0.015*sc, (0.20+rnd()*0.26)*sc, 4,
+           x+(rnd()-0.5)*0.24*sc, y+0.02, z+(rnd()-0.5)*0.24*sc,
+           pick(STRAW), 0.55+rnd()*0.55, rnd()*Math.PI*2);
   }
 
   // biased toward the near field: at 400 m nothing of a bush survives but a
@@ -2343,8 +2498,8 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     if(inLot(x,z)||onRoad(z)||built(x,z)) continue;
     const y=Terrain.heightAt(x,z); if(y>30) continue;
     const q=rnd();
-    if(q<0.18)      ocotillo(x,y,z, 0.85+rnd()*0.45);
-    else if(q<0.38) cholla(x,y,z, 0.85+rnd()*0.55);
+    if(q<0.10)      ocotillo(x,y,z, 0.85+rnd()*0.45);
+    else if(q<0.32) cholla(x,y,z, 0.85+rnd()*0.55);
     else if(q<0.56) pricklyPear(x,y,z, 0.9+rnd()*0.6);
     else if(q<0.72) yucca(x,y,z, 0.9+rnd()*0.6);
     else            tussock(x,y,z, 0.9+rnd()*0.7,
@@ -2423,11 +2578,11 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     const y=Terrain.heightAt(x,z); if(y>36) continue;
     const col=pick(["#6a6a3c","#75754a","#5e6036","#7d7a4d"]);
     const rad=0.34+rnd()*0.40;
-    push("foliage", new T.IcosahedronGeometry(rad,0), x, y+rad*0.68, z, rnd()*6, col);
+    push("foliage", blobGeo(rad), x, y+rad*0.68, z, rnd()*6, col);
     if(rnd()<0.5){
       const r2b=0.26+rnd()*0.30;
-      push("foliage", new T.IcosahedronGeometry(r2b,0),
-           x+(rnd()-0.5)*1.1, y+r2b*0.68, z+(rnd()-0.5)*1.1, rnd()*6, col);
+      push("foliage", blobGeo(r2b),
+           x+(rnd()-0.5)*0.7, y+r2b*0.72, z+(rnd()-0.5)*0.7, rnd()*6, col);
     }
   }
   for(let i=0;i<380;i++){                                   // far rocks
@@ -3048,6 +3203,10 @@ function furnishRoom(xf, y0, roomNo){
     P("bedding", pillow, 2.30, 0.845, bz+0.02, "#d8d2c0", 0, 0.06);           // the bare one
   }
   C(2.10,1.66, 1.62,bz, 0.74);
+  // you can lie on it. Local -x is the foot of the bed, so that is where you
+  // are looking; getting up fans out from there, and the first candidate that
+  // clears the bed's own collider is a metre and a half off.
+  addSeat(xf.x(1.46,bz), xf.z(1.46,bz), y0+0.77, Math.PI/2+xf.ry, "THE BED", true);
   P("oak", boxGeo(0.035,0.56,1.04,0), 2.646, 1.92, bz, pal.head);            // print over the bed
   PY("pic:artWide", planeGeo(0.96,0.48,0), 2.624, 1.92, bz, -Math.PI/2, "#ffffff");
 
@@ -4765,8 +4924,8 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       addFlat(SX0-0.3, SX1+0.3, SZ0-0.3, SZ1+0.3, SF);
       for(const g of runs(SX0,SX1,[SDOOR]))                       // front, with the door
         bx("siding", g[1]-g[0], SH, ST, (g[0]+g[1])/2, SF+SH/2, SZ0+ST/2, 0.55, 0, "#9aa8a2");
-      bx("siding", SDOOR[1]-SDOOR[0], SH-2.10, ST, (SDOOR[0]+SDOOR[1])/2,
-         SF+2.10+(SH-2.10)/2, SZ0+ST/2, 0.55, 0, "#9aa8a2");
+      bx("siding", SDOOR[1]-SDOOR[0], SH-2.07, ST, (SDOOR[0]+SDOOR[1])/2,
+         SF+2.07+(SH-2.07)/2, SZ0+ST/2, 0.55, 0, "#9aa8a2");
       bx("siding", SW, SH, ST, sx, SF+SH/2, SZ1-ST/2, 0.55, 0, "#9aa8a2");
       for(const q of [-1,1])
         bx("siding", ST, SH, SD-ST*2, sx+q*(SW/2-ST/2), SF+SH/2, sz, 0.55, 0, "#8c9a94");
@@ -4924,7 +5083,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   // window, which left the wall open from the floor up — that is where the
   // light and the blown sand were getting in.
   const WINN=[[-85.9,-84.3],[-72.6,-71.0]];
-  const WSILL=FY+1.17, WHEAD=FY+2.27, DOORTOP=FY+2.24;
+  const WSILL=FY+1.17, WHEAD=FY+2.27, DOORTOP=FY+2.07;
   const DOORH=[[DHX0,DHX1]];
   const band3=(a0,a1,holes,y0,y1)=>{
     for(const g of segs(a0,a1,holes))
@@ -5299,11 +5458,12 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   // Two rows on a 3.8 m pitch with a walking lane between them and a metre of
   // daylight off the booths. Nothing sits west of -84.7, which is where the
   // booth backs and the pool table's cueing room begin.
-  // Still two rows parallel to the bar with a lane between them, but the
-  // south-west corner is a stage now and the south-east is the restrooms, so
-  // the two tables that stood there have gone back into the rows.
-  const TBL=[[-76.2,-26.4,2],[-76.2,-22.6,4],[-76.2,-18.8,2],
-             [-80.6,-25.2,2],[-80.6,-21.2,2]];
+  // Two rows parallel to the bar with a wide lane between them, spread the
+  // length of the room: four metres between tables down a row, four and a
+  // half across, and both rows clear of the pool table's cueing side, the
+  // oche, the door lane and the counter return.
+  const TBL=[[-75.8,-26.0,2],[-75.8,-22.0,4],[-75.8,-17.8,2],
+             [-80.4,-23.0,2],[-80.4,-19.0,2],[-80.4,-16.0,2]];
   for(let t=0;t<TBL.length;t++){
     const tx=TBL[t][0], tz=TBL[t][1];
     bx("oak", 0.92, 0.06, 0.92, tx, FY+0.745, tz, 0.5, 0, "#7a5734");
@@ -5597,112 +5757,6 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     push("fabric", new T.ConeGeometry(0.11,0.24,3), px2, py-0.12, IZ0+0.55, i*0.7,
          ["#c8202a","#f0a01e","#1d6f4e","#2b2f7a"][i%4], Math.PI, 0);
   }
-  /* ---- the restrooms, which is what the payphone has always stood by ---
-     A block pushed out from the back wall, which is also what the room
-     needed: somewhere for it to have a corner. Two doors, a stub between
-     them, and a dropped ceiling so the light in there is nothing like the
-     light out here. The cubicle goes at the back of each room, not beside
-     the door — there is not 2.7 m of wall to put both on.                 */
-  (function(){
-    const RT=0.14, AX0=-82.20, AX1=-76.60, AZ0=-17.90, AZ1=IZ1, RH=2.52;
-    const MID=-79.40;                                     // the stub between the two
-    const DR=[[-81.35,-80.33],[-78.60,-77.58]];           // the two openings
-    const TILEC="#cdd3cc", GROUT="#8e9a93";
-    const holes=(a0,a1,hs)=>{ const out=[]; let c=a0;
-      for(const h of hs){ if(h[0]>c) out.push([c,h[0]]); c=Math.max(c,h[1]); }
-      if(c<a1) out.push([c,a1]); return out; };
-    for(const g of holes(AX0,AX1,DR))
-      bx("plaster", g[1]-g[0], RH, RT, (g[0]+g[1])/2, FY+RH/2, AZ0+RT/2, 0.4, 0, "#a49a8c");
-    for(const d of DR)                                    // over each door
-      bx("plaster", d[1]-d[0], RH-2.10, RT, (d[0]+d[1])/2, FY+2.10+(RH-2.10)/2,
-         AZ0+RT/2, 0.4, 0, "#a49a8c");
-    for(const xc of [AX0+RT/2, AX1-RT/2, MID])
-      bx("plaster", RT, RH, AZ1-AZ0-RT, xc, FY+RH/2, (AZ0+RT+AZ1)/2, 0.4, 0, "#a49a8c");
-    bx("ceil", AX1-AX0, 0.10, AZ1-AZ0, (AX0+AX1)/2, FY+RH+0.05, (AZ0+AZ1)/2, 0.5, 0, "#5a5048");
-    for(const g of holes(AX0,AX1,DR)) addCol(g[0], g[1], AZ0, AZ0+RT, 0, FY+RH);
-    for(const xc of [AX0, MID-RT/2, AX1-RT])
-      addCol(xc, xc+RT, AZ0, AZ1, 0, FY+RH);
-    NEON.push(signPanel(1.30, 0.26, signTex(512,102,(x,W,H2)=>{
-      x.fillStyle="#141110"; x.fillRect(0,0,W,H2);
-      x.fillStyle="#d8c07a"; fitSerif(x,"Rest Rooms", W*0.66, H2*0.62, W*0.44, H2*0.60);
-      x.fillStyle="#c86a2a"; x.beginPath(); x.moveTo(W*0.80,H2*0.50);
-      x.lineTo(W*0.92,H2*0.50); x.lineTo(W*0.92,H2*0.24); x.lineTo(W*0.99,H2*0.62);
-      x.lineTo(W*0.92,H2*0.96); x.lineTo(W*0.92,H2*0.72); x.lineTo(W*0.80,H2*0.72);
-      x.closePath(); x.fill();
-    }), (AX0+AX1)/2, FY+RH-0.20, AZ0-0.05, Math.PI, true));
-    for(let k=0;k<2;k++)                                  // a plate on each door
-      bx("paint", 0.22,0.30,0.02, DR[k][1]+0.19, FY+1.72, AZ0-0.008, 0, 0,
-         k ? "#7a2a2a" : "#2a3a5a");   // on the jamb, not floating in the opening
-    makeDoor(XF(DR[0][0]+0.02, AZ0+0.04, 0), 0, FY+0.02, 0, "THE GENTS",  true, 0, "booth");
-    makeDoor(XF(DR[1][0]+0.02, AZ0+0.04, 0), 0, FY+0.02, 0, "THE LADIES", true, 0, "booth");
-    // ---- and what is in them ------------------------------------------
-    for(let k=0;k<2;k++){
-      const qx0=k ? MID+RT/2 : AX0+RT, qx1=k ? AX1-RT : MID-RT/2;
-      const qz0=AZ0+RT, qz1=AZ1, cx2=(qx0+qx1)/2;
-      // tile to shoulder height, a tiled floor, a capping course
-      bx("bath", qx1-qx0, 0.05, qz1-qz0-0.06, cx2, FY-0.015, (qz0+qz1)/2-0.03, 0.9, 0, TILEC);
-      bx("bath", qx1-qx0, 1.62, 0.04, cx2, FY+0.81, qz0+0.02, 0.9, 0, TILEC);
-      bx("bath", qx1-qx0, 1.62, 0.04, cx2, FY+0.81, qz1-0.05, 0.9, 0, TILEC);
-      for(const xc of [qx0+0.035, qx1-0.035])   // clear of the plaster's own face
-        bx("bath", 0.04, 1.62, qz1-qz0-0.16, xc, FY+0.81, (qz0+qz1)/2, 0.9, 0, TILEC);
-      for(const zc of [qz0+0.05, qz1-0.08])
-        bx("oak", qx1-qx0-0.02, 0.05, 0.05, cx2, FY+1.625, zc, 0.5, 0, GROUT);
-      // one tube, and in the gents it has been going for months
-      cyl("teal", 0.012,0.012,0.26,6, cx2, FY+RH-0.20, (qz0+qz1)/2, "#6e6a62");
-      bx("ceilfix", 1.00, 0.08, 0.10, cx2, FY+RH-0.34, (qz0+qz1)/2, 0, 0, "#f2e9cf");
-      LAMPS.push({x:cx2, y:FY+RH-0.40, z:(qz0+qz1)/2, color:k?0xe8f0f6:0xd8e8e0,
-                  intensity:k?0.36:0.30, dist:4.4, decay:1.7, indoor:true, flicker:!k,
-                  vol:[qx0,qx1,qz0,qz1,0,FY+RH]});
-      // the cubicle, at the back of the room and its door hanging open
-      const cw=1.05, cd=1.62, px2=qx0+cw, pz2=qz1-cd;
-      bx("plaster", 0.05, 1.90, cd, px2, FY+0.98, (pz2+qz1)/2, 0.5, 0, "#8e9a92");
-      bx("plaster", cw, 1.90, 0.05, (qx0+px2)/2, FY+0.98, pz2, 0.5, 0, "#8e9a92");
-      push("plaster", boxGeo(0.66,1.78,0.04,0.5), qx0+0.40, FY+0.98, pz2+0.30,
-           k?1.15:0.62, "#7f8b84");
-      for(let i=0;i<4;i++)                               // what people wrote on it
-        push("soot", planeGeo(0.24,0.03,0), qx0+0.36, FY+1.28-i*0.13, pz2+0.34,
-             (i*0.9)%1.3-0.4, "#3a352e", 0, 0);
-      addCol(qx0, px2+0.04, pz2-0.04, qz1, 0, FY+1.9);
-      // the pan, the cistern, and the seat that is never down
-      bx("plaster", 0.34,0.40,0.46, qx0+0.48, FY+0.20, qz1-0.42, 0.5, 0, "#dcdcd4");
-      push("plaster", new T.CylinderGeometry(0.19,0.17,0.10,14), qx0+0.48, FY+0.44,
-           qz1-0.42, 0, "#dcdcd4");
-      push("plaster", boxGeo(0.40,0.06,0.42,0.5), qx0+0.48, FY+0.64, qz1-0.56, 0,
-           "#d2d2c8", -1.15, 0);
-      bx("plaster", 0.42,0.36,0.16, qx0+0.48, FY+0.74, qz1-0.20, 0.5, 0, "#dcdcd4");
-      // the basin on the back wall, the tap that drips, the mirror gone dull
-      const bxx=qx1-0.52;
-      bx("plaster", 0.50,0.14,0.36, bxx, FY+0.80, qz1-0.20, 0.5, 0, "#dcdcd4");
-      push("plaster", new T.CylinderGeometry(0.16,0.12,0.10,14), bxx, FY+0.80, qz1-0.20,
-           0, "#d2d2c8");
-      cyl("metal", 0.016,0.016,0.10,8, bxx, FY+0.92, qz1-0.07, CHROME);
-      cyl("metal", 0.012,0.012,0.09,8, bxx, FY+0.955, qz1-0.13, CHROME, Math.PI/2,0,0);
-      cyl("metal", 0.018,0.018,0.26,8, bxx, FY+0.58, qz1-0.20, CHROME);       // the trap
-      bx("mirror", 0.48, 0.58, 0.02, bxx, FY+1.36, qz1-0.05, 0, 0, k?"#b8c2c4":"#98a4a6");
-      for(let i=0;i<3;i++)                               // the crack across it
-        push("soot", planeGeo(0.02, 0.52-i*0.12, 0), bxx-0.10+i*0.09, FY+1.36, qz1-0.06,
-             0.3-i*0.22, "#3a4042", 0, 0);
-      // a dispenser hanging off one screw, and the bin under it
-      push("metal", boxGeo(0.26,0.34,0.11,0.5), qx1-0.16, FY+1.42, qz1-1.00, 0.4,
-           "#8d9498", 0, k?0.28:-0.42);
-      cyl("bin", 0.17,0.14,0.42,12, qx1-0.24, FY+0.21, qz1-1.22, "#3e4a3e");
-      for(let i=0;i<5;i++)
-        push("paper", boxGeo(0.10,0.05,0.09,0.5), qx1-0.30+((i*7)%3)*0.07, FY+0.44+i*0.03,
-             qz1-1.18+((i*5)%3)*0.06, i*1.2, "#d8d2c0", i*0.4, i*0.3);
-      // a floor drain, and the water that never quite goes
-      push("metal", new T.CylinderGeometry(0.07,0.07,0.012,10), cx2+0.30, FY+0.012,
-           qz0+0.86, 0, "#6f767a");
-      for(let i=0;i<3;i++)
-        push("soot", planeGeo(0.7-i*0.16, 0.6-i*0.14, 0), cx2+0.30+((i*5)%3-1)*0.16,
-             FY+0.014+i*0.005, qz0+0.82, i*0.7, "#7a8a8a", -Math.PI/2, 0);
-      for(let i=0;i<4;i++)                               // water down the tiles
-        push("soot", planeGeo(0.10, 0.9-i*0.14, 0), qx0+0.34+i*0.56, FY+0.72, qz1-0.05,
-             0, "#6f7a72", 0, 0);
-    }
-    addZone(AX0+RT, MID-RT/2, AZ0+RT, AZ1, 0, FY+RH, "THE GENTS",  true);
-    addZone(MID+RT/2, AX1-RT, AZ0+RT, AZ1, 0, FY+RH, "THE LADIES", true);
-  })();
-
   /* ---- a corner stage, for the Fridays the neon still advertises -------
      Nothing has played on it in years, but the backline never went home. */
   (function(){
@@ -5882,8 +5936,8 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   bx("paper", 0.20,0.26,0.02, -75.0, FY+1.64, IZ0+0.05, 0, 0, "#ded4b4");
   push("fabric", boxGeo(0.34,0.72,0.16,0.5), -74.4, FY+1.46, IZ1-0.12, 0.2, "#3a4a52", 0, 0.06);
   // rings where glasses have stood, and the pools the pendants throw
-  for(const q of [[-76.2,-26.4],[-76.2,-22.6],[-76.2,-18.8],[-80.6,-25.2],
-                  [-80.6,-21.2]])
+  for(const q of [[-75.8,-26.0],[-75.8,-22.0],[-75.8,-17.8],[-80.4,-23.0],
+                  [-80.4,-19.0],[-80.4,-16.0]])
     for(let k=0;k<3;k++)
       push("soot", planeGeo(0.10,0.10,0), q[0]+Math.cos(k*2.3)*0.24, FY+0.782,
            q[1]+Math.sin(k*2.3)*0.24, k, "#5a4a32", -Math.PI/2, 0);
@@ -6065,7 +6119,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       // the back wall, with the door
       for(const g of runs(PX0,PX1,[DOOR]))
         m.B("stucco", g[1]-g[0], PH, PT, (g[0]+g[1])/2, PF+PH/2, PZ1-PT/2, 0.3, 0, WALLC);
-      m.B("stucco", DOOR[1]-DOOR[0], PH-2.10, PT, (DOOR[0]+DOOR[1])/2, PF+2.10+(PH-2.10)/2,
+      m.B("stucco", DOOR[1]-DOOR[0], PH-2.07, PT, (DOOR[0]+DOOR[1])/2, PF+2.07+(PH-2.07)/2,
           PZ1-PT/2, 0.3, 0, WALLC);
       for(const sx of [PX0+PT/2, PX1-PT/2])                    // the ends
         m.B("stucco", PT, PH, PZ1-PZ0-PT*2, sx, PF+PH/2, (PZ0+PZ1)/2, 0.3, 0, WALLC);
@@ -6271,7 +6325,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     m.B("stucco", ST, SH, SD-ST*2, X0+ST/2, SF+SH/2, 0, 0.42, 0, WALLC);
     for(const g of runs(Z0+ST, Z1-ST, [SDOOR]))
       m.B("stucco", ST, SH, g[1]-g[0], X1-ST/2, SF+SH/2, (g[0]+g[1])/2, 0.42, 0, WALLC);
-    m.B("stucco", ST, SH-2.08, SDOOR[1]-SDOOR[0], X1-ST/2, SF+2.08+(SH-2.08)/2,
+    m.B("stucco", ST, SH-2.07, SDOOR[1]-SDOOR[0], X1-ST/2, SF+2.07+(SH-2.07)/2,
         (SDOOR[0]+SDOOR[1])/2, 0.42, 0, WALLC);
     // flat roof, parapet, and the fascia the letters came off
     m.B("weathered", SW+0.7, 0.24, SD+0.7, 0, SF+SH+0.12, 0, 0.4, 0, "#8c8477");
@@ -6625,32 +6679,278 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   dirtTrack(-173,-74, -173,-182, 4.2);              // the long run in to the drive-in
   dirtTrack(-232,TRK, -356,-246, 2.8);               // out to the trailer
 
-  /* --- a filling station that stopped selling anything ----------------- */
+  /* --- a filling station that stopped selling anything ------------------
+     Two bays' worth of building: a shop you can walk into and a service bay
+     with the shutter jammed part way up, an island under a canopy with two
+     pumps on it, and a price sign out by the track with nothing on it.   */
   (function(){
     const m=mk(-145,-359);
-    m.B("concrete", 15.0,0.24,11.0, 0,0.12,0, 0.45,0, "#a9a294");          // the apron
-    m.B("stucco", 7.4,3.10,5.6, -2.6,1.55,2.2, 0.3,0, "#cfc4ad");          // the building
-    m.B("roofG", 8.2,0.26,6.4, -2.6,3.22,2.2, 0.3,0, "#7d7466");
-    m.B("glass", 3.4,1.70,0.10, -3.4,1.75,-0.58, 0,0, "#9fb2ae");          // the window
-    m.B("teal", 1.00,2.10,0.12, -0.4,1.05,-0.58, 0,0, "#2f6c62");          // the door
-    m.B("signlit", 4.0,0.80,0.14, -2.6,2.78,-0.62, 0,0, "#d8d2c4");        // the fascia band
-    for(const px of [2.6,5.4]){                                            // the pumps
-      m.B("weathered", 0.66,1.42,0.52, px,0.85,-1.8, 0.4,0, "#b8442e");
-      m.B("weathered", 0.72,0.20,0.58, px,1.66,-1.8, 0.4,0, "#d8d2c4");
-      m.B("tvglass", 0.44,0.30,0.03, px,1.34,-2.07, 0,0, "#1d262b");
-      m.C("weathered", 0.04,0.04,1.10,6, px+0.40,1.05,-1.8, "#4a4640", 0,0,0.5);
-      m.col(px-0.4,px+0.4,-2.2,-1.4, 0,1.6);
+    const GT=0.22, GH=3.30, F=0.12;                       // wall, height, floor
+    const SX0=-6.30, SX1=1.10, BX0=-12.00, BX1=SX0;       // shop / bay
+    const Z0g=-0.60, Z1g=5.00;
+    const QX0=SX0+GT, QX1=SX1-GT, QZ0=Z0g+GT, QZ1=Z1g-GT; // shop inner faces
+    const YX0=BX0+GT, YX1=BX1-GT;                         // bay inner faces
+    const WALLC="#cfc4ad", TRIMG="#2f6c62", GALV2="#9aa1a6";
+    const DOORG=[-3.20,-2.18];                            // the shop door
+    const BAYO=[-10.90,-7.30];                            // the shutter opening
+    const holes=(a0,a1,hs)=>{ const out=[]; let c=a0;
+      for(const h of hs){ if(h[0]>c) out.push([c,h[0]]); c=Math.max(c,h[1]); }
+      if(c<a1) out.push([c,a1]); return out; };
+    const roll2=(bk,r,L,x,y,z,col,horiz)=>            // a rolled edge, as the bar has
+      m.C(bk, r,r,L,8, x,y,z, col, horiz?0:Math.PI/2, 0, horiz?Math.PI/2:0);
+
+    // ---- the apron, and what has come up through it --------------------
+    m.B("concrete", 26.0,0.26,13.0, -3.5,0.13,0, 0.45,0, "#a9a294");
+    m.flat(-16.5,9.5,-6.5,6.5, F+0.02);
+    for(let i=0;i<9;i++){                                  // the slab joints
+      m.P("soot", planeGeo(13.0,0.05,0), -15.0+i*3.0, F+0.028, 0, Math.PI/2, "#6e675c",
+          -Math.PI/2, 0);
     }
-    m.B("concrete", 6.8,0.30,3.2, 3.9,0.32,-1.8, 0.45,0, "#b9b2a2");       // the island
-    for(const px of [1.2,6.8]){                                            // canopy posts
-      m.B("weathered", 0.28,4.30,0.28, px,2.15,-1.8, 0.4,0, "#cfc8bc");
-      m.col(px-0.2,px+0.2,-2.0,-1.6, 0,4.3);
+    for(let i=0;i<34;i++){                                 // weeds through the cracks
+      const wx=-15.6+((i*2.17)%24.0), wz=-5.8+((i*1.37)%11.4);
+      if(wx>BX0-0.6 && wx<SX1+0.6 && wz>Z0g-0.6) continue;
+      for(let k=0;k<4+((i*3)%4);k++){
+        const a=((i*13+k*29)%360)*0.01745, lean=0.35+((k*5)%4)*0.18, L=0.15+((i*7)%4)*0.10;
+        const si=Math.sin(lean), co=Math.cos(lean);
+        m.P("foliage", boxGeo(0.018, L, 0.008, 0), wx-Math.sin(a)*si*L/2, F+co*L/2,
+            wz-Math.cos(a)*si*L/2, a, ((i+k)%3) ? "#7a7f4e" : "#9a8f70", lean, 0);
+      }
     }
-    m.B("weathered", 9.6,0.55,6.0, 4.0,4.52,-1.8, 0.35,0, "#d8d2c4");      // the canopy
-    m.B("teal", 9.8,0.30,0.16, 4.0,4.16,-4.82, 0,0, "#2f6c62");
-    m.B("stucco", 7.3,0.20,0.30, -2.6,3.13,-0.62, 0.3,0, "#cfc4ad");
-    m.col(-6.3,1.1,-0.6,5.0, 0,3.2);
-    m.rect(-12,12,-8,9, "A FILLING STATION");
+    for(let i=0;i<8;i++)                                   // and the oil that never lifted
+      m.P("soot", planeGeo(1.6+((i*5)%3)*0.7, 1.2+((i*7)%3)*0.5, 0),
+          -1.0+((i*3.1)%9.0), F+0.03+i*0.002, -3.4+((i*1.9)%3.0), i*0.7, "#3a332a",
+          -Math.PI/2, 0);
+
+    // ---- the shell: shop, bay, and one roof over both -------------------
+    m.B("concrete", SX1-BX0+0.6, 0.24, Z1g-Z0g+0.6, (BX0+SX1)/2, F-0.12, (Z0g+Z1g)/2,
+        0.45, 0, "#9b948a");
+    for(const g of holes(BX0,SX1,[BAYO,DOORG]))            // the front wall
+      m.B("stucco", g[1]-g[0], GH, GT, (g[0]+g[1])/2, F+GH/2, Z0g+GT/2, 0.3, 0, WALLC);
+    m.B("stucco", DOORG[1]-DOORG[0], GH-2.07, GT, (DOORG[0]+DOORG[1])/2,
+        F+2.07+(GH-2.07)/2, Z0g+GT/2, 0.3, 0, WALLC);
+    m.B("stucco", SX1-BX0, GH, GT, (BX0+SX1)/2, F+GH/2, Z1g-GT/2, 0.3, 0, WALLC);
+    for(const xc of [BX0+GT/2, SX1-GT/2, SX0])             // ends and the party wall
+      m.B("stucco", GT, GH, Z1g-Z0g-GT*2, xc, F+GH/2, (Z0g+Z1g)/2, 0.3, 0, WALLC);
+    m.B("roofG", SX1-BX0+0.9, 0.26, Z1g-Z0g+0.9, (BX0+SX1)/2, F+GH+0.13, (Z0g+Z1g)/2,
+        0.3, 0, "#7d7466");
+    m.B("signlit", SX1-BX0-0.4, 0.86, 0.16, (BX0+SX1)/2, F+GH-0.20, Z0g-0.10, 0, 0, "#d8d2c4");
+    roll2("signlit", 0.09, SX1-BX0-0.4, (BX0+SX1)/2, F+GH+0.21, Z0g-0.10, "#d8d2c4", true);
+    m.B("teal", SX1-BX0-0.4, 0.14, 0.08, (BX0+SX1)/2, F+GH-0.66, Z0g-0.135, 0, 0, TRIMG);
+    for(const g of holes(BX0,SX1,[BAYO,DOORG])) m.col(g[0], g[1], Z0g, Z0g+GT, 0, F+GH);
+    m.col(BX0, SX1, Z1g-GT, Z1g, 0, F+GH);
+    for(const xc of [BX0, SX0-GT/2, SX1-GT])
+      m.col(xc, xc+GT, Z0g, Z1g, 0, F+GH);
+    // the glazing either side of the shop door, and the bars over it
+    for(const w of [[-5.90,-3.60],[-1.80,0.70]]){
+      m.B("glass", w[1]-w[0], 1.86, GT*0.5, (w[0]+w[1])/2, F+1.45, Z0g+GT/2, 0, 0, "#9fb2ae");
+      m.B("teal", w[1]-w[0]+0.14, 0.12, 0.20, (w[0]+w[1])/2, F+2.44, Z0g+0.04, 0, 0, TRIMG);
+      m.B("teal", w[1]-w[0]+0.14, 0.14, 0.24, (w[0]+w[1])/2, F+0.46, Z0g+0.02, 0, 0, TRIMG);
+      for(let i=0;i<5;i++)
+        m.C("metal", 0.016,0.016,1.90,6, w[0]+0.24+i*(w[1]-w[0]-0.48)/4, F+1.45,
+            Z0g-0.04, "#6b6156");
+      for(let i=0;i<3;i++)                                 // and what is taped inside it
+        m.P("paper", planeGeo(0.24,0.32,0), w[0]+0.5+i*0.7, F+1.55+((i*5)%3)*0.2,
+            Z0g+GT*0.72, ((i*7)%5-2)*0.09, "#e2dac4", 0, 0);
+    }
+    makeDoor(XF(-145+DOORG[0]+0.02, -359+Z0g+0.04, 0), 0, m.y+F+0.02, 0,
+             "THE FILLING STATION", true, 0, "booth");
+    // the bay: a roller shutter jammed two thirds up, and the track it runs on
+    m.B("stucco", BAYO[1]-BAYO[0], GH-2.92, GT, (BAYO[0]+BAYO[1])/2, F+2.92+(GH-2.92)/2,
+        Z0g+GT/2, 0.3, 0, WALLC);
+    m.B("weathered", BAYO[1]-BAYO[0], 1.02, 0.07, (BAYO[0]+BAYO[1])/2, F+2.41,
+        Z0g+0.04, 0.5, 0, "#8c8477");
+    for(let i=0;i<9;i++)
+      m.B("weathered", BAYO[1]-BAYO[0], 0.025, 0.10, (BAYO[0]+BAYO[1])/2,
+          F+1.94+i*0.115, Z0g+0.04, 0, 0, "#7b7368");
+    m.C("weathered", 0.13,0.13,BAYO[1]-BAYO[0]+0.2, 12, (BAYO[0]+BAYO[1])/2, F+2.96,
+        Z0g+0.12, "#8c8477", 0, 0, Math.PI/2);
+    for(const q of BAYO) m.B("metal", 0.10, 2.92, 0.12, q, F+1.46, Z0g+0.10, 0, 0, GALV2);
+
+    for(let i=0;i<5;i++)                                   // rust running down the shutter
+      m.P("rust", planeGeo(0.13, 0.80, 0), BAYO[0]+0.5+i*0.65, F+2.35, Z0g-0.01,
+          0, "#6a3a20", 0, 0);
+
+    // ---- inside the shop -----------------------------------------------
+    m.B("checker", QX1-QX0, 0.05, QZ1-QZ0, (QX0+QX1)/2, F-0.015, (QZ0+QZ1)/2, 0.5, 0, "#ffffff");
+    m.B("plaster", QX1-QX0, 0.07, QZ1-QZ0, (QX0+QX1)/2, F+GH-0.05, (QZ0+QZ1)/2, 0.4, 0, "#a49e92");
+    for(const fx of [-4.4, -1.0]){                         // two strips, both dead
+      m.B("metal", 1.20, 0.08, 0.20, fx, F+GH-0.13, 2.6, 0.4, 0, "#7d8387");
+      m.C("teal", 0.008,0.008,0.26,5, fx-0.4, F+GH-0.28, 2.6, "#2e2a26", 0.6, 1.2, 0);
+    }
+    // the counter, with the register that was open when they left
+    m.B("oak", 2.60, 0.98, 0.62, -4.30, F+0.49, QZ1-0.70, 0.5, 0, "#6a4b30");
+    m.B("stairs", 2.72, 0.06, 0.70, -4.30, F+1.01, QZ1-0.70, 0.5, 0, "#8a5c34");
+    roll2("stairs", 0.035, 2.72, -4.30, F+1.035, QZ1-1.05, "#8a5c34", true);
+    m.col(-5.62, -2.98, QZ1-1.02, QZ1-0.38, 0, F+1.05);
+    m.B("metal", 0.40, 0.26, 0.34, -3.60, F+1.17, QZ1-0.70, 0.4, 0, "#7d8387");
+    m.B("metal", 0.34, 0.10, 0.28, -3.60, F+1.35, QZ1-0.70, 0.4, 0, "#6f767a");
+    m.B("paper", 0.28, 0.02, 0.22, -3.60, F+1.05, QZ1-1.00, 0.4, 0.2, "#cdc4ae");
+    for(let i=0;i<9;i++)                                   // the cigarette rack behind
+      m.B("paper", 0.11, 0.17, 0.05, -5.30+i*0.15, F+1.12, QZ1-0.40, 0, 0,
+          ["#c8443a","#2f6e8a","#d8a42a","#4f7a4a","#dcd2b4"][i%5]);
+    m.B("oak", 1.20, 0.60, 0.16, -5.10, F+1.95, QZ1-0.12, 0.5, 0, "#5b4632");
+    for(let i=0;i<14;i++)                                  // a board of keys
+      m.C("metal", 0.008,0.008,0.07,5, -5.62+i*0.08, F+1.86, QZ1-0.20, "#9aa1a6");
+    // shelving down the middle, emptied years ago. Two gondolas to a row with
+    // an aisle between them on the line of the door — one long run across the
+    // doorway is a wall, and you walked into it.
+    for(let r=0;r<2;r++){
+      const sz=QZ0+1.80+r*1.40;
+      for(const g of [[-5.20,-3.34],[-2.06,-0.80]]){
+        const cw=g[1]-g[0], cx2=(g[0]+g[1])/2;
+        m.B("metal", cw, 0.05, 0.42, cx2, F+0.06, sz, 0.5, 0, "#7d8387");
+        for(const q of [-cw/2+0.03, cw/2-0.03])
+          m.B("metal", 0.06, 1.62, 0.42, cx2+q, F+0.81, sz, 0.5, 0, "#7d8387");
+        for(let k=0;k<4;k++){
+          m.B("metal", cw-0.10, 0.035, 0.40, cx2, F+0.42+k*0.40, sz, 0.5, 0, "#8d9498");
+          for(let i=0;i<4;i++){                            // what is still on them
+            if(((r*7+k*3+i)%3)!==0) continue;
+            m.B("paper", 0.15, 0.20, 0.13, g[0]+0.30+i*(cw-0.6)/3, F+0.53+k*0.40, sz, 0.5,
+                ((i*5)%4)*0.2, ["#c8443a","#2f6e8a","#d8a42a","#4f7a4a"][(i+k)%4]);
+          }
+        }
+        m.col(g[0], g[1], sz-0.26, sz+0.26, 0, F+1.7);
+      }
+    }
+    // a chest cooler with the lid up, a map rack, and a calendar that stopped
+    m.B("weathered", 1.44, 0.88, 0.70, QX0+0.86, F+0.44, QZ0+0.52, 0.4, 0, "#9cb0b4");
+    m.P("weathered", boxGeo(1.48,0.10,0.74,0.4), QX0+0.86, F+0.95, QZ0+0.52, 0,
+        "#a9bdc1", -0.48, 0);
+    m.col(QX0, QX0+1.62, QZ0, QZ0+0.90, 0, F+0.95);
+    m.B("metal", 0.40, 1.10, 0.16, QX1-0.30, F+1.40, QZ0+1.30, 0.5, 0, "#7d8387");
+    for(let i=0;i<8;i++)
+      m.P("paper", planeGeo(0.17,0.24,0), QX1-0.44, F+1.06+((i%4)*0.29), QZ0+1.02+((i/4)|0)*0.42,
+          -Math.PI/2, "#dcd2b4", 0, ((i*7)%5-2)*0.05);
+    m.P("art", boxGeo(0.02,0.46,0.34,0), QX1-0.02, F+1.90, QZ0+2.40, 0, "#e2dac4");
+    // a sink in the corner and a door that says STAFF and never opens
+    m.B("plaster", 0.50,0.16,0.40, QX1-0.34, F+0.86, QZ1-0.40, 0.5, 0, "#dcdcd4");
+    m.C("metal", 0.016,0.016,0.12,8, QX1-0.34, F+1.00, QZ1-0.22, "#9aa4a8");
+    m.B("oak", 0.10, 2.04, 0.92, QX1-0.03, F+1.02, QZ0+3.40, 0.5, 0, "#6a4b30");
+    m.B("paint", 0.02, 0.22, 0.16, QX1-0.09, F+1.62, QZ0+3.40, 0, 0, "#2a3a5a");
+    // what blew in, and the glass that got broken
+    for(let i=0;i<22;i++)
+      m.P("paper", planeGeo(0.09+((i*3)%4)*0.04, 0.06+((i*5)%3)*0.03, 0),
+          QX0+0.3+((i*0.93)%(QX1-QX0-0.6)), F+0.012+i*0.0005,
+          QZ0+0.4+((i*0.71)%(QZ1-QZ0-0.9)), i*1.7,
+          ["#c8443a","#2f6e8a","#d8a42a","#4f7a4a","#dcd2b4"][i%5], -Math.PI/2, 0);
+    for(let i=0;i<14;i++)
+      m.P("glass", planeGeo(0.05+((i*3)%3)*0.03, 0.04, 0), QX0+0.5+((i*1.31)%(QX1-QX0-1.0)),
+          F+0.006, QZ0+0.5+((i*0.87)%(QZ1-QZ0-1.0)), i*2.1, "#cfe0e6", -Math.PI/2, 0);
+    addZone(-145+QX0, -145+QX1, -359+QZ0, -359+QZ1, m.y+F-0.3, m.y+F+GH,
+            "THE FILLING STATION", true);
+
+    // ---- inside the bay -------------------------------------------------
+    m.B("concrete", YX1-YX0, 0.05, Z1g-Z0g-GT*2, (YX0+YX1)/2, F-0.015, (Z0g+Z1g)/2,
+        0.5, 0, "#8d877c");
+    m.B("plaster", YX1-YX0, 0.07, Z1g-Z0g-GT*2, (YX0+YX1)/2, F+GH-0.05, (Z0g+Z1g)/2,
+        0.4, 0, "#a49e92");
+    for(let i=0;i<6;i++)                                   // oil worked into the slab
+      m.P("soot", planeGeo(1.4+((i*5)%3)*0.6, 1.0+((i*7)%3)*0.5, 0),
+          YX0+0.9+((i*1.7)%4.2), F+0.014+i*0.003, Z0g+1.0+((i*1.3)%3.4), i*0.8,
+          "#2e281f", -Math.PI/2, 0);
+    // the pit, boarded over, and a hoist that never came down
+    m.B("bin", 1.30, 0.05, 3.60, YX0+2.40, F+0.02, 2.10, 0.5, 0, "#3a352e");
+    for(let i=0;i<7;i++)
+      m.B("oak", 1.34, 0.05, 0.42, YX0+2.40, F+0.045, 0.70+i*0.50, 0.5, 0, "#6a5236");
+    m.C("metal", 0.10,0.12,GH-0.2, 10, YX0+0.70, F+(GH-0.2)/2, 3.60, GALV2);
+    m.B("metal", 2.20, 0.16, 0.16, YX0+1.70, F+GH-0.34, 3.60, 0, 0, GALV2);
+    m.C("metal", 0.010,0.010,0.90,5, YX0+2.60, F+GH-0.82, 3.60, "#5f676b");
+    m.B("metal", 0.30, 0.10, 0.22, YX0+2.60, F+GH-1.32, 3.60, 0, 0, "#7d8387");
+    // a bench down the back with a vice and what was left on it
+    m.B("oak", YX1-YX0-0.9, 0.09, 0.66, (YX0+YX1)/2, F+0.88, Z1g-GT-0.36, 0.5, 0, "#6a5236");
+    for(const q of [-2.0, 0, 2.0])
+      m.B("metal", 0.08, 0.84, 0.60, (YX0+YX1)/2+q, F+0.44, Z1g-GT-0.36, 0.5, 0, "#6f767a");
+    m.col(YX0+0.3, YX1-0.3, Z1g-GT-0.72, Z1g-GT, 0, F+0.92);
+    m.B("metal", 0.22, 0.26, 0.20, YX0+1.20, F+1.05, Z1g-GT-0.36, 0.4, 0, "#5f676b");
+    m.C("metal", 0.020,0.020,0.34,6, YX0+1.20, F+1.22, Z1g-GT-0.36, "#8d9498", 0,0,Math.PI/2);
+    for(let i=0;i<9;i++)                                   // spanners on a board
+      m.C("metal", 0.012,0.012,0.18+((i*7)%4)*0.06, 6, YX0+2.6+i*0.16, F+1.72,
+          Z1g-GT-0.05, "#9aa1a6");
+    m.B("oak", 1.70, 0.62, 0.05, YX0+3.2, F+1.72, Z1g-GT-0.02, 0.5, 0, "#5b4632");
+    // a compressor, a drum, and a stack of tyres nobody collected
+    m.C("metal", 0.26,0.26,1.00,14, YX1-0.60, F+0.50, Z0g+1.30, "#7a3f2e", Math.PI/2, 0, 0);
+    m.C("metal", 0.16,0.16,0.40,10, YX1-0.60, F+0.92, Z0g+1.30, "#5f676b");
+    m.col(YX1-0.92, YX1-0.28, Z0g+0.76, Z0g+1.84, 0, F+1.1);
+    m.C("weathered", 0.29,0.29,0.88,14, YX0+0.70, F+0.44, Z0g+0.72, "#6b6156");
+    m.col(YX0+0.40, YX0+1.00, Z0g+0.42, Z0g+1.02, 0, F+0.90);
+    for(let i=0;i<4;i++)
+      m.P("tyre", new T.TorusGeometry(0.30,0.11,7,16), YX0+4.30, F+0.11+i*0.20,
+          Z0g+0.90, i*0.8, "#26252a", Math.PI/2, 0);
+    m.col(YX0+3.90, YX0+4.70, Z0g+0.50, Z0g+1.30, 0, F+0.90);
+    addZone(-145+YX0, -145+YX1, -359+Z0g+GT, -359+Z1g-GT, m.y+F-0.3, m.y+F+GH,
+            "THE SERVICE BAY", true);
+
+    // ---- the island, the pumps and the canopy ---------------------------
+    const IZ=-3.20;
+    m.B("concrete", 7.4,0.34,3.0, 4.0,0.34,IZ, 0.45,0, "#b9b2a2");
+    roll2("concrete", 0.085, 7.4, 4.0, 0.425, IZ-1.50, "#b9b2a2", true);
+    roll2("concrete", 0.085, 7.4, 4.0, 0.425, IZ+1.50, "#b9b2a2", true);
+    m.flat(0.3,7.7, IZ-1.5, IZ+1.5, 0.51);
+    for(const px of [2.0, 6.0]){                           // the pumps
+      m.B("weathered", 0.68,1.44,0.54, px,F+1.16,IZ, 0.4,0, "#b8442e");
+      roll2("weathered", 0.07, 1.44, px-0.34, F+1.16, IZ-0.27, "#b8442e", false);
+      roll2("weathered", 0.07, 1.44, px+0.34, F+1.16, IZ-0.27, "#b8442e", false);
+      m.B("weathered", 0.76,0.22,0.62, px,F+1.98,IZ, 0.4,0, "#d8d2c4");
+      m.C("weathered", 0.11,0.11,0.76,12, px,F+2.14,IZ, "#d8d2c4", 0,0,Math.PI/2);
+      for(const sd of [-1,1]){                             // the dials, both at zero
+        m.B("tvglass", 0.46,0.34,0.03, px,F+1.62,IZ+sd*0.29, 0,0, "#1d262b");
+        for(let i=0;i<4;i++)
+          m.B("paint", 0.07,0.13,0.01, px-0.16+i*0.105, F+1.62, IZ+sd*0.31, 0,0, "#c9c4b4");
+      }
+      m.C("metal", 0.05,0.05,0.30,8, px+0.40,F+1.50,IZ-0.20, "#4a4640", 0,0,1.3);
+      for(let i=0;i<7;i++)                                 // the hose, hanging where it fell
+        m.P("teal", new T.TorusGeometry(0.11,0.022,5,10), px+0.46, F+1.32-i*0.15,
+            IZ-0.24, i*0.5, "#22201e", Math.PI/2-i*0.06, 0);
+      m.B("bin", 0.12,0.22,0.08, px+0.46, F+0.28, IZ-0.24, 0, 0.3, "#3a3632");
+      m.P("paper", planeGeo(0.24,0.17,0), px, F+1.96, IZ-0.32, 0, "#e2dac4", -0.3, 0);
+      m.col(px-0.42,px+0.42,IZ-0.34,IZ+0.34, 0,F+2.0);
+    }
+    for(const px of [0.8, 7.2]){                           // canopy posts
+      m.B("weathered", 0.30,4.30,0.30, px,F+2.15,IZ, 0.4,0, "#cfc8bc");
+      roll2("weathered", 0.055, 4.30, px-0.15, F+2.15, IZ-0.15, "#cfc8bc", false);
+      roll2("weathered", 0.055, 4.30, px+0.15, F+2.15, IZ-0.15, "#cfc8bc", false);
+      m.col(px-0.22,px+0.22,IZ-0.22,IZ+0.22, 0,4.3);
+    }
+    m.B("weathered", 10.0,0.50,6.2, 4.0,F+4.52,IZ, 0.35,0, "#d8d2c4");
+    roll2("weathered", 0.10, 10.0, 4.0, F+4.27, IZ-3.10, "#d8d2c4", true);
+    roll2("weathered", 0.10, 10.0, 4.0, F+4.27, IZ+3.10, "#d8d2c4", true);
+    m.B("teal", 10.2,0.34,0.18, 4.0,F+4.10,IZ-3.12, 0,0, TRIMG);
+    m.B("teal", 10.2,0.34,0.18, 4.0,F+4.10,IZ+3.12, 0,0, TRIMG);
+    for(const px of [1.6, 4.0, 6.4]){                      // the lights under it
+      m.B("ceilfix", 0.90,0.10,0.34, px, F+4.24, IZ, 0, 0, "#e8e2cf");
+      LAMPS.push({x:-145+px, y:m.y+F+4.10, z:-359+IZ, color:0xdfe8ee, intensity:0.30,
+                  dist:11, decay:1.5, mothy:true});
+    }
+    // an air and water column, and a bin that has not been emptied
+    m.C("weathered", 0.16,0.18,1.20,12, 8.8, F+0.60, IZ+1.2, "#6b6156");
+    m.B("weathered", 0.34,0.30,0.26, 8.8, F+1.32, IZ+1.2, 0.4, 0, "#b8442e");
+    for(let i=0;i<6;i++)
+      m.P("teal", new T.TorusGeometry(0.12,0.020,5,10), 8.66, F+1.02-i*0.16, IZ+1.06,
+          i*0.6, "#22201e", Math.PI/2, 0);
+    m.col(8.5,9.1, IZ+0.9, IZ+1.5, 0, F+1.5);
+    m.C("bin", 0.30,0.26,0.80,12, -0.6, F+0.40, IZ+0.4, "#4e5a4e");
+    m.col(-0.92,-0.28, IZ+0.08, IZ+0.72, 0, F+0.85);
+    // ---- the price sign out by the track, with nothing on it ------------
+    for(const q of [-0.9, 0.9])
+      m.C("metal", 0.10,0.12,5.20,10, 10.6+q, F+2.60, -5.6, "#6b6156");
+    m.B("paint", 3.00,1.70,0.20, 10.6, F+5.10, -5.6, 0.4, 0, "#d8d2c4");
+    roll2("paint", 0.11, 3.00, 10.6, F+5.95, -5.6, "#d8d2c4", true);
+    NEON.push(signPanel(2.70, 1.40, signTex(384,199,(x,W,H2)=>{
+      x.fillStyle="#e4ddc8"; x.fillRect(0,0,W,H2);
+      x.fillStyle="#b8442e"; x.fillRect(0,0,W,H2*0.30);
+      x.fillStyle="#f1ead6"; fitSerif(x,"GASOLINE", W*0.72, H2*0.22, W/2, H2*0.19, "bold");
+      x.fillStyle="#2b2f33";
+      for(let r=0;r<3;r++){
+        x.fillRect(W*0.12, H2*(0.40+r*0.19), W*0.34, H2*0.14);
+        for(let c=0;c<3;c++) x.fillRect(W*(0.54+c*0.13), H2*(0.40+r*0.19), W*0.10, H2*0.14);
+      }
+      x.globalAlpha=0.55; x.fillStyle="#e4ddc8";           // the digits all fell out
+      for(let r=0;r<3;r++) for(let c=0;c<3;c++)
+        if((r+c)%2===0) x.fillRect(W*(0.54+c*0.13), H2*(0.40+r*0.19), W*0.10, H2*0.14);
+      x.globalAlpha=1;
+    }), -145+10.6, m.y+F+5.10, -359-5.72, Math.PI, false));
+    m.col(9.5,11.7, -5.8,-5.4, 0, F+5.9);
+    m.rect(-18,12,-9,8, "A FILLING STATION");
   })();
 
   /* --- a radio mast, still blinking ------------------------------------ */
@@ -7315,8 +7615,15 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     const bx0=62, bz=ROADZ-13, yaw=Math.PI;
     // the legs are deeper than the board, so they straddle it rather than
     // stopping on its faces
-    for(const d of [-3.6,3.6]){ bx("metal", 0.34,7.6,0.44, bx0+d, 3.8, bz, 0, 0, "#6b6156");
-      addCol(bx0+d-0.24, bx0+d+0.24, bz-0.24, bz+0.24, 0, 7.6); }
+    // The legs stood at +/- 3.6 on a 10.4 m board, straight up through
+    // GAS . FOOD . ICE. The board is painted on both faces, so there is no
+    // back to hide a frame behind: the posts go outside its ends and it hangs
+    // between them, the way the motel's own pole sign does.
+    for(const d of [-5.55,5.55]){
+      bx("metal", 0.36,9.00,0.44, bx0+d, 4.50, bz, 0, 0, "#6b6156");
+      addCol(bx0+d-0.26, bx0+d+0.26, bz-0.30, bz+0.30, 0, 9.0); }
+    for(const yy of [4.56, 8.64])                     // a rail over and under it
+      bx("metal", 11.5,0.16,0.26, bx0, yy, bz, 0, 0, "#5f564d");
     bx("paint", 10.4,3.8,0.34, bx0, 6.6, bz, 0, 0, "#e6e2d6");
     const tex=signTex(768,280,(x,W,H)=>{
       x.fillStyle="#d8cdae"; x.fillRect(0,0,W,H);
@@ -7327,7 +7634,13 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     });
     NEON.push(signPanel(10.0,3.5,tex, bx0, 6.6, bz-0.19, Math.PI, true));
     NEON.push(signPanel(10.0,3.5,tex, bx0, 6.6, bz+0.19, 0, true));
-    for(const d of [-2.6,2.6]) bx("metal", 0.16,0.50,0.16, bx0+d, 8.7, bz-0.5, 0, 0, "#6b6156");
+    for(const d of [-2.6,2.6]){                       // two lamps, on the top rail
+      bx("metal", 0.09,0.34,0.09, bx0+d, 8.86, bz, 0, 0, "#6b6156");
+      push("metal", new T.CylinderGeometry(0.15,0.20,0.16,12), bx0+d, 9.06, bz-0.16,
+           0, "#5f564d", 0.9, 0);
+      push("ceilfix", new T.CylinderGeometry(0.135,0.135,0.02,12), bx0+d, 9.00, bz-0.24,
+           0, "#e8e2cf", 0.9, 0);
+    }
   })();
   bx("oak", 0.12,1.10,0.12, -47.0, 0.55, -42.6, 0, 0, "#5b4632");            // mailbox
   bx("metal", 0.26,0.26,0.46, -47.0, 1.24, -42.6, 0, 0, "#8f9aa0");
@@ -7696,7 +8009,7 @@ dom.addEventListener("touchmove",e=>{
 
 /* --- doors ------------------------------------------------------------ */
 let nearestDoor=null;
-let seated=null, nearestSeat=null, sitGuard=false;
+let seated=null, nearestSeat=null, sitGuard=false, sitDrop=0.66;
 // Getting up used to try one spot — straight ahead, tested at seat height —
 // and if that was blocked it left you standing inside the chair with every
 // direction blocked, which is what "stuck" was. Now it fans out from the way
@@ -7706,7 +8019,7 @@ function standUp(){
   if(!seated) return;
   const s=seated, base=surfaceY(s.x, s.z, s.y);
   let stood=false;
-  for(const d of [0.95, 1.35, 0.65]){
+  for(const d of (s.lie ? [1.45, 1.85, 1.15, 2.25] : [0.95, 1.35, 0.65])){
     for(let k=0;k<13;k++){
       const a=s.yaw + ((k%2)?1:-1)*Math.ceil(k/2)*0.52;
       const nx=s.x - Math.sin(a)*d, nz=s.z - Math.cos(a)*d;
@@ -7738,11 +8051,15 @@ function sitToggle(){
   updateSeats();
   if(!nearestSeat){ toast("NOTHING TO SIT ON","#8fa0ad"); return; }
   seated=nearestSeat; player.yaw=nearestSeat.yaw;
+  sitDrop = nearestSeat.lie ? 1.34 : 0.66;
+  // on your back you are looking at the ceiling, not down the bed
+  if(nearestSeat.lie) player.pitch=Math.max(player.pitch, 0.86);
   // You almost always arrive at a chair still holding W. Standing up is only
   // armed once the movement keys have been let go of, or you would pop back
   // up on the very next tick and think the key did nothing.
   sitGuard=true;
-  toast("SITTING  ·  C TO GET UP","#ffb324");
+  toast(nearestSeat.lie ? "LYING DOWN  ·  C TO GET UP" : "SITTING  ·  C TO GET UP",
+        "#ffb324");
 }
 function interact(){
   if(!started) return;
@@ -7775,9 +8092,9 @@ function updateDoors(dt){
   const el=document.getElementById("prompt");
   if(droneMode){ el.classList.remove("show"); return; }
   const bits=[];
-  if(seated) bits.push("C  ·  STAND UP");
+  if(seated) bits.push("C  ·  "+(seated.lie?"GET UP":"STAND UP"));
   else{
-    if(nearestSeat) bits.push("C  ·  SIT  ·  "+nearestSeat.label);
+    if(nearestSeat) bits.push("C  ·  "+(nearestSeat.lie?"LIE DOWN":"SIT")+"  ·  "+nearestSeat.label);
     if(best) bits.push("E  ·  "+(best.label.length>3 ? best.label : "ROOM "+best.label));
   }
   if(bits.length){ el.textContent=bits.join("      "); el.classList.add("show"); }
@@ -8447,7 +8764,7 @@ function frame(){
     wetEl.classList.remove("on");
   }else{
     droneLook.set(0,0,0);
-  const eyeY=player.feetY+EYE+player.bob-player.sit*0.66;   // seated, you sit lower
+  const eyeY=player.feetY+EYE+player.bob-player.sit*sitDrop;  // seated low, lying lower
   camera.position.set(player.pos.x, eyeY, player.pos.z);
   const cp=Math.cos(player.pitch);
   camera.lookAt(player.pos.x - Math.sin(player.yaw)*cp,

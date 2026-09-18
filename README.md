@@ -40,6 +40,9 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   guest left: magazines fanned on the table, a cigarette still glowing in the
   ashtray, an open suitcase, boots and a newspaper, a room-service tray, a hat
   on the dresser, a guitar case. Doors swing open as you reach them, or on `E`.
+  You can lie on the bed in any of them (`C`, same key as sitting) and look at
+  the ceiling; getting up fans out from the foot of the bed until it finds
+  floor, which for all twenty-four is the first candidate it tries.
 - **The gable at each end of each wing** is cut from the roof's own numbers.
   It used to be a fixed triangle apexed 30 cm off the real ridge with none of
   the second wing's roof lift in it, so it fell away from the slabs toward
@@ -50,6 +53,14 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   floor; a guest laundry above with a washer and dryer, a folding counter, wire
   shelving stacked with linen, a housekeeping cart, a mop bucket and an ironing
   board leaning where somebody left it.
+- **The parking lot** is sixty summers old and looks it: patching, ravelled
+  aggregate, alligator cracking in the wheel paths, sealed cracks standing
+  proud, and stains under wherever anything ever stood. Nothing big lives in
+  the texture tile — a patch a third of a tile across repeats every metre and
+  a half and the whole lot reads as a chequerboard, which is what the first
+  version did. The bays that were dug up and made good, the ruts down the
+  driving lanes and the scuffs where cars swing in are world-space decals
+  instead, so they read at the size of the lot rather than the size of a tile.
 - **The sidewalk** along the frontage: poured concrete with aggregate showing
   through, float marks where the finisher dragged, a tooled control joint
   across the walk every metre and a half, cracks wandering off it and forty
@@ -93,7 +104,7 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   drying and four shelves of bottles behind it; seventeen stools you can sit on;
   a pool table racked and waiting under two low pendants, with a cue rack on the
   wall; three high-backed booths down the west wall, each with a table and
-  somebody's glasses still on it; five tables laid out in two rows parallel to
+  somebody's glasses still on it; six tables laid out in two rows parallel to
   the bar with a lane between them, and two high tops; a dartboard
   with the throw line scuffed into the boards; a jukebox; a screen nobody is
   watching; a jukebox, a cigarette machine, a chalkboard, a ceiling fan that
@@ -106,15 +117,7 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   vertical roll and a ball where the two meet, the stools have a dished pad
   with a rolled rim, the chairs have a rolled seat edge and a shaped top rail
   on two stiles, and every table top and both runs of counter carry a
-  bullnose. Off the back wall there is a block with two doors in it and a
-  dropped ceiling — **the restrooms**, which is what the payphone has always
-  stood next to, and which is also what the room needed: somewhere for it to
-  have a corner. Both open. Tile to shoulder height and a tiled floor, a
-  cubicle at the back with its door hanging open and what people wrote on it,
-  a pan with the seat never down, a basin with a tap that drips into a trap,
-  a mirror the silvering has left, a dispenser hanging off one screw, a bin
-  that overflowed, a floor drain and the water that never quite goes. The
-  tube in the gents has been going for months. In the south-west corner
+  bullnose. In the south-west corner
   there is **a stage** — a plywood riser with a scuffed nosing and a step up
   to it, and the backline nobody came back for: a 4x12 with a head on it and
   one valve still lit, a combo, a wedge, a mic on a boom, a stool, a lead
@@ -198,7 +201,14 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   still standing in rows; a telephone booth alone in the open desert; a fence
   line that stops mattering halfway along; and a cold fire ring with oil drums
   and a mattress somebody slept on. Further out, past the road: a filling
-  station with its canopy still up and two pumps under it; a forty-four metre
+  station you can walk into — a shop with barred glazing, emptied shelving in
+  two gondolas with an aisle between them, a counter with the register left
+  open, a board of keys, a cooler with the lid up and a map rack; a service
+  bay beside it with the roller shutter jammed two thirds up, the pit boarded
+  over, a hoist that never came down, a bench with a vice on it, a compressor,
+  a drum and a stack of tyres; an island under a canopy with two pumps whose
+  hoses hang where they fell; and a price sign out by the track with the
+  digits gone; a forty-four metre
   radio mast whose red light still blinks after dark; the concrete slab of a
   motel that did not make it, its pool filled to the brim with sand; three
   graves behind a wire fence; **an abandoned snack bar** on the far side of the

@@ -55,12 +55,13 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   board leaning where somebody left it.
 - **The parking lot** is sixty summers old and looks it: patching, ravelled
   aggregate, alligator cracking in the wheel paths, sealed cracks standing
-  proud, and stains under wherever anything ever stood. Nothing big lives in
-  the texture tile — a patch a third of a tile across repeats every metre and
-  a half and the whole lot reads as a chequerboard, which is what the first
-  version did. The bays that were dug up and made good, the ruts down the
-  driving lanes and the scuffs where cars swing in are world-space decals
-  instead, so they read at the size of the lot rather than the size of a tile.
+  proud, and stains under wherever anything ever stood. A tiled map on a flat
+  eighty metres across reads as a tiled map however subtle you make the tile,
+  because the eye finds the period — so the surface is laid as seven-metre
+  tiles, each with its own UV offset and one of four quarter turns. Same map,
+  no period. Everything bigger than a tile — the bays dug up and made good,
+  the ruts down the driving lanes, the scuffs where cars swing in — is a
+  world-space decal on top of it.
 - **The sidewalk** along the frontage: poured concrete with aggregate showing
   through, float marks where the finisher dragged, a tooled control joint
   across the walk every metre and a half, cracks wandering off it and forty
@@ -217,6 +218,23 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   there is a burying ground: twelve stones behind a wire, three of them down,
   one plot that only ever got two boards and a nail, and a dead tree at the
   corner which is all you see of it from the road.
+- **The adit**, a hundred metres behind the burying ground, in the north face
+  of a butte that stands on its own out there. The timber portal is still up
+  and there are thirty-odd metres of passage behind it which turn twice, so
+  by the time you reach the end there is not one photon of daylight left.
+  Inside the passage: sets of timber every couple of metres and one that came
+  down with the roof, rail and sleepers, an ore cart off them, rubble, water
+  marks eighty years old, candle stubs on ledges, a rope on spikes, a dead
+  lantern, and somebody's count of something scratched by the mouth. At the
+  end of it, a chamber where people were doing something: an altar of field
+  stone with wax run down it and three candles still going, a ring of nine
+  wrapped stakes with skulls and bundles on them, a circle and a star marked
+  out on the floor in ochre, an eye painted on the far wall, sigils and a row
+  of hands, charms hung from the roof on cords, a burnt-out fire, bottles,
+  bones and a hundred and twenty tallies. Bring the torch.
+- **A flashlight** (`L`), which is a spot on the camera with a tight cone and
+  a short throw, and a little spill at the lens so your own feet are lit. It
+  follows the drone too.
 - **The trailer.** Eight and a half metres of single-wide up on cinder blocks
   at the end of its own two-track, the door hanging open on its hinges and the
   awning sagging where a leg went. The windows are real holes in the wall, so

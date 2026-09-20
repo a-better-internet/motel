@@ -135,6 +135,19 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   onto one sheet, so the whole wall of them is a single draw call. Its signs
   are set in a serif, in title case, with their own padding off the edge of
   every board.
+- **What the Canteen feels like.** The two glass-block windows are the only
+  daylight in the room and they read as soft luminous panels with a wash of
+  dusty air hanging in front of them, drawn as crossed, radially faded quads
+  on an additive material whose opacity is driven by daylight rather than by
+  dark, so the shafts stand at noon and are gone by nine. Everything else in
+  here is somebody's unfinished business: a half-drunk glass at an empty stool
+  with a cigarette still going in the ashtray beside it and a coat dumped on
+  the seat, sleeve hanging down the side; a folded paper, a set of keys and
+  some change left along the counter; two more coats over chair backs and a hat
+  on a table; a flight off a dart and the butt of a cue on the boards; the arcs
+  chairs have worn into the finish around every table; a clock on the brick
+  stopped at twenty past four; one bulb over the booths that is nearly out;
+  and eleven flies, which are the only thing in the building still in business.
 - **The back of the Canteen.** Its lot runs back as far as the motel's does, so
   the two read as one graded site with a fence down the middle rather than an
   island of asphalt. Behind the bar: a padlocked shed with pallets and kegs
@@ -218,10 +231,13 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   there is a burying ground: twelve stones behind a wire, three of them down,
   one plot that only ever got two boards and a nail, and a dead tree at the
   corner which is all you see of it from the road.
-- **The adit**, a hundred metres behind the burying ground, in the north face
-  of a butte that stands on its own out there. The timber portal is still up
-  and there are thirty-odd metres of passage behind it which turn twice, so
-  by the time you reach the end there is not one photon of daylight left.
+- **The adit**, a long way behind the burying ground, driven into the side of
+  one of the escarpment's own hills — no structure was added to the landscape
+  to hold it, the hill was already there, and from the road you would have to
+  know to look for it. The timber portal stands in a collar of spoil and fallen
+  rock at the foot of the slope, with thirty-odd metres of passage behind it
+  which turn twice, so by the time you reach the end there is not one photon of
+  daylight left.
   Inside the passage: sets of timber every couple of metres and one that came
   down with the roof, rail and sleepers, an ore cart off them, rubble, water
   marks eighty years old, candle stubs on ledges, a rope on spikes, a dead
@@ -250,18 +266,30 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   flying at a hundred to three hundred metres and seven hundred to eighteen
   hundred metres out, so they sit a degree or so wide and take the same haze as
   the mountains behind them.
+- **What the road leaves behind.** Nobody stops out here, so nothing is placed
+  — it accumulates. Birds sit the power line in ones and twos and a run of
+  seven, all facing the same way, never moving, thickest over the spans either
+  side of the motel and thinning out down the line. Along the shoulder: three
+  shredded truck tyres with the tread peeled off them in long curls, a hubcap,
+  a boot with nobody in it, cans and pages, a bleached mattress thrown out of
+  somebody's truck with the springs coming through it, a refrigerator standing
+  in the open desert with its door hanging off, and two speed signs nobody has
+  obeyed, each shot through twice. A payphone stands at the kerb outside the
+  Canteen with the receiver hanging down the wall on its cord — the loudest
+  thing on this road, and it has not rung in years. None of it lands in the lot or inside a wall: every
+  scattered position is checked against the travelled lanes and against the
+  footprints it could fall inside, and each piece sits on whatever is actually
+  underfoot — the terrain out in the dirt, the graded slab or the kerb where
+  one of them happens to land on it.
 - **Wind.** Three slow beats multiplied together, so mostly it is calm and then
   every couple of minutes a gust comes through for half a minute. Everything
   loose reads off it: the tumbleweeds run, litter comes loose more often, the
   ground starts to smoke, the haze closes in and goes the colour of dust, and
-  in a real blow a dust devil stands up a couple of hundred metres off and
-  walks downwind. The devil is a stack of open cylinders rather than a flat
-  sprite — you see its far wall through its near one, which is where the depth
-  comes from — each turning at its own rate, faster at the foot than the top,
-  each with its sheet of dust creeping round the other way, the whole column
-  leaning and bending downwind as it rises over a skirt of lifted dust, with
-  grit orbiting in it. Indoors, none of it comes in with you: every roofed
-  volume is marked, and the blown sand and the lot dust stop at the door.
+  the far side of the valley disappears into it. There is no funnel and no
+  waterspout: a blow on this road is a horizontal thing, sheets of sand off the
+  shoulder and grit going past at head height, and that is all it does. Indoors,
+  none of it comes in with you: every roofed volume is marked, and the blown
+  sand and the lot dust stop at the door.
 - **The desert**: a graded pad, a two-lane highway that runs to a vanishing
   point in both directions — its corridor is graded flat to the edge of the
   world and the badlands and buttes it crosses are cut away either side of it,
@@ -269,12 +297,10 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   poles and sagging wires marching out with it — and the scatter runs to a mile
   and a half rather than stopping dead at five hundred metres, sparser and
   simpler the further out it goes, so the distance sells itself. Saguaro drawn
-  as a fluted
-  column with a domed crown and elbowed arms rather than a capped tube, barrel
-  cactus, creosote, and boulders that are icosahedra with every vertex pushed
-  in or out under a drawn stone map, so no two are the same lump — and none of
-  it on the carriageway,
-  and tumbleweeds grown the way a Russian
+  as a fluted column with a domed crown and elbowed arms rather than a capped
+  tube, barrel cactus, creosote, and boulders that are icosahedra with every
+  vertex pushed in or out under a drawn stone map, so no two are the same lump
+  — and none of it on the carriageway, and tumbleweeds grown the way a Russian
   thistle actually grows — nine stems out of the crown, each kinking and forking
   twice more, so the silhouette is ragged and no two are alike. They wander
   across the wind and hop, because a lopsided ball does not roll smoothly. Every
@@ -284,12 +310,17 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   picked up and put back out upwind. Two escarpments with
   wandering rim lines close the valley, with steep-sided buttes standing clear
   of them and sedimentary strata banding every cliff face. Six kinds of plant
-  grow out there, not one: saguaro and barrel cactus, ocotillo throwing a fan
-  of canes out of one crown, cholla forking into short fat joints, prickly
-  pear growing pad off pad, yucca rosettes with a spent flower stalk, bunch
-  grass, and creosote — which is a thin crown with twigs through it and a lot
-  of gaps, not the smooth ball it used to be. They are thickest close in,
-  because at four hundred metres nothing of a bush survives but a dot.
+  grow out there, not one: saguaro and barrel cactus, cholla forking into short
+  fat joints, prickly pear growing pad off pad, yucca rosettes with a spent
+  flower stalk, honey mesquite on two or three leaning trunks under a low
+  chain-connected crown, bunch grass, and creosote. Nothing out there is
+  thinner than about eight centimetres, which is the whole point: a five-
+  centimetre cane is under one pixel wide at thirty metres and rasterises into
+  a dotted line, and a desert full of dotted lines is what "fragmented
+  polygons" looks like. Every rosette and tussock is built out from a solid
+  core so the blades meet something instead of radiating off a point. They are
+  thickest close in, because at four hundred metres nothing of a bush survives
+  but a dot.
   The sky has three decks in it — cumulus low and near, a raft of altocumulus
   in rows above that, cirrus above them — and each cumulus is tinted toward
   the haze by how far out it is, so the far ones sit back instead of every

@@ -1102,6 +1102,18 @@ TEX.streak=(function(){                       // rust bleeding down from a fitti
   return setSRGB(new T.CanvasTexture(c));
 })();
 
+TEX.haze=(function(){                         // a soft edge, so a shaft of light
+  const c=cvs(128,128), x=c.getContext("2d");   // has no rectangle around it
+  x.clearRect(0,0,128,128);
+  const g=x.createRadialGradient(64,64,2, 64,64,63);
+  g.addColorStop(0,"rgba(255,255,255,1)");
+  g.addColorStop(0.45,"rgba(255,255,255,0.55)");
+  g.addColorStop(1,"rgba(255,255,255,0)");
+  x.fillStyle=g; x.fillRect(0,0,128,128);
+  noiseDots(x,128,128,300,["rgba(255,255,255,0.10)","rgba(0,0,0,0.06)"]);
+  return setSRGB(new T.CanvasTexture(c));
+})();
+
 TEX.paper=(function(){                        // a page of something, face down
   const c=cvs(96,128), x=c.getContext("2d");
   x.fillStyle="#e4dcc6"; x.fillRect(0,0,96,128);
@@ -2442,31 +2454,40 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   // is a ball at this size and costs 20 triangles instead of seventy.
   function knuckle(x,y,z,r,col){ push("foliage", blobGeo(r), x,y,z, 0, col); }
 
-  // ocotillo: a vase of whippy canes out of one crown. Each segment leans a
-  // little further out than the one below it, so the cane curves instead of
-  // pointing, and they carry leaf along their length rather than being bare
-  // sticks in a fan. Rare on purpose — it is the one plant out here with a
-  // silhouette you recognise from a mile off.
-  function ocotillo(x,y,z,sc){
-    const n=8+((rnd()*4)|0), col=pick(GREYGRN), leaf=pick(["#5f7a42","#6b8449"]);
-    const flower=rnd()<0.45;
-    knuckle(x, y+0.06*sc, z, 0.11*sc, col);
-    for(let i=0;i<n;i++){
-      const a=(i/n)*Math.PI*2 + rnd()*0.5;
-      const out=0.32+rnd()*0.36, L=(2.1+rnd()*2.0)*sc;
-      let px=x, py=y+0.04*sc, pz=z, r=0.052*sc;
-      for(let k=0;k<3;k++){
-        const lean=out*(0.26+k*0.42);            // it opens as it rises
-        const seg=L*(0.40-k*0.05), r2=r*0.68;
-        // start each segment a little inside the last, so the joints close up
-        const t=stem("foliage", r2, r, seg, 5, px,py,pz, col, lean, a);
-        if(k<2) knuckle(t[0],t[1],t[2], r2*1.15, col);
-        knuckle(px+(t[0]-px)*0.55, py+(t[1]-py)*0.55, pz+(t[2]-pz)*0.55, 0.033*sc, leaf);
-        px=t[0]; py=t[1]; pz=t[2]; r=r2;
-      }
-      if(flower && rnd()<0.6)                    // and the spike on the end of it
-        knuckle(px, py+0.05*sc, pz, 0.042*sc, "#a8402a");
+  // mesquite: a low wide crown on two or three thick trunks. It replaces the
+  // ocotillo as the thing with a silhouette you read from a distance, and it
+  // is made of masses rather than wires, so it survives being small on screen.
+  function mesquite(x,y,z,sc){
+    const bark="#6a5a46", leaf=pick(["#4e5f3a","#586a42","#465736"]);
+    const trunks=2+((rnd()*2)|0);
+    const tops=[];
+    for(let k=0;k<trunks;k++){
+      const a=(k/trunks)*Math.PI*2+rnd(), lean=0.18+rnd()*0.22;
+      const H2=(0.85+rnd()*0.55)*sc;
+      const t1=stem("foliage", 0.085*sc, 0.135*sc, H2*0.6, 7, x,y,z, bark, lean*0.5, a);
+      knuckle(t1[0],t1[1],t1[2], 0.090*sc, bark);
+      const t2=stem("foliage", 0.062*sc, 0.085*sc, H2*0.5, 6, t1[0],t1[1],t1[2], bark,
+                    lean, a+(rnd()-0.5)*0.8);
+      tops.push(t2);
     }
+    for(const t of tops){                              // the crown, one mass per trunk
+      const n=7+((rnd()*4)|0);
+      const put=[[t[0], t[1]+0.10*sc, t[2], (0.21+rnd()*0.06)*sc]];
+      push("foliage", blobGeo(put[0][3]), put[0][0], put[0][1], put[0][2], rnd()*6, leaf);
+      for(let b=1;b<n;b++){
+        const from=put[(rnd()*put.length)|0], rad=(0.15+rnd()*0.08)*sc;
+        const a=rnd()*Math.PI*2, up=rnd()*0.7;
+        const d=(from[3]+rad)*(0.50+rnd()*0.28);
+        const px=from[0]+Math.cos(a)*d*(1-up*0.5);
+        const py=from[1]+d*up*0.8;
+        const pz=from[2]+Math.sin(a)*d*(1-up*0.5);
+        push("foliage", blobGeo(rad), px, py, pz, rnd()*6, leaf);
+        put.push([px,py,pz,rad]);
+      }
+    }
+    for(let k=0;k<3+((rnd()*3)|0);k++)                 // seed pods under it
+      push("foliage", blobGeo(0.045*sc), x+(rnd()-0.5)*1.1*sc, y+0.05*sc,
+           z+(rnd()-0.5)*1.1*sc, rnd()*6, "#8a7f63");
   }
   // cholla: a stout trunk that forks into short fat joints, each one shorter
   // than the last and balled at its end, so the whole thing reads as one mass
@@ -2513,12 +2534,15 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   // yucca / sotol: a rosette of stiff blades and, sometimes, a spent stalk
   function yucca(x,y,z,sc){
     const col=pick(["#5a6b44","#667552","#4f6038"]);
-    const n=14+((rnd()*8)|0);
+    // a blade five centimetres wide is one pixel at thirty metres; these are
+    // twice that and there is a mass in the middle holding them together
+    push("foliage", blobGeo(0.17*sc), x, y+0.14*sc, z, rnd()*6, col);
+    const n=12+((rnd()*6)|0);
     for(let i=0;i<n;i++){
-      const a=(i/n)*Math.PI*2+rnd()*0.3, lean=0.35+rnd()*0.85, L=(0.5+rnd()*0.55)*sc;
+      const a=(i/n)*Math.PI*2+rnd()*0.3, lean=0.35+rnd()*0.80, L=(0.42+rnd()*0.46)*sc;
       const si=Math.sin(lean), co=Math.cos(lean);
-      push("foliage", boxGeo(0.055*sc, L, 0.016*sc, 0),
-           x-Math.sin(a)*si*L/2, y+0.02*sc+co*L/2, z-Math.cos(a)*si*L/2,
+      push("foliage", boxGeo(0.105*sc, L, 0.030*sc, 0),
+           x-Math.sin(a)*si*L/2, y+0.10*sc+co*L/2, z-Math.cos(a)*si*L/2,
            a, col, lean, 0);
     }
     if(rnd()<0.45){
@@ -2536,12 +2560,13 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   }
   // bunch grass, and the dead version of it
   function tussock(x,y,z,sc,col){
-    const n=9+((rnd()*7)|0);
+    push("foliage", blobGeo(0.13*sc), x, y+0.09*sc, z, rnd()*6, col);
+    const n=8+((rnd()*5)|0);
     for(let i=0;i<n;i++){
-      const a=rnd()*Math.PI*2, lean=0.25+rnd()*0.75, L=(0.26+rnd()*0.34)*sc;
+      const a=rnd()*Math.PI*2, lean=0.25+rnd()*0.70, L=(0.24+rnd()*0.30)*sc;
       const si=Math.sin(lean), co=Math.cos(lean);
-      push("foliage", boxGeo(0.022*sc, L, 0.010*sc, 0),
-           x-Math.sin(a)*si*L/2, y+co*L/2, z-Math.cos(a)*si*L/2, a, col, lean, 0);
+      push("foliage", boxGeo(0.055*sc, L, 0.022*sc, 0),
+           x-Math.sin(a)*si*L/2, y+0.06*sc+co*L/2, z-Math.cos(a)*si*L/2, a, col, lean, 0);
     }
   }
   // creosote / sage: ONE crown, not a scatter of chips. The lumps overlap
@@ -2568,10 +2593,10 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
       push("foliage", blobGeo(rad), px, py, pz, rnd()*6, dead?pick(DEADW):col);
       put.push([px,py,pz,rad]);
     }
-    for(let k=0;k<5+((rnd()*4)|0);k++)                   // the twigs, under the crown
-      stem("foliage", 0.008*sc,0.015*sc, (0.20+rnd()*0.26)*sc, 4,
-           x+(rnd()-0.5)*0.24*sc, y+0.02, z+(rnd()-0.5)*0.24*sc,
-           pick(STRAW), 0.55+rnd()*0.55, rnd()*Math.PI*2);
+    for(let k=0;k<3+((rnd()*3)|0);k++)                   // the twigs, under the crown
+      stem("foliage", 0.024*sc,0.038*sc, (0.20+rnd()*0.24)*sc, 5,
+           x+(rnd()-0.5)*0.22*sc, y+0.02, z+(rnd()-0.5)*0.22*sc,
+           pick(STRAW), 0.55+rnd()*0.50, rnd()*Math.PI*2);
   }
 
   // biased toward the near field: at 400 m nothing of a bush survives but a
@@ -2590,8 +2615,8 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     if(inLot(x,z)||onRoad(z)||built(x,z)) continue;
     const y=Terrain.heightAt(x,z); if(y>30) continue;
     const q=rnd();
-    if(q<0.10)      ocotillo(x,y,z, 0.85+rnd()*0.45);
-    else if(q<0.32) cholla(x,y,z, 0.85+rnd()*0.55);
+    if(q<0.12)      mesquite(x,y,z, 0.9+rnd()*0.6);
+    else if(q<0.34) cholla(x,y,z, 0.85+rnd()*0.55);
     else if(q<0.56) pricklyPear(x,y,z, 0.9+rnd()*0.6);
     else if(q<0.72) yucca(x,y,z, 0.9+rnd()*0.6);
     else            tussock(x,y,z, 0.9+rnd()*0.7,
@@ -2695,6 +2720,119 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   }
   const wg=new T.BufferGeometry().setFromPoints(pts);
   scene.add(new T.LineSegments(wg, new T.LineBasicMaterial({color:0x1a1712})));
+
+  // Birds sit the wire in ones and twos, all facing the same way, and never
+  // move. They are the only other living things on this stretch of road.
+  const perch=(bx0, lane)=>{
+    const f=((bx0/44)%1+1)%1, sag=Math.sin(f*Math.PI)*1.1;
+    const by=Terrain.heightAt(bx0, ROADZ-7.4)+7.5-sag+0.115;
+    const bz=ROADZ-7.4+lane*1.05;
+    const fw=(((bx0*7)|0)%3) ? 0 : Math.PI;          // one in three looks the other way
+    const d=fw?-1:1;
+    push("bin", blobGeo(0.105), bx0, by, bz, 0, "#241f1b");
+    push("bin", blobGeo(0.062), bx0+d*0.115, by+0.085, bz, 0, "#241f1b");
+    push("bin", boxGeo(0.085,0.020,0.030,0), bx0+d*0.185, by+0.088, bz, 0, "#3a2c18");
+    push("bin", boxGeo(0.20,0.032,0.050,0), bx0-d*0.155, by-0.030, bz, 0, "#1c1814",
+         0, d*0.30);                                 // the tail, angled down
+  };
+  for(let sp=-5;sp<=5;sp++){                         // the spans either side of the motel
+    const base=sp*44, n=(sp===1||sp===-2) ? 7 : ((sp%2) ? 1 : 2);
+    for(let k=0;k<n;k++)
+      perch(base+7+k*(n>4?3.6:12.5)+((sp*5+k*3)%4)*0.6, ((sp+k)%3)-1);
+  }
+  for(let sp=-13;sp<=13;sp+=3){                      // and a few far out along the line
+    if(Math.abs(sp)<6) continue;
+    perch(sp*44+9+((sp*7)%13), ((sp)%3)-1);
+  }
+})();
+
+/* --- what the road leaves behind: nobody stopped, it just accumulates ---- */
+(function(){
+  // Sit on whatever is actually underfoot: out here that is the terrain, but a
+  // few of these land on the graded slab or a kerb, which is higher.
+  const TG=(x,z)=>{ const t=Terrain.heightAt(x,z);
+                    const f=surfaceY(x, z, t+0.8);
+                    return (f>t && f<t+0.8) ? f : t; };
+  // Junk blows off the road, not into the lot or through somebody's wall, so
+  // everything here is checked against the footprints it could land inside.
+  const KEEPOUT=[[-96,-60,-34,-10],[-46,46,-44,26],[-620,-520,0,70]];
+  const clear=(x,z)=>{
+    if(Math.abs(z-ROADZ)<6.0) return false;            // the travelled lanes
+    for(const k of KEEPOUT) if(x>k[0]&&x<k[1]&&z>k[2]&&z<k[3]) return false;
+    return true;
+  };
+  // shredded truck tyre, the tread peeled off it in a long curl
+  for(const q of [[-142, ROADZ+9.6, 0.6],[236, ROADZ-9.2, 2.3],[-402, ROADZ+8.4, 1.1]]){
+    if(!clear(q[0],q[1])) continue;
+    const y=TG(q[0],q[1]);
+    push("tyre", new T.TorusGeometry(0.50,0.17,6,14), q[0], y+0.17, q[1], q[2],
+         "#22201e", Math.PI/2, 0.22);
+    for(let i=0;i<5;i++)
+      push("tyre", boxGeo(0.62,0.035,0.20,0), q[0]+0.55+i*0.55, y+0.035+((i*3)%2)*0.05,
+           q[1]+Math.sin(i*1.3)*0.34, q[2]+i*0.22, "#26231f", 0, Math.sin(i*2.1)*0.30);
+  }
+  // a hubcap, a boot with nobody in it, and a can that has been here for years
+  for(let i=0;i<22;i++){
+    const rx=-660+((i*137)%1320), rz=ROADZ+(((i*47)%2)?1:-1)*(7.5+((i*31)%9));
+    if(!clear(rx,rz)) continue;
+    const y=TG(rx,rz);
+    const k=i%4;
+    if(k===0) cyl("metal", 0.17,0.17,0.035,12, rx, y+0.03, rz, "#8e9298", 1.4+i, 0, 0.3);
+    else if(k===1){ push("tyre", boxGeo(0.26,0.10,0.11,0), rx, y+0.05, rz, i*1.1, "#4a3a2a", 0, 0.1);
+                    push("tyre", boxGeo(0.10,0.13,0.10,0), rx+0.10, y+0.10, rz, i*1.1, "#4a3a2a"); }
+    else if(k===2) cyl("metal", 0.033,0.033,0.12,10, rx, y+0.033, rz, "#9aa0a2", Math.PI/2, i, 0);
+    else push("paper", boxGeo(0.20,0.006,0.26,0), rx, y+0.014, rz, i*0.9, "#cfc6ac", 0.04, 0.03);
+  }
+  // a mattress somebody threw out of a truck, bleached to nothing
+  {
+    const mx=-196, mz=ROADZ+16.5, y=TG(mx,mz);
+    push("spread", boxGeo(1.95,0.26,1.35,1.2), mx, y+0.14, mz, 0.7, "#8e8672", 0.05, 0.03);
+    push("spread", boxGeo(1.70,0.10,1.15,1.2), mx+0.10, y+0.30, mz-0.06, 0.62, "#7d7565",
+         0.04, 0.02);                                 // the ticking, sagged off one side
+    for(let i=0;i<4;i++)                              // springs through it
+      push("metal", new T.TorusGeometry(0.06,0.008,4,8), mx-0.6+i*0.42, y+0.36,
+           mz+Math.sin(i*2.0)*0.4, 0.7, "#6f6a62", Math.PI/2, 0);
+  }
+  // a refrigerator standing in the open desert with its door hanging off
+  {
+    const fx=312, fz=ROADZ+34, y=TG(fx,fz), ry=0.85;
+    bx("siding", 0.74,1.62,0.68, fx, y+0.81, fz, ry, 0, "#cfc9ba");
+    bx("siding", 0.05,1.52,0.62, fx+Math.cos(ry)*0.40+0.10, y+0.80,
+       fz-Math.sin(ry)*0.40+0.24, ry+1.05, 0, "#c6bfae");
+    bx("weathered", 0.70,0.30,0.64, fx, y+0.22, fz, ry, 0, "#7a4a2c");
+    addCol(fx-0.5,fx+0.5, fz-0.5,fz+0.5, y, y+1.7);
+  }
+  // A payphone on the shoulder with the receiver hanging down the wall. It is
+  // the loudest thing out here and it has not rung in years.
+  {
+    const px=-58.0, pz=ROADZ+7.0, y=TG(px,pz), ry=Math.PI;
+    cyl("metal", 0.055,0.065,2.05,8, px, y+1.02, pz, "#8b9096");
+    bx("siding", 0.66,1.16,0.34, px, y+1.52, pz, ry, 0, "#2f4f5e");   // the hood
+    bx("siding", 0.60,0.26,0.30, px, y+2.14, pz, ry, 0, "#2f4f5e");
+    bx("paint", 0.46,0.90,0.05, px, y+1.52, pz+0.18, ry, 0, "#c9c2b2"); // the faceplate
+    bx("metal", 0.30,0.16,0.04, px-0.02, y+1.74, pz+0.21, ry, 0, "#6f767a"); // coin slot
+    for(let r=0;r<4;r++) for(let c2=0;c2<3;c2++)                        // the keypad
+      cyl("paint", 0.022,0.022,0.012,8, px-0.08+c2*0.075, y+1.52-r*0.075, pz+0.215,
+          "#d8d2c2", Math.PI/2, 0, 0);
+    bx("bin", 0.10,0.30,0.09, px+0.26, y+1.34, pz+0.16, ry, 0, "#1f1c19"); // the handset,
+    bx("bin", 0.08,0.10,0.07, px+0.26, y+1.16, pz+0.16, ry, 0, "#1f1c19"); // off the hook
+    for(let k=0;k<7;k++)                                                // on its cord
+      push("metal", new T.TorusGeometry(0.030,0.010,5,9), px+0.26, y+1.05-k*0.085,
+           pz+0.16, 0, "#4b5054", Math.PI/2, 0);
+    cyl("metal", 0.12,0.15,0.05,10, px, y+2.34, pz, "#6f767a");
+    cyl("lampshade", 0.10,0.13,0.07,10, px, y+2.28, pz, "#e8dcc0");
+    addCol(px-0.35,px+0.35, pz-0.25,pz+0.25, y, y+2.2);
+  }
+  // a speed sign nobody has obeyed, shot through twice
+  for(const q of [[-268, ROADZ+6.9, Math.PI],[424, ROADZ-8.1, 0]]){
+    const y=TG(q[0],q[1]);
+    cyl("metal", 0.035,0.035,2.35,8, q[0], y+1.17, q[1], "#8b9096");
+    bx("paint", 0.62,0.78,0.045, q[0], y+2.05, q[1], q[2], 0, "#d8d2c2");
+    for(let i=0;i<2;i++)
+      cyl("bin", 0.035,0.035,0.06,8, q[0]+((i)?0.14:-0.09), y+2.05+((i)?0.18:-0.12),
+          q[1], "#26231e", Math.PI/2, q[2], 0);
+    addCol(q[0]-0.14,q[0]+0.14, q[1]-0.14,q[1]+0.14, y, y+2.3);
+  }
 })();
 
 /* ----------------------------------------------------------------------
@@ -5993,6 +6131,93 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     }
   })();
 
+  /* ---- the feeling that everyone left in the middle of something ------- */
+  (function(){
+    // dust hanging in the light off the glass block, which is the only thing
+    // in here that moves and it is not moving either
+    for(const w of [[-85.1,1],[-71.8,-1]])
+      for(let i=0;i<4;i++){
+        const t=i/3;
+        for(const a2 of [0.45, 2.02])                // crossed, so it has no flat side
+          push("haze", planeGeo(2.6+t*2.2, 2.4-t*0.5, 0), w[0]+w[1]*t*1.9,
+               FY+1.90-t*0.55, IZ0+0.35+t*3.2, a2, "#fff0d2", 0, 0);
+      }
+    // somebody's drink, half finished, and their cigarette still going, at a
+    // stool with nobody on it
+    const sx2=BX-0.62, sz2=BZ0+0.55+4*0.86;
+    cyl("glass", 0.040,0.032,0.16,10, BX+0.28, FY+BH2+0.16, sz2, "#c8b070");
+    cyl("glass", 0.038,0.030,0.055,10, BX+0.28, FY+BH2+0.11, sz2, "#7a5a24");
+    push("bin", new T.CylinderGeometry(0.068,0.055,0.028,12), BX+0.46, FY+BH2+0.094,
+         sz2-0.16, 0, "#4a443c");
+    push("paint", new T.CylinderGeometry(0.010,0.010,0.085,7), BX+0.42, FY+BH2+0.108,
+         sz2-0.16, 0, "#efeade", 0, Math.PI/2);
+    push("ember", boxGeo(0.018,0.015,0.015,0), BX+0.375, FY+BH2+0.108, sz2-0.16, "#ff5a1e");
+    push("smoke", planeGeo(0.10,0.70,0), BX+0.38, FY+BH2+0.46, sz2-0.16, 0, "#c8c4bc");
+    push("smoke", planeGeo(0.10,0.70,0), BX+0.38, FY+BH2+0.46, sz2-0.16, Math.PI/2, "#c8c4bc");
+    {                                                 // and their coat, dumped on it
+      const CC="#3a4a52";
+      for(const q of [[0,0,0.155],[0.10,0.06,0.125],[-0.09,-0.05,0.115],[0.02,-0.11,0.10]]){
+        const g=new T.SphereGeometry(q[2],10,7); g.scale(1.25,0.62,1.05);
+        push("fabric", g, sx2+q[0], FY+0.885, sz2+q[1], 0.4, CC);
+      }
+      const sl=new T.SphereGeometry(0.075,9,7); sl.scale(0.9,2.6,0.9);
+      push("fabric", sl, sx2-0.20, FY+0.72, sz2+0.08, 0.4, CC, 0.22, 0.10);
+      push("fabric", blobGeo(0.062), sx2-0.24, FY+0.55, sz2+0.11, 0, CC);
+    }
+    // keys, a folded paper with a date on it, and change nobody picked up
+    for(let i=0;i<4;i++)
+      push("metal", boxGeo(0.055,0.004,0.016,0), BX+0.22+((i*5)%3)*0.02, FY+BH2+0.086,
+           BZ0+7.2+i*0.016, i*0.7, "#9aa1a6", 0, 0.1);
+    push("metal", new T.TorusGeometry(0.022,0.004,4,10), BX+0.19, FY+BH2+0.088,
+         BZ0+7.2, 0, "#9aa1a6", Math.PI/2, 0);
+    push("paper", boxGeo(0.28,0.014,0.20,0), BX+0.30, FY+BH2+0.092, BZ0+2.3, 0.18, "#ded6bc");
+    for(let i=0;i<5;i++)
+      push("soot", planeGeo(0.20,0.012,0), BX+0.30, FY+BH2+0.100, BZ0+2.24+i*0.028,
+           0.18, "#4a443a", -Math.PI/2, 0);
+    for(let i=0;i<7;i++)
+      cyl("bell", 0.013,0.013,0.002,10, BX+0.40+((i*7)%4)*0.04, FY+BH2+0.087,
+          BZ1-3.1+((i*5)%3)*0.05, "#b8a24a", Math.PI/2, 0, 0);
+    // coats left over two chair backs, and a hat on a table
+    for(const q of [[-75.8,-22.0+0.86,0],[-80.4,-19.0-0.86,Math.PI]])
+      push("fabric", boxGeo(0.40,0.52,0.14,0.5), q[0]+Math.cos(q[2])*0.20, FY+0.86,
+           q[1], q[2], "#4a3f36", 0.1, 0.05);
+    push("fabric", new T.CylinderGeometry(0.115,0.135,0.10,14), -75.5, FY+0.83, -26.3,
+         0, "#5c4a30", 0.2, 0);
+    push("fabric", new T.CylinderGeometry(0.205,0.205,0.018,16), -75.5, FY+0.79, -26.3,
+         0, "#5c4a30", 0.2, 0);
+    // flies, which are the only thing in here still in business
+    for(let i=0;i<11;i++)
+      push("bin", new T.SphereGeometry(0.013,5,4), -80.0+((i*2.31)%13.0),
+           FY+1.55+((i*5)%5)*0.22, -27.0+((i*1.77)%11.0), i, "#2b2622");
+    // a flight off a dart, a cue butt, and the arcs chairs have worn in the boards
+    push("paint", boxGeo(0.045,0.004,0.030,0), -75.4, FY+0.011, IZ0+2.10, 0.8, "#c8443a");
+    push("oak", new T.CylinderGeometry(0.014,0.019,0.62,7), -84.9, FY+0.022, -22.6,
+         0.9, "#b08c52", Math.PI/2, 0);
+    for(const q of [[-75.8,-26.0],[-75.8,-22.0],[-80.4,-23.0],[-80.4,-19.0]])
+      for(let k=0;k<4;k++){
+        const a=k*1.4+0.5;
+        push("soot", planeGeo(0.62,0.16,0), q[0]+Math.cos(a)*0.95, FY+0.013,
+             q[1]+Math.sin(a)*0.95, a+1.57, "#4a3f30", -Math.PI/2, 0);
+      }
+    // a clock on the brick that stopped at twenty past four
+    push("art", boxGeo(0.06,0.42,0.42,0), IX0+0.06, FY+2.72, -21.0, 0, "#3e342c");
+    signPanel(0.34,0.34, signTex(128,128,(x,W,H2)=>{
+      x.fillStyle="#d8d0b8"; x.beginPath(); x.arc(64,64,60,0,7); x.fill();
+      x.strokeStyle="#2f2a20"; x.lineWidth=3;
+      for(let k=0;k<12;k++){ const a=k*Math.PI/6;
+        x.beginPath(); x.moveTo(64+Math.sin(a)*50, 64-Math.cos(a)*50);
+        x.lineTo(64+Math.sin(a)*44, 64-Math.cos(a)*44); x.stroke(); }
+      x.lineWidth=5; x.beginPath(); x.moveTo(64,64);
+      x.lineTo(64+Math.sin(2.09)*28, 64-Math.cos(2.09)*28); x.stroke();
+      x.lineWidth=3; x.beginPath(); x.moveTo(64,64);
+      x.lineTo(64+Math.sin(2.09)*42, 64-Math.cos(2.09)*42); x.stroke();
+      x.fillStyle="#2f2a20"; x.beginPath(); x.arc(64,64,4,0,7); x.fill();
+    }), IX0+0.10, FY+2.72, -21.0, Math.PI/2, false);
+    // and one bulb over the booths that is nearly out
+    LAMPS.push({x:-86.0, y:TOPY-1.30, z:-23.5, color:0xffc98a, intensity:0.12,
+                dist:5.5, decay:1.9, indoor:true, flicker:true});
+  })();
+
   /* ---- and the things that make it feel like nobody is coming --------- */
   // one tube over the pool table has been going for weeks
   LAMPS.push({x:-83.2, y:TOPY-1.62, z:-25.4, color:0xcfe0d8, intensity:0.42, dist:8,
@@ -6057,6 +6282,27 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
 (function desertFinds(){
   const G=(x,z)=>Terrain.heightAt(x,z);
   // world-space helpers with the ground baked in
+  /* The same, turned through 180 degrees and with the ground height given
+     rather than taken from the origin — for anything cut INTO a slope, where
+     the floor is the terrain at the mouth and not at the middle of the thing.
+     Half a turn keeps every AABB an AABB: bounds just negate and swap.    */
+  const mkPi=(ox,oz,gy)=>{
+    const X=(x,z)=>ox-x, Z=(x,z)=>oz-z;
+    return {
+      y:gy, ox:ox, oz:oz,
+      B:(bk,w,h,d,x,y,z,uv,ry,c)=>bx(bk,w,h,d, X(x,z), gy+y, Z(x,z), uv, (ry||0)+Math.PI, c),
+      C:(bk,rt,rb,h,seg,x,y,z,c,rx,ry,rz)=>cyl(bk,rt,rb,h,seg, X(x,z), gy+y, Z(x,z), c,
+                                               rx, (ry||0)+Math.PI, rz),
+      P:(bk,geo,x,y,z,ry,c,rx,rz)=>push(bk, geo, X(x,z), gy+y, Z(x,z),
+                                        (ry||0)+Math.PI, c, rx, rz),
+      col:(x0,x1,z0,z1,h0,h1)=>addCol(ox-x1,ox-x0, oz-z1,oz-z0, gy+h0, gy+h1),
+      flat:(x0,x1,z0,z1,h)=>addFlat(ox-x1,ox-x0, oz-z1,oz-z0, gy+h),
+      voidAt:(x0,x1,z0,z1,h0,h1,f)=>addVoid(ox-x1,ox-x0, oz-z1,oz-z0, gy+h0, gy+h1, gy+f),
+      zone:(x0,x1,z0,z1,h0,h1,n,ind)=>addZone(ox-x1,ox-x0, oz-z1,oz-z0, gy+h0, gy+h1, n, ind),
+      lamp:(x,y,z,o)=>{ o.x=X(x,z); o.y=gy+y; o.z=Z(x,z); LAMPS.push(o); },
+      wx:X, wz:Z
+    };
+  };
   const mk=(ox,oz)=>{
     const gy=G(ox,oz);
     return {
@@ -7198,114 +7444,91 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   })();
 
   /* --- the adit, and whatever was going on at the end of it -------------
-     A butte on its own a hundred metres back off the road, behind the
-     burying ground. There is a hole in the north face of it with a timber
-     portal still standing, and thirty-odd metres of passage behind that
-     which turns twice — so by the time you reach the chamber there is not
-     one photon of daylight left and you had better have found the torch.
-     The butte is built as rings of banded slab rather than solid blocks:
-     hollow inside, so the passage has somewhere to be.                   */
+     Cut into the south flank of the mesa west of everything, where the
+     ground climbs from eight metres to thirty over sixty. There is no new
+     landform here — the hill was already there. From the highway it is a
+     notch in a slope behind a spur of rock; you have to be nearly on top of
+     it to see there is a hole. Thirty-odd metres of passage behind it,
+     turning twice, so by the end there is no daylight at all.            */
   (function(){
-    const m=mk(-664,-156);
+    const MX=-566, MZ=32;                              // the mouth
+    const FY0=G(MX, MZ);                               // the floor is the ground here
+    const m=mkPi(MX, MZ+20, FY0);                      // local +z runs back out of the hill
     const ROCKC=["#c4a583","#bb9c7c","#af9172","#cbb08e","#a5886c"];
-    const F=0.95, PH=2.50, CH=3.70;                    // floor, passage, chamber
-    const PW=1.35;                                     // half-width of a passage
+    const F=0.0, PH=2.50, CH=3.70;
+    const PW=1.35;
     const PORT=[-PW,PW];
     const holes=(a0,a1,hs)=>{ const out=[]; let c=a0;
       for(const h of hs){ if(h[0]>c) out.push([c,h[0]]); c=Math.max(c,h[1]); }
       if(c<a1) out.push([c,a1]); return out; };
+    const lightRock=["#8a7360","#947d68","#7f6a58","#9c8470"];
 
-    // ---- the butte ------------------------------------------------------
-    // Four slabs stacked square read as a ziggurat, which is what the first
-    // one was. Each band is walked round its own ellipse instead, dropping a
-    // block at a time tangent to the perimeter with its reach, width, height
-    // and angle all jittered — so the face breaks up and no two bands step
-    // in the same place. Hollow, because the passage has to be somewhere.
-    const BANDS=[[0.0, 5.4, 26.0, 20.0],[4.9, 9.4, 24.4, 18.6],
-                 [8.8, 13.0, 22.6, 17.0],[12.4, 16.4, 20.4, 15.0],
-                 [15.8, 19.2, 17.6, 12.8]];
-    const TT=6.5, PA=Math.atan2(20.0, 0.0);            // the portal is at +z
-    let bseed=4457;
-    const br=()=>{ bseed=(bseed*1103515245+12345)%2147483648; return bseed/2147483648; };
-    for(let b=0;b<BANDS.length;b++){
-      const y0b=BANDS[b][0], y1b=BANDS[b][1], HX=BANDS[b][2], HZ=BANDS[b][3];
-      const hh=y1b-y0b, col=ROCKC[b%ROCKC.length];
-      const N=34;
-      for(let i=0;i<N;i++){
-        const a=(i/N)*Math.PI*2 + b*0.31;
-        // band 0 keeps a flat face round the portal; the walk skips that arc
-        const dz=Math.sin(a), dx=Math.cos(a);
-        if(b===0 && dz>0.80 && Math.abs(dx*HX)<7.2) continue;
-        const reach=0.90+br()*0.16;
-        const px=Math.cos(a)*HX*reach, pz=Math.sin(a)*HZ*reach;
-        const tx=-HX*Math.sin(a), tz=HZ*Math.cos(a), tl=Math.hypot(tx,tz);
-        const ry=Math.atan2(-tz/tl, tx/tl)+((br()-0.5)*0.26);
-        const W=3.4+br()*3.0, D=TT*(0.8+br()*0.6);
-        m.B("rock", W, hh*(0.92+br()*0.30), D,
-            px-(px/Math.max(1,Math.hypot(px,pz)))*D*0.34,
-            y0b+hh/2+(br()-0.5)*0.5*hh,
-            pz-(pz/Math.max(1,Math.hypot(px,pz)))*D*0.34,
-            0.24, ry, ROCKC[(b+i)%ROCKC.length]);
-      }
+    // the ground here, relative to the floor — the slope falls away in front
+    // of the portal and everything outside has to sit on it, not on the level
+    const gh=(x,z)=> G(m.wx(x,z), m.wz(x,z)) - FY0;
+    // the spoil, tipped downhill from the mouth, on the slope where it landed
+    for(let i=0;i<26;i++){
+      const px=((i*7)%7-3)*1.6, pz=21.0+((i*3)%7)*1.3;
+      m.P("rock", rockGeo(0.28+((i*5)%4)*0.34, 6100+i*13),
+          px, gh(px,pz)+0.10+((i%3)*0.16), pz, i*1.3,
+          ROCKC[i%5], ((i*7)%5-2)*0.22, ((i*3)%5-2)*0.22);
     }
-    // band 0's flat north face, with the portal punched through it
-    for(const g of holes(-7.4, 7.4, [[PORT[0]-0.16, PORT[1]+0.16]]))
-      m.B("rock", g[1]-g[0], 5.4, TT, (g[0]+g[1])/2, 2.70, 20.0-TT/2, 0.24, 0, ROCKC[0]);
-    m.B("rock", PORT[1]-PORT[0]+0.32, 5.4-(F+PH+0.55), TT, 0,
-        F+PH+0.55+(5.4-(F+PH+0.55))/2, 20.0-TT/2, 0.24, 0, ROCKC[0]);
-    // scree at the foot of it, so the face does not meet the sand on a line
-    for(let i=0;i<46;i++){
-      const a=(i/46)*Math.PI*2+0.4, rr2=1.02+((i*7)%5)*0.035;
-      const px=Math.cos(a)*26.0*rr2, pz=Math.sin(a)*20.0*rr2;
-      if(pz>13.0 && Math.abs(px)<5.0) continue;        // keep the way in clear
-      push("rock", rockGeo(0.7+((i*5)%4)*0.8, 700+i*13), -664+px,
-           m.y+0.10+((i*3)%3)*0.4, -156+pz, i*1.3, ROCKC[(i)%ROCKC.length],
-           ((i*7)%5-2)*0.18, ((i*3)%5-2)*0.18);
+    // the collar: the face the portal is cut into, standing proud of the slope
+    for(const g of holes(-4.0, 4.0, [[PORT[0]-0.20, PORT[1]+0.20]]))
+      m.B("rock", g[1]-g[0], 4.4, 1.5, (g[0]+g[1])/2, F+2.2, 20.0, 0.35, 0, ROCKC[2]);
+    m.B("rock", PORT[1]-PORT[0]+0.40, 4.4-(F+PH+0.55), 1.5, 0,
+        F+PH+0.55+(4.4-(F+PH+0.55))/2, 20.0, 0.35, 0, ROCKC[2]);
+    // On a slope this gentle the roof of the passage is still above the
+    // hillside for the first eight metres, so the portal is collared: rock
+    // piled over the drive and blended back into the face, which is what one
+    // of these actually looks like.
+    for(let i=0;i<16;i++)
+      m.P("rock", rockGeo(0.55+((i*5)%4)*0.55, 6400+i*17),
+          ((i*7)%9-4)*1.1, F+0.2+((i*3)%5)*0.75, 19.4+((i%3)-1)*0.7, i*1.1,
+          ROCKC[(i+1)%5], ((i*7)%5-2)*0.2, ((i*3)%5-2)*0.2);
+    for(let i=0;i<46;i++){                             // over the drive itself
+      const t=i/45, pz=19.4-t*11.0;
+      const px=((i*7)%7-3)/3*2.4;
+      const top=F+PH+0.85+((i*5)%4)*0.26;
+      m.P("rock", rockGeo(0.85+((i*5)%4)*0.55, 7100+i*19), px,
+          Math.max(gh(px,pz)+0.2, top), pz, i*0.9,
+          ROCKC[i%5], ((i*7)%5-2)*0.18, ((i*3)%5-2)*0.18);
     }
-    // and boulders resting on the ledges, where a band steps back
-    for(let b=0;b<4;b++){
-      const HX=BANDS[b][2], HZ=BANDS[b][3], yb=BANDS[b][1];
-      for(let i=0;i<9;i++){
-        const a=(i/9)*Math.PI*2+b*0.8, rr2=0.80+((i*5)%4)*0.05;
-        const px=Math.cos(a)*HX*rr2, pz=Math.sin(a)*HZ*rr2;
-        if(b===0 && pz>13.0 && Math.abs(px)<6.0) continue;
-        push("rock", rockGeo(1.1+((i*3)%4)*0.7, 300+b*37+i*11), -664+px,
-             m.y+yb-0.25, -156+pz, i*1.7, ROCKC[(i+b)%ROCKC.length],
-             ((i*7)%5-2)*0.12, ((i*5)%5-2)*0.12);
-      }
+    for(let i=0;i<40;i++){                             // and down the flanks, on the slope
+      const q=(i%2)?1:-1, t=((i/2)|0)/19, pz=19.6-t*11.0;
+      const px=q*(3.0+t*1.4+((i*5)%3)*0.45);
+      m.P("rock", rockGeo(0.8+((i*3)%4)*0.55, 7500+i*23), px,
+          gh(px,pz)+0.25+((i*5)%3)*0.25, pz, i*1.1,
+          ROCKC[(i+2)%5], ((i*7)%5-2)*0.2, ((i*3)%5-2)*0.2);
     }
-    // The hollow is sealed above and below the passages rather than filled:
-    // a solid block through the middle of the butte would swallow them.
-    m.B("rock", 34.0, 13.7, 24.0, 0, 12.35, 0, 0.24, 0, "#a5886c");
-    m.B("rock", 40.0, 0.50, 30.0, 0, 0.25, 0, 0.24, 0, "#a5886c");
-    m.B("rock", 33.0, 2.4, 24.0, 0, 20.2, 0, 0.24, 0, "#af9172");         // the cap
-    for(let i=0;i<18;i++)
-      push("rock", rockGeo(1.4+((i*5)%4)*1.0, 900+i*17),
-           -664+((i*7)%9-4)*3.4, m.y+21.0+((i*3)%3)*0.7, -156+((i*5)%7-3)*3.0,
-           i*0.9, ROCKC[i%ROCKC.length], ((i*7)%5-2)*0.14, ((i*3)%5-2)*0.14);
-    // the mass, as a ring of colliders with the passage lane left out of it
-    // ---- the passage ----------------------------------------------------
-    // Rough-hewn: every metre and a half of wall steps in or out a little and
-    // sits at its own angle, so it is a hole somebody dug rather than a box.
+    // a spur of rock across the approach, so you cannot see in from the flat.
+    // It stands on the slope, which falls away fast here — take the height
+    // from the ground under each block, not from the tunnel floor.
+    for(let i=0;i<15;i++){
+      const px=-6.4+((i*3)%4)*0.9, pz=24.0+i*1.6;
+      m.P("rock", rockGeo(1.2+((i*5)%4)*1.0, 6800+i*23), px,
+          gh(px,pz)+0.5+((i%3)*0.7), pz, i*0.9,
+          ROCKC[i%5], ((i*7)%5-2)*0.16, ((i*3)%5-2)*0.16);
+    }
+
+    // ---- passage A: back into the hill ----------------------------------
     const wallSeg=(cx,cy,cz,len,axis,col2,i)=>{
       const j=((i*7)%5-2)*0.09, a=((i*11)%5-2)*0.05;
       if(axis==="z") m.B("rock", 0.9+((i*3)%3)*0.25, PH+1.2, len+0.25, cx+j, cy, cz, 0.5, a, col2);
       else           m.B("rock", len+0.25, PH+1.2, 0.9+((i*3)%3)*0.25, cx, cy, cz+j, 0.5, a, col2);
     };
-    const lightRock=["#8a7360","#947d68","#7f6a58","#9c8470"];
-    // A: from the portal at z 20 back to z 5
     for(let i=0;i<11;i++){
       const cz=19.3-i*1.40;
       for(const q of [-1,1])
-        wallSeg(q*(PW+0.45), F+PH/2, cz, 1.40, "z", lightRock[(i+ (q>0?1:0))%4], i+(q>0?3:0));
+        wallSeg(q*(PW+0.45), F+PH/2, cz, 1.40, "z", lightRock[(i+(q>0?1:0))%4], i+(q>0?3:0));
     }
-    m.B("rock", PW*2+2.2, 0.9, 15.4, 0, F-0.45, 12.3, 0.5, 0, "#7f6a58");     // floor
-    m.B("rock", PW*2+2.2, 1.0, 15.4, 0, F+PH+0.5, 12.3, 0.5, 0, "#8a7360");   // back
+    m.B("rock", PW*2+2.2, 0.9, 15.4, 0, F-0.45, 12.3, 0.5, 0, "#7f6a58");
+    m.B("rock", PW*2+2.2, 1.0, 15.4, 0, F+PH+0.5, 12.3, 0.5, 0, "#8a7360");
     m.flat(-PW, PW, 3.4, 20.6, F);
-    addVoid(-664-PW, -664+PW, -156+3.4, -156+20.6, m.y+F-1.2, m.y+F+PH, m.y+F);
-    m.col(PW, PW+1.8, 3.66, 20.6, 0, F+PH+0.6);        // you cannot walk through rock
+    m.voidAt(-PW, PW, 3.4, 20.6, F-1.2, F+PH, F);
+    m.col(PW, PW+1.8, 3.66, 20.6, 0, F+PH+0.6);
     m.col(-PW-1.8, -PW, 6.34, 20.6, 0, F+PH+0.6);
-    // B: the turn west, z 5, out to x -8
+    // ---- passage B: the turn --------------------------------------------
     for(let i=0;i<8;i++){
       const cx=0.6-i*1.40;
       for(const q of [-1,1])
@@ -7314,21 +7537,20 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     m.B("rock", 11.6, 0.9, PW*2+2.2, -3.0, F-0.45, 5.0, 0.5, 0, "#7f6a58");
     m.B("rock", 11.6, 1.0, PW*2+2.2, -3.0, F+PH+0.5, 5.0, 0.5, 0, "#8a7360");
     m.flat(-8.6, 1.4, 5.0-PW, 5.0+PW, F);
-    addVoid(-664-8.6, -664+1.4, -156+5.0-PW, -156+5.0+PW, m.y+F-1.2, m.y+F+PH, m.y+F);
+    m.voidAt(-8.6, 1.4, 5.0-PW, 5.0+PW, F-1.2, F+PH, F);
     m.col(-8.8, PW+1.8, 3.06, 3.66, 0, F+PH+0.6);
     m.col(-8.8, -PW,    6.34, 6.94, 0, F+PH+0.6);
-    // ---- the chamber ----------------------------------------------------
+    // ---- the chamber ------------------------------------------------------
     const CX0=-18.2, CX1=-8.0, CZ0=-2.4, CZ1=7.6;
     const hew=(cx,cz,w,d,i,col2)=> m.B("rock", w, CH+1.4, d, cx+((i*5)%3-1)*0.10,
         F+CH/2, cz+((i*7)%3-1)*0.10, 0.45, ((i*7)%5-2)*0.04, col2);
-    for(let i=0;i<8;i++){                              // west wall, and the two ends
+    for(let i=0;i<8;i++){
       const cz=CZ0+(CZ1-CZ0)*(i/8)+(CZ1-CZ0)/16, sd=(CZ1-CZ0)/8+0.3;
       hew(CX0-0.35, cz, 1.1, sd, i, lightRock[i%4]);
       const cx=CX0+(CX1-CX0)*(i/8)+(CX1-CX0)/16, sw=(CX1-CX0)/8+0.3;
       hew(cx, CZ0-0.35, sw, 1.1, i+1, lightRock[(i+1)%4]);
       hew(cx, CZ1+0.35, sw, 1.1, i+3, lightRock[(i+2)%4]);
     }
-    // the east wall, with the way in where passage B arrives
     for(const g of holes(CZ0, CZ1, [[3.66, 6.34]]))
       m.B("rock", 1.1, CH+1.4, g[1]-g[0]+0.3, CX1+0.35, F+CH/2, (g[0]+g[1])/2,
           0.45, 0, lightRock[3]);
@@ -7336,21 +7558,20 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
         0.5, 0, "#7f6a58");
     m.B("rock", CX1-CX0+2.4, 1.2, CZ1-CZ0+2.4, (CX0+CX1)/2, F+CH+0.6, (CZ0+CZ1)/2,
         0.5, 0, "#8a7360");
-    for(let i=0;i<14;i++)                              // and the roof is not flat
-      push("rock", rockGeo(0.7+((i*5)%4)*0.35, 1300+i*29),
-           -664+CX0+1.0+((i*2.3)%(CX1-CX0-2.0)), m.y+F+CH-0.22,
-           -156+CZ0+1.0+((i*1.7)%(CZ1-CZ0-2.0)), i*1.1, lightRock[i%4],
-           ((i*7)%5-2)*0.2, ((i*3)%5-2)*0.2);
+    for(let i=0;i<14;i++)
+      m.P("rock", rockGeo(0.7+((i*5)%4)*0.35, 1300+i*29),
+          CX0+1.0+((i*2.3)%(CX1-CX0-2.0)), F+CH-0.22,
+          CZ0+1.0+((i*1.7)%(CZ1-CZ0-2.0)), i*1.1, lightRock[i%4],
+          ((i*7)%5-2)*0.2, ((i*3)%5-2)*0.2);
     m.flat(CX0+0.4, CX1-0.2, CZ0+0.4, CZ1-0.4, F);
-    addVoid(-664+CX0+0.4, -664+CX1-0.2, -156+CZ0+0.4, -156+CZ1-0.4,
-            m.y+F-1.2, m.y+F+CH, m.y+F);
+    m.voidAt(CX0+0.4, CX1-0.2, CZ0+0.4, CZ1-0.4, F-1.2, F+CH, F);
     m.col(CX0-0.9, CX0+0.4, CZ0-0.9, CZ1+0.9, 0, F+CH+0.6);
     m.col(CX0-0.9, CX1+0.9, CZ0-0.9, CZ0+0.4, 0, F+CH+0.6);
     m.col(CX0-0.9, CX1+0.9, CZ1-0.4, CZ1+0.9, 0, F+CH+0.6);
     for(const g of holes(CZ0-0.9, CZ1+0.9, [[3.66, 6.34]]))
       m.col(CX1-0.2, CX1+0.9, g[0], g[1], 0, F+CH+0.6);
+
     /* ---- the mouth, from outside ---------------------------------------- */
-    // the portal: two legs, a cap, lagging over it, and the year somebody cut
     for(const q of [-1,1])
       m.B("oak", 0.26, PH+0.70, 0.34, q*(PW+0.20), F+(PH+0.70)/2, 20.1, 0.5, 0, "#5a4630");
     m.B("oak", PW*2+0.86, 0.30, 0.38, 0, F+PH+0.85, 20.1, 0.5, 0, "#4a3826");
@@ -7361,41 +7582,26 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     for(let i=0;i<4;i++)
       m.P("ochre", planeGeo(0.045,0.16,0), -0.16+i*0.105, F+PH+0.52, 20.33, 0,
           "#3a332e", 0, 0);
-    // the spoil, tipped out of the hole and never moved
-    for(let i=0;i<40;i++){
-      const a=0.55+((i*17)%100)/100*2.0, r2=3.2+((i*7)%6)*1.5;
-      const px=Math.cos(a)*r2*0.8, pz=20.6+Math.sin(a)*r2*0.55;
-      push("rock", rockGeo(0.22+((i*5)%4)*0.30, 5100+i*13), -664+px,
-           m.y+0.10+Math.max(0, 1.2-r2*0.16)*((i%3)*0.3), -156+pz, i*1.3,
-           ["#b09272","#a68a6c","#bda07f"][i%3], ((i*7)%5-2)*0.24, ((i*3)%5-2)*0.24);
-    }
-    m.B("gravel", 7.0, 0.30, 4.4, 0, 0.14, 23.4, 0.5, 0, "#b3906a");
-    m.flat(-3.5, 3.5, 21.2, 25.6, 0.30);
-    // a windlass nobody has turned in a lifetime, and the rope still on it
-    (function(){
-      const wx=3.4, wz=22.6;
-      for(const q of [-1,1]) m.B("oak", 0.16, 1.05, 0.16, wx, 0.82, wz+q*0.62, 0.5, 0, "#4a3826");
-      m.C("oak", 0.17,0.17,1.30,10, wx, 1.22, wz, "#5a4630", Math.PI/2, 0, 0);
+    (function(){                                        // the windlass, still rigged
+      const wx=2.6, wz=22.2, g0=gh(wx,wz);
+      for(const q of [-1,1]) m.B("oak", 0.16, 1.05, 0.16, wx, g0+0.52, wz+q*0.62, 0.5, 0, "#4a3826");
+      m.C("oak", 0.17,0.17,1.30,10, wx, g0+0.92, wz, "#5a4630", Math.PI/2, 0, 0);
       for(let i=0;i<9;i++)
-        m.P("teal", new T.TorusGeometry(0.20,0.017,5,12), wx, 1.22, wz-0.45+i*0.11,
+        m.P("teal", new T.TorusGeometry(0.20,0.017,5,12), wx, g0+0.92, wz-0.45+i*0.11,
             0, "#6a5f4a", 0, Math.PI/2);
-      m.C("metal", 0.020,0.020,0.34,6, wx+0.30, 1.38, wz+0.70, "#6f6a60", 0,0,0.8);
-      m.col(wx-0.4, wx+0.4, wz-0.8, wz+0.8, 0, 1.5);
+      m.col(wx-0.4, wx+0.4, wz-0.8, wz+0.8, -1, g0+1.2);
     })();
-    // a claim board, face down in the sand, and the stakes that marked it
-    m.P("oak", boxGeo(1.20,0.72,0.05,0.5), -4.2, 0.10, 22.0, 0.7, "#8a7a5e", -Math.PI/2+0.1, 0);
+    m.P("oak", boxGeo(1.20,0.72,0.05,0.5), -2.2, gh(-2.2,23.0)+0.10, 23.0, 0.7, "#8a7a5e",
+        -Math.PI/2+0.1, 0);
     for(let i=0;i<4;i++)
-      m.P("ochre", planeGeo(0.74,0.08,0), -4.2, 0.13, 21.82+i*0.13, 0.7, "#4a3f34",
-          -Math.PI/2+0.1, 0);
-    for(let i=0;i<7;i++){
-      const px=-8.0+i*2.7, pz=25.0+((i*5)%4)*0.9;
-      m.C("oak", 0.05,0.065,0.95,6, px, 0.44, pz, "#5b4632", ((i*7)%5-2)*0.05, i, 0);
-      if(i%2===0)
-        m.P("fabric", boxGeo(0.10,0.22,0.03,0.5), px, 0.82, pz, i, "#8a3a30", 0, 0.3);
+      m.P("ochre", planeGeo(0.74,0.08,0), -2.2, gh(-2.2,23.0)+0.13, 22.82+i*0.13, 0.7,
+          "#4a3f34", -Math.PI/2+0.1, 0);
+    for(let i=0;i<6;i++){                               // stakes with rags on them
+      const px=-3.2+i*1.4, pz=25.0+((i*5)%4)*1.2, g0=gh(px,pz);
+      m.C("oak", 0.05,0.065,0.95,6, px, g0+0.44, pz, "#5b4632", ((i*7)%5-2)*0.05, i, 0);
+      if(i%2===0) m.P("fabric", boxGeo(0.10,0.22,0.03,0.5), px, g0+0.82, pz, i, "#8a3a30", 0, 0.3);
     }
-    // and the way you got here
-    dirtTrack(-630, -74, -664, -132, 2.4);
-
+    dirtTrack(-630, -74, MX-3, MZ+16, 2.2);             // the way in, from the graves
     /* ---- what is in the passage ---------------------------------------- */
     let ds=90211;
     const dr=()=>{ ds=(ds*1103515245+12345)%2147483648; return ds/2147483648; };
@@ -7423,8 +7629,8 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     m.P("oak", boxGeo(0.17,PH+0.10,0.19,0.5), -0.9, F+0.55, 10.5, 0.2, TIMB2, 0, 1.15);
     m.P("oak", boxGeo(2.9,0.20,0.21,0.5), 0.1, F+0.62, 10.9, 0.1, TIMB, 0, -0.42);
     for(let i=0;i<9;i++)
-      push("rock", rockGeo(0.16+((i*5)%4)*0.13, 2100+i*17), -664+((i*7)%5-2)*0.42,
-           m.y+F+0.10+((i*3)%3)*0.14, -156+10.3+((i*5)%4)*0.30, i*1.1, "#8a7360",
+      m.P("rock", rockGeo(0.16+((i*5)%4)*0.13, 2100+i*17), ((i*7)%5-2)*0.42,
+           F+0.10+((i*3)%3)*0.14, 10.3+((i*5)%4)*0.30, i*1.1, "#8a7360",
            ((i*7)%5-2)*0.3, ((i*3)%5-2)*0.3);
     for(let i=0;i<5;i++) setAt(-0.6-i*1.7, 5.0, "x", i+2);
     // rail and sleepers, and the cart that came off them
@@ -7446,8 +7652,8 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       const t=dr(), alongA=t<0.66;
       const px=alongA ? (dr()<0.5?-1:1)*(PW-0.25+dr()*0.3) : -0.6-dr()*7.6;
       const pz=alongA ? 5.4+dr()*14.6 : 5.0+(dr()<0.5?-1:1)*(PW-0.25+dr()*0.3);
-      push("rock", rockGeo(0.10+dr()*0.22, 2500+i*13), -664+px, m.y+F+0.06+dr()*0.10,
-           -156+pz, dr()*6, ["#93806c","#8a7360","#9c8470"][i%3], dr()*0.8-0.4, dr()*0.8-0.4);
+      m.P("rock", rockGeo(0.10+dr()*0.22, 2500+i*13), px, F+0.06+dr()*0.10,
+           pz, dr()*6, ["#93806c","#8a7360","#9c8470"][i%3], dr()*0.8-0.4, dr()*0.8-0.4);
     }
     for(let i=0;i<30;i++){
       const alongA=(i%3)!==0;
@@ -7491,8 +7697,8 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     const OCH="#9a3a26", OCH2="#7a2e20", BONE="#ded6c0";
     // the altar itself: field stone, a slab on top, and sixty years of wax
     for(let i=0;i<14;i++)
-      push("rock", rockGeo(0.24+((i*5)%4)*0.09, 3100+i*23), -664+AX+((i%5)-2)*0.36,
-           m.y+F+0.14+((i/5)|0)*0.30, -156+AZ+((i%3)-1)*0.30, i*1.1, "#8a7a66",
+      m.P("rock", rockGeo(0.24+((i*5)%4)*0.09, 3100+i*23), AX+((i%5)-2)*0.36,
+           F+0.14+((i/5)|0)*0.30, AZ+((i%3)-1)*0.30, i*1.1, "#8a7a66",
            ((i*7)%5-2)*0.15, ((i*3)%5-2)*0.15);
     m.B("rock", 2.10, 0.17, 1.14, AX, F+0.94, AZ, 0.4, 0.06, "#7f6f5c");
     m.col(AX-1.1, AX+1.1, AZ-0.62, AZ+0.62, 0, F+1.05);
@@ -7508,9 +7714,10 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       m.C("plaster", 0.034,0.040, 0.05+((i*5)%4)*0.06, 8, cxx, F+1.06, AZ+0.34, "#e2dac4");
       if(alive){
         m.C("ember", 0.012,0.004,0.055,6, cxx, F+1.12+((i*5)%4)*0.03, AZ+0.34, "#ff8a2a");
-        LAMPS.push({x:-664+AX+(i-3)*0.27, y:m.y+F+1.22, z:-156+AZ+0.34, color:0xff7a30,
+        m.lamp(AX+(i-3)*0.27, F+1.22, AZ+0.34, {color:0xff7a30,
                     intensity:0.085, dist:4.4, decay:1.9, indoor:true, flicker:true,
-                    vol:[-664+CX0, -664+CX1, -156+CZ0, -156+CZ1, 0, m.y+F+CH]});
+                    vol:[m.wx(CX1,0), m.wx(CX0,0), m.wz(0,CZ1), m.wz(0,CZ0),
+                         0, m.y+F+CH]});
       }
     }
     m.P("fabric", boxGeo(0.46,0.09,0.34,0.5), AX+0.72, F+1.07, AZ+0.16, 0.5, "#5a2a2a", 0, 0.1);
@@ -7525,7 +7732,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
           m.P("teal", new T.TorusGeometry(0.068,0.011,4,9), px, F+hy+k*0.026, pz,
               0, "#6a5f4a", Math.PI/2, 0);
       if(i%3===0){                                     // a skull on this one
-        push("plaster", blobGeo(0.115), -664+px, m.y+F+H2+0.07, -156+pz, 0, BONE);
+        m.P("plaster", blobGeo(0.115), px, F+H2+0.07, pz, 0, BONE);
         m.P("plaster", boxGeo(0.13,0.10,0.09,0), px, F+H2+0.02, pz+0.10, a, "#cfc6ac", 0, 0);
         for(const q of [-1,1])
           m.P("bin", planeGeo(0.045,0.05,0), px+q*0.04, F+H2+0.09, pz+0.10, a, "#2b2622", 0, 0);
@@ -7615,8 +7822,8 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       const fx=CX0+1.9, fz=CZ1-1.9;
       for(let i=0;i<13;i++){
         const a=(i/13)*Math.PI*2;
-        push("rock", rockGeo(0.17+((i*5)%3)*0.06, 3700+i*19), -664+fx+Math.cos(a)*0.82,
-             m.y+F+0.10, -156+fz+Math.sin(a)*0.82, a, "#7a6a58", 0.2, 0.2);
+        m.P("rock", rockGeo(0.17+((i*5)%3)*0.06, 3700+i*19), fx+Math.cos(a)*0.82,
+             F+0.10, fz+Math.sin(a)*0.82, a, "#7a6a58", 0.2, 0.2);
       }
       m.P("soot", planeGeo(1.70,1.70,0), fx, F+0.014, fz, 0, "#221e19", -Math.PI/2, 0);
       for(let i=0;i<7;i++)
@@ -7629,7 +7836,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     // and the rest of it: wax, bottles, bones, a chair somebody broke
     for(let i=0;i<13;i++){
       const wx=AX+Math.cos(i*1.7)*(1.6+((i*5)%4)*0.7), wz=AZ+Math.sin(i*1.7)*(1.6+((i*5)%4)*0.7);
-      push("plaster", blobGeo(0.07+((i*3)%4)*0.045), -664+wx, m.y+F+0.035, -156+wz,
+      m.P("plaster", blobGeo(0.07+((i*3)%4)*0.045), wx, F+0.035, wz,
            i*1.1, ["#d8cdb0","#c8b894","#e2dcc4"][i%3]);
     }
     for(let i=0;i<11;i++)
@@ -7652,13 +7859,11 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       m.P("ochre", planeGeo(0.016, 0.10, 0), CX1-0.42, F+0.80+((i/24)|0)*0.17,
           CZ0+0.9+((i%24)*0.075), -Math.PI/2, "#3f372e", 0, (i%5===4)?0.9:0);
 
-    addZone(-664+CX0, -664+CX1, -156+CZ0, -156+CZ1, m.y+F-1, m.y+F+CH,
-            "THE CHAMBER", true);
-    addZone(-664-PW-0.4, -664+PW+0.4, -156+4.6, -156+20.4, m.y+F-1, m.y+F+PH,
-            "THE ADIT", true);
-    addZone(-664-9.0, -664+1.6, -156+5.0-PW-0.4, -156+5.0+PW+0.4, m.y+F-1, m.y+F+PH,
-            "THE ADIT", true);
+    m.zone(CX0, CX1, CZ0, CZ1, F-1, F+CH, "THE CHAMBER", true);
+    m.zone(-PW-0.4, PW+0.4, 4.6, 20.4, F-1, F+PH, "THE ADIT", true);
+    m.zone(-9.0, 1.6, 5.0-PW-0.4, 5.0+PW+0.4, F-1, F+PH, "THE ADIT", true);
   })();
+
 
   /* --- somebody camped here, a while ago ------------------------------- */
   (function(){
@@ -8286,6 +8491,11 @@ bucketOf("soot",    ()=>new T.MeshBasicMaterial({color:0xffffff, transparent:tru
 bucketOf("rust",    ()=>new T.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.30,
                           map:TEX.streak, depthWrite:false, side:T.DoubleSide}));
 bucketOf("ember",   ()=>glowMat({color:0xffffff, emissive:0xff4a12, emissiveIntensity:1.6}, "warm"));
+// dust hanging in a shaft of daylight: bright at noon, gone after dark
+bucketOf("haze",    ()=>{ const m=new T.MeshBasicMaterial({color:0xfff0d2, map:TEX.haze,
+                          transparent:true, opacity:0, depthWrite:false, side:T.DoubleSide,
+                          blending:T.AdditiveBlending, toneMapped:false});
+                          GLOW.push({m:m, basic:true, day:true, max:0.055}); return m; });
 bucketOf("smoke",   ()=>new T.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.10,
                           side:T.DoubleSide, depthWrite:false, toneMapped:false}));
 // the pool of light a lit machine throws onto the slab in front of it
@@ -8977,115 +9187,10 @@ const SAND={n:1100, m:170, sn:230};
   SAND.sheet=layer(SAND.sn, 9.00, grain(0.30,0.12), ()=>0.2+Math.pow(rnd(),1.8)*2.4);
 })();
 /* --- a dust devil, but only in a real gust ---------------------------- */
-/* --- the dust devil ----------------------------------------------------
-   It used to be one flat sprite of speckle, which is a picture of a dust
-   devil rather than a dust devil: nothing turned, and there was no inside to
-   it. It is a stack of open cylinders now — you see the far wall through the
-   near one, which is where the depth comes from — each turning on its own at
-   a rate that falls off with height, each with its texture creeping round the
-   other way, the whole column leaning and bending downwind as it rises, with
-   a skirt of lifted dust at the bottom and grit orbiting in it.          */
-const DEVIL={g:null, bands:[], x:0, z:0, seeded:false, t:0};
-(function buildDevil(){
-  // one wispy, horizontally tiling sheet of dust
-  const c=cvs(256,128), x=c.getContext("2d");
-  x.clearRect(0,0,256,128);
-  for(let i=0;i<340;i++){                        // torn vertical streaks
-    const px=Math.random()*256, w=2+Math.random()*13, h=14+Math.random()*96;
-    const g=x.createLinearGradient(0, 64-h/2, 0, 64+h/2);
-    const a=(0.05+Math.random()*0.16).toFixed(3);
-    g.addColorStop(0,"rgba(214,184,138,0)");
-    g.addColorStop(0.5,"rgba(214,184,138,"+a+")");
-    g.addColorStop(1,"rgba(214,184,138,0)");
-    x.fillStyle=g;
-    x.fillRect(px, 64-h/2, w, h);
-    if(px>256-w) x.fillRect(px-256, 64-h/2, w, h);   // keep the wrap seamless
-  }
-  for(let i=0;i<900;i++){                        // grit in suspension
-    x.fillStyle="rgba(186,152,108,"+(0.05+Math.random()*0.20).toFixed(3)+")";
-    x.fillRect(Math.random()*256, Math.random()*128, 1+Math.random()*2.5, 1+Math.random()*3);
-  }
-  const tex=setSRGB(new T.CanvasTexture(c));
-  tex.wrapS=tex.wrapT=T.RepeatWrapping;
-  const g2=new T.Group(); g2.visible=false; scene.add(g2);
-  const N=15, TOP=44;
-  for(let i=0;i<N;i++){
-    const u=i/(N-1);
-    // narrow and hard at the foot, flaring and ragged at the top. Each band is
-    // three times its own spacing tall, so every height is covered by three of
-    // them and the stack reads as one column rather than as a pile of hoops.
-    const r=1.0+Math.pow(u,1.5)*7.4, h=TOP/N*3.0;
-    const m=new T.MeshBasicMaterial({map:tex.clone(), transparent:true, depthWrite:false,
-      side:T.DoubleSide, fog:true, opacity:0, toneMapped:false, color:0xd8bc92});
-    m.map.wrapS=m.map.wrapT=T.RepeatWrapping;
-    m.map.repeat.set(2.0+u*1.6, 1);
-    m.map.offset.y=(i*0.37)%1;                  // so the streaks never line up
-    const mesh=new T.Mesh(new T.CylinderGeometry(r*1.10, r*0.90, h, 20, 1, true), m);
-    mesh.position.y=TOP*u*0.97+1.2;
-    mesh.renderOrder=3;
-    g2.add(mesh);
-    DEVIL.bands.push({m:mesh, u:u, r:r,
-                      spin:(2.3-u*1.5)*(1+((i%3)-1)*0.09),    // faster at the foot
-                      drift:0.10+u*0.18, ph:Math.random()*6.28,
-                      base:0.30*(1-u*0.26)});
-  }
-  // the skirt: dust being picked up off the ground, wider and much flatter
-  const sk=new T.Mesh(new T.CylinderGeometry(6.6, 2.4, 4.2, 22, 1, true),
-    new T.MeshBasicMaterial({map:tex.clone(), transparent:true, depthWrite:false,
-      side:T.DoubleSide, fog:true, opacity:0, toneMapped:false, color:0xcaae86}));
-  sk.material.map.wrapS=sk.material.map.wrapT=T.RepeatWrapping;
-  sk.material.map.repeat.set(3.2,1);
-  sk.position.y=1.8; sk.renderOrder=3; g2.add(sk);
-  DEVIL.bands.push({m:sk, u:-1, r:6.6, spin:3.1, drift:0.34, ph:0, base:0.40});
-  // grit thrown out of it
-  const gm=new T.MeshBasicMaterial({color:0x6b5540, transparent:true, opacity:0,
-    depthWrite:false, toneMapped:false});
-  DEVIL.grit=[];
-  for(let i=0;i<14;i++){
-    const q=new T.Mesh(new T.PlaneGeometry(0.5+Math.random()*0.9, 0.3+Math.random()*0.6), gm);
-    q.renderOrder=4; g2.add(q);
-    DEVIL.grit.push({m:q, a:Math.random()*6.28, r:2.0+Math.random()*7.0,
-                     y:1.5+Math.random()*26, sp:1.4+Math.random()*1.9});
-  }
-  DEVIL.gritMat=gm;
-  DEVIL.g=g2;
-})();
-function updateDevil(dt){
-  const a=Math.max(0,(Wind.gust-0.42)/0.58);
-  if(a<=0.002){ DEVIL.g.visible=false; DEVIL.seeded=false; return; }
-  if(!DEVIL.seeded){
-    const th=rnd()*Math.PI*2, r=130+rnd()*190;   // near enough to see through the dust
-    DEVIL.x=player.pos.x+Math.cos(th)*r; DEVIL.z=player.pos.z+Math.sin(th)*r;
-    DEVIL.seeded=true;
-  }
-  DEVIL.t+=dt;
-  DEVIL.x+=WIND.x*6.5*dt; DEVIL.z+=WIND.z*6.5*dt;
-  DEVIL.g.visible=true;
-  const gy=Terrain.heightAt(DEVIL.x,DEVIL.z);
-  DEVIL.g.position.set(DEVIL.x, gy, DEVIL.z);
-  for(const b of DEVIL.bands){
-    b.m.rotation.y += b.spin*dt;
-    b.m.material.map.offset.x -= b.drift*dt;     // the sheet creeps the other way
-    b.m.material.opacity = a*b.base;
-    if(b.u>=0){                                  // the column bends downwind
-      const lean=Math.pow(b.u,1.8)*9.5;
-      const wob=Math.sin(DEVIL.t*0.9+b.ph)*b.u*1.1;
-      b.m.position.x = WIND.x*lean + wob;
-      b.m.position.z = WIND.z*lean + Math.cos(DEVIL.t*0.8+b.ph)*b.u*1.1;
-      b.m.scale.setScalar(1 + Math.sin(DEVIL.t*1.3+b.ph)*0.06);
-    }
-  }
-  DEVIL.gritMat.opacity=a*0.72;
-  for(const q of DEVIL.grit){
-    q.a += q.sp*dt*(1.6-q.y/60);
-    const lean=Math.pow(q.y/44,1.8)*9.5;
-    q.m.position.set(WIND.x*lean+Math.cos(q.a)*q.r, q.y, WIND.z*lean+Math.sin(q.a)*q.r);
-    q.m.rotation.set(0, -q.a, DEVIL.t*2.1+q.a);
-    q.y += dt*3.4; if(q.y>40) q.y=1.4;
-  }
-}
+/* The dust devil is gone: a column of turning dust reads as a special
+   effect standing on the desert however carefully it is built, and the
+   blown sand and the gusting wind carry the weather on their own.      */
 function updateSand(dt, dark){
-  updateDevil(dt);
   const g=Wind.gust;
   const shelter=indoorsAt(camera.position.x, camera.position.z, camera.position.y) ? 0 : 1;
   const on=g>0.03 && shelter>0;
@@ -9378,7 +9483,7 @@ function frame(){
 
   /* ---- artificial light: emissives ramp, real lights follow the player -- */
   for(const g of GLOW){
-    if(g.basic){ g.m.opacity=dark*(g.max===undefined?1:g.max); continue; }
+    if(g.basic){ g.m.opacity=(g.day?(1-dark):dark)*(g.max===undefined?1:g.max); continue; }
     const k=g.kind==="pool" ? 0.30+dark*2.0 : 0.10+dark*3.0;
     if(g.base) g.m.emissive.copy(g.base);
     g.m.emissiveIntensity=g.baseInt*k;
@@ -9538,7 +9643,7 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                zoneNow:()=>zoneAt(camera.position.x, camera.position.z, camera.position.y),
                indoorsNow:()=>indoorsAt(player.pos.x, player.pos.z, player.feetY+EYE),
                indoorsAt:indoorsAt, zoneAt:zoneAt,
-               sandOn:()=>SAND.fine.p.visible, devil:DEVIL,
+               sandOn:()=>SAND.fine.p.visible,
                droneSet:(x,y,z,yaw,pitch)=>{ dronePos.set(x,y,z); droneVel.set(0,0,0);
                  droneYaw=yaw; if(pitch!==undefined) dronePitch=pitch; },
                droneStep:droneUpdate,

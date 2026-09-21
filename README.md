@@ -135,6 +135,17 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   onto one sheet, so the whole wall of them is a single draw call. Its signs
   are set in a serif, in title case, with their own padding off the edge of
   every board.
+- **The stage.** A corner riser three metres each way with the backline still
+  on it: a 4x12 and a head against one wall with a bass rig stacked beside it,
+  a combo, two guitars on stands, a kit on its rug in the corner the two walls
+  make — kick with the pedal still on it, two rack toms, floor tom, snare,
+  hats closed, ride and crash, and the throne pushed back — two PA columns on
+  poles at the open corners, two mics, a wedge, a setlist taped to the deck,
+  three bottles left on an amp, a lead somebody coiled badly and a banner that
+  went up for one Friday and stayed up.
+- **Out the front.** A bench one side of the door with three slats and a split
+  one, the ends ground out in a patch under it, and a bin the other side with
+  a rust streak down it and what missed it on the ground.
 - **What the Canteen feels like.** The two glass-block windows are the only
   daylight in the room and they read as soft luminous panels with a wash of
   dusty air hanging in front of them, drawn as crossed, radially faded quads
@@ -237,12 +248,27 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   know to look for it. The timber portal stands in a collar of spoil and fallen
   rock at the foot of the slope, with thirty-odd metres of passage behind it
   which turn twice, so by the time you reach the end there is not one photon of
-  daylight left.
+  daylight left. The face it is cut into is broken rock, not masonry — it was
+  two big boxes for a round, which from the flat read as a rectangular slab set
+  into the hillside and was the one thing out there that looked built. All the
+  stone around the mouth takes its colours off the terrain ramp that paints
+  this particular hill, so the spoil and the collar are the mesa's own rock
+  rather than somebody else's tipped against it. The whole route from the mouth
+  to the far wall of the chamber is flood-filled at 20 cm as part of the
+  checks, so there is nowhere on it you can wedge yourself.
   Inside the passage: sets of timber every couple of metres and one that came
-  down with the roof, rail and sleepers, an ore cart off them, rubble, water
-  marks eighty years old, candle stubs on ledges, a rope on spikes, a dead
-  lantern, and somebody's count of something scratched by the mouth. At the
-  end of it, a chamber where people were doing something: an altar of field
+  down with the roof, rail and sleepers and the ore cart that came off them —
+  over against the wall, because it used to sit astride the centre of a 2.7 m
+  drive and leave 0.40 m on one side of it, which is two centimetres less than
+  a person fits through — rubble, drill steels leaning where they were stood, a
+  powder tin and a spool of fuse, a rope on spikes that sags between them with
+  a dead lantern hung on one of them and its twin on the floor where it was
+  dropped, candle stubs on ledges, and somebody's count of something scratched
+  by the mouth. The water marks were an opaque panel each for a round and lit
+  up under the torch as blank white slabs either side of the drive, which was
+  the one thing down there you could not read; they are dark runs with a band
+  where the water stood now.
+  At the end of it, a chamber where people were doing something: an altar of field
   stone with wax run down it and three candles still going, a ring of nine
   wrapped stakes with skulls and bundles on them, a circle and a star marked
   out on the floor in ochre, an eye painted on the far wall, sigils and a row
@@ -313,12 +339,22 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   grow out there, not one: saguaro and barrel cactus, cholla forking into short
   fat joints, prickly pear growing pad off pad, yucca rosettes with a spent
   flower stalk, honey mesquite on two or three leaning trunks under a low
-  chain-connected crown, bunch grass, and creosote. Nothing out there is
-  thinner than about eight centimetres, which is the whole point: a five-
-  centimetre cane is under one pixel wide at thirty metres and rasterises into
-  a dotted line, and a desert full of dotted lines is what "fragmented
-  polygons" looks like. Every rosette and tussock is built out from a solid
-  core so the blades meet something instead of radiating off a point. They are
+  chain-connected crown, bunch grass, and creosote — every one of them built
+  end to end out of cylinders off a single helper, `stem()`.
+  That helper had a sign wrong in it, and it is worth writing down because it
+  survived four rounds of looking straight at it. A cylinder pushed with the
+  euler `(rx = lean, ry = a)` in YXZ order ends up pointing along
+  `(+sin a · sin lean, cos lean, +cos a · sin lean)`. `stem()` offset each
+  segment's centre by the *negative* of that vector's horizontal part, so every
+  joint landed `sin(lean) · h` to one side of the joint before it, and the tip
+  it handed back to the next segment was not even on the segment. On a
+  30 cm creosote twig that is a 15 cm hole. Eight places had their own copy of
+  the same line — the yucca blades, the bunch grass, the weeds against two
+  walls, and the dead tree at the burying ground, which came out as a bundle of
+  sticks hanging in the air over a stump. One sign fixed every plant in the
+  world at once. Nothing out there is thinner than about eight centimetres
+  either, so nothing rasterises into a dotted line at range, and every rosette
+  grows out of a solid core rather than radiating off a point. They are
   thickest close in, because at four hundred metres nothing of a bush survives
   but a dot.
   The sky has three decks in it — cumulus low and near, a raft of altocumulus
@@ -440,7 +476,7 @@ costs nothing in performance.
 |---|---|
 | Walk | `W` `A` `S` `D` (or arrows) |
 | Look | drag, or pointer lock after a click |
-| Run | `Shift` |
+| Run | `Shift` — either one, and it reads the event's own modifier state, so a keyup lost to an alt-tab cannot leave it stuck on or off |
 | Open door / use | `E` or `Space` |
 | Sit down / stand up | `C` |
 | Drone mode | `F` — then `WASD` to fly, `Space` up, `Shift` down |
@@ -452,6 +488,23 @@ costs nothing in performance.
 | Hide HUD | `H` |
 
 Touch: drag to look, on-screen pad to walk.
+
+## Checks
+
+The same sweeps run every round, from a scratch harness that loads the page in
+headless Chromium and asks the scene about itself rather than looking at it:
+
+- a smoke test (mesh, triangle, draw-call, seat and door counts, GL errors,
+  console errors);
+- a doorway probe that walks every door's lane and fails if any is blocked;
+- a coplanar-face analyser over a given box, which catches z-fighting before
+  it is visible;
+- a float scan that clusters every primitive and reports the ones with nothing
+  underneath them — birds on a wire, ceiling fittings, the flies in the bar and
+  the set in 206 are the only ones left that are supposed to be up there;
+- a flood fill of the adit at 20 cm, from outside the mouth to the far wall of
+  the chamber, so nowhere on that route can wedge you;
+- a fixed-step movement probe (`MOTEL.sim`) for anything about speed or keys.
 
 ## How it is built
 

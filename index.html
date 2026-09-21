@@ -2438,7 +2438,14 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   // toward azimuth `a`. Returns its tip, so the next segment starts there.
   function stem(bk, rt,rb,h,seg, x,y,z, col, lean, a){
     const si=Math.sin(lean), co=Math.cos(lean);
-    const dx=-Math.sin(a)*si, dz=-Math.cos(a)*si;
+    // A cylinder's own axis, after the YXZ euler push() composes from
+    // (rx=lean, ry=a), is (+sin a · sin lean, cos lean, +cos a · sin lean).
+    // Offsetting the centre by the NEGATIVE of its horizontal part — which is
+    // what this did — leaves every joint sin(lean)·h to one side of the one
+    // before it and returns a tip that is not on the segment at all. That gap
+    // is what has been reading as "fragmented polygons" in every plant out
+    // here, and as a dead tree in pieces at the burying ground.
+    const dx=Math.sin(a)*si, dz=Math.cos(a)*si;
     cyl(bk, rt,rb,h,seg, x+dx*h/2, y+co*h/2, z+dz*h/2, col, lean, a, 0);
     return [x+dx*h, y+co*h, z+dz*h];
   }
@@ -2542,7 +2549,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
       const a=(i/n)*Math.PI*2+rnd()*0.3, lean=0.35+rnd()*0.80, L=(0.42+rnd()*0.46)*sc;
       const si=Math.sin(lean), co=Math.cos(lean);
       push("foliage", boxGeo(0.105*sc, L, 0.030*sc, 0),
-           x-Math.sin(a)*si*L/2, y+0.10*sc+co*L/2, z-Math.cos(a)*si*L/2,
+           x+Math.sin(a)*si*L/2, y+0.10*sc+co*L/2, z+Math.cos(a)*si*L/2,
            a, col, lean, 0);
     }
     if(rnd()<0.45){
@@ -2566,7 +2573,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
       const a=rnd()*Math.PI*2, lean=0.25+rnd()*0.70, L=(0.24+rnd()*0.30)*sc;
       const si=Math.sin(lean), co=Math.cos(lean);
       push("foliage", boxGeo(0.055*sc, L, 0.022*sc, 0),
-           x-Math.sin(a)*si*L/2, y+0.06*sc+co*L/2, z-Math.cos(a)*si*L/2, a, col, lean, 0);
+           x+Math.sin(a)*si*L/2, y+0.06*sc+co*L/2, z+Math.cos(a)*si*L/2, a, col, lean, 0);
     }
   }
   // creosote / sage: ONE crown, not a scatter of chips. The lumps overlap
@@ -3197,9 +3204,19 @@ function buildBay(xf, level, kind, roomNo, lit){
       lbx(xf,"curtain", winX1-winX0, 0.16, 0.03, winMX, y0+winY1-0.10, 0.30, 0.6,
           pal.curtain);
   }
-  if(lit) push(roomNo===206?"tvwin":"winglow", boxGeo(winX1-winX0-0.06, winY1-winY0-0.06, 0.02, 0),
-       xf.x((winX0+winX1)/2, 0.36), y0+(winY0+winY1)/2, xf.z((winX0+winX1)/2, 0.36), xf.ry,
-       roomNo===206?"#ffffff":"#ffcf8a");
+  if(lit){
+    // The room behind the glass. A whole pane of it is what a lamp looks like;
+    // a television is a small bright rectangle a long way back in the room,
+    // off to one side, with the rest of the room only faintly lit by it —
+    // 206 had the pane, and read as a blue square flashing in the window.
+    push("winglow", boxGeo(winX1-winX0-0.06, winY1-winY0-0.06, 0.02, 0),
+         xf.x((winX0+winX1)/2, 0.36), y0+(winY0+winY1)/2, xf.z((winX0+winX1)/2, 0.36),
+         xf.ry, roomNo===206?"#39414a":"#ffcf8a");
+    if(roomNo===206)
+      push("tvwin", boxGeo(0.86, 0.56, 0.02, 0),
+           xf.x((winX0+winX1)/2+0.30, 1.30), y0+winY0+0.56,
+           xf.z((winX0+winX1)/2+0.30, 1.30), xf.ry, "#ffffff");
+  }
 
   // through-wall air conditioner under the sill, and the rust streak it has
   // been leaving down the stucco for twenty summers
@@ -3734,25 +3751,45 @@ function buildWing(cfg){
   lbx(wxf,"teal", dLen,0.26,0.34, dMid, yTop-0.14,         -WALK_D+0.24, 0, TEAL_D);
 
   // ---- balcony railing, X-braced like the reference elevation ---------
+  // Rails run, posts punctuate. The first version emitted a top rail, a mid
+  // rail and a kick per BAY_W/4 panel, each 0.16 short of its own panel, with
+  // a 0.09 post covering the middle of the joint — which left 35 mm of daylight
+  // either side of every post and read, down the length of a wing, as a dashed
+  // line rather than a handrail. The panels are grouped into runs now and each
+  // run gets one continuous rail; only the bracing and the posts are per panel.
   const gaps=cfg.railGaps||[], SEG=BAY_W/4;
   const gapped=(a,b)=>{ for(const g of gaps) if(b>g[0]+0.01 && a<g[1]-0.01) return true; return false; };
-  for(let i=0;i<n*4;i++){
-    const a=-halfLen+i*SEG, b=a+SEG, cx=(a+b)/2;
-    if(gapped(a,b) || a<dA-0.02 || b>dB+0.02) continue;
-    const span=SEG-0.16, ry=lvlY(1), rz=-WALK_D+0.24;
-    lbx(wxf,"teal", span,0.09,0.09, cx, ry+1.02, rz, 0, TEAL);
-    lbx(wxf,"teal", span,0.06,0.06, cx, ry+0.54, rz, 0, TEAL);
-    lbx(wxf,"teal", span,0.18,0.11, cx, ry+0.11, rz, 0, TEAL_D);
-    for(const d of [-1,1])
-      push("teal", boxGeo(Math.hypot(span,0.84),0.045,0.045,0),
-           wxf.x(cx,rz), ry+0.58, wxf.z(cx,rz), wxf.ry, TEAL, 0, d*Math.atan2(0.84,span));
-    lbx(wxf,"teal", 0.09,1.02,0.09, b, ry+0.51, rz, 0, TEAL);
-    lcol(wxf, span+0.3, 0.34, cx, rz, ry, ry+1.14);
+  {
+    const ry=lvlY(1), rz=-WALK_D+0.24;
+    const runs=[]; let cur=null;
+    for(let i=0;i<n*4;i++){
+      const a=-halfLen+i*SEG, b=a+SEG;
+      if(gapped(a,b) || a<dA-0.02 || b>dB+0.02){ cur=null; continue; }
+      if(cur && Math.abs(cur.b-a)<0.001) cur.b=b;
+      else { cur={a:a, b:b}; runs.push(cur); }
+    }
+    for(const r of runs){
+      const len=r.b-r.a, mid=(r.a+r.b)/2;
+      lbx(wxf,"teal", len,0.09,0.09, mid, ry+1.02, rz, 0, TEAL);     // one top rail
+      lbx(wxf,"teal", len,0.06,0.06, mid, ry+0.54, rz, 0, TEAL);     // one mid rail
+      lbx(wxf,"teal", len,0.18,0.11, mid, ry+0.11, rz, 0, TEAL_D);   // one kick
+      const np=Math.round(len/SEG);
+      for(let k=0;k<np;k++){                                         // bracing per panel
+        const pa=r.a+k*SEG, span=SEG-0.16, cx=pa+SEG/2;
+        for(const d of [-1,1])
+          push("teal", boxGeo(Math.hypot(span,0.84),0.045,0.045,0),
+               wxf.x(cx,rz), ry+0.58, wxf.z(cx,rz), wxf.ry, TEAL, 0, d*Math.atan2(0.84,span));
+      }
+      for(let k=0;k<=np;k++)                                         // and a post at every joint
+        lbx(wxf,"teal", 0.09,1.02,0.09, r.a+k*SEG, ry+0.51, rz, 0, TEAL);
+      lcol(wxf, len+0.3, 0.34, mid, rz, ry, ry+1.14);
+    }
   }
   // a short return where the outer rail turns the inside corner
   if(cfg.cornerReturn){
     const cr=cfg.cornerReturn;
     lbx(wxf,"teal", 0.09,0.09,cr[1], cr[0], lvlY(1)+1.02, -WALK_D+0.24-cr[1]/2, 0, TEAL);
+    lbx(wxf,"teal", 0.06,0.06,cr[1], cr[0], lvlY(1)+0.54, -WALK_D+0.24-cr[1]/2, 0, TEAL);
     lbx(wxf,"teal", 0.09,0.18,cr[1], cr[0], lvlY(1)+0.11, -WALK_D+0.24-cr[1]/2, 0, TEAL_D);
     lbx(wxf,"teal", 0.09,1.02,0.09, cr[0], lvlY(1)+0.51, -WALK_D+0.24, 0, TEAL);
     lcol(wxf, 0.3, cr[1], cr[0], -WALK_D+0.24-cr[1]/2, lvlY(1), lvlY(1)+1.14);
@@ -3763,6 +3800,10 @@ function buildWing(cfg){
     if(cfg.openEnd===s) continue;
     const ex=(s<0?dA:dB)+s*0.05;
     lbx(wxf,"teal", 0.09,0.09,WALK_D, ex, lvlY(1)+1.02, -WALK_D/2, 0, TEAL);
+    lbx(wxf,"teal", 0.06,0.06,WALK_D, ex, lvlY(1)+0.54, -WALK_D/2, 0, TEAL);
+    lbx(wxf,"teal", 0.09,0.18,WALK_D, ex, lvlY(1)+0.11, -WALK_D/2, 0, TEAL_D);
+    for(const zz of [-0.06, -WALK_D+0.06])                // a post at each end of the return
+      lbx(wxf,"teal", 0.09,1.02,0.09, ex, lvlY(1)+0.51, zz, 0, TEAL);
     for(let k=0;k<4;k++)
       lbx(wxf,"teal", 0.06,1.0,0.06, ex, lvlY(1)+0.5, -0.35-k*0.68, 0, TEAL);
     lcol(wxf, 0.3, WALK_D, ex, -WALK_D/2, lvlY(1), lvlY(1)+1.14);
@@ -4827,8 +4868,8 @@ let waterGeo=null, waterMesh=null;
     for(let i=0;i<9;i++){
       const a=i*0.72, lean=0.5+((i*5)%4)*0.16, L=0.34+((i*7)%4)*0.13;
       const si=Math.sin(lean), co=Math.cos(lean);
-      push("foliage", boxGeo(0.11, L, 0.012, 0), gx-Math.sin(a)*si*L/2,
-           y0+0.40+co*L/2, gz-Math.cos(a)*si*L/2, a, "#3f6b3a", lean, 0);
+      push("foliage", boxGeo(0.11, L, 0.012, 0), gx+Math.sin(a)*si*L/2,
+           y0+0.40+co*L/2, gz+Math.cos(a)*si*L/2, a, "#3f6b3a", lean, 0);
     }
     addCol(gx-0.28, gx+0.28, gz-0.28, gz+0.28, y0, y0+0.9);
   })();
@@ -5340,6 +5381,49 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     bx("metal", 0.05,0.05,1.18, hx, 1.01, Z0-0.68, 0, 0, CHROME);
   }
   makeDoor(XF(DHX0+0.02, Z0+0.05, 0), 0, FY+0.02, 0, "THE RUSTY CANTEEN", true, 0, "bar");
+  // A bench one side of the door and a bin the other, which is what every bar
+  // on this road has and this one did not. Both sit on whatever the lot is
+  // doing underneath them rather than on the building's own floor level.
+  (function(){
+    const LY=(x,z)=>{ const t=Terrain.heightAt(x,z), f=surfaceY(x,z,t+0.9);
+                      return (f>t && f<t+0.9) ? f : t; };
+    {                                                   // the bench
+      const bx2=X0+3.30, bz2=Z0-0.92, by=LY(bx2,bz2);
+      for(const sd of [-1,1]){                          // two concrete ends
+        bx("concrete", 0.12, 0.42, 0.62, bx2+sd*0.78, by+0.21, bz2, 0.4, 0, "#a49c90");
+        bx("concrete", 0.16, 0.06, 0.70, bx2+sd*0.78, by+0.03, bz2, 0.4, 0, "#8f887c");
+      }
+      for(let i=0;i<3;i++)                              // three slats, one of them split
+        bx("plank", 1.88, 0.055, 0.155, bx2, by+0.44, bz2-0.20+i*0.20, 0.5, 0,
+i===1?"#6a5a3c":"#7a6746");
+      for(let i=0;i<3;i++)                              // and a back on two uprights
+        bx("plank", 1.88, 0.055, 0.145, bx2, by+0.68+i*0.16, bz2+0.26, 0.5, 0, "#7a6746");
+      for(const sd of [-1,1])
+        bx("metal", 0.06, 0.62, 0.07, bx2+sd*0.70, by+0.62, bz2+0.30, 0, 0, "#6f6a60");
+      push("soot", planeGeo(1.80,0.34,0), bx2, by+0.475, bz2, 0, "#4a4136", -Math.PI/2, 0);
+      addCol(bx2-0.95, bx2+0.95, bz2-0.36, bz2+0.36, by, by+0.50);
+      addSeat(bx2-0.55, bz2-0.04, by+0.47, 0, "A BENCH");
+      addSeat(bx2+0.55, bz2-0.04, by+0.47, 0, "A BENCH");
+      for(let i=0;i<9;i++)                              // the ends ground out under it
+        push("soot", planeGeo(0.05,0.014,0), bx2-0.8+((i*7)%9)*0.19, by+0.008,
+             bz2-0.55-((i*5)%4)*0.16, i*0.9, "#4a443a", -Math.PI/2, 0);
+    }
+    {                                                   // the bin
+      const cx3=DHX1+1.95, cz3=Z0-0.95, cy=LY(cx3,cz3);
+      cyl("weathered", 0.30,0.26,0.86,14, cx3, cy+0.43, cz3, "#4e5a4a");
+      for(let i=0;i<4;i++)                              // the ribs round it
+        push("weathered", new T.TorusGeometry(0.295-i*0.010,0.020,5,16), cx3,
+             cy+0.16+i*0.21, cz3, 0, "#46523f", Math.PI/2, 0);
+      cyl("weathered", 0.33,0.33,0.05,14, cx3, cy+0.885, cz3, "#3d4838");     // the lid
+      cyl("bin", 0.17,0.17,0.03,12, cx3, cy+0.915, cz3, "#221f1c");           // and its mouth
+      push("rust", planeGeo(0.36,0.60,0), cx3, cy+0.40, cz3-0.27, 0, "#6a4028");
+      push("paper", boxGeo(0.14,0.006,0.18,0), cx3+0.36, cy+0.012, cz3-0.22, 0.7,
+           "#cfc6ac", 0.05, 0.03);                      // and what missed it
+      cyl("metal", 0.033,0.033,0.11,10, cx3-0.40, cy+0.033, cz3+0.16, "#9aa0a2",
+          Math.PI/2, 1.1, 0);
+      addCol(cx3-0.32, cx3+0.32, cz3-0.32, cz3+0.32, cy, cy+0.90);
+    }
+  })();
 
   // ---- the sign, and the other one on a pole ---------------------------
   const nameTex=hosted("barSign", signTex(1408, 320, (x,W,H2)=>{
@@ -6035,6 +6119,132 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     for(let i=0;i<4;i++)
       push("soot", planeGeo(0.44,0.07,0), SX0+2.34, SY+0.72-i*0.18, SZ1-0.20, 0,
            "#3a2f22", 0, 0.16);
+    // ---- the backline nobody came back for --------------------------
+    // The kit sits on its rug in the corner the two walls make, facing the
+    // open diagonal, because that is the only way a kit fits a corner stage.
+    const KX=-86.70, KZ=-16.30, KA=-0.72;               // centre, and which way it faces
+    const cosK=Math.cos(KA), sinK=Math.sin(KA);
+    const K=(lx,lz)=>[KX+lx*cosK+lz*sinK, KZ-lx*sinK+lz*cosK];
+    const SHELL="#8a2f2a", HW="#b9bdbd", HEAD="#e6dfcd", BRASS2="#b8992f";
+    push("carpet", boxGeo(1.70,0.02,1.55,0.8), KX, SY+0.055, KZ, KA, "#5a2a28");
+    {                                                   // the kick, on its side
+      const [bx2,bz2]=K(0,0.10);
+      cyl("weathered", 0.285,0.285,0.42,16, bx2, SY+0.35, bz2, SHELL, Math.PI/2, KA, 0);
+      for(const sd of [-1,1])                           // the hoops, front and back
+        push("oak", new T.TorusGeometry(0.288,0.022,5,18), K(0,0.10+sd*0.215)[0], SY+0.35,
+             K(0,0.10+sd*0.215)[1], KA, "#d8cba8", 0, 0);
+      const [hx,hz]=K(0,-0.11);
+      cyl("bell", 0.270,0.270,0.02,16, hx, SY+0.35, hz, HEAD, Math.PI/2, KA, 0);
+      for(const sd of [-1,1]){                          // the spurs it stands on
+        const [lx2,lz2]=K(sd*0.27, 0.06);
+        cyl("metal", 0.012,0.012,0.34,7, lx2, SY+0.17, lz2, HW, 0.30, KA, sd*0.42);
+      }
+      const [px,pz]=K(0.02,-0.34);                      // and the pedal
+      push("metal", boxGeo(0.10,0.03,0.26,0), px, SY+0.07, pz, KA, "#6f767a");
+      cyl("metal", 0.030,0.030,0.13,8, K(0.02,-0.25)[0], SY+0.20, K(0.02,-0.25)[1],
+          "#3a3632", 0.5, KA, 0);
+    }
+    {                                                   // two rack toms off the kick
+      const mts=K(0,0.10);
+      cyl("metal", 0.016,0.016,0.30,7, mts[0], SY+0.70, mts[1], HW);
+      for(const sd of [-1,1]){
+        const [tx,tz]=K(sd*0.21, -0.02);
+        cyl("weathered", 0.145+0.02*(sd<0?1:0), 0.150, 0.24, 14, tx, SY+0.86, tz,
+            SHELL, 0.42, KA, -sd*0.26);
+        cyl("bell", 0.140,0.140,0.02,14, tx, SY+0.955, tz, HEAD, 0.42, KA, -sd*0.26);
+      }
+    }
+    {                                                   // floor tom on three legs
+      const [fx,fz]=K(0.46,-0.30);
+      cyl("weathered", 0.205,0.205,0.34,14, fx, SY+0.50, fz, SHELL);
+      cyl("bell", 0.200,0.200,0.02,14, fx, SY+0.675, fz, HEAD);
+      for(let i=0;i<3;i++){
+        const b=i*2.09+0.4;
+        cyl("metal", 0.011,0.011,0.44,6, fx+Math.cos(b)*0.19, SY+0.24, fz+Math.sin(b)*0.19,
+            HW, Math.cos(b)*0.10, 0, -Math.sin(b)*0.10);
+      }
+    }
+    {                                                   // snare, hats, ride, crash
+      const [sx3,sz3]=K(-0.30,-0.28);
+      cyl("metal", 0.150,0.150,0.135,14, sx3, SY+0.545, sz3, HW, 0.10, KA, 0);
+      cyl("bell", 0.148,0.148,0.02,14, sx3, SY+0.617, sz3, HEAD, 0.10, KA, 0);
+      for(let i=0;i<3;i++){
+        const b=i*2.09+1.1;
+        cyl("metal", 0.010,0.010,0.48,6, sx3+Math.cos(b)*0.15, SY+0.25, sz3+Math.sin(b)*0.15,
+            HW, Math.cos(b)*0.14, 0, -Math.sin(b)*0.14);
+      }
+      const cym=(lx,lz,h,r,tilt)=>{
+        const [cx3,cz3]=K(lx,lz);
+        cyl("metal", 0.010,0.013,h,6, cx3, SY+h/2, cz3, HW);
+        cyl("bell", r,r,0.010,18, cx3, SY+h, cz3, BRASS2, tilt, KA, 0);
+        cyl("bell", 0.035,0.035,0.030,10, cx3, SY+h+0.018, cz3, BRASS2, tilt, KA, 0);
+      };
+      cym(-0.60,-0.10, 0.80, 0.175, 0.16);              // the hats, closed
+      const [hh,hz2]=K(-0.60,-0.10);
+      cyl("bell", 0.175,0.175,0.010,18, hh, SY+0.755, hz2, BRASS2, -0.10, KA, 0);
+      cym( 0.52, 0.22, 1.20, 0.245, 0.26);              // the ride
+      cym(-0.46, 0.30, 1.32, 0.205, -0.30);             // and the crash
+      const [thx,thz]=K(0,-0.72);                       // the throne
+      cyl("fabric", 0.165,0.170,0.085,14, thx, SY+0.545, thz, "#2b2723");
+      cyl("metal", 0.035,0.045,0.50,8, thx, SY+0.25, thz, HW);
+      for(let i=0;i<3;i++){
+        const b=i*2.09;
+        cyl("metal", 0.012,0.012,0.30,6, thx+Math.cos(b)*0.13, SY+0.10, thz+Math.sin(b)*0.13,
+            HW, Math.cos(b)*0.55, 0, -Math.sin(b)*0.55);
+      }
+    }
+    addCol(KX-0.62, KX+0.52, KZ-0.58, KZ+0.58, 0, SY+0.70);
+    // a bass rig stacked beside the guitar cab, and two guitars on stands
+    bx("weathered", 0.60, 0.74, 0.40, SX0+0.50, SY+1.13, SZ1-1.08, 0.45, 0.20, "#241f1c");
+    for(let i=0;i<4;i++)
+      push("bin", new T.CylinderGeometry(0.115,0.115,0.025,12), SX0+0.36+((i%2)*0.28),
+           SY+0.98+(((i/2)|0)*0.30), SZ1-1.26, 0.20, "#3e352e", 0, Math.PI/2);
+    const gtr=(gx2,gz2,ga,body,neck)=>{
+      for(const sd of [-1,1])                           // the stand's two legs
+        cyl("metal", 0.012,0.012,0.42,6, gx2+Math.cos(ga+sd*0.5)*0.11, SY+0.20,
+            gz2+Math.sin(ga+sd*0.5)*0.11, "#3a3632", Math.cos(ga)*0.18, 0, -Math.sin(ga)*0.18);
+      const lean=0.22, si2=Math.sin(lean), co2=Math.cos(lean);
+      const dx2=Math.sin(ga)*si2, dz2=Math.cos(ga)*si2;
+      push("oak", boxGeo(0.33,0.42,0.055,0.5), gx2+dx2*0.32, SY+0.42+co2*0.32,
+           gz2+dz2*0.32, ga, body, lean, 0);
+      push("oak", blobGeo(0.155), gx2+dx2*0.26, SY+0.40+co2*0.26, gz2+dz2*0.26, ga, body);
+      push("oak", boxGeo(0.058,0.78,0.030,0), gx2+dx2*0.92, SY+0.42+co2*0.92,
+           gz2+dz2*0.92, ga, neck, lean, 0);
+      push("oak", boxGeo(0.085,0.20,0.028,0), gx2+dx2*1.34, SY+0.42+co2*1.34,
+           gz2+dz2*1.34, ga, "#2f2722", lean, 0);
+      push("metal", boxGeo(0.30,0.09,0.035,0), gx2+dx2*0.30, SY+0.40+co2*0.30,
+           gz2+dz2*0.30, ga, "#a9aeb2", lean, 0);
+    };
+    gtr(SX0+2.42, SZ1-0.52, 0.30, "#6b3a22", "#c0a06a");
+    gtr(SX0+2.74, SZ1-0.86, 0.55, "#2f3f5c", "#c0a06a");
+    // two PA columns, one at each open corner, on their own poles
+    for(const q of [[SX0+0.34, SZ0+0.40], [SX1-0.34, SZ0+0.40]]){
+      cyl("metal", 0.038,0.048,1.34,8, q[0], SY+0.67, q[1], "#3a3632");
+      cyl("metal", 0.22,0.22,0.03,12, q[0], SY+0.02, q[1], "#3a3632");
+      bx("weathered", 0.36, 0.72, 0.30, q[0], SY+1.66, q[1], 0.45, 0.12, "#241f1c");
+      for(let i=0;i<2;i++)
+        push("bin", new T.CylinderGeometry(0.105,0.105,0.022,12), q[0], SY+1.48+i*0.34,
+             q[1]-0.14, 0.12, "#3e352e", 0, Math.PI/2);
+      push("bin", new T.CylinderGeometry(0.045,0.045,0.020,10), q[0], SY+1.92, q[1]-0.14,
+           0.12, "#3e352e", 0, Math.PI/2);
+    }
+    // a second mic, a setlist taped to the deck, and what was left on the amp
+    cyl("metal", 0.028,0.028,1.32,8, SX1-0.62, SY+0.66, SZ0+1.05, "#4e5458");
+    cyl("metal", 0.15,0.15,0.03,12, SX1-0.62, SY+0.02, SZ0+1.05, "#4e5458");
+    cyl("metal", 0.024,0.020,0.13,9, SX1-0.62, SY+1.34, SZ0+1.02, "#2b2723", 0.5, 0, 0);
+    push("paper", boxGeo(0.17,0.006,0.24,0), SX1-1.05, SY+0.055, SZ0+0.42, 0.18, "#ded6bc");
+    for(let i=0;i<6;i++)
+      push("soot", planeGeo(0.11,0.012,0), SX1-1.05, SY+0.062, SZ0+0.35+i*0.028, 0.18,
+           "#3a332a", -Math.PI/2, 0);
+    for(const q of [[SX0+0.42,SZ1-0.30],[SX0+1.48,SZ1-0.34],[SX0+1.70,SZ1-0.30]])
+      cyl("glass", 0.033,0.028,0.22,10, q[0], SY+1.36, q[1], "#3f5a2e");
+    // the banner that went up for one Friday and stayed up
+    push("fabric", planeGeo(2.30,0.60,0), SX0+0.09, FY+2.60, (SZ0+SZ1)/2+0.30,
+         Math.PI/2, "#3a1f1e");
+    push("fabric", planeGeo(2.30,0.05,0), SX0+0.10, FY+2.90, (SZ0+SZ1)/2+0.30,
+         Math.PI/2, "#8a6a2a");
+    push("fabric", planeGeo(2.30,0.05,0), SX0+0.10, FY+2.31, (SZ0+SZ1)/2+0.30,
+         Math.PI/2, "#8a6a2a");
     addCol(SX0, SX0+1.1, SZ1-0.7, SZ1, 0, SY+1.0);
     addZone(SX0, SX1, SZ0, SZ1, 0, FY+2.2, "THE STAGE");
   })();
@@ -6952,8 +7162,8 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       for(let k2=0;k2<5+((i*3)%4);k2++){
         const a=((i*7+k2*13)%360)*0.01745, lean=0.35+((k2*5)%4)*0.16, L=0.16+((i*5)%4)*0.09;
         const si=Math.sin(lean), co=Math.cos(lean);
-        m.P("foliage", boxGeo(0.018, L, 0.008, 0), wx-Math.sin(a)*si*L/2, SF-0.02+co*L/2,
-            wz-Math.cos(a)*si*L/2, a, ((i+k2)%3) ? "#7a7f4e" : "#9a8f70", lean, 0);
+        m.P("foliage", boxGeo(0.018, L, 0.008, 0), wx+Math.sin(a)*si*L/2, SF-0.02+co*L/2,
+            wz+Math.cos(a)*si*L/2, a, ((i+k2)%3) ? "#7a7f4e" : "#9a8f70", lean, 0);
       }
     }
     for(let i=0;i<7;i++)                               // and drifts against the wall
@@ -7036,8 +7246,8 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       for(let k=0;k<4+((i*3)%4);k++){
         const a=((i*13+k*29)%360)*0.01745, lean=0.35+((k*5)%4)*0.18, L=0.15+((i*7)%4)*0.10;
         const si=Math.sin(lean), co=Math.cos(lean);
-        m.P("foliage", boxGeo(0.018, L, 0.008, 0), wx-Math.sin(a)*si*L/2, F+co*L/2,
-            wz-Math.cos(a)*si*L/2, a, ((i+k)%3) ? "#7a7f4e" : "#9a8f70", lean, 0);
+        m.P("foliage", boxGeo(0.018, L, 0.008, 0), wx+Math.sin(a)*si*L/2, F+co*L/2,
+            wz+Math.cos(a)*si*L/2, a, ((i+k)%3) ? "#7a7f4e" : "#9a8f70", lean, 0);
       }
     }
     for(let i=0;i<8;i++)                                   // and the oil that never lifted
@@ -7429,9 +7639,9 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       m.C("oak", 0.16,0.24,2.40,7, tx, 1.20, tz, "#7d7053", 0.04, 0.6, 0.03);
       const put=(x,y,z,r,h,lean,a)=>{
         const si=Math.sin(lean), co=Math.cos(lean);
-        m.C("oak", r*0.6,r, h, 6, x-Math.sin(a)*si*h/2, y+co*h/2, z-Math.cos(a)*si*h/2,
-            "#7d7053", lean, a, 0);
-        return [x-Math.sin(a)*si*h, y+co*h, z-Math.cos(a)*si*h];
+        const dx=Math.sin(a)*si, dz=Math.cos(a)*si;   // see stem(): same maths
+        m.C("oak", r*0.6,r, h, 6, x+dx*h/2, y+co*h/2, z+dz*h/2, "#7d7053", lean, a, 0);
+        return [x+dx*h, y+co*h, z+dz*h];
       };
       for(let i=0;i<5;i++){
         const a=i*1.3+0.4;
@@ -7454,14 +7664,17 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     const MX=-566, MZ=32;                              // the mouth
     const FY0=G(MX, MZ);                               // the floor is the ground here
     const m=mkPi(MX, MZ+20, FY0);                      // local +z runs back out of the hill
-    const ROCKC=["#c4a583","#bb9c7c","#af9172","#cbb08e","#a5886c"];
+    // Sampled off the terrain ramp that paints this hillside: dune and mountain
+    // with the iron-red band through it. The old set was a pale grey-tan and
+    // read as somebody else's rock tipped against an orange mesa.
+    const ROCKC=["#ad6f4c","#9c6547","#bb8259","#8f563d","#c59166"];
     const F=0.0, PH=2.50, CH=3.70;
     const PW=1.35;
     const PORT=[-PW,PW];
     const holes=(a0,a1,hs)=>{ const out=[]; let c=a0;
       for(const h of hs){ if(h[0]>c) out.push([c,h[0]]); c=Math.max(c,h[1]); }
       if(c<a1) out.push([c,a1]); return out; };
-    const lightRock=["#8a7360","#947d68","#7f6a58","#9c8470"];
+    const lightRock=["#7a5a48","#856450","#6e5040","#8d6c55"];
 
     // the ground here, relative to the floor — the slope falls away in front
     // of the portal and everything outside has to sit on it, not on the level
@@ -7473,11 +7686,28 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
           px, gh(px,pz)+0.10+((i%3)*0.16), pz, i*1.3,
           ROCKC[i%5], ((i*7)%5-2)*0.22, ((i*3)%5-2)*0.22);
     }
-    // the collar: the face the portal is cut into, standing proud of the slope
-    for(const g of holes(-4.0, 4.0, [[PORT[0]-0.20, PORT[1]+0.20]]))
-      m.B("rock", g[1]-g[0], 4.4, 1.5, (g[0]+g[1])/2, F+2.2, 20.0, 0.35, 0, ROCKC[2]);
-    m.B("rock", PORT[1]-PORT[0]+0.40, 4.4-(F+PH+0.55), 1.5, 0,
-        F+PH+0.55+(4.4-(F+PH+0.55))/2, 20.0, 0.35, 0, ROCKC[2]);
+    // The face the portal is cut into. This was two big boxes, which read from
+    // the flat as a rectangular slab set into the hill — the one thing out
+    // here that looked built. It is broken rock now: lumps on the seam either
+    // side of the opening and a lintel course over it, with thin boxes buried
+    // behind them doing the sealing so you still cannot see into the hollow.
+    for(const g of holes(-4.0, 4.0, [[PORT[0]-0.20, PORT[1]+0.20]])){
+      m.B("rock", g[1]-g[0], 4.4, 0.9, (g[0]+g[1])/2, F+2.2, 20.35, 0.35, 0, ROCKC[3]);
+      const w=g[1]-g[0];
+      for(let i=0;i<Math.max(3,(w*1.9)|0);i++){
+        const t=(i+0.5)/Math.max(3,(w*1.9)|0);
+        for(let k=0;k<3;k++)
+          m.P("rock", rockGeo(0.62+((i*5+k*3)%4)*0.42, 8200+i*31+k*7),
+              g[0]+t*w+((i*7)%3-1)*0.30, F+0.35+k*1.35+((i*3)%3)*0.28, 19.75,
+              i*1.3+k*0.7, ROCKC[(i+k)%5], ((i*7)%5-2)*0.22, ((i*3)%5-2)*0.22);
+      }
+    }
+    m.B("rock", PORT[1]-PORT[0]+0.40, 4.4-(F+PH+0.55), 0.9, 0,
+        F+PH+0.55+(4.4-(F+PH+0.55))/2, 20.35, 0.35, 0, ROCKC[3]);
+    for(let i=0;i<7;i++)                               // the lintel course over the hole
+      m.P("rock", rockGeo(0.52+((i*5)%3)*0.30, 8400+i*19),
+          -PW-0.1+i*(2*PW+0.2)/6, F+PH+0.55+((i*3)%3)*0.30, 19.80, i*1.1,
+          ROCKC[(i+3)%5], ((i*7)%5-2)*0.18, ((i*3)%5-2)*0.18);
     // On a slope this gentle the roof of the passage is still above the
     // hillside for the first eight metres, so the portal is collared: rock
     // piled over the drive and blended back into the face, which is what one
@@ -7639,13 +7869,16 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     for(const q of [-0.44, 0.44])
       m.B("metal", 0.05, 0.07, 14.6, q, F+0.085, 12.6, 0, 0, "#6a5a4a");
     (function(){
-      const kx=0.35, kz=12.4;
+      // It came off the rails, so it is over against the wall rather than
+      // parked across the drive: its collider used to straddle the centre and
+      // leave 0.40 m on one side, which is 2 cm less than you can walk through.
+      const kx=0.86, kz=12.4;
       m.P("metal", boxGeo(0.86,0.62,1.22,0.45), kx, F+0.44, kz, 0.42, RUST2, 0, 0.38);
       m.P("metal", boxGeo(0.90,0.10,1.26,0.45), kx-0.10, F+0.74, kz, 0.42, "#8a5a36", 0, 0.38);
       for(const c of [[-1,-1],[1,-1],[-1,1],[1,1]])
         m.P("metal", new T.CylinderGeometry(0.17,0.17,0.06,12), kx+c[0]*0.30, F+0.14,
             kz+c[1]*0.46, 0.42, "#5f4a38", Math.PI/2, 0);
-      m.col(kx-0.6, kx+0.6, kz-0.8, kz+0.8, 0, F+0.9);
+      m.col(kx-0.48, PW, kz-0.68, kz+0.68, 0, F+0.9);
     })();
     // rubble against the walls, and the dust of eighty years on the floor
     for(let i=0;i<26;i++){
@@ -7662,11 +7895,22 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       m.P("soot", planeGeo(0.5+dr()*0.9, 0.4+dr()*0.8, 0), px, F+0.013+i*0.0009, pz,
           dr()*6, "#6a5a48", -Math.PI/2, 0);
     }
-    // water has been coming through the roof for a very long time
+    // Water has been coming through the roof for a very long time. This used
+    // to be a 2 m opaque panel per stain, which lit up under the torch as a
+    // blank white slab either side of the drive — the one thing down here you
+    // could not read. A stain is a dark streak with a band where it stood.
     for(let i=0;i<12;i++){
-      const q=(i%2)?1:-1;
-      m.P("ochre", planeGeo(0.20+dr()*0.26, 1.5+dr()*0.7, 0), q*(PW-0.02), F+1.10,
-           6.0+i*1.25, q>0?-Math.PI/2:Math.PI/2, "#c7cfc4", 0, 0);
+      const q=(i%2)?1:-1, fw=q>0?-Math.PI/2:Math.PI/2, wxp=q*(PW-0.02);
+      const cz=5.4+i*1.30;
+      m.P("soot", planeGeo(0.14+dr()*0.16, 1.2+dr()*0.7, 0), wxp, F+1.32, cz, fw,
+          "#4e4438", 0, 0);                             // the run, top to bottom
+      m.P("soot", planeGeo(0.09+dr()*0.10, 0.9+dr()*0.5, 0), wxp+q*0.004,
+          F+1.50, cz+0.16+dr()*0.3, fw, "#40382e", 0, 0);
+      m.P("soot", planeGeo(0.95+dr()*0.7, 0.10+dr()*0.07, 0), wxp+q*0.008,
+          F+0.52+dr()*0.16, cz, fw, "#3a3128", 0, 0);   // and where it stood
+      if(i%3===0)                                       // the mineral it left behind
+        m.P("ochre", planeGeo(0.05+dr()*0.05, 0.30+dr()*0.22, 0), wxp+q*0.012,
+            F+1.05, cz-0.1, fw, "#a89a7c", 0, 0);
     }
     // candle stubs on ledges, all of them long out
     for(let i=0;i<9;i++){
@@ -7680,13 +7924,41 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
           pz + (alongA? 0 : -q*0.012), alongA?(q>0?-Math.PI/2:Math.PI/2):0,
           "#3a332a", 0, 0);
     }
-    // a rope on spikes, and a lantern that will not be lit again
-    for(let i=0;i<8;i++)
-      m.P("teal", boxGeo(2.0,0.022,0.022,0), -PW+0.06, F+1.42-Math.sin(i*0.8)*0.06,
-          6.4+i*1.9, Math.PI/2, "#6a5f4a", 0, ((i*5)%5-2)*0.03);
-    m.C("metal", 0.075,0.085,0.20,10, 0.9, F+1.86, 16.4, "#5f4a38");
-    m.P("glass", boxGeo(0.12,0.16,0.12,0), 0.9, F+1.86, 16.4, 0, "#6f7a72");
-    m.C("metal", 0.010,0.010,0.30,6, 0.9, F+2.06, 16.4, "#5f4a38");
+    // A rope on spikes — which wanted the spikes. Each span now runs between
+    // two of them and dips in the middle the way a slack rope does.
+    for(let i=0;i<9;i++){
+      const sz=6.4+i*1.9;
+      m.C("metal", 0.016,0.020,0.26,6, -PW+0.10, F+1.46, sz, "#6f6558", 0, 0, Math.PI/2);
+      m.P("metal", new T.TorusGeometry(0.040,0.009,4,10), -PW+0.21, F+1.46, sz,
+          0, "#6f6558", 0, Math.PI/2);
+      if(i<8) for(let k=0;k<3;k++){                     // the span, sagging between them
+        const t=(k+0.5)/3, sag=Math.sin(t*Math.PI)*0.085;
+        m.C("teal", 0.013,0.013,0.66,5, -PW+0.21, F+1.46-sag, sz+t*1.9-0.32,
+            "#6a5f4a", Math.PI/2, 0, (t-0.5)*0.42);
+      }
+    }
+    // and a lantern that will not be lit again, on the spike it was left on
+    (function(){
+      const lz=16.4, lxp=-PW+0.13;
+      m.C("metal", 0.015,0.019,0.30,6, lxp, F+1.78, lz, "#6f6558", 0, 0, Math.PI/2);
+      m.P("metal", new T.TorusGeometry(0.055,0.010,4,12), lxp+0.13, F+1.72, lz,
+          0, "#5f4a38", 0, 0);                          // the bail, over the spike
+      m.C("metal", 0.075,0.085,0.20,10, lxp+0.13, F+1.56, lz, "#5f4a38");
+      m.P("glass", boxGeo(0.12,0.16,0.12,0), lxp+0.13, F+1.56, lz, 0, "#6f7a72");
+      m.C("metal", 0.088,0.070,0.05,10, lxp+0.13, F+1.68, lz, "#5f4a38");
+      m.C("metal", 0.070,0.088,0.05,10, lxp+0.13, F+1.44, lz, "#5f4a38");
+    })();
+    // its twin, on the floor where it was dropped, and the tools that stayed
+    m.C("metal", 0.075,0.085,0.20,10, PW-0.42, F+0.09, 13.8, "#5f4a38", Math.PI/2, 0.6, 0);
+    m.P("glass", boxGeo(0.12,0.12,0.16,0), PW-0.42, F+0.09, 13.8, 0.6, "#6f7a72");
+    for(let i=0;i<5;i++)                                // drill steels against the wall
+      m.C("metal", 0.016,0.020,1.15+((i*5)%3)*0.25, 6, -PW+0.22+((i*3)%3)*0.05,
+          F+0.56, 8.4+i*0.16, "#6a6154", 0.34, 0.3+i*0.35, 0.16+((i*7)%3)*0.05);
+    m.C("metal", 0.115,0.115,0.17,12, PW-0.34, F+0.085, 9.6, "#7a5a3a");   // a powder tin
+    m.C("bin",   0.100,0.100,0.02,12, PW-0.34, F+0.175, 9.6, "#2b2622");
+    for(let i=0;i<6;i++)                                // and the fuse off its spool
+      m.P("teal", new T.TorusGeometry(0.085-i*0.004,0.010,4,12), PW-0.52, F+0.02, 10.3,
+          i*0.7, "#6a5f4a", Math.PI/2, 0);
     // and somebody kept count of something, near the mouth
     for(let i=0;i<34;i++)
       m.P("ochre", planeGeo(0.022, 0.16, 0), PW-0.02, F+1.52+((i/12)|0)*0.20,
@@ -8705,9 +8977,11 @@ const keys={};
 let started=false, hudOn=true, leaving=false;
 const WALK=3.05, RUN=5.6;
 
+let shiftHeld=false;               // the authoritative one, either key, from the event
 addEventListener("keydown",e=>{
   if(e.code==="Tab"){ e.preventDefault(); return; }
   keys[e.code]=true;
+  shiftHeld=e.getModifierState("Shift");
   if(e.code==="KeyH"){ hudOn=!hudOn; document.querySelectorAll("#mast,#keys,#cluster,#plan").forEach(el=>el.style.display=hudOn?"":"none"); }
   if(e.code==="KeyO"){ view=(view==="fp"?"plan":"fp"); }
   if(e.code==="KeyN"){ DayNight.setHour(21.6); toast("NIGHTFALL","#6fe3ff"); }
@@ -8719,7 +8993,15 @@ addEventListener("keydown",e=>{
   if(e.code==="KeyL"){ torchOn=!torchOn; toast(torchOn?"FLASHLIGHT ON":"FLASHLIGHT OFF","#ffe9a8"); }
   if((e.code==="KeyE"||e.code==="Space") && !droneMode) interact();
 });
-addEventListener("keyup",e=>{ keys[e.code]=false; });
+addEventListener("keyup",e=>{ keys[e.code]=false; shiftHeld=e.getModifierState("Shift"); });
+// Alt-tab away mid-stride and the keyup for whatever you were holding never
+// arrives, so the key stays down for good; come back and the first Shift can
+// land while the window is still catching up. Trust the browser's own modifier
+// state for Shift, and drop everything when the window stops listening.
+function clearKeys(){ for(const k in keys) keys[k]=false; shiftHeld=false; }
+addEventListener("blur", clearKeys);
+addEventListener("contextmenu", clearKeys);
+document.addEventListener("visibilitychange",()=>{ if(document.hidden) clearKeys(); });
 
 /* --- look: pointer lock when it is allowed, drag everywhere else ------ */
 const dom=renderer.domElement;
@@ -8883,7 +9165,7 @@ function fixedUpdate(dt){
   player.sit += (0-player.sit)*Math.min(1,dt*6);
   const underwater = player.feetY < POOL.water-0.05 &&
                      inPool(player.pos.x, player.pos.z);
-  let sp=(keys.ShiftLeft||keys.ShiftRight?RUN:WALK)*(underwater?0.45:1);
+  let sp=(keys.ShiftLeft||keys.ShiftRight||shiftHeld?RUN:WALK)*(underwater?0.45:1);
   if(f||r){
     const len=Math.hypot(f,r)||1;
     const sinY=Math.sin(player.yaw), cosY=Math.cos(player.yaw);
@@ -8980,7 +9262,7 @@ function droneUpdate(dt){
   if(keys.KeyD||keys.ArrowRight) { ax-=cy; az+=sy; }
   if(keys.KeyA||keys.ArrowLeft)  { ax+=cy; az-=sy; }
   if(keys.Space) ay+=1;
-  if(keys.ShiftLeft||keys.ShiftRight) ay-=1;
+  if(keys.ShiftLeft||keys.ShiftRight||shiftHeld) ay-=1;
   // The point of it is to get somewhere. Drag caps the speed at accel/drag,
   // so 62 against 2.3 settles around 27 m/s — nine times walking pace, and
   // the far side of the desert in half a minute.

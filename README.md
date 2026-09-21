@@ -263,7 +263,11 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   of the cut are faced in the same rock, and **every rock out here is either
   something you walk round or something you step over** — anything with a body
   gets a collider, which the hundred and forty loose lumps of the previous
-  version did not. The whole route from the fan to the far wall of the chamber
+  version did not. Inside, the drive's walls are one continuous slab a side
+  with the relief standing off it in **vertical** facets: rock broken along
+  the drill lines stands in vertical faces, and blocks that are wide and short
+  merge with their neighbours into continuous horizontal ledges, which made
+  the drive read as shelving. The whole route from the fan to the far wall of the chamber
   is flood-filled at 20 cm as part of the checks, so there is nowhere on it you
   can wedge yourself. There is no track in: a graded scar running off the
   graves was a signpost saying LOOK HERE.

@@ -7848,7 +7848,7 @@ i===1?"#6a5a3c":"#7a6746");
     // plane. Relief is separate blocks standing proud of that plane, none of
     // them touching another, and the collider is pulled in to the deepest one
     // so nothing ever protrudes through it. WD is that budget.
-    const WD=0.20;
+    const WD=0.16;
     const wallRun=(a0,a1,axis,q)=>{                    // one slab, no joints
       const mid=(a0+a1)/2, len=a1-a0;
       if(axis==="z") m.B("rock", 1.5, PH+1.2, len, q*(PW+0.75), F+PH/2, mid, 0.5, 0,
@@ -7856,16 +7856,23 @@ i===1?"#6a5a3c":"#7a6746");
       else           m.B("rock", len, PH+1.2, 1.5, mid, F+PH/2, q*(PW+0.75)+5.0, 0.5, 0,
                          lightRock[q>0?1:3]);
     };
-    const relief=(a,axis,q,i)=>{                       // and what stands off it
-      const d=0.035+((i*7)%5)*0.033, h2=0.26+((i*5)%5)*0.21, y=F+0.16+((i*11)%7)*0.33;
-      if(y+h2/2>F+PH-0.12) return;
-      const w=0.26+((i*3)%5)*0.17;
+    // Rock broken along the drill lines stands in vertical facets. Blocks that
+    // are wide and short, quantised onto a handful of heights, merge with
+    // their neighbours into continuous horizontal ledges and the drive reads
+    // as shelving — which is what a denser pass of them made it look like.
+    // Tall and narrow, each standing off by its own amount, reads as hewn.
+    const relief=(a,axis,q,i)=>{
+      const d=0.030+((i*7)%5)*0.026;                 // how far it stands proud
+      const y0=F+0.03+((i*13)%4)*0.11;
+      const h2=PH-0.18-((i*5)%5)*0.30-(y0-F);        // most of the way up, and varied
+      if(h2<0.55) return;
+      const w=0.28+((i*3)%5)*0.13, y=y0+h2/2;
       if(axis==="z") m.B("rock", d*2, h2, w, q*(PW-d), y, a, 0.5, 0, lightRock[(i+1)%4]);
       else           m.B("rock", w, h2, d*2, a, y, q*(PW-d)+5.0, 0.5, 0, lightRock[(i+2)%4]);
     };
     for(const q of [-1,1]) wallRun(3.2, 20.9, "z", q);
-    for(let i=0;i<58;i++)
-      for(const q of [-1,1]) relief(3.9+i*0.295, "z", q, i*3+(q>0?1:0));
+    for(let i=0;i<41;i++)
+      for(const q of [-1,1]) relief(3.9+i*0.418, "z", q, i*3+(q>0?1:0));
     m.B("rock", PW*2+2.2, 0.9, 15.4, 0, F-0.45, 12.3, 0.5, 0, "#7f6a58");
     m.B("rock", PW*2+2.2, 1.0, 15.4, 0, F+PH+0.5, 12.3, 0.5, 0, "#8a7360");
     m.flat(-PW, PW, 3.4, 20.6, F);
@@ -7874,8 +7881,8 @@ i===1?"#6a5a3c":"#7a6746");
     m.col(-PW-1.8, -PW+WD, 6.34, 20.9, 0, F+PH+0.6);
     // ---- passage B: the turn --------------------------------------------
     for(const q of [-1,1]) wallRun(-8.8, 1.6, "x", q);
-    for(let i=0;i<32;i++)
-      for(const q of [-1,1]) relief(-8.3+i*0.325, "x", q, i*5+(q>0?2:0));
+    for(let i=0;i<24;i++)
+      for(const q of [-1,1]) relief(-8.3+i*0.435, "x", q, i*5+(q>0?2:0));
     m.B("rock", 11.6, 0.9, PW*2+2.2, -3.0, F-0.45, 5.0, 0.5, 0, "#7f6a58");
     m.B("rock", 11.6, 1.0, PW*2+2.2, -3.0, F+PH+0.5, 5.0, 0.5, 0, "#8a7360");
     m.flat(-8.6, 1.4, 5.0-PW, 5.0+PW, F);

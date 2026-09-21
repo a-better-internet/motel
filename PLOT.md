@@ -1,6 +1,9 @@
 # Low Desert Motel — the shape of a game
 
 An outline, not an implementation. Nothing in here is in `index.html` yet.
+There is a second, unrelated one in `PLOT-2.md` — same world, same Myst-shaped
+brief, different story and a different core verb. They are alternatives, not
+two halves.
 
 The brief: a Myst-shaped game. You are alone in the world. There is no
 character to talk to and nothing to fight. You find out what happened by

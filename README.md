@@ -242,20 +242,31 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   there is a burying ground: twelve stones behind a wire, three of them down,
   one plot that only ever got two boards and a nail, and a dead tree at the
   corner which is all you see of it from the road.
-- **The adit**, a long way behind the burying ground, driven into the side of
-  one of the escarpment's own hills — no structure was added to the landscape
-  to hold it, the hill was already there, and from the road you would have to
-  know to look for it. The timber portal stands in a collar of spoil and fallen
-  rock at the foot of the slope, with thirty-odd metres of passage behind it
-  which turn twice, so by the time you reach the end there is not one photon of
-  daylight left. The face it is cut into is broken rock, not masonry — it was
-  two big boxes for a round, which from the flat read as a rectangular slab set
-  into the hillside and was the one thing out there that looked built. All the
-  stone around the mouth takes its colours off the terrain ramp that paints
-  this particular hill, so the spoil and the collar are the mesa's own rock
-  rather than somebody else's tipped against it. The whole route from the mouth
-  to the far wall of the chamber is flood-filled at 20 cm as part of the
-  checks, so there is nowhere on it you can wedge yourself.
+- **The adit**, a long way behind the burying ground. **The ground itself is
+  dug here** — it is the only place on the map where that is true, and it is
+  what makes the mine read as something cut into a hill rather than a heap of
+  boulders with a hole behind it. A level working bench is carved out of the
+  terrain function, thirteen metres deep, narrowing from twelve metres wide at
+  its lip to seven at the back, with the waste tipped over the front edge in a
+  fan you walk up to get in. The natural slope climbs about half a metre per
+  metre here, so a bench held level arrives at the back four and a bit metres
+  below grade — and that step is the face the portal is cut into. The bench has
+  its own 2 m terrain grid, on the middle ring's 7 m lattice exactly so the two
+  meshes meet without a seam, because 7 m cells smear a four-metre step into a
+  dimple.
+  The face is generated from the ground rather than stated: a run of rock
+  columns, each topped out just above the hillside directly behind it and
+  footed on whatever is in front of it, so it dies away into the bank at both
+  ends instead of standing in the cut's own side-funnel like a monument. Each
+  column carries its own depth and overlaps its neighbours, so no two front
+  faces share a plane and there are no slots to see daylight through. The sides
+  of the cut are faced in the same rock, and **every rock out here is either
+  something you walk round or something you step over** — anything with a body
+  gets a collider, which the hundred and forty loose lumps of the previous
+  version did not. The whole route from the fan to the far wall of the chamber
+  is flood-filled at 20 cm as part of the checks, so there is nowhere on it you
+  can wedge yourself. There is no track in: a graded scar running off the
+  graves was a signpost saying LOOK HERE.
   Inside the passage: sets of timber every couple of metres and one that came
   down with the roof, rail and sleepers and the ore cart that came off them —
   over against the wall, because it used to sit astride the centre of a 2.7 m
@@ -476,7 +487,7 @@ costs nothing in performance.
 |---|---|
 | Walk | `W` `A` `S` `D` (or arrows) |
 | Look | drag, or pointer lock after a click |
-| Run | `Shift` — either one, and it reads the event's own modifier state, so a keyup lost to an alt-tab cannot leave it stuck on or off |
+| Run | `Shift` — either one, by physical key. It briefly also consulted the event's Shift modifier state, which reads true for any keystroke that needs Shift to produce its character, so on a layout that types `/` as a shifted key, `/` was a sprint button |
 | Open door / use | `E` or `Space` |
 | Sit down / stand up | `C` |
 | Drone mode | `F` — then `WASD` to fly, `Space` up, `Shift` down |
@@ -502,8 +513,10 @@ headless Chromium and asks the scene about itself rather than looking at it:
 - a float scan that clusters every primitive and reports the ones with nothing
   underneath them — birds on a wire, ceiling fittings, the flies in the bar and
   the set in 206 are the only ones left that are supposed to be up there;
-- a flood fill of the adit at 20 cm, from outside the mouth to the far wall of
-  the chamber, so nowhere on that route can wedge you;
+- a flood fill of the adit at 20 cm, from the spoil fan outside to the far wall
+  of the chamber, so nowhere on that route can wedge you;
+- a terrain profile dump over any footprint, for checking a cut before building
+  anything on it;
 - a fixed-step movement probe (`MOTEL.sim`) for anything about speed or keys.
 
 ## How it is built

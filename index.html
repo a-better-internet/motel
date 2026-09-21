@@ -1433,6 +1433,34 @@ const Terrain=(function(){
     return height*t + face*t;
   }
   const PAD_Y=-0.25;                       // graded sub-base, under every slab
+  /* The adit bench. This is the only place on the map where the ground has
+     been dug, and it has to be the ground rather than scenery: piling rock on
+     an untouched slope is what made the mine read as a heap of boulders with
+     a hole behind it instead of something cut into a hill.
+     A level working platform, narrowing as it goes in, with the waste tipped
+     over its front edge in a fan. The natural slope climbs about half a metre
+     per metre here, so a platform held level from z = 33 to z = 46 arrives at
+     the face four and a bit metres below grade — and that face is the thing
+     the portal is cut into. You walk up the fan, into the cut, and the hill
+     closes over your head.                                                 */
+  const ADIT={x:-566, y:10.0, zFace:46, zLip:33, zToe:24, hwFace:3.6, hwLip:6.0};
+  function aditCut(x,z,h){
+    if(z>ADIT.zFace || z<ADIT.zToe-4) return h;          // behind the face, untouched
+    const dx=Math.abs(x-ADIT.x);
+    if(z>=ADIT.zLip){                                    // the cut itself
+      const t=(z-ADIT.zLip)/(ADIT.zFace-ADIT.zLip);
+      const hw=ADIT.hwLip+(ADIT.hwFace-ADIT.hwLip)*t;
+      const s=smoothstep(hw, hw+4.2, dx);                // banked back into the hill
+      return Math.min(h, ADIT.y+(h-ADIT.y)*s);
+    }
+    const t=Math.min(1,(ADIT.zLip-z)/(ADIT.zLip-ADIT.zToe));
+    const hw=ADIT.hwLip+t*5.5;                           // the fan spreads as it falls
+    const s=smoothstep(hw+2.5, hw-2.0, dx);
+    if(s<=0) return h;
+    const fan=ADIT.y+(h-ADIT.y)*Math.pow(t,1.45)
+            + (fbm(x*0.22+9, z*0.22+9)-0.5)*1.1*s*(1-t*0.5);
+    return h+(fan-h)*s;
+  }
   function heightAt(x,z){
     const d=padDist(x,z);
     if(d<=0.001) return PAD_Y;
@@ -1463,9 +1491,9 @@ const Terrain=(function(){
         h=Math.max(h, top+rough+ridge+fine);
       }
     }
-    return h;
+    return aditCut(x,z,h);
   }
-  return {heightAt:heightAt, fbm:fbm, PAD:PAD, PAD_Y:PAD_Y};
+  return {heightAt:heightAt, fbm:fbm, PAD:PAD, PAD_Y:PAD_Y, ADIT:ADIT};
 })();
 
 const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
@@ -1528,8 +1556,14 @@ const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
   // Three rings: a coarse horizon, a 5 m band across the canyon country where
   // the strata and cliff faces need to read, and a 2 m grid over the site.
   const MID={x0:-1008, x1:1008, z0:-1078, z1:938};
+  // The bench is a 4 m step in the ground and the middle ring's 7 m cells
+  // would smear it into a dimple, so it gets 2 m cells of its own. Its box is
+  // on the 7 m lattice exactly (MID.x0 + 7k, MID.z0 + 7k) so the coarse grid
+  // drops precisely those cells and the two meshes meet without a seam.
+  const ADIT_SITE={x0:-588, x1:-546, z0:14, z1:56};
   grid(-1800,1800,-1740,1860, 24, [MID], "desert-far");
-  grid(MID.x0, MID.x1, MID.z0, MID.z1, 7, [NEAR_SITE], "desert-mid");
+  grid(MID.x0, MID.x1, MID.z0, MID.z1, 7, [NEAR_SITE, ADIT_SITE], "desert-mid");
+  grid(ADIT_SITE.x0, ADIT_SITE.x1, ADIT_SITE.z0, ADIT_SITE.z1, 2, [], "desert-adit");
   grid(NEAR_SITE.x0, NEAR_SITE.x1, NEAR_SITE.z0, NEAR_SITE.z1, 2, [POOL.deck], "desert-near");
 })();
 
@@ -2391,6 +2425,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     [ 148, 206,-462,-406],   // the motel that did not make it
     [-276,-248, 104, 132],   // the windmill and its stock tank
     [-654,-606, -90, -46],   // the burying ground
+    [-580,-552,  22,  50],   // the adit bench and its spoil fan
   ];
   const built=(x,z)=>{
     for(const r of KEEP_CLEAR) if(x>r[0]&&x<r[1]&&z>r[2]&&z<r[3]) return true;
@@ -5014,9 +5049,18 @@ function signTex(w,h,draw){
   return setSRGB(new T.CanvasTexture(c));
 }
 function signPanel(w,h,tex,x,y,z,ry,lit){
+  // Every printed face in this world is a plane standing a couple of
+  // centimetres proud of the board behind it. Depth precision falls off with
+  // the square of the distance — with near at 0.24 a 24-bit buffer resolves
+  // about a centimetre at 200 m and four at 400 — so past a couple of hundred
+  // metres the board and its own face are the same depth and the pair flicker
+  // against each other. That is the pole sign and the GAS · FOOD · ICE board
+  // breaking up as you drive away from them. polygonOffset biases in depth
+  // units rather than world units, so the face wins at every range.
+  const opts={map:tex, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-4};
   const m=new T.Mesh(new T.PlaneGeometry(w,h),
-    lit ? new T.MeshBasicMaterial({map:tex, toneMapped:false})
-        : new T.MeshStandardMaterial({map:tex, roughness:0.8}));
+    lit ? new T.MeshBasicMaterial(Object.assign({toneMapped:false}, opts))
+        : new T.MeshStandardMaterial(Object.assign({roughness:0.8}, opts)));
   m.position.set(x,y,z); m.rotation.y=ry; scene.add(m);
   return m;
 }
@@ -5040,8 +5084,8 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
     x.fillStyle="#f1ead6"; fitText(x,"Low Desert Motel", W-150, 116, W/2, H/2+6);
   }), {aspect:6.6/1.78});
   bx("paint", BOARD_W, 1.95, 0.28, sx, 5.35, sz, 0, 0, "#e6e2d6");
-  NEON.push(signPanel(6.6,1.78,mainTex, sx, 5.35, sz-0.16, Math.PI, true));
-  NEON.push(signPanel(6.6,1.78,mainTex, sx, 5.35, sz+0.16, 0, true));
+  NEON.push(signPanel(6.6,1.78,mainTex, sx, 5.35, sz-0.20, Math.PI, true));
+  NEON.push(signPanel(6.6,1.78,mainTex, sx, 5.35, sz+0.20, 0, true));
   // rates board — same width as the name board, so the stack reads as one
   // cabinet hung between the posts
   const rateTex=hosted("sign:rates", signTex(768,319,(x,W,H)=>{
@@ -5057,8 +5101,8 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
   // the reader board stops just under the name board. Overlapping, its
   // printed face landed on the plane of the name board's cream frame.
   bx("paint", BOARD_W-0.06, 2.92, 0.24, sx, 2.91, sz, 0, 0, "#e6e2d6");
-  NEON.push(signPanel(6.6,2.74,rateTex, sx, 2.91, sz-0.14, Math.PI, true));
-  NEON.push(signPanel(6.6,2.74,rateTex, sx, 2.91, sz+0.14, 0, true));
+  NEON.push(signPanel(6.6,2.74,rateTex, sx, 2.91, sz-0.18, Math.PI, true));
+  NEON.push(signPanel(6.6,2.74,rateTex, sx, 2.91, sz+0.18, 0, true));
   // VACANCY neon strip on top
   const vacTex=hosted("sign:vacancy", signTex(512,105,(x,W,H)=>{
     x.fillStyle="#150c08"; x.fillRect(0,0,W,H);
@@ -5066,8 +5110,8 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
   }), {aspect:3.8/0.78});
   bx("paint", 4.0, 0.9, 0.26, sx, 6.85, sz, 0, 0, "#22201c");
   // the VACANCY tube has never quite struck properly since about 1988
-  VAC_NEON.push(signPanel(3.8,0.78,vacTex, sx, 6.85, sz-0.15, Math.PI, true));
-  VAC_NEON.push(signPanel(3.8,0.78,vacTex, sx, 6.85, sz+0.15, 0, true));
+  VAC_NEON.push(signPanel(3.8,0.78,vacTex, sx, 6.85, sz-0.19, Math.PI, true));
+  VAC_NEON.push(signPanel(3.8,0.78,vacTex, sx, 6.85, sz+0.19, 0, true));
   // gooseneck lamps over the board
   for(const d of [-1.6,1.6]){
     bx("metal", 0.07,0.60,0.07, sx+d, 6.45, sz-0.42, 0, 0, "#b8bcbc");
@@ -7661,9 +7705,14 @@ i===1?"#6a5a3c":"#7a6746");
      it to see there is a hole. Thirty-odd metres of passage behind it,
      turning twice, so by the end there is no daylight at all.            */
   (function(){
-    const MX=-566, MZ=32;                              // the mouth
-    const FY0=G(MX, MZ);                               // the floor is the ground here
-    const m=mkPi(MX, MZ+20, FY0);                      // local +z runs back out of the hill
+    // The floor is the bench, and the bench is cut into the terrain itself
+    // (see aditCut in section 4) rather than built on top of it. Taking both
+    // from one constant is the whole trick: the ground arrives at the portal
+    // four metres below grade, so the face the portal is cut into is real
+    // landform and the drive has rock over it from the first metre in.
+    const MX=Terrain.ADIT.x, MZ=Terrain.ADIT.zFace;    // the face
+    const FY0=Terrain.ADIT.y;                          // the working level
+    const m=mkPi(MX, MZ+20, FY0);                      // local +z runs back out
     // Sampled off the terrain ramp that paints this hillside: dune and mountain
     // with the iron-red band through it. The old set was a pale grey-tan and
     // read as somebody else's rock tipped against an orange mesa.
@@ -7679,97 +7728,160 @@ i===1?"#6a5a3c":"#7a6746");
     // the ground here, relative to the floor — the slope falls away in front
     // of the portal and everything outside has to sit on it, not on the level
     const gh=(x,z)=> G(m.wx(x,z), m.wz(x,z)) - FY0;
-    // the spoil, tipped downhill from the mouth, on the slope where it landed
-    for(let i=0;i<26;i++){
-      const px=((i*7)%7-3)*1.6, pz=21.0+((i*3)%7)*1.3;
-      m.P("rock", rockGeo(0.28+((i*5)%4)*0.34, 6100+i*13),
-          px, gh(px,pz)+0.10+((i%3)*0.16), pz, i*1.3,
-          ROCKC[i%5], ((i*7)%5-2)*0.22, ((i*3)%5-2)*0.22);
+    // A rock is either something you walk round or something you step over,
+    // never something you walk through. Everything with a body gets a
+    // collider; only gravel does not. The old approach was a hundred and
+    // forty loose lumps with no colliders at all, half of them hanging over
+    // the drive to cover a roof that was above grade — which is why it read
+    // as a heap of boulders with a hole behind it.
+    const boulder=(lx,lz,r,seed,i)=>{
+      const y=gh(lx,lz);
+      // bedded into the fan rather than balanced on it
+      m.P("rock", rockGeo(r, seed), lx, y+r*0.26, lz, i*1.1, ROCKC[i%5],
+          ((i*7)%5-2)*0.18, ((i*3)%5-2)*0.18);
+      if(r>=0.45) m.col(lx-r*0.72, lx+r*0.72, lz-r*0.72, lz+r*0.72, y-1.2, y+r*0.95);
+    };
+    // how wide the cut is at a given local z, straight off the terrain's own
+    // numbers, so rock and ground cannot drift apart
+    const A=Terrain.ADIT;
+    const cutHW=(lz)=>{ const wz=m.wz(0,lz);
+      const t=clamp((wz-A.zLip)/(A.zFace-A.zLip),0,1);
+      return A.hwLip+(A.hwFace-A.hwLip)*t; };
+
+    /* ---- the face, and the hole in it ----------------------------------
+       Generated from the ground rather than stated. A slab of fixed height
+       and width stands in the cut's own side-blend like a monument — which
+       is exactly what the first pass looked like — so the face is a run of
+       columns instead, each one topped out just above the hillside directly
+       behind it. At the middle that is four and a half metres; out at the
+       edges it dies away to nothing and the rock ties into the bank. Every
+       column carries its own depth, so no two neighbouring front faces share
+       a plane and there is nothing for the depth buffer to argue about.   */
+    const FH=5.0, FZ=20.30, FHW=5.6, JAMB=PW+0.22;
+    const hillTop =(lx)=>gh(lx, 19.55);                // the hill behind the face
+    const benchTop=(lx)=>gh(lx, 21.15);                // and the ground in front of it
+    const faceRun=(a0,a1,n,tag)=>{
+      for(let c=0;c<n;c++){
+        const w=(a1-a0)/n, cx=a0+w*(c+0.5);
+        const top=Math.min(F+FH+0.5, hillTop(cx)+0.46+((c*7+tag)%3)*0.10);
+        // The foot follows whatever is in front of the column. Run every
+        // column down to a fixed level instead and the ones out at the ends
+        // stand in the cut's own side-funnel with daylight under them, which
+        // is what made the first face read as a monument on the desert.
+        const bot=Math.min(F-0.5, benchTop(cx)-0.8);
+        if(top-bot<0.7) continue;                      // the hill is already lower
+        const d=1.02+((c*5+tag)%4)*0.17;
+        m.B("rock", w+0.42, top-bot, d, cx, (bot+top)/2, FZ, 0.45,
+            ((c*11+tag)%5-2)*0.012, ROCKC[(c+tag)%5]);
+      }
+    };
+    faceRun(-FHW, -JAMB, 6, 0);
+    faceRun( JAMB,  FHW, 6, 3);
+    {                                                  // the lintel over the hole
+      const top=Math.min(F+FH, hillTop(0)+0.34);
+      m.B("rock", JAMB*2+0.06, top-(F+PH+0.30), 1.24, 0,
+          F+PH+0.30+(top-(F+PH+0.30))/2, FZ, 0.45, 0, ROCKC[3]);
     }
-    // The face the portal is cut into. This was two big boxes, which read from
-    // the flat as a rectangular slab set into the hill — the one thing out
-    // here that looked built. It is broken rock now: lumps on the seam either
-    // side of the opening and a lintel course over it, with thin boxes buried
-    // behind them doing the sealing so you still cannot see into the hollow.
-    for(const g of holes(-4.0, 4.0, [[PORT[0]-0.20, PORT[1]+0.20]])){
-      m.B("rock", g[1]-g[0], 4.4, 0.9, (g[0]+g[1])/2, F+2.2, 20.35, 0.35, 0, ROCKC[3]);
-      const w=g[1]-g[0];
-      for(let i=0;i<Math.max(3,(w*1.9)|0);i++){
-        const t=(i+0.5)/Math.max(3,(w*1.9)|0);
-        for(let k=0;k<3;k++)
-          m.P("rock", rockGeo(0.62+((i*5+k*3)%4)*0.42, 8200+i*31+k*7),
-              g[0]+t*w+((i*7)%3-1)*0.30, F+0.35+k*1.35+((i*3)%3)*0.28, 19.75,
-              i*1.3+k*0.7, ROCKC[(i+k)%5], ((i*7)%5-2)*0.22, ((i*3)%5-2)*0.22);
+    for(const g of [[-FHW,-JAMB],[JAMB,FHW]])          // and it is solid, all of it
+      m.col(g[0], g[1], FZ-0.80, FZ+0.80, 0, F+FH+0.9);
+
+    /* ---- the two sides of the cut, faced in the same rock --------------
+       The bank height has to be sampled out past the blend, where the ground
+       is still the hill: sampling it on the centreline gives zero, because
+       the centreline is the floor you are standing on.                    */
+    for(let i=0;i<12;i++){
+      const lz=21.30+i*1.02, hw=cutHW(lz);
+      const bank=Math.max(0.30, gh(hw+6.8, lz));   // out past the blend
+      for(const q of [-1,1]){
+        const k=i*2+(q>0?1:0);
+        const bw=0.72+((k*7)%5)*0.32, d=1.48+((k*3)%4)*0.30;   // overlaps its neighbours
+        const zz=lz+((k*5)%3-1)*0.20, top=bank+0.30+((k*11)%4)*0.22;
+        m.B("rock", bw, top+1.5, d, q*(hw+bw*0.40), F+(top+1.5)/2-1.5, zz,
+            0.45, ((k*7)%5-2)*0.03, ROCKC[(i+(q>0?2:0))%5]);
+        m.col(q>0?hw-0.10:-(hw+bw), q>0?(hw+bw):-(hw-0.10), lz-d/2, lz+d/2,
+              0, F+Math.max(bank,0.9));
       }
     }
-    m.B("rock", PORT[1]-PORT[0]+0.40, 4.4-(F+PH+0.55), 0.9, 0,
-        F+PH+0.55+(4.4-(F+PH+0.55))/2, 20.35, 0.35, 0, ROCKC[3]);
-    for(let i=0;i<7;i++)                               // the lintel course over the hole
-      m.P("rock", rockGeo(0.52+((i*5)%3)*0.30, 8400+i*19),
-          -PW-0.1+i*(2*PW+0.2)/6, F+PH+0.55+((i*3)%3)*0.30, 19.80, i*1.1,
-          ROCKC[(i+3)%5], ((i*7)%5-2)*0.18, ((i*3)%5-2)*0.18);
-    // On a slope this gentle the roof of the passage is still above the
-    // hillside for the first eight metres, so the portal is collared: rock
-    // piled over the drive and blended back into the face, which is what one
-    // of these actually looks like.
-    for(let i=0;i<16;i++)
-      m.P("rock", rockGeo(0.55+((i*5)%4)*0.55, 6400+i*17),
-          ((i*7)%9-4)*1.1, F+0.2+((i*3)%5)*0.75, 19.4+((i%3)-1)*0.7, i*1.1,
-          ROCKC[(i+1)%5], ((i*7)%5-2)*0.2, ((i*3)%5-2)*0.2);
-    for(let i=0;i<46;i++){                             // over the drive itself
-      const t=i/45, pz=19.4-t*11.0;
-      const px=((i*7)%7-3)/3*2.4;
-      const top=F+PH+0.85+((i*5)%4)*0.26;
-      m.P("rock", rockGeo(0.85+((i*5)%4)*0.55, 7100+i*19), px,
-          Math.max(gh(px,pz)+0.2, top), pz, i*0.9,
-          ROCKC[i%5], ((i*7)%5-2)*0.18, ((i*3)%5-2)*0.18);
+
+    /* ---- the waste, tipped over the lip and fanned out downhill --------
+       Waste rock off a small adit is mostly barrow-sized with a few blocks in
+       it, and it runs out down the fall line leaving the middle of the tip
+       walkable. The first pass put forty-odd metre-and-a-half boulders across
+       the whole fan, which read as a rockfall you had to squeeze through
+       rather than a spoil heap you walk up.                                */
+    const LANE=2.0;                                     // kept clear, up the middle
+    for(let i=0;i<20;i++){
+      const t=i/19, lz=33.4+t*9.4;
+      let lx=((i*11)%9-4)*(1.15+t*0.95)+((i*5)%3-1)*0.55;
+      if(Math.abs(lx)<LANE) lx+=Math.sign(lx||1)*(LANE+0.5);
+      boulder(lx, lz, 0.24+((i*7)%5)*0.13, 6100+i*13, i);
     }
-    for(let i=0;i<40;i++){                             // and down the flanks, on the slope
-      const q=(i%2)?1:-1, t=((i/2)|0)/19, pz=19.6-t*11.0;
-      const px=q*(3.0+t*1.4+((i*5)%3)*0.45);
-      m.P("rock", rockGeo(0.8+((i*3)%4)*0.55, 7500+i*23), px,
-          gh(px,pz)+0.25+((i*5)%3)*0.25, pz, i*1.1,
-          ROCKC[(i+2)%5], ((i*7)%5-2)*0.2, ((i*3)%5-2)*0.2);
+    for(let i=0;i<9;i++){                               // a few blocks on the lip
+      const lx=((i*7)%7-3)*2.05+((i%2)?0.7:-0.5), lz=31.6+((i*3)%3)*1.0;
+      if(Math.abs(lx)<Math.max(LANE+0.8, cutHW(lz)-0.8)) continue;
+      boulder(lx, lz, 0.46+((i*5)%4)*0.19, 6400+i*17, i+3);
     }
-    // a spur of rock across the approach, so you cannot see in from the flat.
-    // It stands on the slope, which falls away fast here — take the height
-    // from the ground under each block, not from the tunnel floor.
-    for(let i=0;i<15;i++){
-      const px=-6.4+((i*3)%4)*0.9, pz=24.0+i*1.6;
-      m.P("rock", rockGeo(1.2+((i*5)%4)*1.0, 6800+i*23), px,
-          gh(px,pz)+0.5+((i%3)*0.7), pz, i*0.9,
-          ROCKC[i%5], ((i*7)%5-2)*0.16, ((i*3)%5-2)*0.16);
-    }
+    for(let i=0;i<22;i++)                               // and the gravel it shed
+      m.P("rock", rockGeo(0.10+((i*5)%3)*0.07, 6900+i*29),
+          ((i*13)%11-5)*1.15, gh(((i*13)%11-5)*1.15, 32.6+((i*7)%10)*1.05)+0.04,
+          32.6+((i*7)%10)*1.05, i*1.3, ROCKC[i%5],
+          ((i*7)%5-2)*0.3, ((i*3)%5-2)*0.3);
+    for(let i=0;i<34;i++)                               // the floor is compacted waste
+      m.P("soot", planeGeo(0.7+((i*7)%4)*0.5, 0.5+((i*5)%3)*0.45, 0),
+          ((i*13)%9-4)*0.92, F+0.012, 21.4+((i*7)%12)*0.98, i*1.3,
+          ["#6a4a33","#7a5a40","#5e4230"][i%3], -Math.PI/2, 0);
+    for(let i=0;i<10;i++)                               // gravel on the bench itself
+      m.P("rock", rockGeo(0.14+((i*5)%3)*0.09, 6800+i*23),
+          ((i*7)%9-4)*0.62, F+0.07, 21.6+((i*5)%9)*0.95, i*1.1,
+          ROCKC[i%5], ((i*7)%5-2)*0.3, ((i*3)%5-2)*0.3);
 
     // ---- passage A: back into the hill ----------------------------------
-    const wallSeg=(cx,cy,cz,len,axis,col2,i)=>{
-      const j=((i*7)%5-2)*0.09, a=((i*11)%5-2)*0.05;
-      if(axis==="z") m.B("rock", 0.9+((i*3)%3)*0.25, PH+1.2, len+0.25, cx+j, cy, cz, 0.5, a, col2);
-      else           m.B("rock", len+0.25, PH+1.2, 0.9+((i*3)%3)*0.25, cx, cy, cz+j, 0.5, a, col2);
+    // The walls were a run of boxes that overlapped their neighbours by a
+    // quarter of a metre and each carried its own small rotation, so every
+    // joint was two nearly-parallel faces fighting over the same depth — the
+    // seams and the flicker down the drive. And because each box was a
+    // different width about a fixed centre, the wall's inner face wandered
+    // between 1.10 and 1.35 while the collider stayed at 1.35, so sometimes
+    // you could touch the rock and sometimes your face went through it.
+    //
+    // One continuous slab per side now, with its inner face exactly on a
+    // plane. Relief is separate blocks standing proud of that plane, none of
+    // them touching another, and the collider is pulled in to the deepest one
+    // so nothing ever protrudes through it. WD is that budget.
+    const WD=0.20;
+    const wallRun=(a0,a1,axis,q)=>{                    // one slab, no joints
+      const mid=(a0+a1)/2, len=a1-a0;
+      if(axis==="z") m.B("rock", 1.5, PH+1.2, len, q*(PW+0.75), F+PH/2, mid, 0.5, 0,
+                         lightRock[q>0?0:2]);
+      else           m.B("rock", len, PH+1.2, 1.5, mid, F+PH/2, q*(PW+0.75)+5.0, 0.5, 0,
+                         lightRock[q>0?1:3]);
     };
-    for(let i=0;i<11;i++){
-      const cz=19.3-i*1.40;
-      for(const q of [-1,1])
-        wallSeg(q*(PW+0.45), F+PH/2, cz, 1.40, "z", lightRock[(i+(q>0?1:0))%4], i+(q>0?3:0));
-    }
+    const relief=(a,axis,q,i)=>{                       // and what stands off it
+      const d=0.035+((i*7)%5)*0.033, h2=0.26+((i*5)%5)*0.21, y=F+0.16+((i*11)%7)*0.33;
+      if(y+h2/2>F+PH-0.12) return;
+      const w=0.26+((i*3)%5)*0.17;
+      if(axis==="z") m.B("rock", d*2, h2, w, q*(PW-d), y, a, 0.5, 0, lightRock[(i+1)%4]);
+      else           m.B("rock", w, h2, d*2, a, y, q*(PW-d)+5.0, 0.5, 0, lightRock[(i+2)%4]);
+    };
+    for(const q of [-1,1]) wallRun(3.2, 20.9, "z", q);
+    for(let i=0;i<58;i++)
+      for(const q of [-1,1]) relief(3.9+i*0.295, "z", q, i*3+(q>0?1:0));
     m.B("rock", PW*2+2.2, 0.9, 15.4, 0, F-0.45, 12.3, 0.5, 0, "#7f6a58");
     m.B("rock", PW*2+2.2, 1.0, 15.4, 0, F+PH+0.5, 12.3, 0.5, 0, "#8a7360");
     m.flat(-PW, PW, 3.4, 20.6, F);
     m.voidAt(-PW, PW, 3.4, 20.6, F-1.2, F+PH, F);
-    m.col(PW, PW+1.8, 3.66, 20.6, 0, F+PH+0.6);
-    m.col(-PW-1.8, -PW, 6.34, 20.6, 0, F+PH+0.6);
+    m.col(PW-WD, PW+1.8, 3.66, 20.9, 0, F+PH+0.6);
+    m.col(-PW-1.8, -PW+WD, 6.34, 20.9, 0, F+PH+0.6);
     // ---- passage B: the turn --------------------------------------------
-    for(let i=0;i<8;i++){
-      const cx=0.6-i*1.40;
-      for(const q of [-1,1])
-        wallSeg(cx, F+PH/2, q*(PW+0.45)+5.0, 1.40, "x", lightRock[(i+(q>0?2:0))%4], i+(q>0?5:0));
-    }
+    for(const q of [-1,1]) wallRun(-8.8, 1.6, "x", q);
+    for(let i=0;i<32;i++)
+      for(const q of [-1,1]) relief(-8.3+i*0.325, "x", q, i*5+(q>0?2:0));
     m.B("rock", 11.6, 0.9, PW*2+2.2, -3.0, F-0.45, 5.0, 0.5, 0, "#7f6a58");
     m.B("rock", 11.6, 1.0, PW*2+2.2, -3.0, F+PH+0.5, 5.0, 0.5, 0, "#8a7360");
     m.flat(-8.6, 1.4, 5.0-PW, 5.0+PW, F);
     m.voidAt(-8.6, 1.4, 5.0-PW, 5.0+PW, F-1.2, F+PH, F);
-    m.col(-8.8, PW+1.8, 3.06, 3.66, 0, F+PH+0.6);
-    m.col(-8.8, -PW,    6.34, 6.94, 0, F+PH+0.6);
+    m.col(-8.8, PW+1.8, 3.06, 3.66+WD, 0, F+PH+0.6);
+    m.col(-8.8, -PW+WD, 6.34-WD, 6.94, 0, F+PH+0.6);
     // ---- the chamber ------------------------------------------------------
     const CX0=-18.2, CX1=-8.0, CZ0=-2.4, CZ1=7.6;
     const hew=(cx,cz,w,d,i,col2)=> m.B("rock", w, CH+1.4, d, cx+((i*5)%3-1)*0.10,
@@ -7803,14 +7915,14 @@ i===1?"#6a5a3c":"#7a6746");
 
     /* ---- the mouth, from outside ---------------------------------------- */
     for(const q of [-1,1])
-      m.B("oak", 0.26, PH+0.70, 0.34, q*(PW+0.20), F+(PH+0.70)/2, 20.1, 0.5, 0, "#5a4630");
-    m.B("oak", PW*2+0.86, 0.30, 0.38, 0, F+PH+0.85, 20.1, 0.5, 0, "#4a3826");
+      m.B("oak", 0.26, PH+0.70, 0.34, q*(PW+0.20), F+(PH+0.70)/2, 19.45, 0.5, 0, "#5a4630");
+    m.B("oak", PW*2+0.86, 0.30, 0.38, 0, F+PH+0.85, 19.45, 0.5, 0, "#4a3826");
     for(let i=0;i<7;i++)
-      m.P("oak", boxGeo(0.30,0.06,0.42,0.5), -PW-0.22+i*(PW*2+0.44)/6, F+PH+1.04, 20.1,
+      m.P("oak", boxGeo(0.30,0.06,0.42,0.5), -PW-0.22+i*(PW*2+0.44)/6, F+PH+1.04, 19.45,
           ((i*5)%5-2)*0.03, "#5a4630", 0, ((i*7)%5-2)*0.03);
-    m.P("oak", boxGeo(0.52,0.30,0.05,0), 0, F+PH+0.52, 20.30, 0, "#6a5236", 0, 0.06);
+    m.P("oak", boxGeo(0.52,0.30,0.05,0), 0, F+PH+0.52, 19.16, 0, "#6a5236", 0, 0.06);
     for(let i=0;i<4;i++)
-      m.P("ochre", planeGeo(0.045,0.16,0), -0.16+i*0.105, F+PH+0.52, 20.33, 0,
+      m.P("ochre", planeGeo(0.045,0.16,0), -0.16+i*0.105, F+PH+0.52, 19.13, 0,
           "#3a332e", 0, 0);
     (function(){                                        // the windlass, still rigged
       const wx=2.6, wz=22.2, g0=gh(wx,wz);
@@ -7826,12 +7938,17 @@ i===1?"#6a5a3c":"#7a6746");
     for(let i=0;i<4;i++)
       m.P("ochre", planeGeo(0.74,0.08,0), -2.2, gh(-2.2,23.0)+0.13, 22.82+i*0.13, 0.7,
           "#4a3f34", -Math.PI/2+0.1, 0);
-    for(let i=0;i<6;i++){                               // stakes with rags on them
-      const px=-3.2+i*1.4, pz=25.0+((i*5)%4)*1.2, g0=gh(px,pz);
-      m.C("oak", 0.05,0.065,0.95,6, px, g0+0.44, pz, "#5b4632", ((i*7)%5-2)*0.05, i, 0);
-      if(i%2===0) m.P("fabric", boxGeo(0.10,0.22,0.03,0.5), px, g0+0.82, pz, i, "#8a3a30", 0, 0.3);
+    // Claim stakes, in a line along the edge of the workings rather than
+    // scattered across the way in, where six of them read as a thicket of
+    // dark posts standing in the middle of everything.
+    for(let i=0;i<4;i++){
+      const px=5.6+((i*5)%3)*0.5, pz=24.0+i*3.1, g0=gh(px,pz);
+      m.C("oak", 0.075,0.095,1.05,6, px, g0+0.48, pz, "#5b4632", ((i*7)%5-2)*0.05, i, 0);
+      m.P("fabric", boxGeo(0.12,0.24,0.035,0.5), px, g0+0.90, pz, i, "#8a3a30", 0, 0.3);
     }
-    dirtTrack(-630, -74, MX-3, MZ+16, 2.2);             // the way in, from the graves
+    // No track in. Somebody drove up here for eight months in 1977 and the
+    // desert has had forty-odd years to take it back; a graded two-metre
+    // scar running off the graves was a signpost saying LOOK HERE.
     /* ---- what is in the passage ---------------------------------------- */
     let ds=90211;
     const dr=()=>{ ds=(ds*1103515245+12345)%2147483648; return ds/2147483648; };
@@ -8650,8 +8767,8 @@ i===1?"#6a5a3c":"#7a6746");
       x.fillStyle="#c3311f"; fitText(x,"GAS · FOOD · ICE", W*0.86, 88, W/2, 120);
       x.fillStyle="#3a3a36"; fitText(x,"KEEP LEFT AT THE JUNCTION", W*0.8, 44, W/2, 210);
     });
-    NEON.push(signPanel(10.0,3.5,tex, bx0, 6.6, bz-0.19, Math.PI, true));
-    NEON.push(signPanel(10.0,3.5,tex, bx0, 6.6, bz+0.19, 0, true));
+    NEON.push(signPanel(10.0,3.5,tex, bx0, 6.6, bz-0.23, Math.PI, true));
+    NEON.push(signPanel(10.0,3.5,tex, bx0, 6.6, bz+0.23, 0, true));
     for(const d of [-2.6,2.6]){                       // two lamps, on the top rail
       bx("metal", 0.09,0.34,0.09, bx0+d, 8.86, bz, 0, 0, "#6b6156");
       push("metal", new T.CylinderGeometry(0.15,0.20,0.16,12), bx0+d, 9.06, bz-0.16,
@@ -8977,11 +9094,9 @@ const keys={};
 let started=false, hudOn=true, leaving=false;
 const WALK=3.05, RUN=5.6;
 
-let shiftHeld=false;               // the authoritative one, either key, from the event
 addEventListener("keydown",e=>{
   if(e.code==="Tab"){ e.preventDefault(); return; }
   keys[e.code]=true;
-  shiftHeld=e.getModifierState("Shift");
   if(e.code==="KeyH"){ hudOn=!hudOn; document.querySelectorAll("#mast,#keys,#cluster,#plan").forEach(el=>el.style.display=hudOn?"":"none"); }
   if(e.code==="KeyO"){ view=(view==="fp"?"plan":"fp"); }
   if(e.code==="KeyN"){ DayNight.setHour(21.6); toast("NIGHTFALL","#6fe3ff"); }
@@ -8993,12 +9108,11 @@ addEventListener("keydown",e=>{
   if(e.code==="KeyL"){ torchOn=!torchOn; toast(torchOn?"FLASHLIGHT ON":"FLASHLIGHT OFF","#ffe9a8"); }
   if((e.code==="KeyE"||e.code==="Space") && !droneMode) interact();
 });
-addEventListener("keyup",e=>{ keys[e.code]=false; shiftHeld=e.getModifierState("Shift"); });
+addEventListener("keyup",e=>{ keys[e.code]=false; });
 // Alt-tab away mid-stride and the keyup for whatever you were holding never
-// arrives, so the key stays down for good; come back and the first Shift can
-// land while the window is still catching up. Trust the browser's own modifier
-// state for Shift, and drop everything when the window stops listening.
-function clearKeys(){ for(const k in keys) keys[k]=false; shiftHeld=false; }
+// arrives, so the key stays down for good. Drop everything when the window
+// stops listening.
+function clearKeys(){ for(const k in keys) keys[k]=false; }
 addEventListener("blur", clearKeys);
 addEventListener("contextmenu", clearKeys);
 document.addEventListener("visibilitychange",()=>{ if(document.hidden) clearKeys(); });
@@ -9165,7 +9279,11 @@ function fixedUpdate(dt){
   player.sit += (0-player.sit)*Math.min(1,dt*6);
   const underwater = player.feetY < POOL.water-0.05 &&
                      inPool(player.pos.x, player.pos.z);
-  let sp=(keys.ShiftLeft||keys.ShiftRight||shiftHeld?RUN:WALK)*(underwater?0.45:1);
+  // Physical Shift, by e.code, and nothing else. This briefly also consulted
+  // e.getModifierState("Shift"), which reads true for any keystroke that needs
+  // Shift to produce its character — so on a layout that types "/" as a
+  // shifted key, "/" was a sprint button.
+  let sp=(keys.ShiftLeft||keys.ShiftRight?RUN:WALK)*(underwater?0.45:1);
   if(f||r){
     const len=Math.hypot(f,r)||1;
     const sinY=Math.sin(player.yaw), cosY=Math.cos(player.yaw);
@@ -9262,7 +9380,7 @@ function droneUpdate(dt){
   if(keys.KeyD||keys.ArrowRight) { ax-=cy; az+=sy; }
   if(keys.KeyA||keys.ArrowLeft)  { ax+=cy; az-=sy; }
   if(keys.Space) ay+=1;
-  if(keys.ShiftLeft||keys.ShiftRight||shiftHeld) ay-=1;
+  if(keys.ShiftLeft||keys.ShiftRight) ay-=1;
   // The point of it is to get somewhere. Drag caps the speed at accel/drag,
   // so 62 against 2.3 settles around 27 m/s — nine times walking pace, and
   // the far side of the desert in half a minute.

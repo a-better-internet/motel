@@ -1102,6 +1102,105 @@ TEX.streak=(function(){                       // rust bleeding down from a fitti
   return setSRGB(new T.CanvasTexture(c));
 })();
 
+/* --- the seven maps that were missing -----------------------------------
+   A survey of the built scene found 70% of its triangles on materials with no
+   map at all — foliage alone is 45% of the world and was flat colour. These
+   all multiply a vertex colour, so every one of them averages close to white:
+   they add grain, not tint. And because most pushes leave uvScale at 0, a map
+   here stretches 0..1 over whatever face it lands on, so none of them has a
+   direction or a feature you could measure against.                        */
+TEX.leafskin=(function(){                     // every plant in the desert
+  const c=cvs(128,128), x=c.getContext("2d");
+  x.fillStyle="#ffffff"; x.fillRect(0,0,128,128);
+  noiseDots(x,128,128,900,["rgba(70,90,50,0.20)","rgba(255,255,255,0.20)",
+                           "rgba(40,60,35,0.14)"]);
+  for(let i=0;i<40;i++){                      // the mottle a dry leaf has
+    const r=6+Math.random()*16;
+    x.fillStyle="rgba(90,105,70,"+(0.04+Math.random()*0.07)+")";
+    x.beginPath(); x.ellipse(Math.random()*128, Math.random()*128, r, r*0.7,
+                             Math.random()*3, 0, 7); x.fill();
+  }
+  for(let i=0;i<16;i++){                      // and the odd dead patch
+    x.fillStyle="rgba(150,130,80,"+(0.05+Math.random()*0.09)+")";
+    x.beginPath(); x.arc(Math.random()*128, Math.random()*128, 2+Math.random()*5, 0, 7);
+    x.fill();
+  }
+  return rep(setSRGB(new T.CanvasTexture(c)), 1, 1);
+})();
+TEX.trim=(function(){                         // painted steel, brushed and chipped
+  const c=cvs(128,128), x=c.getContext("2d");
+  x.fillStyle="#ffffff"; x.fillRect(0,0,128,128);
+  for(let i=0;i<150;i++){                     // the brush, all one way
+    x.strokeStyle="rgba("+(Math.random()<0.5?"255,255,255,":"120,120,110,")+
+                  (0.04+Math.random()*0.07)+")";
+    x.lineWidth=0.5+Math.random()*1.4; x.beginPath();
+    const y0=Math.random()*128; x.moveTo(0,y0);
+    x.lineTo(128, y0+(Math.random()-0.5)*4); x.stroke();
+  }
+  noiseDots(x,128,128,300,["rgba(255,255,255,0.16)","rgba(110,105,95,0.14)"]);
+  for(let i=0;i<22;i++){                      // chips, down to the primer
+    x.fillStyle="rgba(120,108,92,"+(0.14+Math.random()*0.2)+")";
+    x.beginPath(); x.arc(Math.random()*128, Math.random()*128, 0.8+Math.random()*2.2, 0, 7);
+    x.fill();
+  }
+  return rep(setSRGB(new T.CanvasTexture(c)), 1, 1);
+})();
+TEX.enamel=(function(){                       // eggshell paint on anything flat
+  const c=cvs(128,128), x=c.getContext("2d");
+  x.fillStyle="#ffffff"; x.fillRect(0,0,128,128);
+  noiseDots(x,128,128,1400,["rgba(255,255,255,0.16)","rgba(130,125,115,0.10)"]);
+  for(let i=0;i<10;i++){                      // orange peel, and a bit of dirt
+    x.fillStyle="rgba(140,132,118,"+(0.03+Math.random()*0.05)+")";
+    x.beginPath(); x.ellipse(Math.random()*128, Math.random()*128,
+                             8+Math.random()*22, 6+Math.random()*16,
+                             Math.random()*3, 0, 7); x.fill();
+  }
+  return rep(setSRGB(new T.CanvasTexture(c)), 1, 1);
+})();
+TEX.galv=(function(){                         // galvanised, with its spangle
+  const c=cvs(128,128), x=c.getContext("2d");
+  x.fillStyle="#ffffff"; x.fillRect(0,0,128,128);
+  for(let i=0;i<34;i++){                      // the crystals
+    const px=Math.random()*128, py=Math.random()*128, r=5+Math.random()*13;
+    x.fillStyle="rgba("+(Math.random()<0.5?"255,255,255,":"120,126,130,")+
+                (0.05+Math.random()*0.09)+")";
+    x.beginPath();
+    for(let k=0;k<6;k++){ const a=k*1.047+Math.random()*0.3, rr=r*(0.6+Math.random()*0.5);
+      const qx=px+Math.cos(a)*rr, qy=py+Math.sin(a)*rr;
+      k?x.lineTo(qx,qy):x.moveTo(qx,qy); }
+    x.closePath(); x.fill();
+  }
+  noiseDots(x,128,128,500,["rgba(255,255,255,0.14)","rgba(105,112,116,0.15)"]);
+  for(let i=0;i<26;i++){                      // scratches
+    x.strokeStyle="rgba(255,255,255,"+(0.06+Math.random()*0.12)+")";
+    x.lineWidth=0.4+Math.random()*0.8; x.beginPath();
+    const px=Math.random()*128, py=Math.random()*128, a=Math.random()*6, L=4+Math.random()*22;
+    x.moveTo(px,py); x.lineTo(px+Math.cos(a)*L, py+Math.sin(a)*L); x.stroke();
+  }
+  return rep(setSRGB(new T.CanvasTexture(c)), 1, 1);
+})();
+TEX.weave=(function(){                        // curtains, vinyl, bedding, coats
+  const c=cvs(96,96), x=c.getContext("2d");
+  x.fillStyle="#ffffff"; x.fillRect(0,0,96,96);
+  for(let i=0;i<96;i+=2){
+    x.fillStyle="rgba(120,114,104,0.07)"; x.fillRect(i,0,1,96);
+    x.fillStyle="rgba(255,255,255,0.22)"; x.fillRect(0,i,96,1);
+  }
+  noiseDots(x,96,96,700,["rgba(255,255,255,0.14)","rgba(110,104,96,0.13)"]);
+  return rep(setSRGB(new T.CanvasTexture(c)), 1, 1);
+})();
+TEX.rubber=(function(){                       // tyres, hose, mats
+  const c=cvs(96,96), x=c.getContext("2d");
+  x.fillStyle="#ffffff"; x.fillRect(0,0,96,96);
+  noiseDots(x,96,96,1800,["rgba(255,255,255,0.22)","rgba(60,58,55,0.18)"]);
+  for(let i=0;i<18;i++){                      // the bloom old rubber gets
+    x.fillStyle="rgba(210,208,200,"+(0.04+Math.random()*0.07)+")";
+    x.beginPath(); x.arc(Math.random()*96, Math.random()*96, 3+Math.random()*9, 0, 7);
+    x.fill();
+  }
+  return rep(setSRGB(new T.CanvasTexture(c)), 1, 1);
+})();
+
 TEX.haze=(function(){                         // a soft edge, so a shaft of light
   const c=cvs(128,128), x=c.getContext("2d");   // has no rectangle around it
   x.clearRect(0,0,128,128);
@@ -2278,9 +2377,9 @@ const matAsphalt  =()=>new T.MeshStandardMaterial({map:TEX.asphalt,  roughness:0
 const matRoof     =()=>new T.MeshStandardMaterial({map:TEX.roofMetal,roughness:0.55, metalness:0.35});
 const matRoofG    =()=>new T.MeshStandardMaterial({map:TEX.roofGreen,roughness:0.55, metalness:0.35});
 const matBreeze   =()=>new T.MeshStandardMaterial({map:TEX.breeze,   roughness:0.9});
-const matTeal     =()=>new T.MeshStandardMaterial({color:0xffffff,   roughness:0.62, metalness:0.12});
-const matPaint    =()=>new T.MeshStandardMaterial({color:0xffffff,   roughness:0.75});
-const matMetal    =()=>new T.MeshStandardMaterial({color:0xffffff,   roughness:0.34, metalness:0.72});
+const matTeal     =()=>new T.MeshStandardMaterial({map:TEX.trim,     roughness:0.62, metalness:0.12});
+const matPaint    =()=>new T.MeshStandardMaterial({map:TEX.enamel,   roughness:0.75});
+const matMetal    =()=>new T.MeshStandardMaterial({map:TEX.galv,     roughness:0.38, metalness:0.62});
 const matCarpet   =()=>new T.MeshStandardMaterial({map:TEX.carpet,   roughness:0.99});
 const matRoomWall =()=>new T.MeshStandardMaterial({map:TEX.roomWall, roughness:0.93});
 const matCeil     =()=>new T.MeshStandardMaterial({map:TEX.ceilTile, roughness:0.99});
@@ -2293,7 +2392,7 @@ const matGravel   =()=>new T.MeshStandardMaterial({map:TEX.gravel,   roughness:1
 const matStairT   =()=>new T.MeshStandardMaterial({map:TEX.stair,    roughness:0.94});
 const matPoolTile =()=>new T.MeshStandardMaterial({map:TEX.pooltile, roughness:0.22, metalness:0.06});
 const matPlaster  =()=>new T.MeshStandardMaterial({map:TEX.plaster,  roughness:0.35});
-const matFoliage  =()=>new T.MeshStandardMaterial({color:0xffffff,   roughness:0.9});
+const matFoliage  =()=>new T.MeshStandardMaterial({map:TEX.leafskin, roughness:0.9});
 
 bucketOf("stucco",matStucco);   bucketOf("stuccoOff",matStuccoOff);
 bucketOf("concrete",matConcrete); bucketOf("asphalt",matAsphalt);
@@ -4926,7 +5025,7 @@ bucketOf("carpaint", ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0
 bucketOf("chrome",   ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.26, metalness:0.85}));
 bucketOf("carglass", ()=>new T.MeshStandardMaterial({color:0xffffff, transparent:true, opacity:0.80,
                           roughness:0.08, metalness:0.45}));
-bucketOf("tyre",     ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.95}));
+bucketOf("tyre",     ()=>new T.MeshStandardMaterial({map:TEX.rubber, roughness:0.95}));
 (function parkedCars(){
   const BODY=["#7c1f14","#21386e","#b0b3b8","#2f5a34","#8a5a1e","#3a3735","#a8452b","#6d6b5e"];
   const GLASS="#20303a", TYRE="#0c0b0a", HUB="#9a9284", CHR="#b8b0a0";
@@ -5205,6 +5304,153 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
     bx("metal", 44.0, 0.06, 0.06, -74.0, 2.12, 25.6, 0, 0, "#9aa1a6");
     for(let x2=-96;x2<=-52;x2+=3.0) cyl("metal", 0.05,0.05,2.30,8, x2, 1.15, 25.6, "#9aa1a6");
     addCol(-96.2, -52.0, 25.4, 25.8, 0, 2.2);
+  })();
+
+  /* ---- the open lot between the Canteen and the office -----------------
+     Twenty metres of asphalt with a fence down the middle of it and nothing
+     on it, which is the one stretch of the site you cross every time and the
+     only one with nothing to look at. What ends up on a lot like this is
+     whatever was too big to move: a catering truck that stopped going out,
+     the bins the bar is not allowed to keep out front, and everything
+     somebody meant to deal with.                                         */
+  (function(){
+    const TX=-61.5, TZ=-7.0, TA=0.42;                  // the truck, parked askew
+    const c0=Math.cos(TA), s0=Math.sin(TA);
+    const K=(lx,lz)=>[TX+lx*c0+lz*s0, TZ-lx*s0+lz*c0];
+    const BODY="#d8cdb4", TRIM2="#9c3f2e", GLASS2="#7f9296", RUST3="#7a4526";
+    // a step van: box body, cab dropped in front of it, on four flat tyres
+    {
+      const [bx2,bz2]=K(0,0.55);
+      bx("siding", 2.28, 2.22, 4.60, bx2, 1.52, bz2, 0.45, TA, BODY);
+      bx("siding", 2.32, 0.30, 4.64, bx2, 2.72, bz2, 0.45, TA, "#cfc2a4");   // the roof cap
+      for(const q of [-1,1]){                          // a band down each side
+        const [px,pz]=K(q*1.16, 0.55);
+        push("paint", boxGeo(0.04, 0.42, 4.30, 0.5), px, 1.62, pz, TA, TRIM2);
+        push("rust", planeGeo(1.90, 1.30, 0), px+q*0.02*c0, 0.72, pz-q*0.02*s0,
+             TA+(q>0?0:Math.PI), RUST3);
+      }
+      const [fx2,fz2]=K(0,3.35);                       // the cab
+      bx("siding", 2.10, 1.62, 1.55, fx2, 1.16, fz2, 0.45, TA, BODY);
+      bx("carglass", 1.84, 0.86, 0.06, K(0,4.10)[0], 1.62, K(0,4.10)[1], 0, TA, GLASS2);
+      for(const q of [-1,1])
+        bx("carglass", 0.06, 0.72, 1.10, K(q*1.02,3.45)[0], 1.58, K(q*1.02,3.45)[1],
+           0, TA, GLASS2);
+      bx("chrome", 2.16, 0.22, 0.14, K(0,4.20)[0], 0.62, K(0,4.20)[1], 0, TA, "#9aa1a6");
+      for(const q of [-1,1])                           // headlamps, one of them gone
+        cyl("glass", 0.16,0.16,0.10,12, K(q*0.74,4.18)[0], 0.98, K(q*0.74,4.18)[1],
+            q>0?"#cfd6d2":"#2b2723", Math.PI/2, TA, 0);
+      for(const w of [[-1.02,2.95],[1.02,2.95],[-1.02,-1.15],[1.02,-1.15]]){
+        const [wx2,wz2]=K(w[0],w[1]);
+        push("tyre", new T.TorusGeometry(0.40,0.17,7,14), wx2, 0.34, wz2, TA,
+             "#22201e", 0, Math.PI/2);
+        cyl("metal", 0.19,0.19,0.16,12, wx2, 0.34, wz2, "#6f767a", 0, TA, Math.PI/2);
+      }
+      // the serving hatch, propped open, and what is still behind it
+      const [hx,hz]=K(1.15,1.20);
+      push("siding", boxGeo(1.70,1.05,0.05,0.5), hx, 2.42, hz, TA, "#c6b995", -1.15, 0);
+      bx("metal", 1.66, 0.06, 0.52, K(1.42,1.20)[0], 1.72, K(1.42,1.20)[1], 0, TA,
+         "#8e9498");                                   // the shelf under it
+      for(let i=0;i<4;i++)
+        cyl("metal", 0.012,0.012,0.62,6, K(1.30,0.55+i*0.42)[0], 2.05,
+            K(1.30,0.55+i*0.42)[1], "#8e9498", 0.5, TA, 0);
+      bx("metal", 1.50, 0.62, 0.50, K(0.55,1.30)[0], 1.30, K(0.55,1.30)[1], 0, TA,
+         "#8e9498");                                   // a counter gone over inside
+      // the name, painted on and half gone
+      NEON.push(signPanel(3.20, 0.80, signTex(640,160,(x,W,H2)=>{
+        x.fillStyle="#d8cdb4"; x.fillRect(0,0,W,H2);
+        x.fillStyle="#9c3f2e"; fitSerif(x,"Dot's", W*0.30, H2*0.60, W*0.24, H2*0.58);
+        x.fillStyle="#3a3a36"; fitText(x,"LUNCH  ·  COLD DRINKS", W*0.46, H2*0.22,
+                                       W*0.66, H2*0.50);
+        x.globalAlpha=0.55; x.fillStyle="#d8cdb4";     // and the half that is gone
+        for(let i=0;i<26;i++) x.fillRect(Math.random()*W, Math.random()*H2,
+                                         6+Math.random()*30, 4+Math.random()*22);
+      }), K(-1.19,0.90)[0], 1.72, K(-1.19,0.90)[1], TA+Math.PI/2, false));
+      addCol(TX-2.6, TX+2.6, TZ-3.4, TZ+4.2, 0, 2.9);
+      // and the stain it has left on the asphalt after all this time
+      push("soot", planeGeo(5.2,3.4,0), TX, 0.011, TZ+0.4, TA, "#2f2a24", -Math.PI/2, 0);
+    }
+    // the bin corral: three sides of breeze block, two skips, and the overflow
+    {
+      const CX=-56.6, CZ=-24.0;
+      for(const w of [[-2.35,0,0.30,3.40],[2.35,0,0.30,3.40],[0,-1.70,5.00,0.30]])
+        bx("concrete", w[2], 1.55, w[3], CX+w[0], 0.78, CZ+w[1], 0.70, 0, "#b8b1a0");
+      for(let k=0;k<7;k++)                             // the courses, picked out
+        for(const w of [[-2.35,0,0.32,3.42],[2.35,0,0.32,3.42],[0,-1.70,5.02,0.32]])
+          push("soot", boxGeo(w[2]+0.01, 0.015, w[3]+0.01, 0), CX+w[0],
+               0.05+k*0.215, CZ+w[1], 0, "#8a8274");
+      for(const w of [[-2.35,0,0.44,3.54],[2.35,0,0.44,3.54],[0,-1.70,5.14,0.44]])
+        bx("concrete", w[2], 0.10, w[3], CX+w[0], 1.60, CZ+w[1], 0.5, 0, "#a49c90");
+      addCol(CX-2.6, CX-2.1, CZ-1.8, CZ+1.8, 0, 1.6);
+      addCol(CX+2.1, CX+2.6, CZ-1.8, CZ+1.8, 0, 1.6);
+      addCol(CX-2.6, CX+2.6, CZ-1.9, CZ-1.5, 0, 1.6);
+      for(let k=0;k<2;k++){
+        const dx=CX-1.15+k*2.30;
+        bx("paint", 2.02,1.16,1.14, dx, 0.58, CZ+0.2, 0.4, 0, k?"#3f5c46":"#4a4f56");
+        bx("paint", 2.06,0.10,1.18, dx, 1.18, CZ+0.2, 0, 0, k?"#4a6b52":"#565c64");
+        if(k) push("paint", boxGeo(1.94,0.08,1.02,0.4), dx, 1.62, CZ+0.78, 0,
+                   "#4a6b52", 1.05, 0);                // one lid thrown back
+        for(const q of [-1,1]) cyl("metal", 0.15,0.15,0.12,12, dx+q*0.82, 0.08, CZ+0.42,
+                                   "#3a3632", 0, 0, Math.PI/2);
+        push("rust", planeGeo(1.40,0.90,0), dx, 0.62, CZ-0.40, 0, "#6a3a20");
+        addCol(dx-1.05, dx+1.05, CZ-0.62, CZ+0.62, 0, 1.3);
+      }
+      for(let i=0;i<9;i++)                             // what did not make it in
+        push("paper", boxGeo(0.22,0.008,0.28,0), CX+((i*7)%9-4)*0.85,
+             0.014+i*0.0008, CZ+2.1+((i*5)%4)*0.55, i*1.1, "#cfc6ac", 0.05, 0.03);
+      for(let i=0;i<5;i++)
+        cyl("metal", 0.033,0.033,0.11,10, CX+((i*11)%7-3)*0.7, 0.033,
+            CZ+2.4+((i*3)%3)*0.5, "#9aa0a2", Math.PI/2, i*1.3, 0);
+    }
+    // a stack of pallets, a drum on its side, and the propane cage
+    {
+      for(let k=0;k<5;k++)
+        for(let i=0;i<5;i++)
+          bx("plank", 1.15, 0.05, 0.14, -65.6, 0.09+k*0.17, -19.4-0.56+i*0.28,
+             0.5, 0.18, "#8a7550");
+      for(let k=0;k<5;k++)
+        for(const q of [-0.48,0,0.48])
+          bx("plank", 0.13, 0.12, 1.12, -65.6+q*0.0, 0.09+k*0.17-0.07, -19.4+q,
+             0.5, 0.18, "#7a6646");
+      addCol(-66.3,-64.9, -20.1,-18.7, 0, 0.95);
+      cyl("metal", 0.30,0.30,0.88,14, -63.4, 0.30, -16.6, "#7a4526", 0, 0.7, Math.PI/2);
+      addCol(-63.9,-62.9, -17.1,-16.1, 0, 0.7);
+      for(const q of [-1,1]){                          // the propane cage on the wall
+        bx("metal", 0.05, 1.30, 0.05, -67.9, 0.65, -12.4+q*0.62, 0, 0, "#8e9498");
+        bx("metal", 0.05, 0.05, 1.24, -67.9, 0.04+(q>0?1.26:0), -12.4, 0, 0, "#8e9498");
+      }
+      push("chainlink", planeGeo(1.24,1.28,2.0), -67.9, 0.66, -12.4, Math.PI/2, "#b4b9bc");
+      for(let k=0;k<3;k++)
+        cyl("paint", 0.16,0.16,0.62,12, -68.4+((k%2)*0.30), 0.31, -12.85+k*0.42,
+            k?"#b8bcc0":"#9c3f2e");
+      addCol(-68.7,-67.7, -13.1,-11.7, 0, 1.4);
+    }
+    // a light on a pole over the middle of it, and the pool it throws
+    {
+      const px=-58.8, pz=-14.8;
+      cyl("metal", 0.10,0.13,6.40,10, px, 3.20, pz, "#6f6a60");
+      bx("metal", 1.10, 0.10, 0.10, px+0.55, 6.32, pz, 0, 0, "#6f6a60");
+      cyl("ceilfix", 0.30,0.42,0.22,12, px+1.02, 6.18, pz, "#e8e2cf", Math.PI, 0, 0);
+      LAMPS.push({x:px+1.02, y:6.05, z:pz, color:0xffe9c4, intensity:0.62,
+                  dist:17, decay:1.6, mothy:true});
+      addCol(px-0.2, px+0.2, pz-0.2, pz+0.2, 0, 6.4);
+    }
+    // weeds through every crack, because nobody has swept this in years.
+    // (scatterDesert's tussock() is closed over in its own IIFE, so this is
+    // the same idea written out: a core with blades growing out of it, and
+    // the blades offset along the axis they actually point down.)
+    for(let i=0;i<24;i++){
+      const wx=-67.0+((i*13.7)%14.0), wz=-30.2+((i*9.3)%26.0), sc=0.5+((i*5)%3)*0.2;
+      const col=["#5f6b40","#7a7250","#54613a"][i%3];
+      push("foliage", blobGeo(0.11*sc), wx, 0.05*sc, wz, i, col);
+      for(let k=0;k<7+((i*3)%4);k++){
+        const a2=((i*29+k*47)%360)*0.01745, lean=0.28+((k*5)%4)*0.16;
+        const L=(0.19+((k*7)%4)*0.09)*sc, si=Math.sin(lean), co=Math.cos(lean);
+        push("foliage", boxGeo(0.045*sc, L, 0.020*sc, 0),
+             wx+Math.sin(a2)*si*L/2, 0.04*sc+co*L/2, wz+Math.cos(a2)*si*L/2,
+             a2, col, lean, 0);
+      }
+    }
+    addZone(-68.0,-52.0, -31.0, 2.0, -1, 3.0, "THE BACK LOT");
   })();
 
   /* ---- the back yard: where the bar keeps what it does not want seen ---- */
@@ -7749,91 +7995,97 @@ i===1?"#6a5a3c":"#7a6746");
       return A.hwLip+(A.hwFace-A.hwLip)*t; };
 
     /* ---- the face, and the hole in it ----------------------------------
-       Generated from the ground rather than stated. A slab of fixed height
-       and width stands in the cut's own side-blend like a monument — which
-       is exactly what the first pass looked like — so the face is a run of
-       columns instead, each one topped out just above the hillside directly
-       behind it. At the middle that is four and a half metres; out at the
-       edges it dies away to nothing and the rock ties into the bank. Every
-       column carries its own depth, so no two neighbouring front faces share
-       a plane and there is nothing for the depth buffer to argue about.   */
-    const FH=5.0, FZ=20.30, FHW=5.6, JAMB=PW+0.22;
-    const hillTop =(lx)=>gh(lx, 19.55);                // the hill behind the face
-    const benchTop=(lx)=>gh(lx, 21.15);                // and the ground in front of it
-    const faceRun=(a0,a1,n,tag)=>{
-      for(let c=0;c<n;c++){
-        const w=(a1-a0)/n, cx=a0+w*(c+0.5);
-        const top=Math.min(F+FH+0.5, hillTop(cx)+0.46+((c*7+tag)%3)*0.10);
-        // The foot follows whatever is in front of the column. Run every
-        // column down to a fixed level instead and the ones out at the ends
-        // stand in the cut's own side-funnel with daylight under them, which
-        // is what made the first face read as a monument on the desert.
-        const bot=Math.min(F-0.5, benchTop(cx)-0.8);
-        if(top-bot<0.7) continue;                      // the hill is already lower
-        const d=1.02+((c*5+tag)%4)*0.17;
-        m.B("rock", w+0.42, top-bot, d, cx, (bot+top)/2, FZ, 0.45,
-            ((c*11+tag)%5-2)*0.012, ROCKC[(c+tag)%5]);
+       Boxes read as boxes. Two rounds of this face were built out of box
+       primitives — first one slab, then a run of terrain-following columns —
+       and however carefully they were placed they came out as a stockade of
+       vertical panels, which is the "confusing and fragmented" of it: a
+       retaining wall with a door in it, not a hole in a hill.
+       The face is one interlocking mass of rock now. Lumps are laid on a grid
+       across and up, each one bigger than the spacing so they overlap into a
+       single craggy surface with no straight seam anywhere in it, and the
+       grid's top follows the hillside behind while its foot follows the
+       ground in front. A thin box buried well back does the sealing, so you
+       cannot see daylight through the mass however it falls.               */
+    const FH=5.0, FZ=20.25, FHW=5.9, JAMB=PW+0.26;
+    const hillTop =(lx)=>gh(lx, 19.5);                 // the hill behind the face
+    const benchTop=(lx)=>gh(lx, 21.2);                 // the ground in front of it
+    // the seal: buried, never seen, and the reason the mass can be as loose
+    // as it likes without opening a gap to the sky
+    // Its top has to sit UNDER the crest of the mass or it shows through as a
+    // dark band across the face, and it is dark rock so that anywhere the
+    // lumps do part it reads as shadow between them rather than as a wall.
+    const SEALTOP=F+3.9, SEALC="#5d3c2b";
+    for(const g of [[-FHW-0.6,-JAMB],[JAMB,FHW+0.6]])
+      m.B("rock", g[1]-g[0], SEALTOP+2.6-F, 0.55, (g[0]+g[1])/2, (F-2.6+SEALTOP)/2,
+          FZ+0.78, 0.45, 0, SEALC);
+    m.B("rock", JAMB*2, SEALTOP-(F+PH+0.26), 0.55, 0,
+        F+PH+0.26+(SEALTOP-(F+PH+0.26))/2, FZ+0.78, 0.45, 0, SEALC);
+    // the mass
+    let fseed=4100;
+    for(let c=0;c<15;c++){
+      const cx=-FHW+c*(FHW*2/14);
+      const top=Math.min(F+FH+0.35, hillTop(cx)+0.30), bot=Math.min(F-0.7, benchTop(cx)-0.9);
+      for(let y=bot; y<top+0.55; y+=0.70){             // one row past the crest
+        const r=0.86+((c*5+((y*3)|0))%4)*0.17;
+        const px=cx+((c*7)%5-2)*0.16, py=y+((c*3)%3-1)*0.14;
+        // rockGeo jitters its vertices out to about 1.2r, so clearing the
+        // opening by r*0.55 let lumps reach to within a metre of the
+        // centreline — inside the 1.35 m walkway, while the collider starts
+        // at the jamb. That is rock you can see across the doorway and walk
+        // straight through, which is exactly what it looked like.
+        if(Math.abs(px)<JAMB+r*1.25 && py<F+PH+0.55) continue;
+        m.P("rock", rockGeo(r, fseed+=17), px, py, FZ-0.30+((c*11)%5-2)*0.13,
+            c*1.3+y, ROCKC[(c+((y*2)|0))%5], ((c*7)%5-2)*0.22, ((c*3)%5-2)*0.22);
       }
-    };
-    faceRun(-FHW, -JAMB, 6, 0);
-    faceRun( JAMB,  FHW, 6, 3);
-    {                                                  // the lintel over the hole
-      const top=Math.min(F+FH, hillTop(0)+0.34);
-      m.B("rock", JAMB*2+0.06, top-(F+PH+0.30), 1.24, 0,
-          F+PH+0.30+(top-(F+PH+0.30))/2, FZ, 0.45, 0, ROCKC[3]);
     }
-    for(const g of [[-FHW,-JAMB],[JAMB,FHW]])          // and it is solid, all of it
-      m.col(g[0], g[1], FZ-0.80, FZ+0.80, 0, F+FH+0.9);
+    // and a course of small stuff framing the opening, close in but never
+    // across it: these are sized so even their jitter stops at the jamb
+    for(let k=0;k<11;k++){
+      const r=0.30+((k*5)%3)*0.09, py=F+0.20+k*0.44;
+      if(py>F+PH+0.30) break;
+      for(const q of [-1,1])
+        m.P("rock", rockGeo(r, 4900+k*23+(q>0?7:0)), q*(JAMB+r*1.30),
+            py, FZ-0.52+((k*7)%3-1)*0.10, k*1.4, ROCKC[(k+2)%5],
+            ((k*7)%5-2)*0.24, ((k*3)%5-2)*0.24);
+    }
+    for(const g of [[-FHW-0.6,-JAMB],[JAMB,FHW+0.6]])  // and it is solid, all of it
+      m.col(g[0], g[1], FZ-1.15, FZ+0.95, 0, F+FH+1.2);
 
-    /* ---- the two sides of the cut, faced in the same rock --------------
-       The bank height has to be sampled out past the blend, where the ground
-       is still the hill: sampling it on the centreline gives zero, because
-       the centreline is the floor you are standing on.                    */
-    for(let i=0;i<12;i++){
-      const lz=21.30+i*1.02, hw=cutHW(lz);
-      const bank=Math.max(0.30, gh(hw+6.8, lz));   // out past the blend
+    /* ---- the two sides of the cut, in the same rock -------------------- */
+    for(let i=0;i<11;i++){
+      const lz=21.6+i*1.06, hw=cutHW(lz);
+      const bank=Math.max(0.45, gh(hw+6.8, lz));
       for(const q of [-1,1]){
         const k=i*2+(q>0?1:0);
-        const bw=0.72+((k*7)%5)*0.32, d=1.48+((k*3)%4)*0.30;   // overlaps its neighbours
-        const zz=lz+((k*5)%3-1)*0.20, top=bank+0.30+((k*11)%4)*0.22;
-        m.B("rock", bw, top+1.5, d, q*(hw+bw*0.40), F+(top+1.5)/2-1.5, zz,
-            0.45, ((k*7)%5-2)*0.03, ROCKC[(i+(q>0?2:0))%5]);
-        m.col(q>0?hw-0.10:-(hw+bw), q>0?(hw+bw):-(hw-0.10), lz-d/2, lz+d/2,
-              0, F+Math.max(bank,0.9));
+        for(let y=F-0.6; y<F+bank+0.2; y+=0.80){
+          const r=0.72+((k*7)%4)*0.19;
+          m.P("rock", rockGeo(r, 4600+k*29+((y*5)|0)), q*(hw+r*0.42+((k*5)%3)*0.10),
+              y+((k*3)%3-1)*0.12, lz+((k*11)%5-2)*0.16, k*1.1+y,
+              ROCKC[(i+(q>0?2:0))%5], ((k*7)%5-2)*0.2, ((k*3)%5-2)*0.2);
+        }
+        m.col(q>0?hw-0.15:-(hw+1.5), q>0?(hw+1.5):-(hw-0.15), lz-0.60, lz+0.60,
+              0, F+Math.max(bank,1.1));
       }
     }
 
     /* ---- the waste, tipped over the lip and fanned out downhill --------
-       Waste rock off a small adit is mostly barrow-sized with a few blocks in
-       it, and it runs out down the fall line leaving the middle of the tip
-       walkable. The first pass put forty-odd metre-and-a-half boulders across
-       the whole fan, which read as a rockfall you had to squeeze through
-       rather than a spoil heap you walk up.                                */
-    const LANE=2.0;                                     // kept clear, up the middle
-    for(let i=0;i<20;i++){
-      const t=i/19, lz=33.4+t*9.4;
-      let lx=((i*11)%9-4)*(1.15+t*0.95)+((i*5)%3-1)*0.55;
-      if(Math.abs(lx)<LANE) lx+=Math.sign(lx||1)*(LANE+0.5);
-      boulder(lx, lz, 0.24+((i*7)%5)*0.13, 6100+i*13, i);
+       Off to the flanks, so the way up the tip is clean. Loose rock strewn
+       across the approach is the other half of what made this read as a
+       muddle: you could not tell what was the way in.                     */
+    for(let i=0;i<13;i++){
+      const q=(i%2)?1:-1, t=((i/2)|0)/6;
+      const lx=q*(4.4+t*3.2+((i*5)%3)*0.7), lz=32.2+t*9.0+((i*7)%3)*0.8;
+      boulder(lx, lz, 0.42+((i*7)%4)*0.22, 6100+i*13, i);
     }
-    for(let i=0;i<9;i++){                               // a few blocks on the lip
-      const lx=((i*7)%7-3)*2.05+((i%2)?0.7:-0.5), lz=31.6+((i*3)%3)*1.0;
-      if(Math.abs(lx)<Math.max(LANE+0.8, cutHW(lz)-0.8)) continue;
-      boulder(lx, lz, 0.46+((i*5)%4)*0.19, 6400+i*17, i+3);
-    }
-    for(let i=0;i<22;i++)                               // and the gravel it shed
-      m.P("rock", rockGeo(0.10+((i*5)%3)*0.07, 6900+i*29),
-          ((i*13)%11-5)*1.15, gh(((i*13)%11-5)*1.15, 32.6+((i*7)%10)*1.05)+0.04,
-          32.6+((i*7)%10)*1.05, i*1.3, ROCKC[i%5],
+    for(let i=0;i<16;i++)                               // and the gravel it shed
+      m.P("rock", rockGeo(0.11+((i*5)%3)*0.07, 6900+i*29),
+          ((i*13)%11-5)*1.25, gh(((i*13)%11-5)*1.25, 32.8+((i*7)%9)*1.15)+0.04,
+          32.8+((i*7)%9)*1.15, i*1.3, ROCKC[i%5],
           ((i*7)%5-2)*0.3, ((i*3)%5-2)*0.3);
-    for(let i=0;i<34;i++)                               // the floor is compacted waste
-      m.P("soot", planeGeo(0.7+((i*7)%4)*0.5, 0.5+((i*5)%3)*0.45, 0),
-          ((i*13)%9-4)*0.92, F+0.012, 21.4+((i*7)%12)*0.98, i*1.3,
+    for(let i=0;i<20;i++)                               // the floor is compacted waste
+      m.P("soot", planeGeo(1.1+((i*7)%4)*0.6, 0.8+((i*5)%3)*0.5, 0),
+          ((i*13)%9-4)*1.0, F+0.012, 21.8+((i*7)%11)*1.05, i*1.3,
           ["#6a4a33","#7a5a40","#5e4230"][i%3], -Math.PI/2, 0);
-    for(let i=0;i<10;i++)                               // gravel on the bench itself
-      m.P("rock", rockGeo(0.14+((i*5)%3)*0.09, 6800+i*23),
-          ((i*7)%9-4)*0.62, F+0.07, 21.6+((i*5)%9)*0.95, i*1.1,
-          ROCKC[i%5], ((i*7)%5-2)*0.3, ((i*3)%5-2)*0.3);
 
     // ---- passage A: back into the hill ----------------------------------
     // The walls were a run of boxes that overlapped their neighbours by a
@@ -7932,7 +8184,7 @@ i===1?"#6a5a3c":"#7a6746");
       m.P("ochre", planeGeo(0.045,0.16,0), -0.16+i*0.105, F+PH+0.52, 19.13, 0,
           "#3a332e", 0, 0);
     (function(){                                        // the windlass, still rigged
-      const wx=2.6, wz=22.2, g0=gh(wx,wz);
+      const wx=3.1, wz=26.4, g0=gh(wx,wz);   // well off the way in
       for(const q of [-1,1]) m.B("oak", 0.16, 1.05, 0.16, wx, g0+0.52, wz+q*0.62, 0.5, 0, "#4a3826");
       m.C("oak", 0.17,0.17,1.30,10, wx, g0+0.92, wz, "#5a4630", Math.PI/2, 0, 0);
       for(let i=0;i<9;i++)
@@ -7940,16 +8192,16 @@ i===1?"#6a5a3c":"#7a6746");
             0, "#6a5f4a", 0, Math.PI/2);
       m.col(wx-0.4, wx+0.4, wz-0.8, wz+0.8, -1, g0+1.2);
     })();
-    m.P("oak", boxGeo(1.20,0.72,0.05,0.5), -2.2, gh(-2.2,23.0)+0.10, 23.0, 0.7, "#8a7a5e",
+    m.P("oak", boxGeo(1.20,0.72,0.05,0.5), -3.1, gh(-3.1,25.4)+0.10, 25.4, 0.7, "#8a7a5e",
         -Math.PI/2+0.1, 0);
     for(let i=0;i<4;i++)
-      m.P("ochre", planeGeo(0.74,0.08,0), -2.2, gh(-2.2,23.0)+0.13, 22.82+i*0.13, 0.7,
+      m.P("ochre", planeGeo(0.74,0.08,0), -3.1, gh(-3.1,25.4)+0.13, 25.22+i*0.13, 0.7,
           "#4a3f34", -Math.PI/2+0.1, 0);
     // Claim stakes, in a line along the edge of the workings rather than
     // scattered across the way in, where six of them read as a thicket of
     // dark posts standing in the middle of everything.
     for(let i=0;i<4;i++){
-      const px=5.6+((i*5)%3)*0.5, pz=24.0+i*3.1, g0=gh(px,pz);
+      const px=8.4+((i*5)%3)*0.6, pz=29.0+i*3.4, g0=gh(px,pz);
       m.C("oak", 0.075,0.095,1.05,6, px, g0+0.48, pz, "#5b4632", ((i*7)%5-2)*0.05, i, 0);
       m.P("fabric", boxGeo(0.12,0.24,0.035,0.5), px, g0+0.90, pz, i, "#8a3a30", 0, 0.3);
     }
@@ -8833,7 +9085,7 @@ bucketOf("glass",  ()=>new T.MeshStandardMaterial({color:0xffffff, transparent:t
 bucketOf("mirror", ()=>new T.MeshStandardMaterial({color:0xffffff, metalness:0.45, roughness:0.08,
                           emissive:0x39505c, emissiveIntensity:0.42}));
 bucketOf("art",    ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.7}));
-bucketOf("bin",    ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.9}));
+bucketOf("bin",    ()=>new T.MeshStandardMaterial({map:TEX.enamel, roughness:0.9}));
 bucketOf("bell",   ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.3, metalness:0.75}));
 bucketOf("rules",  ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.85}));
 bucketOf("clockface",()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.6}));
@@ -8851,7 +9103,7 @@ bucketOf("niche",   ()=>glowMat({color:0xffffff, emissive:0x9fe8ff, emissiveInte
 bucketOf("bedding", ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.98}));
 bucketOf("clockled",()=>glowMat({color:0xffffff, emissive:0xff5a2a, emissiveIntensity:0.9}, "warm"));
 bucketOf("neonbox", ()=>glowMat({color:0xffffff, emissive:0xff3a2a, emissiveIntensity:0.5}, "warm"));
-bucketOf("fabric",  ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.96}));
+bucketOf("fabric",  ()=>new T.MeshStandardMaterial({map:TEX.weave,  roughness:0.96}));
 // Boulders were flat-shaded dodecahedra in the foliage bucket — twelve faces
 // and one colour. They get their own stone map, and enough facets to read as
 // rock rather than as dice.

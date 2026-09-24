@@ -159,6 +159,17 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   chairs have worn into the finish around every table; a clock on the brick
   stopped at twenty past four; one bulb over the booths that is nearly out;
   and eleven flies, which are the only thing in the building still in business.
+- **The back lot**, the twenty metres of asphalt between the Canteen and the
+  motel office with the fence down the middle of it. It is the one stretch of
+  the site you cross every time, and it had nothing on it. Now it has what
+  ends up on a lot like this: **Dot's**, a step van that stopped going out —
+  box body on four flat tyres, cab dropped in front, serving hatch propped
+  open with the counter gone over behind it, the name painted on the side and
+  half of it gone, and the stain it has left on the asphalt after all this
+  time. Then a bin corral of breeze block on three sides with two skips in it
+  and what missed them on the ground, a stack of five pallets, a drum on its
+  side, a propane cage on the bar's wall with three bottles in it, a light on
+  a pole over the middle that still comes on, and weeds through every crack.
 - **The back of the Canteen.** Its lot runs back as far as the motel's does, so
   the two read as one graded site with a fence down the middle rather than an
   island of asphalt. Behind the bar: a padlocked shed with pallets and kegs
@@ -254,13 +265,20 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   its own 2 m terrain grid, on the middle ring's 7 m lattice exactly so the two
   meshes meet without a seam, because 7 m cells smear a four-metre step into a
   dimple.
-  The face is generated from the ground rather than stated: a run of rock
-  columns, each topped out just above the hillside directly behind it and
-  footed on whatever is in front of it, so it dies away into the bank at both
-  ends instead of standing in the cut's own side-funnel like a monument. Each
-  column carries its own depth and overlaps its neighbours, so no two front
-  faces share a plane and there are no slots to see daylight through. The sides
-  of the cut are faced in the same rock, and **every rock out here is either
+  The face is one interlocking mass of rock. Two earlier versions built it out
+  of box primitives — first a slab, then a run of terrain-following columns —
+  and however carefully the boxes were placed they came out as a stockade of
+  vertical panels: a retaining wall with a door in it, not a hole in a hill.
+  Boxes read as boxes. Lumps are laid on a grid across and up instead, each
+  bigger than the spacing so they overlap into a single craggy surface with no
+  straight seam in it, the grid's top following the hillside behind and its
+  foot the ground in front. A dark box buried behind does the sealing, with its
+  top under the crest of the mass so it never shows as a band across the face.
+  Nothing crosses the opening: the exclusion around it allows for the fact that
+  `rockGeo` jitters its vertices out to about 1.2 r, which an earlier clearance
+  of 0.55 r did not — that is the rock that appeared to cover the entrance and
+  that you walked straight through. The sides of the cut are faced in the same
+  rock, and **every rock out here is either
   something you walk round or something you step over** — anything with a body
   gets a collider, which the hundred and forty loose lumps of the previous
   version did not. Inside, the drive's walls are one continuous slab a side
@@ -521,6 +539,10 @@ headless Chromium and asks the scene about itself rather than looking at it:
   of the chamber, so nowhere on that route can wedge you;
 - a terrain profile dump over any footprint, for checking a cut before building
   anything on it;
+- a texture survey, which walks the baked scene and reports every material by
+  triangle count and whether it carries a map. It found 70% of the world's
+  triangles on materials with none — foliage alone is 45% of the world and was
+  flat colour — which is now 12%;
 - a fixed-step movement probe (`MOTEL.sim`) for anything about speed or keys.
 
 ## How it is built

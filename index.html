@@ -1619,7 +1619,7 @@ const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
   // A grid built by hand rather than PlaneGeometry, so cells can be dropped:
   // the pool tank needs a real hole in the ground, and the fine grid around
   // the site must not double up on the coarse one that covers the horizon.
-  function grid(x0,x1,z0,z1,cell,holes,name){
+  function grid(x0,x1,z0,z1,cell,holes,name,skirt){
     const nx=Math.round((x1-x0)/cell), nz=Math.round((z1-z0)/cell);
     const P=[], C=[], U=[], IDX=[], c=new T.Color();
     for(let j=0;j<=nz;j++) for(let i=0;i<=nx;i++){
@@ -1643,6 +1643,29 @@ const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
       const a=j*(nx+1)+i, b=a+1, d=a+nx+1, e=d+1;
       IDX.push(a,d,b, b,d,e);
     }
+    /* A fine grid butts against a coarse one along a straight line, but the
+       two only agree at the coarse grid's own nodes: seven metres apart on
+       one side, half a metre on the other, and between them the edges bow
+       away from each other. That is a hairline crack with the sky behind it,
+       all the way round every inner ring. A skirt hangs a short apron down
+       from each border node and fills them. Both windings, so it shows
+       whichever side the crack opens on.                                  */
+    if(skirt){
+      const base=P.length/3, border=[];
+      for(let i=0;i<=nx;i++) border.push(i);
+      for(let j=1;j<=nz;j++) border.push(j*(nx+1)+nx);
+      for(let i=nx-1;i>=0;i--) border.push(nz*(nx+1)+i);
+      for(let j=nz-1;j>=1;j--) border.push(j*(nx+1));
+      for(const v of border){
+        P.push(P[v*3], P[v*3+1]-skirt, P[v*3+2]);
+        C.push(C[v*3], C[v*3+1], C[v*3+2]);
+        U.push(U[v*2], U[v*2+1]);
+      }
+      for(let k=0;k<border.length-1;k++){
+        const a1=border[k], b1=border[k+1], a2=base+k, b2=base+k+1;
+        IDX.push(a1,a2,b1, b1,a2,b2, a1,b1,a2, b1,b2,a2);
+      }
+    }
     const g=new T.BufferGeometry();
     g.setAttribute("position", new T.Float32BufferAttribute(P,3));
     g.setAttribute("color",    new T.Float32BufferAttribute(C,3));
@@ -1661,9 +1684,13 @@ const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
   // drops precisely those cells and the two meshes meet without a seam.
   const ADIT_SITE={x0:-588, x1:-546, z0:14, z1:56};
   grid(-1800,1800,-1740,1860, 24, [MID], "desert-far");
-  grid(MID.x0, MID.x1, MID.z0, MID.z1, 7, [NEAR_SITE, ADIT_SITE], "desert-mid");
-  grid(ADIT_SITE.x0, ADIT_SITE.x1, ADIT_SITE.z0, ADIT_SITE.z1, 2, [], "desert-adit");
-  grid(NEAR_SITE.x0, NEAR_SITE.x1, NEAR_SITE.z0, NEAR_SITE.z1, 2, [POOL.deck], "desert-near");
+  grid(MID.x0, MID.x1, MID.z0, MID.z1, 7, [NEAR_SITE, ADIT_SITE], "desert-mid", 6);
+  // Half-metre cells here, not two. The cut's back wall is a 4.5 m step and
+  // the grid triangle that carries it has to land inside the thickness of the
+  // rock face: at 2 m that triangle ramps out of the floor and up through the
+  // doorway, which is the sand that was covering the entrance.
+  grid(ADIT_SITE.x0, ADIT_SITE.x1, ADIT_SITE.z0, ADIT_SITE.z1, 0.5, [], "desert-adit", 6);
+  grid(NEAR_SITE.x0, NEAR_SITE.x1, NEAR_SITE.z0, NEAR_SITE.z1, 2, [POOL.deck], "desert-near", 6);
 })();
 
 /* ----------------------------------------------------------------------
@@ -1786,6 +1813,7 @@ function placeCelestial(sp, ang, sign, zBias){
 
 /* --- clouds, birds and the odd car on the highway ---------------------- */
 const CLOUDS=[], CIRRUS=[], ALTO=[], BIRDS=[], BALLOONS=[], WHITE_C=new T.Color(0xffffff);
+let VULTURE=null;              // one bird, a long way up, and not always there
 const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is gone
 (function buildSky2(){
   // A cumulus is a row of lobes on a flat base, lit from above and shaded
@@ -2057,6 +2085,42 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
     sp.scale.set(7,3.5,1); scene.add(sp);
     BIRDS.push({s:sp, r:70+Math.random()*90, a:Math.random()*6.28, sp:0.12+Math.random()*0.10,
                 y:44+Math.random()*36, cx:(Math.random()-0.5)*180, cz:60+(Math.random()-0.5)*180});
+  }
+
+  /* --- and one turkey vulture, most of a mile up ----------------------
+     Not one of the six. A vulture soars: it holds a wing in a shallow V,
+     it teeters, it turns on a thermal for minutes at a time without a
+     single flap, and then the thermal is finished and it slides off to
+     find another. So it gets its own silhouette — broad plank wings with
+     the primaries slotted like fingers, a small head and a short wedge of
+     tail — and its own clock, which has it out of the sky more often than
+     in it.                                                             */
+  const vc=cvs(128,64), vx=vc.getContext("2d");
+  vx.fillStyle="rgba(24,19,15,0.92)";
+  vx.beginPath();                                  // the port wing, and the V
+  vx.moveTo(64,30); vx.lineTo(26,18); vx.lineTo(10,21); vx.lineTo(9,27);
+  vx.lineTo(28,31); vx.lineTo(60,36); vx.closePath(); vx.fill();
+  vx.beginPath();                                  // starboard
+  vx.moveTo(64,30); vx.lineTo(102,18); vx.lineTo(118,21); vx.lineTo(119,27);
+  vx.lineTo(100,31); vx.lineTo(68,36); vx.closePath(); vx.fill();
+  for(const q of [-1,1]) for(let k=0;k<4;k++){     // slotted primaries
+    const bx3=64+q*(30+k*5.5), by=19+k*1.9;
+    vx.beginPath(); vx.moveTo(bx3, by+2);
+    vx.lineTo(bx3+q*13, by-3+k*1.2); vx.lineTo(bx3+q*13, by-0.6+k*1.2);
+    vx.lineTo(bx3, by+4.4); vx.closePath(); vx.fill();
+  }
+  vx.beginPath(); vx.ellipse(64,31,7,5,0,0,7); vx.fill();            // body
+  vx.beginPath(); vx.ellipse(64,23.5,2.6,3.2,0,0,7); vx.fill();      // head
+  vx.beginPath();                                                    // tail
+  vx.moveTo(58,35); vx.lineTo(70,35); vx.lineTo(66,47); vx.lineTo(62,47);
+  vx.closePath(); vx.fill();
+  const vtex=setSRGB(new T.CanvasTexture(vc));
+  {
+    const sp=new T.Sprite(new T.SpriteMaterial({map:vtex, transparent:true,
+                          depthWrite:false, fog:false, opacity:0}));
+    sp.scale.set(1,1,1); scene.add(sp);
+    VULTURE={s:sp, on:false, t:14+Math.random()*40, a:Math.random()*6.28,
+             r:110, y:190, cx:0, cz:0, sp:0.12, drift:0, fade:0};
   }
 })();
 
@@ -5942,11 +6006,15 @@ i===1?"#6a5a3c":"#7a6746");
       LAMPS.push({x:px+sd2, y:TOPY-1.62, z:pz, color:0xffd2a0, intensity:1.0, dist:9,
                   decay:1.7, indoor:true});
     }
-    // a cue rack on the wall behind it
-    bx("oak", 0.10, 1.05, 0.90, IX0+0.06, FY+1.30, IZ0+1.30, 0.45, 0, "#4c3a26");
+    // A cue rack on the north wall, square on to the table. It used to be on
+    // the west wall at IX0, which is where the first booth backs onto — the
+    // cues were behind the seat and you could not get at them.
+    bx("oak", 0.90, 1.05, 0.10, px+0.20, FY+1.30, IZ0+0.06, 0.45, 0, "#4c3a26");
     for(let i=0;i<4;i++)
-      push("oak", new T.CylinderGeometry(0.010,0.019,1.42,8), IX0+0.13, FY+1.02,
-           IZ0+0.98+i*0.21, 0, "#b08c52", 0.06, 0);
+      push("oak", new T.CylinderGeometry(0.010,0.019,1.42,8), px-0.12+i*0.21, FY+1.02,
+           IZ0+0.13, 0, "#b08c52", 0, 0.06);
+    push("oak", boxGeo(0.86,0.04,0.09,0.5), px+0.20, FY+1.76, IZ0+0.11, 0, "#42311f");
+    push("plaster", boxGeo(0.05,0.05,0.05,0), px+0.52, FY+1.80, IZ0+0.12, 0.4, "#3f6b7a");
   })();
 
   // ---- booths down the west wall ---------------------------------------
@@ -7514,7 +7582,11 @@ i===1?"#6a5a3c":"#7a6746");
     const Z0g=-0.60, Z1g=5.00;
     const QX0=SX0+GT, QX1=SX1-GT, QZ0=Z0g+GT, QZ1=Z1g-GT; // shop inner faces
     const YX0=BX0+GT, YX1=BX1-GT;                         // bay inner faces
-    const WALLC="#cfc4ad", TRIMG="#2f6c62", GALV2="#9aa1a6";
+    // Nothing out here has been painted since about 1979 and it showed —
+    // crisp cream walls, a bright green band and two pillar-box pumps read as
+    // a station that shut last week. Everything is sun-bleached and chalked
+    // back, and the streaks and the drift below do the rest.
+    const WALLC="#b0a691", TRIMG="#4a6a60", GALV2="#8d9490";
     const DOORG=[-3.20,-2.18];                            // the shop door
     const BAYO=[-10.90,-7.30];                            // the shutter opening
     const holes=(a0,a1,hs)=>{ const out=[]; let c=a0;
@@ -7524,7 +7596,7 @@ i===1?"#6a5a3c":"#7a6746");
       m.C(bk, r,r,L,8, x,y,z, col, horiz?0:Math.PI/2, 0, horiz?Math.PI/2:0);
 
     // ---- the apron, and what has come up through it --------------------
-    m.B("concrete", 26.0,0.26,13.0, -3.5,0.13,0, 0.45,0, "#a9a294");
+    m.B("concrete", 26.0,0.26,13.0, -3.5,0.13,0, 0.45,0, "#968e80");
     m.flat(-16.5,9.5,-6.5,6.5, F+0.02);
     for(let i=0;i<9;i++){                                  // the slab joints
       m.P("soot", planeGeo(13.0,0.05,0), -15.0+i*3.0, F+0.028, 0, Math.PI/2, "#6e675c",
@@ -7566,7 +7638,11 @@ i===1?"#6a5a3c":"#7a6746");
       m.col(xc, xc+GT, Z0g, Z1g, 0, F+GH);
     // the glazing either side of the shop door, and the bars over it
     for(const w of [[-5.90,-3.60],[-1.80,0.70]]){
-      m.B("glass", w[1]-w[0], 1.86, GT*0.5, (w[0]+w[1])/2, F+1.45, Z0g+GT/2, 0, 0, "#9fb2ae");
+      // forty years of dust on the inside and nobody to wash it off
+      m.B("glass", w[1]-w[0], 1.86, GT*0.5, (w[0]+w[1])/2, F+1.45, Z0g+GT/2, 0, 0, "#8a9088");
+      for(let i=0;i<5;i++)                              // the grime, in runs
+        m.P("soot", planeGeo(0.18+((i*5)%3)*0.12, 1.70, 0), w[0]+0.3+i*(w[1]-w[0]-0.6)/4,
+            F+1.45, Z0g+GT*0.30, 0, "#6e6a5e", 0, 0);
       m.B("teal", w[1]-w[0]+0.14, 0.12, 0.20, (w[0]+w[1])/2, F+2.44, Z0g+0.04, 0, 0, TRIMG);
       m.B("teal", w[1]-w[0]+0.14, 0.14, 0.24, (w[0]+w[1])/2, F+0.46, Z0g+0.02, 0, 0, TRIMG);
       for(let i=0;i<5;i++)
@@ -7574,7 +7650,18 @@ i===1?"#6a5a3c":"#7a6746");
             Z0g-0.04, "#6b6156");
       for(let i=0;i<3;i++)                                 // and what is taped inside it
         m.P("paper", planeGeo(0.24,0.32,0), w[0]+0.5+i*0.7, F+1.55+((i*5)%3)*0.2,
-            Z0g+GT*0.72, ((i*7)%5-2)*0.09, "#e2dac4", 0, 0);
+            Z0g+GT*0.72, ((i*7)%5-2)*0.09, "#c8c0a6", 0, 0);
+      // one pane gone and boarded from inside, another starred where it went
+      m.B("plank", 0.98, 1.70, 0.05, w[0]+0.72, F+1.45, Z0g+GT*0.34, 0.5, 0, "#8a7550");
+      for(let i=0;i<3;i++)
+        m.B("plank", 1.02, 0.22, 0.045, w[0]+0.72, F+0.85+i*0.60, Z0g+GT*0.22,
+            0.5, ((i*7)%5-2)*0.02, "#7a6646");
+      for(let i=0;i<9;i++){
+        const a5=i*0.70;
+        m.P("soot", planeGeo(0.02, 0.24+((i*5)%4)*0.18, 0),
+            w[1]-0.55+Math.cos(a5)*0.14, F+1.62+Math.sin(a5)*0.14, Z0g+GT*0.30,
+            0, "#d8d4c8", 0, -a5);
+      }
     }
     makeDoor(XF(-145+DOORG[0]+0.02, -359+Z0g+0.04, 0), 0, m.y+F+0.02, 0,
              "THE FILLING STATION", true, 0, "booth");
@@ -7706,16 +7793,16 @@ i===1?"#6a5a3c":"#7a6746");
 
     // ---- the island, the pumps and the canopy ---------------------------
     const IZ=-3.20;
-    m.B("concrete", 7.4,0.34,3.0, 4.0,0.34,IZ, 0.45,0, "#b9b2a2");
+    m.B("concrete", 7.4,0.34,3.0, 4.0,0.34,IZ, 0.45,0, "#a49c8c");
     roll2("concrete", 0.085, 7.4, 4.0, 0.425, IZ-1.50, "#b9b2a2", true);
     roll2("concrete", 0.085, 7.4, 4.0, 0.425, IZ+1.50, "#b9b2a2", true);
     m.flat(0.3,7.7, IZ-1.5, IZ+1.5, 0.51);
     for(const px of [2.0, 6.0]){                           // the pumps
-      m.B("weathered", 0.68,1.44,0.54, px,F+1.16,IZ, 0.4,0, "#b8442e");
-      roll2("weathered", 0.07, 1.44, px-0.34, F+1.16, IZ-0.27, "#b8442e", false);
-      roll2("weathered", 0.07, 1.44, px+0.34, F+1.16, IZ-0.27, "#b8442e", false);
-      m.B("weathered", 0.76,0.22,0.62, px,F+1.98,IZ, 0.4,0, "#d8d2c4");
-      m.C("weathered", 0.11,0.11,0.76,12, px,F+2.14,IZ, "#d8d2c4", 0,0,Math.PI/2);
+      m.B("weathered", 0.68,1.44,0.54, px,F+1.16,IZ, 0.4,0, "#8a4432");
+      roll2("weathered", 0.07, 1.44, px-0.34, F+1.16, IZ-0.27, "#8a4432", false);
+      roll2("weathered", 0.07, 1.44, px+0.34, F+1.16, IZ-0.27, "#8a4432", false);
+      m.B("weathered", 0.76,0.22,0.62, px,F+1.98,IZ, 0.4,0, "#b8b2a2");
+      m.C("weathered", 0.11,0.11,0.76,12, px,F+2.14,IZ, "#b8b2a2", 0,0,Math.PI/2);
       for(const sd of [-1,1]){                             // the dials, both at zero
         m.B("tvglass", 0.46,0.34,0.03, px,F+1.62,IZ+sd*0.29, 0,0, "#1d262b");
         for(let i=0;i<4;i++)
@@ -7730,14 +7817,14 @@ i===1?"#6a5a3c":"#7a6746");
       m.col(px-0.42,px+0.42,IZ-0.34,IZ+0.34, 0,F+2.0);
     }
     for(const px of [0.8, 7.2]){                           // canopy posts
-      m.B("weathered", 0.30,4.30,0.30, px,F+2.15,IZ, 0.4,0, "#cfc8bc");
-      roll2("weathered", 0.055, 4.30, px-0.15, F+2.15, IZ-0.15, "#cfc8bc", false);
-      roll2("weathered", 0.055, 4.30, px+0.15, F+2.15, IZ-0.15, "#cfc8bc", false);
+      m.B("weathered", 0.30,4.30,0.30, px,F+2.15,IZ, 0.4,0, "#aea698");
+      roll2("weathered", 0.055, 4.30, px-0.15, F+2.15, IZ-0.15, "#aea698", false);
+      roll2("weathered", 0.055, 4.30, px+0.15, F+2.15, IZ-0.15, "#aea698", false);
       m.col(px-0.22,px+0.22,IZ-0.22,IZ+0.22, 0,4.3);
     }
-    m.B("weathered", 10.0,0.50,6.2, 4.0,F+4.52,IZ, 0.35,0, "#d8d2c4");
-    roll2("weathered", 0.10, 10.0, 4.0, F+4.27, IZ-3.10, "#d8d2c4", true);
-    roll2("weathered", 0.10, 10.0, 4.0, F+4.27, IZ+3.10, "#d8d2c4", true);
+    m.B("weathered", 10.0,0.50,6.2, 4.0,F+4.52,IZ, 0.35,0, "#b6b0a0");
+    roll2("weathered", 0.10, 10.0, 4.0, F+4.27, IZ-3.10, "#b6b0a0", true);
+    roll2("weathered", 0.10, 10.0, 4.0, F+4.27, IZ+3.10, "#b6b0a0", true);
     m.B("teal", 10.2,0.34,0.18, 4.0,F+4.10,IZ-3.12, 0,0, TRIMG);
     m.B("teal", 10.2,0.34,0.18, 4.0,F+4.10,IZ+3.12, 0,0, TRIMG);
     for(const px of [1.6, 4.0, 6.4]){                      // the lights under it
@@ -7745,9 +7832,47 @@ i===1?"#6a5a3c":"#7a6746");
       LAMPS.push({x:-145+px, y:m.y+F+4.10, z:-359+IZ, color:0xdfe8ee, intensity:0.30,
                   dist:11, decay:1.5, mothy:true});
     }
+    // Streaks off the canopy fascia, where the water has come over the edge
+    // at the same points every storm since the Ford administration.
+    for(let i=0;i<22;i++){
+      const sx=-0.6+((i*2.17)%11.2), w=0.10+((i*5)%4)*0.09;
+      for(const sd of [-1,1])
+        m.P("rust", planeGeo(w, 0.34+((i*7)%4)*0.13, 0), 4.0-5.0+sx, F+4.30,
+            IZ+sd*3.21, sd>0?0:Math.PI, "#6a4a2c", 0, 0);
+    }
+    for(let i=0;i<9;i++)                               // and down the posts
+      for(const px of [0.8, 7.2])
+        m.P("rust", planeGeo(0.13, 0.70+((i*5)%3)*0.4, 0), px+((i*7)%3-1)*0.11,
+            F+0.9+((i*3)%4)*0.85, IZ-0.16, 0, "#6a4a2c", 0, 0);
+    for(let i=0;i<14;i++)                              // bird mess on the soffit edge
+      m.P("soot", planeGeo(0.16+((i*5)%3)*0.10, 0.20+((i*7)%3)*0.12, 0),
+          -0.4+((i*1.87)%9.0), F+4.245, IZ-2.4+((i*1.31)%4.8), i*1.3,
+          "#d6d2c6", -Math.PI/2, 0);
+    // a panel gone out of the soffit, and the framing behind it
+    m.B("bin", 1.30, 0.06, 1.05, 2.4, F+4.30, IZ+1.1, 0.4, 0, "#2b2723");
+    for(let i=0;i<4;i++)
+      m.B("metal", 1.26, 0.05, 0.05, 2.4, F+4.44, IZ+0.66+i*0.29, 0, 0, "#6f6a60");
+    // one pump with its nozzle off and the hose on the ground
+    for(let i=0;i<7;i++)
+      m.P("teal", new T.TorusGeometry(0.11,0.022,5,10), 6.62+i*0.12, F+0.06,
+          IZ-1.30-i*0.10, i*0.8, "#22201e", Math.PI/2, 0);
+    m.B("bin", 0.12,0.09,0.22, 7.40, F+0.07, IZ-1.98, 0, 0.5, "#3a3632");
+    // sand across the apron, banked up the windward side of everything
+    for(let i=0;i<16;i++){
+      // A half-buried sphere is a ball, not a drift. Squashed flat and drawn
+      // out downwind it reads as sand that blew there.
+      const g2=new T.SphereGeometry(0.44+((i*5)%4)*0.32,10,6);
+      g2.scale(2.1+((i*7)%3)*0.5, 0.30, 1.35);
+      m.P("gravel", g2, -14.0+((i*2.71)%23.0), F-0.10+((i*3)%3)*0.05,
+          -5.4+((i*1.91)%10.6), i*0.9, "#b49a72", 0, 0);
+    }
+    for(let i=0;i<20;i++)                              // and the drift it has left
+      m.P("soot", planeGeo(2.2+((i*7)%4)*1.3, 1.4+((i*5)%3)*0.9, 0),
+          -14.5+((i*2.31)%24.0), F+0.032, -5.9+((i*1.63)%11.6), i*1.1,
+          ["#b09772","#a68d68","#bda37c"][i%3], -Math.PI/2, 0);
     // an air and water column, and a bin that has not been emptied
     m.C("weathered", 0.16,0.18,1.20,12, 8.8, F+0.60, IZ+1.2, "#6b6156");
-    m.B("weathered", 0.34,0.30,0.26, 8.8, F+1.32, IZ+1.2, 0.4, 0, "#b8442e");
+    m.B("weathered", 0.34,0.30,0.26, 8.8, F+1.32, IZ+1.2, 0.4, 0, "#8a4432");
     for(let i=0;i<6;i++)
       m.P("teal", new T.TorusGeometry(0.12,0.020,5,10), 8.66, F+1.02-i*0.16, IZ+1.06,
           i*0.6, "#22201e", Math.PI/2, 0);
@@ -8038,15 +8163,29 @@ i===1?"#6a5a3c":"#7a6746");
             c*1.3+y, ROCKC[(c+((y*2)|0))%5], ((c*7)%5-2)*0.22, ((c*3)%5-2)*0.22);
       }
     }
-    // and a course of small stuff framing the opening, close in but never
-    // across it: these are sized so even their jitter stops at the jamb
-    for(let k=0;k<11;k++){
-      const r=0.30+((k*5)%3)*0.09, py=F+0.20+k*0.44;
-      if(py>F+PH+0.30) break;
-      for(const q of [-1,1])
-        m.P("rock", rockGeo(r, 4900+k*23+(q>0?7:0)), q*(JAMB+r*1.30),
-            py, FZ-0.52+((k*7)%3-1)*0.10, k*1.4, ROCKC[(k+2)%5],
-            ((k*7)%5-2)*0.24, ((k*3)%5-2)*0.24);
+    // Between the jamb and where the main mass is allowed to start there was
+    // a band six metres wide and three high with no lumps in it at all —
+    // just the flat seal, reading as a dark panel around the doorway. It is
+    // filled with a graded course: the further out a stone sits the bigger
+    // it can be, because what has to clear the opening is its own jitter.
+    for(let c=0;c<4;c++){
+      const dx=JAMB+0.42+c*0.78;
+      const r=Math.min(0.92, (dx-JAMB)/1.30);
+      if(r<0.16) continue;
+      for(let k=0;;k++){
+        const py=F+0.18+k*(r*1.25);
+        if(py>F+PH+0.60) break;
+        for(const q of [-1,1])
+          m.P("rock", rockGeo(r*(0.86+((k*5+c)%3)*0.12), 4900+k*23+c*61+(q>0?7:0)),
+              q*dx, py, FZ-0.58+((k*7+c)%3-1)*0.12, k*1.4+c,
+              ROCKC[(k+c+2)%5], ((k*7)%5-2)*0.24, ((k*3)%5-2)*0.24);
+      }
+    }
+    for(let c=0;c<5;c++){                              // and over the lintel
+      const r=0.34+((c*5)%3)*0.14;
+      m.P("rock", rockGeo(r, 5300+c*37), -1.2+c*0.6, F+PH+0.42+((c*3)%3)*0.16,
+          FZ-0.55+((c*7)%3-1)*0.10, c*1.3, ROCKC[(c+1)%5],
+          ((c*7)%5-2)*0.22, ((c*3)%5-2)*0.22);
     }
     for(const g of [[-FHW-0.6,-JAMB],[JAMB,FHW+0.6]])  // and it is solid, all of it
       m.col(g[0], g[1], FZ-1.15, FZ+0.95, 0, F+FH+1.2);
@@ -8687,8 +8826,17 @@ i===1?"#6a5a3c":"#7a6746");
 
     /* ---- ceiling, and the bit of it that came down -------------------- */
     m.B("ceil", IX1-IX0, 0.10, IZ1-IZ0, 0, RY-0.02, 0, 0.5, 0, "#cdc5ae");
-    m.P("ceil", boxGeo(1.10,0.05,1.00,0.5), 0.90, RY-0.26, -0.30, 0.1, "#a89e86", 0.34, 0.1);
-    m.P("fabric", boxGeo(1.00,0.14,0.86,0.5), 0.90, RY-0.44, -0.10, 0.1, "#a89b80", 0.30, 0.1);
+    // The panel that came down used to hang out across the middle of the van
+    // at head height, which from the doorway is a slab floating in the room
+    // and nothing else. It is on the floor where it landed.
+    m.P("ceil", boxGeo(1.10,0.05,1.00,0.5), 1.35, FY+0.04, IZ1-0.62, 0.6, "#a89e86",
+        0.05, 0.03);
+    m.P("fabric", boxGeo(1.00,0.14,0.86,0.5), 1.05, FY+0.09, IZ1-0.78, 0.5, "#a89b80",
+        0.04, 0.02);
+    for(let i=0;i<5;i++)                               // and the hole it left
+      m.P("soot", planeGeo(0.34+((i*5)%3)*0.16, 0.30+((i*7)%3)*0.14, 0),
+          0.70+((i*7)%3-1)*0.30, RY-0.07, -0.30+((i*5)%3-1)*0.28, i*1.2,
+          "#3a332a", Math.PI/2, 0);
     for(const wx of [-2.2, 1.1])                       // insulation on the floor
       m.P("fabric", boxGeo(0.86,0.10,0.62,0.5), wx, FY+0.05, rr2(IZ0+0.3,IZ1-0.3),
           rr2(0,3), "#a2977e", 0.04, 0.03);
@@ -9426,6 +9574,22 @@ let seated=null, nearestSeat=null, sitGuard=false, sitDrop=0.66;
 // direction blocked, which is what "stuck" was. Now it fans out from the way
 // you were facing, at three distances, and tests each candidate standing on
 // the floor rather than sitting on the cushion.
+/* The nearest place you could actually be standing. A ring search outward
+   from wherever you are: the first unblocked spot at a height you could have
+   got to wins. Nothing in the world needs to guarantee an exit any more,
+   because this always finds one.                                          */
+function nearestFree(x, z, base, maxR){
+  for(let r=0.45; r<=(maxR||4.2); r+=0.35){
+    const n=Math.max(8, Math.round(r*14));
+    for(let k=0;k<n;k++){
+      const a=(k/n)*Math.PI*2 + r;                 // rotate each ring a little
+      const nx=x+Math.cos(a)*r, nz=z+Math.sin(a)*r;
+      const fy=surfaceY(nx, nz, base+0.45);
+      if(Math.abs(fy-base)<1.3 && !blocked(nx, nz, fy)) return [nx, nz, fy];
+    }
+  }
+  return null;
+}
 function standUp(){
   if(!seated) return;
   const s=seated, base=surfaceY(s.x, s.z, s.y);
@@ -9441,7 +9605,15 @@ function standUp(){
     }
     if(stood) break;
   }
-  if(!stood) player.feetY=base;          // nowhere to go: at least stand up
+  // The fan used to give up and leave you standing in the furniture — in a
+  // motel room the bed, the nightstand and the chair make pockets under
+  // 0.68 m across, which is narrower than the player, so once you were in
+  // one you could not walk out of it in any direction.
+  if(!stood){
+    const e=nearestFree(s.x, s.z, base);
+    if(e){ player.pos.x=e[0]; player.pos.z=e[1]; player.feetY=e[2]; }
+    else player.feetY=base;
+  }
   seated=null; sitGuard=false;
 }
 function updateSeats(){
@@ -9536,6 +9708,17 @@ function fixedUpdate(dt){
     }
   }
   player.sit += (0-player.sit)*Math.min(1,dt*6);
+  /* If you are inside something, get out of it. Movement below is two
+     axis-separated slide tests, and both of them fail from every direction
+     once your own position is blocked — so whatever put you there (standing
+     up into furniture, a door swinging shut on you, the ground moving under
+     you), you would stay there for good with no way to walk out. One ring
+     search a step, and only while actually stuck, so it costs nothing the
+     rest of the time. */
+  if(blocked(player.pos.x, player.pos.z, player.feetY)){
+    const e=nearestFree(player.pos.x, player.pos.z, player.feetY, 6.0);
+    if(e){ player.pos.x=e[0]; player.pos.z=e[1]; player.feetY=e[2]; }
+  }
   const underwater = player.feetY < POOL.water-0.05 &&
                      inPool(player.pos.x, player.pos.z);
   // Physical Shift, by e.code, and nothing else. This briefly also consulted
@@ -10243,6 +10426,48 @@ function frame(){
     b.s.material.opacity = 0.75*(1-dn.nightAmount);
     b.s.visible = dn.nightAmount<0.85;
   }
+  /* the vulture: on a thermal for a couple of minutes, then gone for
+     several, and never at night — nothing soars in the dark */
+  if(VULTURE){
+    const V=VULTURE, day=1-dn.nightAmount;
+    V.t-=delta;
+    if(V.t<=0){
+      V.on=!V.on;
+      if(V.on){                                    // it finds a new thermal
+        V.t=70+Math.random()*90;
+        V.r=90+Math.random()*80;
+        V.y=125+Math.random()*80;
+        V.sp=(0.055+Math.random()*0.045)*(Math.random()<0.5?-1:1);
+        V.a=Math.random()*6.28;
+        V.cx=camera.position.x+(Math.random()-0.5)*260;
+        V.cz=camera.position.z+(Math.random()-0.5)*260;
+        V.drift=Math.random()*6.28;
+      } else V.t=110+Math.random()*190;            // and then it is finished
+    }
+    const want=(V.on && day>0.35) ? 1 : 0;
+    V.fade += (want-V.fade)*Math.min(1, delta*0.45);
+    if(V.fade>0.004){
+      V.a += V.sp*delta;
+      V.drift += delta*0.11;
+      // it climbs as it turns, and the circle wanders with the thermal
+      const rr=V.r*(1+Math.sin(V.drift*0.7)*0.16);
+      const px=V.cx+Math.cos(V.drift*0.3)*40+Math.cos(V.a)*rr;
+      const pz=V.cz+Math.sin(V.drift*0.4)*40+Math.sin(V.a)*rr;
+      const py=V.y+Math.sin(V.drift*0.5)*18;
+      V.s.position.set(px, py, pz);
+      // A sprite always faces you, so the wingspan has to be foreshortened
+      // by hand: side-on it is a plank, coming at you it is a line. And it
+      // teeters, the way one does on a shallow dihedral.
+      const view=Math.atan2(px-camera.position.x, pz-camera.position.z);
+      const head=V.a+(V.sp>0?Math.PI/2:-Math.PI/2);
+      const side=Math.abs(Math.sin(head-view));
+      const teeter=1+Math.sin(V.drift*2.3)*0.10;
+      const span=19.0;
+      V.s.scale.set(span*(0.22+0.78*side)*teeter, span*0.5/(teeter*0.6+0.5), 1);
+      V.s.material.opacity=0.80*V.fade*day;
+      V.s.visible=true;
+    } else V.s.visible=false;
+  }
 
   // moths orbit whichever fixtures the light pool is currently driving
   for(let i=0;i<MOTHS.length;i++){
@@ -10312,6 +10537,10 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                pool:()=>({water:waterMesh, floor:poolFloorCaustic, glow:poolGlow,
                           mat:waterMat}),
                torch:()=>torchOn, torchToggle:()=>{ torchOn=!torchOn; },
+               cols:COL, vulture:()=>VULTURE,
+               vultureNow:()=>{ if(VULTURE){ VULTURE.on=true; VULTURE.t=200;
+                 VULTURE.fade=1; VULTURE.r=120; VULTURE.y=185;
+                 VULTURE.cx=camera.position.x+40; VULTURE.cz=camera.position.z+40; } },
                probe:(x,z,y)=>blocked(x,z,y===undefined?BASE:y),
                surf:(x,z,y)=>surfaceY(x,z,y===undefined?BASE:y) };
 

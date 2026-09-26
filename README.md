@@ -320,6 +320,16 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   with it — and the whole floor under paper. Sixty-odd sheets of it drifted
   into the corners, magazines gone to pulp, cans, bottles, a hand of playing
   cards, glass under the window that went, and sand blown in through the door.
+- **A turkey vulture**, most of a mile up, and not always there. Not one of
+  the six small birds that always circle: it gets its own silhouette — broad
+  plank wings with the primaries slotted like fingers, a small head, a short
+  wedge of tail — and its own clock, which has it out of the sky more often
+  than in it. It finds a thermal, turns on it for a minute or two without a
+  single flap while the circle drifts and it climbs, and then the thermal is
+  finished and it goes. A sprite always faces you, so the wingspan is
+  foreshortened by hand: side-on it is a plank, coming at you it is a line,
+  and it teeters the way one does on a shallow dihedral. Never at night —
+  nothing soars in the dark.
 - **Hot-air balloons** off in the distance once you have walked away from the
   motel — real size now, about nineteen metres across and twenty-six tall,
   flying at a hundred to three hundred metres and seven hundred to eighteen
@@ -539,6 +549,9 @@ headless Chromium and asks the scene about itself rather than looking at it:
   of the chamber, so nowhere on that route can wedge you;
 - a terrain profile dump over any footprint, for checking a cut before building
   anything on it;
+- a stuck scan, which walks the whole site at 45 cm on both storeys and
+  reports every spot you could stand in and not be able to move out of in any
+  of eight directions, naming the colliders that make each one;
 - a texture survey, which walks the baked scene and reports every material by
   triangle count and whether it carries a map. It found 70% of the world's
   triangles on materials with none — foliage alone is 45% of the world and was

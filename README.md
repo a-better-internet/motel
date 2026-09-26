@@ -440,6 +440,18 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   days after the floor dried, a bug zapper that has been killing moths since
   1971, the pool of light each lit machine throws onto the slab in front of it,
   and one door down the far end standing ajar with the light on behind it.
+- **A tracking station, six hundred metres back.** A parabolic dish on an
+  alt-az mount over a lattice pedestal, a control room you can walk into, a
+  plant hut, a half-buried cable duct between them, and a ring of little white
+  marker posts round a graded circle of fill. It is far enough out that from
+  the highway the ridge hides it altogether and from halfway across the flats
+  it is a shape the size of your thumbnail against the mesa — it is something
+  you find by walking towards it, not something standing over the world. The
+  reflector is built rather than modelled: twenty-four radial ribs, five
+  panels along each, four hoops round the back, a feed horn on a tripod at the
+  focus and a counterweight boom behind, all of it laid out by a function that
+  returns points on the paraboloid so the ribs and the skin agree. Three
+  panels are missing.
 - **Weather and traffic.** Cumulus built the way a cloud is actually shaped — a
   row of lobes on a flat base, shaded underneath, sunlit on top — with a thin
   cirrus layer above it, and three vehicles working the highway day and night,
@@ -614,6 +626,31 @@ A few pieces are specific to this scene:
   the floor had been a plate at mid-depth with a step at each end since the day
   it was built. A raycast straight down a grid of points inside the tank is what
   found it — the floor read the same height across seven metres.
+- **A crossarm runs across the line.** The poles along the highway had their
+  arms laid out along the road instead of over it, so the arm was a stub
+  pointing the way you were driving and all three wires hung at the same z —
+  collinear, drawing as one. The birds perch on the outer lanes, which is why
+  some of them sat in mid-air with nothing under them. The wires now hang off
+  the ends of the arm where they belong, and both the wire and every perch
+  come from one `wireAt(x, lane)` that interpolates the catenary, so a bird
+  cannot land off the line it is supposed to be sitting on.
+- **A lit sign is a box with lamps in it.** By day the sun beats the lamps and
+  the face reads as paint; after dark the face is the only thing making light,
+  and that difference is what makes a sign read as a cabinet rather than a
+  picture pasted into the world. The ramp used to run 0.78 to 1.06 — barely a
+  change, and the top of it clipping. The sign faces are unlit basic material
+  with tone mapping off, so anything above 1 blows the lettering out with it;
+  the range had to be widened downwards instead, and now runs 0.40 to 1.00.
+- **A member has to know which way it points.** A box pushed into a bucket
+  runs along its own +Y, and after the YXZ euler its axis lies along
+  `(sin ry · sin rx, cos rx, cos ry · sin rx)`. Every strut in the tracking
+  station — ribs, hoops, tower legs, bracing, tripod, boom — is placed by one
+  helper that inverts that: `rx = acos(dy)`, `ry = atan2(dx, dz)`. The first
+  cut of the dish skipped it and laid each member at its midpoint unrotated,
+  which turns a hundred and twenty ribs into a hundred and twenty vertical
+  sticks. The related trap next door: the tower legs were planted at 0.62 of
+  the radius the bracing spans, so the frame stood outside the legs it was
+  meant to brace and the pedestal read as a zigzag ladder.
 - **And nothing stops on a plane something else also stops on.** Every trim
   piece laps past the thing it trims, so the cut edge underneath is buried
   rather than flush: door and window linings lap 20 mm into their openings and

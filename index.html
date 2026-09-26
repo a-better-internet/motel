@@ -1560,6 +1560,17 @@ const Terrain=(function(){
             + (fbm(x*0.22+9, z*0.22+9)-0.5)*1.1*s*(1-t*0.5);
     return h+(fan-h)*s;
   }
+  /* The tracking station's pad. A dish on a mount needs ground that was
+     graded flat and then left, which is a circle of level fill with the
+     desert running back up to meet it — the same trick as the adit bench,
+     but a disc rather than a cut, and a long way further out.           */
+  const DISH={x:-250, z:-650, y:5.0, r:44, blend:26};
+  function dishPad(x,z,h){
+    const d=Math.hypot(x-DISH.x, z-DISH.z);
+    if(d>DISH.r+DISH.blend) return h;
+    const s2=smoothstep(DISH.r, DISH.r+DISH.blend, d);
+    return h+(DISH.y-h)*(1-s2);
+  }
   function heightAt(x,z){
     const d=padDist(x,z);
     if(d<=0.001) return PAD_Y;
@@ -1590,9 +1601,9 @@ const Terrain=(function(){
         h=Math.max(h, top+rough+ridge+fine);
       }
     }
-    return aditCut(x,z,h);
+    return dishPad(x,z, aditCut(x,z,h));
   }
-  return {heightAt:heightAt, fbm:fbm, PAD:PAD, PAD_Y:PAD_Y, ADIT:ADIT};
+  return {heightAt:heightAt, fbm:fbm, PAD:PAD, PAD_Y:PAD_Y, ADIT:ADIT, DISH:DISH};
 })();
 
 const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
@@ -2589,6 +2600,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     [-276,-248, 104, 132],   // the windmill and its stock tank
     [-654,-606, -90, -46],   // the burying ground
     [-580,-552,  22,  50],   // the adit bench and its spoil fan
+    [-300,-200,-700,-600],   // the tracking station's pad
   ];
   const built=(x,z)=>{
     for(const r of KEEP_CLEAR) if(x>r[0]&&x<r[1]&&z>r[2]&&z<r[3]) return true;
@@ -2901,15 +2913,31 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
       pick(["#d8c6ac","#c6b298","#e2d0b6","#b9a68e"]), rnd()*0.4-0.2, rnd()*0.4-0.2);
   }
 
-  // power poles along the highway (wires drawn as line segments afterwards)
+  // Power poles along the highway. A crossarm runs ACROSS the line, and the
+  // wires hang off it at its ends — both of those were laid out along the
+  // line instead, which made the arm a stub pointing the way the road goes
+  // and put all three wires on the same z, collinear, rendering as one.
+  // The birds perch on the outer lanes, so that is also why some of them sat
+  // in mid-air with nothing under them.
+  const POLE_Z=ROADZ-7.4, POLE_X0=-704, POLE_DX=44, LANE=1.05;
   const tops=[];
-  for(let x=-704;x<=704;x+=44){
-    const z=ROADZ-7.4, y=Terrain.heightAt(x,z);
-    cyl("oak", 0.17,0.21,8.2,8, x, y+4.1, z, "#5b4632");
-    bx("oak", 2.4,0.16,0.16, x, y+7.5, z, 0.4, 0, "#5b4632");
-    bx("oak", 1.7,0.14,0.14, x, y+6.7, z, 0.4, 0, "#5b4632");
-    tops.push({x:x, y:y+7.5, z:z});
+  for(let x=POLE_X0;x<=704;x+=POLE_DX){
+    const y=Terrain.heightAt(x,POLE_Z);
+    cyl("oak", 0.17,0.21,8.2,8, x, y+4.1, POLE_Z, "#5b4632");
+    bx("oak", 0.16,0.16,2.4, x, y+7.5, POLE_Z, 0.4, 0, "#5b4632");
+    bx("oak", 0.14,0.14,1.7, x, y+6.7, POLE_Z, 0.4, 0, "#5b4632");
+    for(const sg of [-1,0,1])                       // an insulator under each wire
+      cyl("glass", 0.055,0.075,0.14,7, x, y+7.66, POLE_Z+sg*LANE, "#7e8c86");
+    tops.push({x:x, y:y+7.5, z:POLE_Z});
   }
+  // where the wire actually is at a given x, on a given lane — the birds use
+  // this too, so a perch cannot drift off the line it is supposed to be on
+  const wireAt=(x, lane)=>{
+    const t=(x-POLE_X0)/POLE_DX, i=Math.max(0, Math.min(tops.length-2, Math.floor(t)));
+    const f=Math.max(0, Math.min(1, t-i));
+    return [lerp(tops[i].y, tops[i+1].y, f) - Math.sin(f*Math.PI)*1.1,
+            POLE_Z + lane*LANE];
+  };
   const pts=[];
   for(let i=1;i<tops.length;i++){
     const a=tops[i-1], b=tops[i];
@@ -2917,7 +2945,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
       let prev=null;
       for(let k=0;k<=6;k++){
         const f=k/6, sag=Math.sin(f*Math.PI)*1.1;
-        const p=new T.Vector3(lerp(a.x,b.x,f)+sg*1.05, lerp(a.y,b.y,f)-sag, lerp(a.z,b.z,f));
+        const p=new T.Vector3(lerp(a.x,b.x,f), lerp(a.y,b.y,f)-sag, a.z+sg*LANE);
         if(prev) pts.push(prev,p);
         prev=p;
       }
@@ -2929,9 +2957,8 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   // Birds sit the wire in ones and twos, all facing the same way, and never
   // move. They are the only other living things on this stretch of road.
   const perch=(bx0, lane)=>{
-    const f=((bx0/44)%1+1)%1, sag=Math.sin(f*Math.PI)*1.1;
-    const by=Terrain.heightAt(bx0, ROADZ-7.4)+7.5-sag+0.115;
-    const bz=ROADZ-7.4+lane*1.05;
+    const w=wireAt(bx0, lane);
+    const by=w[0]+0.115, bz=w[1];
     const fw=(((bx0*7)|0)%3) ? 0 : Math.PI;          // one in three looks the other way
     const d=fw?-1:1;
     push("bin", blobGeo(0.105), bx0, by, bz, 0, "#241f1b");
@@ -5787,9 +5814,20 @@ i===1?"#6a5a3c":"#7a6746");
     x.strokeRect(PAD*0.52, PAD*0.52, W-PAD*1.04, H2-PAD*1.04);
     x.strokeStyle="rgba(202,162,60,0.42)"; x.lineWidth=2;
     x.strokeRect(PAD*0.90, PAD*0.90, W-PAD*1.80, H2-PAD*1.80);
-    const inner=W-PAD*2.6;
-    x.fillStyle="#efe0b2"; fitSerif(x,"The Rusty", inner*0.78, H2*0.34, W/2, H2*0.345);
-    x.fillStyle="#d4573a"; fitSerif(x,"Canteen",   inner*0.84, H2*0.38, W/2, H2*0.695);
+    // One line, and sized to the board rather than the other way round: fit
+    // the whole string, measure the two runs at that size, and lay them out
+    // from the middle so the two colours stay one line with even padding.
+    const inner=W-PAD*3.4;
+    const all="The Rusty Canteen";
+    let fs=Math.round(H2*0.50);
+    do{ x.font="700 "+fs+"px Georgia, 'Times New Roman', Times, serif"; fs-=1; }
+    while(x.measureText(all).width>inner && fs>8);
+    x.textAlign="left"; x.textBaseline="middle";
+    const wa=x.measureText("The Rusty ").width, wb=x.measureText("Canteen").width;
+    const x0=(W-(wa+wb))/2, cy=H2*0.54;
+    x.fillStyle="#efe0b2"; x.fillText("The Rusty ", x0, cy);
+    x.fillStyle="#d4573a"; x.fillText("Canteen", x0+wa, cy);
+    x.textAlign="center";
   }), {aspect:22/5});
   NEON.push(signPanel(7.40, 1.682, nameTex, (X0+X1)/2, FY+3.10, Z0-0.06, Math.PI, true));
   const smallTex=hosted("barPole", signTex(1024, 512, (x,W,H2)=>{
@@ -6150,9 +6188,13 @@ i===1?"#6a5a3c":"#7a6746");
   const PW=0.85, PH2=1.19;
   function poster(i,x,y,z,ry){ push("pic:poster:"+i, new T.PlaneGeometry(PW,PH2),
                                     x, y, z, ry, "#ffffff"); }
-  const PW2=[[0,IX0+0.04,-25.0,Math.PI/2],[1,IX0+0.04,-16.2,Math.PI/2],
+  // Two of these were hung on wall nobody can see: one at z = -16.2 on the
+  // west wall, which is the stage, behind the 4x12 and the bass rig; and one
+  // at IX1 near IZ1, which is where the jukebox stands. Six on the walls that
+  // are actually walls.
+  const PW2=[[0,IX0+0.04,-25.0,Math.PI/2],[1,IX0+0.04,-21.9,Math.PI/2],
              [2,-86.4,IZ0+0.04,0],[3,-74.6,IZ0+0.04,0],
-             [4,IX1-0.52,-15.4,-Math.PI/2],[5,-77.4,IZ1-0.04,Math.PI]];
+             [4,IX1-0.06,-23.6,-Math.PI/2],[5,-77.4,IZ1-0.04,Math.PI]];
   for(const q of PW2) poster(q[0], q[1], FY+1.95+rr(-0.12,0.12), q[2], q[3]);
   poster(3, -83.2, FY+2.66, IZ0+0.04, 0);
   poster(5, -71.8, FY+1.90, IZ1-0.04, Math.PI);
@@ -7952,6 +7994,301 @@ i===1?"#6a5a3c":"#7a6746");
     m.B("weathered", 0.20,2.30,0.20, -6.0,1.15,-6.0, 0,0, "#a9a294");
     m.col(-6.1,-5.9,-6.1,-5.9, 0,2.4);
     m.rect(-17,17,-9,19, "WHAT IS LEFT OF A MOTEL");
+  })();
+
+  /* --- a tracking station, six hundred metres back from the road --------
+     A parabolic dish on an alt-az mount over a lattice pedestal, a control
+     room and a plant hut on a graded circle, and a ring of little white
+     marker posts round the edge of it. Far enough out that from the highway
+     it is a shape on the horizon, which is the point: it should not stand
+     over the rest of the world.                                          */
+  (function(){
+    const D=Terrain.DISH, m=mk(D.x, D.z);
+    const PAINT="#b8b2a4", STEEL="#8e9490", RUSTD="#7a4526", DARK="#4e5450";
+    const AZ=0.62, EL=0.58;                        // where it was left pointing
+    const cA=Math.cos(AZ), sA=Math.sin(AZ);
+    const A=(lx,lz)=>[lx*cA+lz*sA, -lx*sA+lz*cA];  // into the dish's own frame
+    // A box runs along its own +Y. After push()'s YXZ euler its axis points
+    // along (sin ry · sin rx, cos rx, cos ry · sin rx), so to lay a member
+    // between two points: rx = acos(dy), ry = atan2(dx, dz). Everything
+    // structural here goes through this, or it comes out a vertical stick.
+    const strut=(p0,p1,r,col)=>{
+      const dx=p1[0]-p0[0], dy=p1[1]-p0[1], dz=p1[2]-p0[2];
+      const L=Math.hypot(dx,dy,dz); if(L<0.01) return;
+      m.P("metal", boxGeo(r, L, r, 0), (p0[0]+p1[0])/2, (p0[1]+p1[1])/2, (p0[2]+p1[2])/2,
+          Math.atan2(dx,dz), col||STEEL, Math.acos(Math.max(-1,Math.min(1,dy/L))), 0);
+    };
+
+    // ---- the pad, its kerb and the posts round it ---------------------
+    // A CylinderGeometry's end cap carries UVs that run 0..1 across the whole
+    // disc, so the gravel would be magnified eighty-eight metres wide and the
+    // pad came out as a few soft pink blotches. The cap is its own circle with
+    // the UVs scaled to a sane grain; the cylinder is only the rim now.
+    {
+      // The surface is compacted fill, not decorative gravel: TEX.gravel is a
+      // sheet of hard coloured dots that works on a two-metre planting bed
+      // and reads as confetti across ninety, at every tiling that was tried.
+      const cap=new T.CircleGeometry(D.r, 48), uv=cap.attributes.uv;
+      for(let i=0;i<uv.count;i++) uv.setXY(i, uv.getX(i)*D.r, uv.getY(i)*D.r);
+      m.P("concrete", cap, 0, 0.22, 0, 0, "#9e9278", -Math.PI/2, 0);
+      // open-ended, or its own cap lands on the same plane as the disc above
+      // with the stretched UVs the disc was made to avoid, and fights it
+      m.P("concrete", new T.CylinderGeometry(D.r, D.r-0.5, 0.22, 48, 1, true),
+          0, 0.11, 0, 0, "#857c66");
+    }
+    m.flat(-D.r, D.r, -D.r, D.r, 0.22);
+    for(let i=0;i<64;i++){                         // the marker posts
+      const a=(i/64)*Math.PI*2;
+      if(i%8===3) continue;                        // a few knocked out
+      m.C("paint", 0.055,0.070,0.62,6, Math.cos(a)*(D.r-1.2), 0.30,
+          Math.sin(a)*(D.r-1.2), i%5 ? "#d8d2c2" : "#b8331f", ((i*7)%5-2)*0.05, 0, 0);
+    }
+    // Sand creeping back over it. Drift runs downwind, so these are long
+    // streaks all lying the same way rather than blobs at random angles, and
+    // they sit a shade off the gravel — a drift you can only just see is a
+    // drift; one you can see plainly is a paint spill.
+    for(let i=0;i<18;i++){
+      const a=i*2.39, rr=((i*7.7)%1)*(D.r-5);
+      m.P("soot", planeGeo(7.0+((i*5)%3)*3.0, 1.5+((i*3)%3)*0.7, 0),
+          Math.cos(a)*rr, 0.235, Math.sin(a)*rr,
+          0.42+((i*11)%5-2)*0.05, ["#b3a68c","#aa9d84","#bab08f"][i%3], -Math.PI/2, 0);
+    }
+
+    // ---- the plinth and the lattice pedestal ---------------------------
+    const PY=0.22;
+    m.C("concrete", 4.6,5.0,1.30,24, 0, PY+0.65, 0, "#a49c8c");
+    m.P("concrete", new T.TorusGeometry(4.62,0.10,6,28), 0, PY+1.30, 0, 0, "#b0a898",
+        Math.PI/2, 0);
+    m.col(-4.8,4.8, -4.8,4.8, 0, PY+1.30);
+    const TH=7.2;                                  // the tower
+    // The legs stand on the corners the bracing spans between — put them on a
+    // smaller radius than the frame and the frame has nothing to brace, which
+    // is what turned this into a zigzag ladder rather than a pedestal.
+    for(const c of [[-1,-1],[1,-1],[-1,1],[1,1]])
+      strut([c[0]*2.05, PY+1.30, c[1]*2.05],
+            [c[0]*1.40, PY+1.30+TH, c[1]*1.40], 0.19);
+    for(let k=0;k<6;k++){                          // its bracing
+      const y=PY+1.60+k*1.16, w=2.05-k*0.13;
+      for(const sd of [0,1]){
+        m.B("metal", sd?0.10:w*2, 0.10, sd?w*2:0.10, 0, y, sd? 0:  w, 0.4,0, STEEL);
+        m.B("metal", sd?0.10:w*2, 0.10, sd?w*2:0.10, sd? w:0, y, sd? 0: -w, 0.4,0, STEEL);
+      }
+      if(k<5){                                     // a diagonal on each face
+        const w2=2.05-(k+1)*0.13, y2=y+1.16;
+        for(const f of [[1,0],[0,1],[-1,0],[0,-1]]){
+          const px0=f[0]? f[0]*w : -w, pz0=f[1]? f[1]*w :  w;
+          const px1=f[0]? f[0]*w2:  w2, pz1=f[1]? f[1]*w2: -w2;
+          strut([px0,y,pz0], [px1,y2,pz1], 0.07);
+        }
+      }
+    }
+    const HUB=PY+1.30+TH;                          // the elevation axis
+    m.C("metal", 1.30,1.30,1.00,20, 0, HUB-0.30, 0, DARK, 0, 0, 0);
+    m.col(-2.4,2.4, -2.4,2.4, 0, HUB);
+
+    // ---- the yoke, and the dish hung in it -----------------------------
+    const RD=6.6, DEPTH=1.55;                      // radius, and how deep the bowl is
+    const yk=(q)=>{ const [px,pz]=A(q*1.55, 0);
+      m.B("metal", 0.34, 2.10, 0.50, px, HUB+0.85, pz, 0.4, AZ, STEEL); };
+    yk(-1); yk(1);
+    for(const q of [-1,1]){                        // the trunnions
+      const [px,pz]=A(q*1.55, 0);
+      m.C("metal", 0.30,0.30,0.44,12, px, HUB+1.90, pz, DARK, 0, 0, Math.PI/2);
+    }
+    // the reflector: radial ribs with panels between them, so it reads as a
+    // built dish and not a saucer
+    const cE=Math.cos(EL), sE=Math.sin(EL);
+    const FACE=(r,a)=>{                            // a point on the bowl
+      const dx=Math.cos(a)*r, dy=Math.sin(a)*r, dep=(r*r)/(4*3.4)-DEPTH*0.28;
+      // tilt about the elevation axis, then swing to azimuth
+      const yy=dy*sE + dep*cE, zz=-dy*cE + dep*sE;
+      const [px,pz]=A(dx, zz);
+      return [px, HUB+1.90+yy, pz];
+    };
+    for(let i=0;i<24;i++){                         // the ribs
+      const a=(i/24)*Math.PI*2;
+      for(let k=0;k<5;k++) strut(FACE(RD*(k/5),a), FACE(RD*((k+1)/5),a), 0.09);
+    }
+    for(let i=0;i<24;i++) for(let k=1;k<=5;k++){   // and the skin, panel by panel
+      const a0=(i/24)*Math.PI*2, a1=((i+1)/24)*Math.PI*2;
+      const r0=RD*((k-1)/5), r1=RD*(k/5);
+      if((i*5+k)%23===4) continue;                 // three panels gone
+      const p=[FACE(r0,a0),FACE(r1,a0),FACE(r1,a1),FACE(r0,a1)];
+      const g=new T.BufferGeometry();
+      // both windings: the bucket material is single-sided, and a dish seen
+      // from behind should show the back of its panels, not straight through
+      g.setAttribute("position", new T.Float32BufferAttribute(
+        [].concat(p[0],p[1],p[2], p[0],p[2],p[3],
+                  p[2],p[1],p[0], p[3],p[2],p[0]), 3));
+      g.setAttribute("uv", new T.Float32BufferAttribute(
+        [0,0,1,0,1,1, 0,0,1,1,0,1, 1,1,1,0,0,0, 0,1,1,1,0,0],2));
+      g.computeVertexNormals();
+      // FACE() is in the station's own frame, so the panel has to be offset
+      // like everything m.* places, or the skin ends up at the world origin
+      push("metal", g, D.x, m.y, D.z, 0, ((i+k)%7) ? "#9aa09a" : "#8b8f88");
+    }
+    for(let k=0;k<4;k++){                          // hoops round the back
+      const rr=RD*(0.35+k*0.21);
+      for(let i=0;i<24;i++)
+        strut(FACE(rr,(i/24)*Math.PI*2), FACE(rr,((i+1)/24)*Math.PI*2), 0.07);
+    }
+    {                                              // the feed, on its tripod
+      const foc=(3.4*0.98);
+      const dep=(0)/(4*3.4)-DEPTH*0.28+foc;
+      const yy=dep*cE, zz=dep*sE;
+      const [fx,fz]=A(0, zz);
+      const FY2=HUB+1.90+yy;
+      m.C("metal", 0.30,0.22,0.90,14, fx, FY2, fz, "#b8b2a2",
+          -(Math.PI/2-EL), AZ, 0);
+      for(let i=0;i<3;i++)
+        strut(FACE(RD*0.92, i*2.094+0.4), [fx,FY2,fz], 0.075);
+    }
+    {                                              // the counterweight boom
+      const dep=-DEPTH*0.28-2.9;
+      const yy=dep*cE, zz=dep*sE;
+      const [bx2,bz2]=A(0, zz);
+      strut([0,HUB+1.90,0], [bx2,HUB+1.90+yy,bz2], 0.24);
+      m.B("metal", 1.10, 0.70, 1.10, bx2, HUB+1.90+yy, bz2, 0.4, AZ, DARK);
+    }
+
+    /* ---- the control room, which you can walk into -------------------- */
+    (function(){
+      const OX=13.5, OZ=6.0, W2=9.4, DP=5.2, WT=0.20, RH=2.95, FL=0.30;
+      const X0=OX-W2/2, X1=OX+W2/2, Z0=OZ-DP/2, Z1=OZ+DP/2;
+      const DOOR=[OX-0.55, OX+0.55];
+      const hol=(a0,a1,hs)=>{ const out=[]; let c=a0;
+        for(const h of hs){ if(h[0]>c) out.push([c,h[0]]); c=Math.max(c,h[1]); }
+        if(c<a1) out.push([c,a1]); return out; };
+      m.B("concrete", W2+0.9, FL, DP+0.9, OX, FL/2+0.22, OZ, 0.5, 0, "#a49c8c");
+      m.flat(X0-0.45, X1+0.45, Z0-0.45, Z1+0.45, 0.22+FL);
+      const F2=0.22+FL;
+      const WC="#9c9686", WC2="#948e7e";          // sun-bleached, not painted
+      // The front wall has three holes in it, not one: a window is an
+      // opening with a sill under it and a header over it, and a frame hung
+      // on solid wall is a picture frame. Sill 1.02, head 2.12.
+      const WIN=[[OX-3.95, OX-2.25],[OX+2.25, OX+3.95]];
+      const HOLES=[WIN[0], DOOR, WIN[1]];
+      for(const g of hol(X0,X1,HOLES))             // the full-height piers
+        m.B("siding", g[1]-g[0], RH, WT, (g[0]+g[1])/2, F2+RH/2, Z0, 0.45,0, WC);
+      m.B("siding", DOOR[1]-DOOR[0], RH-2.10, WT, OX, F2+2.10+(RH-2.10)/2, Z0, 0.45,0, WC);
+      for(const w of WIN){                         // sill below, header above
+        m.B("siding", w[1]-w[0], 1.02, WT, (w[0]+w[1])/2, F2+0.51, Z0, 0.45,0, WC);
+        m.B("siding", w[1]-w[0], RH-2.12, WT, (w[0]+w[1])/2, F2+2.12+(RH-2.12)/2, Z0,
+            0.45,0, WC);
+      }
+      m.B("siding", W2, RH, WT, OX, F2+RH/2, Z1, 0.45,0, WC2);
+      for(const sx of [X0,X1]) m.B("siding", WT, RH, DP, sx, F2+RH/2, OZ, 0.45,0, WC2);
+      m.B("roof", W2+0.5, 0.16, DP+0.5, OX, F2+RH+0.08, OZ, 0.35,0, "#8d9490");
+      m.B("ceil", W2-WT, 0.08, DP-WT, OX, F2+RH-0.06, OZ, 0.5,0, "#cdc5ae");
+      m.B("lino", W2-WT, 0.03, DP-WT, OX, F2+0.015, OZ, 0.7,0, "#7e7a6e");
+      m.col(X0, X1, Z1-WT, Z1, 0, F2+RH);
+      for(const sx of [[X0,X0+WT],[X1-WT,X1]]) m.col(sx[0],sx[1], Z0,Z1, 0, F2+RH);
+      for(const g of hol(X0,X1,[DOOR])) m.col(g[0],g[1], Z0,Z0+WT, 0, F2+RH);
+      // two windows in the front, both gone
+      for(const wx of [OX-3.1, OX+3.1]){         // the frames, in the openings
+        m.B("teal", 1.70, 0.10, WT+0.10, wx, F2+2.12, Z0, 0,0, "#5f6b66");
+        m.B("teal", 1.70, 0.10, WT+0.10, wx, F2+1.02, Z0, 0,0, "#5f6b66");
+        for(const q of [-1,1]) m.B("teal", 0.10, 1.10, WT+0.10, wx+q*0.85, F2+1.57, Z0,
+                                   0,0, "#5f6b66");
+        for(let i=0;i<4;i++)                       // the glass that is left
+          m.P("glass", planeGeo(0.30+((i*5)%3)*0.14, 0.26, 0), wx-0.6+i*0.4,
+              F2+1.96-((i*7)%3)*0.10, Z0+0.02, 0, "#8a9088", 0, ((i*3)%5-2)*0.2);
+      }
+      makeDoor(XF(D.x+DOOR[0]+0.02, D.z+Z0+0.04, 0), 0, m.y+F2+0.02, 0,
+               "THE CONTROL ROOM", true, 0.85, "booth");
+      // Decades of nothing. A dirt line where the rain splashes back off the
+      // apron, rust running out from under the roof edge, and blown sand
+      // banked against the windward wall. The soot and rust buckets are
+      // sixteen and thirty per cent overlays — a wash that thin does not
+      // age a wall on its own, so the streaks hang from under the eave where
+      // the run actually starts, and the walls are a grubbier colour to
+      // begin with. Both buckets are DoubleSide, so which way they face
+      // does not matter; clearing the wall box does — WT/2 is inside it.
+      const OFF=WT/2+0.02;
+      const streak=(x,y,z,w,h,ry)=>m.P("rust", planeGeo(w, h, 0), x, y-h/2, z, ry,
+                                       "#7c4526", 0, 0);
+      for(const wl of [[Z0,-OFF],[Z1,OFF]]){
+        m.P("soot", planeGeo(W2-0.3, 0.60, 0), OX, F2+0.30, wl[0]+wl[1], 0, "#6d6455", 0, 0);
+        for(let i=0;i<9;i++)
+          streak(X0+0.55+i*1.04, F2+RH-0.06, wl[0]+wl[1],
+                 0.20+((i*7)%4)*0.13, 0.55+((i*5)%5)*0.52, 0);
+      }
+      for(const sx of [[X0,-OFF],[X1,OFF]]){
+        m.P("soot", planeGeo(DP-0.3, 0.60, 0), sx[0]+sx[1], F2+0.30, OZ, Math.PI/2,
+            "#6d6455", 0, 0);
+        for(let i=0;i<5;i++)
+          streak(sx[0]+sx[1], F2+RH-0.06, Z0+0.7+i*0.95,
+                 0.18+((i*3)%3)*0.12, 0.50+((i*7)%4)*0.60, Math.PI/2);
+      }
+      for(let i=0;i<7;i++){                        // sand banked up the west end
+        // A half-buried sphere reads as a ball, so squash it to a drift
+        const g=blobGeo(0.62+((i*5)%3)*0.26); g.scale(1.5, 0.22, 1.0);
+        m.P("sand", g, X0-0.22+((i*3)%3)*0.16, 0.235, Z0+0.5+i*0.60, i*0.9, "#b09b79", 0, 0);
+      }
+      // racks down the back wall, and the console facing the window
+      for(let k=0;k<5;k++){
+        const rx=X0+1.1+k*1.55;
+        m.B("weathered", 1.20, 1.95, 0.62, rx, F2+0.98, Z1-0.42, 0.45,0,
+            (k%2)?"#5e6a66":"#54605c");
+        for(let i=0;i<7;i++)                       // blank panels and dead lamps
+          m.B("bin", 1.02, 0.18, 0.04, rx, F2+0.36+i*0.24, Z1-0.72, 0,0, "#2b2f2e");
+        if(k!==2) for(let i=0;i<5;i++)
+          m.C("ember", 0.018,0.018,0.02,6, rx-0.40+i*0.20, F2+1.62, Z1-0.735,
+              (k*i)%3 ? "#3a2a1e" : "#ff6a2a", Math.PI/2, 0, 0);
+        m.col(rx-0.62, rx+0.62, Z1-0.74, Z1-0.10, 0, F2+1.95);
+      }
+      // The console runs along the front wall under the west window, NOT
+      // across the middle of it: centred on OX it put a collider a metre
+      // inside the doorway and you could not get through the door.
+      const CX=X0+2.05;
+      m.B("weathered", 3.40, 0.86, 0.80, CX, F2+0.43, Z0+1.35, 0.45,0, "#5a5f5a");
+      m.B("bin", 3.30, 0.10, 0.72, CX, F2+0.90, Z0+1.35, 0.5,0, "#33383a");
+      for(let i=0;i<14;i++)                        // the switches on it
+        m.C("paint", 0.022,0.022,0.045,6, CX-1.50+i*0.22, F2+0.95, Z0+1.18,
+            (i%3)?"#c9c4b4":"#b8331f", 0, 0, 0);
+      m.col(CX-1.70, CX+1.70, Z0+0.95, Z0+1.75, 0, F2+0.95);
+      m.P("metal", boxGeo(0.52,0.06,0.52,0.4), CX+0.5, F2+0.54, Z0+2.15, 0.6, DARK, 0, 0);
+      m.C("metal", 0.05,0.05,0.48,8, CX+0.5, F2+0.28, Z0+2.15, DARK);
+      m.C("metal", 0.26,0.26,0.05,10, CX+0.5, F2+0.04, Z0+2.15, DARK);
+      // paper, everywhere, and a mug nobody took home
+      for(let i=0;i<26;i++)
+        m.P("paper", planeGeo(0.18+((i*5)%3)*0.06, 0.24+((i*7)%3)*0.05, 0),
+            X0+0.5+((i*1.93)%(W2-1.0)), F2+0.012+i*0.0012, Z0+0.5+((i*1.31)%(DP-1.0)),
+            i*1.3, "#d8d2be", -Math.PI/2, 0);
+      m.C("plaster", 0.045,0.040,0.09,12, CX-0.8, F2+0.94, Z0+1.12, "#dcd6c4");
+      LAMPS.push({x:D.x+OX, y:m.y+F2+2.70, z:D.z+OZ, color:0xdfe8ee, intensity:0.22,
+                  dist:7.5, decay:1.8, indoor:true, flicker:true});
+      m.C("ceilfix", 0.16,0.16,1.10,8, OX, F2+2.76, OZ, "#e8e2cf", 0, 0, Math.PI/2);
+      addZone(D.x+X0, D.x+X1, D.z+Z0, D.z+Z1, m.y+F2-0.4, m.y+F2+RH,
+              "THE CONTROL ROOM", true);
+    })();
+
+    /* ---- the plant hut, shut, and the cable run to the mount ---------- */
+    m.B("siding", 4.2, 2.45, 3.4, -13.0, 0.22+1.22, 8.0, 0.45,0, "#a8a294");
+    m.B("roof", 4.6, 0.14, 3.8, -13.0, 0.22+2.51, 8.0, 0.35,0, "#8d9490");
+    m.B("teal", 1.02, 2.05, 0.10, -13.0, 0.22+1.02, 8.0-1.72, 0,0, "#4e5a56");
+    m.P("rust", planeGeo(1.60, 1.90, 0), -13.0, 0.22+1.10, 8.0-1.76, 0, "#6a3a20");
+    m.P("soot", planeGeo(4.0, 0.46, 0), -13.0, 0.22+0.23, 8.0-1.78, 0, "#6d6455", 0, 0);
+    for(let i=0;i<4;i++)
+      m.P("rust", planeGeo(0.22, 0.80+((i*5)%3)*0.4, 0), -14.4+i*0.95, 0.22+1.95,
+          8.0-1.78, 0, "#7c4526", 0, 0);
+    m.col(-15.2,-10.8, 6.2,9.8, 0, 0.22+2.45);
+    for(let i=0;i<3;i++)                           // vents in its flank
+      m.B("bin", 0.06, 0.46, 0.80, -10.9, 0.22+1.40, 7.0+i*1.0, 0,0, "#3a423f");
+    for(let i=0;i<22;i++){                         // the cable duct, half buried
+      const t=i/21, px=lerp(-11.0, -4.4, t), pz=lerp(8.0, 1.2, t);
+      m.B("concrete", 0.62, 0.22, 0.62, px, 0.30, pz, 0.5, 0.6, "#9c9484");
+      if(i%4===0) m.B("concrete", 0.80, 0.09, 0.80, px, 0.44, pz, 0.5, 0.6, "#a8a090");
+    }
+    // a truck that was here when it shut, and the drums nobody took
+    for(let i=0;i<5;i++)
+      m.C("metal", 0.30,0.30,0.88,14, 18.0+((i*5)%3)*0.75, 0.66, -3.0+i*0.8,
+          i%2 ? RUSTD : "#5e6a56");
+    m.col(17.4, 20.2, -3.6, 1.2, 0, 1.1);
+    for(let i=0;i<9;i++)                           // tyre tracks, still there
+      m.P("soot", planeGeo(0.42, 9.0+((i*5)%3)*3.0, 0), -20.0+i*5.0, 0.234,
+          -18.0-((i*7)%4)*2.0, ((i*3)%5-2)*0.06, "#8a7a5e", -Math.PI/2, 0);
+    m.zone(D.r+6, "THE TRACKING STATION");
   })();
 
   /* --- three graves and a wire fence ----------------------------------- */
@@ -10330,7 +10667,16 @@ function frame(){
     if(g.base) g.m.emissive.copy(g.base);
     g.m.emissiveIntensity=g.baseInt*k;
   }
-  for(const n of NEON) n.material.color.setScalar(0.72+0.28*dark+0.06);
+  // A lit sign is a box with lamps in it. By day the sun is brighter than
+  // the lamps and the face reads as paint; after dark the face is the only
+  // thing making light. The old ramp went 0.78 to 1.06, which is barely a
+  // change and is why they read as flat planes lying in the world rather
+  // than as cabinets with something switched on inside them.
+  // The top of the ramp has to stop at 1: these faces are unlit basic
+  // material with toneMapped off, so anything above that clips to white and
+  // the lettering goes with it. The width of the range is what sells a
+  // cabinet with lamps in it, and it is the day end that had to come down.
+  for(const n of NEON) n.material.color.setScalar(0.40+0.60*dark);
   {                                   // the bad tube in the VACANCY sign
     const b=Math.sin(now*13.1)*Math.sin(now*4.3)*Math.sin(now*1.7);
     const f=(dark>0.15 && b>0.62) ? 0.22+0.5*Math.abs(Math.sin(now*41.0)) : 1.0;

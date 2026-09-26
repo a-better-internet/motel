@@ -153,6 +153,7 @@
   <div class="row"><span>Walk</span><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span></div>
   <div class="row"><span>Look</span><span>drag · mouse</span></div>
   <div class="row"><span>Run</span><span><kbd>Shift</kbd></span></div>
+  <div class="row"><span>Sprint</span><span><kbd>Q</kbd></span></div>
   <div class="row"><span>Open door / use</span><span><kbd>E</kbd> · <kbd>Space</kbd></span></div>
   <div class="row"><span>Sit / stand</span><span><kbd>C</kbd></span></div>
   <div class="row"><span>Drone</span><span><kbd>F</kbd></span></div>
@@ -265,7 +266,8 @@ const ROADZ = -48.5;                                     // highway centre-line
    ---------------------------------------------------------------------- */
 const SLOT = { brochure:[4,9], postcard:[2,3], artWide:[2,1], artLand:[3,2],
                artPort:[2,3], tv:[4,3], vendFront:[1,2], vendHeader:[3,1],
-               poster:[5,7], barSign:[22,5], barPole:[2,1], beerSign:[3,2] };
+               poster:[5,7], barSign:[22,5], barPole:[2,1], beerSign:[3,2],
+               believe:[5,7], passboard:[3,2] };
 const BROCHURE_URLS=[1,2,3,4,5,6,7,8,9,10].map(
   n=>"https://thelossless.neocities.org/Motel/Brochures/Brochure"+n+".jpg");
 const TV_URLS=[
@@ -2930,14 +2932,6 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
       cyl("glass", 0.055,0.075,0.14,7, x, y+7.66, POLE_Z+sg*LANE, "#7e8c86");
     tops.push({x:x, y:y+7.5, z:POLE_Z});
   }
-  // where the wire actually is at a given x, on a given lane — the birds use
-  // this too, so a perch cannot drift off the line it is supposed to be on
-  const wireAt=(x, lane)=>{
-    const t=(x-POLE_X0)/POLE_DX, i=Math.max(0, Math.min(tops.length-2, Math.floor(t)));
-    const f=Math.max(0, Math.min(1, t-i));
-    return [lerp(tops[i].y, tops[i+1].y, f) - Math.sin(f*Math.PI)*1.1,
-            POLE_Z + lane*LANE];
-  };
   const pts=[];
   for(let i=1;i<tops.length;i++){
     const a=tops[i-1], b=tops[i];
@@ -2954,28 +2948,9 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   const wg=new T.BufferGeometry().setFromPoints(pts);
   scene.add(new T.LineSegments(wg, new T.LineBasicMaterial({color:0x1a1712})));
 
-  // Birds sit the wire in ones and twos, all facing the same way, and never
-  // move. They are the only other living things on this stretch of road.
-  const perch=(bx0, lane)=>{
-    const w=wireAt(bx0, lane);
-    const by=w[0]+0.115, bz=w[1];
-    const fw=(((bx0*7)|0)%3) ? 0 : Math.PI;          // one in three looks the other way
-    const d=fw?-1:1;
-    push("bin", blobGeo(0.105), bx0, by, bz, 0, "#241f1b");
-    push("bin", blobGeo(0.062), bx0+d*0.115, by+0.085, bz, 0, "#241f1b");
-    push("bin", boxGeo(0.085,0.020,0.030,0), bx0+d*0.185, by+0.088, bz, 0, "#3a2c18");
-    push("bin", boxGeo(0.20,0.032,0.050,0), bx0-d*0.155, by-0.030, bz, 0, "#1c1814",
-         0, d*0.30);                                 // the tail, angled down
-  };
-  for(let sp=-5;sp<=5;sp++){                         // the spans either side of the motel
-    const base=sp*44, n=(sp===1||sp===-2) ? 7 : ((sp%2) ? 1 : 2);
-    for(let k=0;k<n;k++)
-      perch(base+7+k*(n>4?3.6:12.5)+((sp*5+k*3)%4)*0.6, ((sp+k)%3)-1);
-  }
-  for(let sp=-13;sp<=13;sp+=3){                      // and a few far out along the line
-    if(Math.abs(sp)<6) continue;
-    perch(sp*44+9+((sp*7)%13), ((sp)%3)-1);
-  }
+  // The wire carries no birds. Two rounds of trying to seat them on it were
+  // two rounds too many; the line reads better bare, and the vultures
+  // overhead are the living things on this road now.
 })();
 
 /* --- what the road leaves behind: nobody stopped, it just accumulates ---- */
@@ -8030,7 +8005,7 @@ i===1?"#6a5a3c":"#7a6746");
       // and reads as confetti across ninety, at every tiling that was tried.
       const cap=new T.CircleGeometry(D.r, 48), uv=cap.attributes.uv;
       for(let i=0;i<uv.count;i++) uv.setXY(i, uv.getX(i)*D.r, uv.getY(i)*D.r);
-      m.P("concrete", cap, 0, 0.22, 0, 0, "#9e9278", -Math.PI/2, 0);
+      m.P("concrete", cap, 0, 0.22, 0, 0, "#8e846c", -Math.PI/2, 0);
       // open-ended, or its own cap lands on the same plane as the disc above
       // with the stretched UVs the disc was made to avoid, and fights it
       m.P("concrete", new T.CylinderGeometry(D.r, D.r-0.5, 0.22, 48, 1, true),
@@ -8043,15 +8018,38 @@ i===1?"#6a5a3c":"#7a6746");
       m.C("paint", 0.055,0.070,0.62,6, Math.cos(a)*(D.r-1.2), 0.30,
           Math.sin(a)*(D.r-1.2), i%5 ? "#d8d2c2" : "#b8331f", ((i*7)%5-2)*0.05, 0, 0);
     }
-    // Sand creeping back over it. Drift runs downwind, so these are long
-    // streaks all lying the same way rather than blobs at random angles, and
-    // they sit a shade off the gravel — a drift you can only just see is a
-    // drift; one you can see plainly is a paint spill.
-    for(let i=0;i<18;i++){
-      const a=i*2.39, rr=((i*7.7)%1)*(D.r-5);
-      m.P("soot", planeGeo(7.0+((i*5)%3)*3.0, 1.5+((i*3)%3)*0.7, 0),
-          Math.cos(a)*rr, 0.235, Math.sin(a)*rr,
-          0.42+((i*11)%5-2)*0.05, ["#b3a68c","#aa9d84","#bab08f"][i%3], -Math.PI/2, 0);
+    /* Wear on the pad. Twice now this was laid in the soot bucket, which is
+       a sixteen-per-cent overlay: that reads on the parking lot because the
+       decals are nearly black on asphalt, and reads as nothing at all here
+       because sunlit pale fill has no headroom left for a thin dark wash.
+       Ninety metres of flat ground needs real tonal variation, so the wear
+       is opaque planes in the pad's own texture, just tinted — staggered a
+       third of a millimetre apart so no two of them fight.              */
+    {
+      let sd=4471; const r2=()=>{ sd=(sd*1103515245+12345)%2147483648; return sd/2147483648; };
+      let lay=0;
+      const dec=(w,h,rr,a2,ry,c)=>m.P("concrete", planeGeo(w,h,0.5), Math.cos(a2)*rr,
+          0.226+(lay++)*0.0003, Math.sin(a2)*rr, ry, c, -Math.PI/2, 0);
+      for(let i=0;i<24;i++){                       // sand drifting back across it
+        const a2=r2()*6.283, rr=r2()*(D.r-3);
+        dec(6.0+r2()*8.0, 1.4+r2()*2.0, rr, a2, 0.42+(r2()-0.5)*0.3, "#9b9077");
+      }
+      for(let i=0;i<16;i++){                       // whole areas gone lighter
+        const a2=r2()*6.283, rr=r2()*(D.r-5);
+        dec(4.0+r2()*7.0, 3.0+r2()*5.0, rr, a2, r2()*6.283, "#958b74");
+      }
+      for(let i=0;i<14;i++){                       // and darker
+        const a2=r2()*6.283, rr=r2()*(D.r-5);
+        dec(3.0+r2()*6.0, 2.4+r2()*4.0, rr, a2, r2()*6.283, "#7d7462");
+      }
+      for(let i=0;i<34;i++){                       // cracks
+        const a2=r2()*6.283, rr=2+r2()*(D.r-4);
+        dec(0.09+r2()*0.09, 3.0+r2()*6.0, rr, a2, r2()*6.283, "#5a5346");
+      }
+      for(let i=0;i<12;i++){                       // grime where things stood
+        const a2=r2()*6.283, rr=r2()*(D.r-7);
+        dec(1.2+r2()*2.6, 1.0+r2()*2.2, rr, a2, r2()*6.283, "#544e42");
+      }
     }
 
     // ---- the plinth and the lattice pedestal ---------------------------
@@ -8112,7 +8110,10 @@ i===1?"#6a5a3c":"#7a6746");
     for(let i=0;i<24;i++) for(let k=1;k<=5;k++){   // and the skin, panel by panel
       const a0=(i/24)*Math.PI*2, a1=((i+1)/24)*Math.PI*2;
       const r0=RD*((k-1)/5), r1=RD*(k/5);
-      if((i*5+k)%23===4) continue;                 // three panels gone
+      // Panels come off in patches where a rib let go, not one here and one
+      // there: a whole sector is stripped, plus a scatter elsewhere.
+      if(i>=7 && i<=10 && k>=3) continue;
+      if((i*5+k)%17===4 || (i*7+k*3)%29===11) continue;
       const p=[FACE(r0,a0),FACE(r1,a0),FACE(r1,a1),FACE(r0,a1)];
       const g=new T.BufferGeometry();
       // both windings: the bucket material is single-sided, and a dish seen
@@ -8125,7 +8126,10 @@ i===1?"#6a5a3c":"#7a6746");
       g.computeVertexNormals();
       // FACE() is in the station's own frame, so the panel has to be offset
       // like everything m.* places, or the skin ends up at the world origin
-      push("metal", g, D.x, m.y, D.z, 0, ((i+k)%7) ? "#9aa09a" : "#8b8f88");
+      // Aluminium that has sat thirty years is not one colour. A third of
+      // the skin has gone chalky and a few panels have rusted at the fixings.
+      const PC=["#9aa09a","#93998f","#8b8f88","#a29f91","#7d766a","#8a6a4e","#7a5a3f"];
+      push("metal", g, D.x, m.y, D.z, 0, PC[(i*3+k*5)%7]);
     }
     for(let k=0;k<4;k++){                          // hoops round the back
       const rr=RD*(0.35+k*0.21);
@@ -8143,6 +8147,16 @@ i===1?"#6a5a3c":"#7a6746");
       for(let i=0;i<3;i++)
         strut(FACE(RD*0.92, i*2.094+0.4), [fx,FY2,fz], 0.075);
     }
+    for(let i=0;i<14;i++){                         // rust weeping down the legs
+      const c=[[-1,-1],[1,-1],[-1,1],[1,1]][i%4], t=(i%4===0?0.2:0.1)+((i*7)%5)*0.16;
+      m.P("rust", planeGeo(0.17+((i*5)%3)*0.07, 0.9+((i*3)%4)*0.7, 0),
+          c[0]*(2.05-t*0.65)+c[0]*0.12, PY+1.30+t*TH+0.6, c[1]*(2.05-t*0.65),
+          (i%2)?0:Math.PI/2, "#7c4526", 0, 0);
+    }
+    for(let i=0;i<5;i++)                           // and staining the plinth
+      m.P("rust", planeGeo(0.9+((i*5)%3)*0.4, 0.8, 0), Math.cos(i*1.31)*4.66, PY+0.70,
+          Math.sin(i*1.31)*4.66, Math.atan2(Math.cos(i*1.31), Math.sin(i*1.31)),
+          "#6a3a20", 0, 0);
     {                                              // the counterweight boom
       const dep=-DEPTH*0.28-2.9;
       const yy=dep*cE, zz=dep*sE;
@@ -8250,6 +8264,132 @@ i===1?"#6a5a3c":"#7a6746");
       m.P("metal", boxGeo(0.52,0.06,0.52,0.4), CX+0.5, F2+0.54, Z0+2.15, 0.6, DARK, 0, 0);
       m.C("metal", 0.05,0.05,0.48,8, CX+0.5, F2+0.28, Z0+2.15, DARK);
       m.C("metal", 0.26,0.26,0.05,10, CX+0.5, F2+0.04, Z0+2.15, DARK);
+      /* ---- what makes it a control room and not an office ------------
+         A station that talked to something a long way off needed four
+         things in the room with it: a way to see the signal, a way to keep
+         it, a way to write it down, and a way to route it. So: scopes on
+         the console, tape on the racks, a chart recorder inking a trace
+         nobody came back for, and a patch field with the cords still in. */
+      const GRN="#1d2b26", CASE="#4a5450";
+      for(let i=0;i<2;i++){                      // two scopes on the console
+        const sx2=CX-0.95+i*1.30;
+        m.B("weathered", 0.56, 0.48, 0.46, sx2, F2+1.19, Z0+1.45, 0.5,0, CASE);
+        m.B("bin", 0.42, 0.34, 0.03, sx2, F2+1.23, Z0+1.21, 0,0, GRN);
+        // the trace: a green line still on a tube with nothing feeding it
+        for(let k=0;k<11;k++)
+          m.C("ember", 0.008,0.008,0.035,4, sx2-0.16+k*0.032,
+              F2+1.23+Math.sin(k*0.9+i)*0.055, Z0+1.19, "#49d98a", Math.PI/2, 0, 0);
+        for(const q of [-1,1])                   // the two knobs under it
+          m.C("bin", 0.035,0.035,0.03,10, sx2+q*0.17, F2+1.02, Z0+1.21,
+              "#20242a", Math.PI/2, 0, 0);
+      }
+      for(let i=0;i<6;i++)                       // meters across the console face
+        m.C("glass", 0.055,0.055,0.02,12, CX-1.35+i*0.54, F2+0.62, Z0+0.96,
+            (i%3)?"#c8cfc6":"#9aa8a0", Math.PI/2, 0, 0);
+      // tape transports in two of the racks — the one thing that says this
+      // room was recording something rather than running something
+      for(const k of [1,3]){
+        const rx=X0+1.1+k*1.55;
+        m.B("bin", 1.02, 0.66, 0.05, rx, F2+1.28, Z1-0.735, 0,0, "#20262a");
+        for(const q of [-1,1]){
+          m.C("metal", 0.20,0.20,0.035,20, rx+q*0.26, F2+1.36, Z1-0.765,
+              "#8d958f", Math.PI/2, 0, 0);
+          m.C("bin", 0.205,0.205,0.02,20, rx+q*0.26, F2+1.36, Z1-0.778,
+              "#2a2f2c", Math.PI/2, 0, 0);       // the tape wound on it
+          m.C("paint", 0.035,0.035,0.05,10, rx+q*0.26, F2+1.36, Z1-0.795,
+              "#b8b2a2", Math.PI/2, 0, 0);       // the hub
+        }
+        m.B("metal", 0.17, 0.15, 0.05, rx, F2+1.19, Z1-0.775, 0,0, "#9aa29c");
+        for(let i=0;i<4;i++)                     // transport buttons
+          m.C("paint", 0.020,0.020,0.03,8, rx-0.30+i*0.20, F2+1.03, Z1-0.775,
+              i===3?"#b8331f":"#cfc9b8", Math.PI/2, 0, 0);
+      }
+      {                                          // the patch field, cords still in
+        const rx=X0+1.1+4*1.55;
+        m.B("bin", 1.02, 0.60, 0.04, rx, F2+1.30, Z1-0.735, 0,0, "#262b2c");
+        for(let r2=0;r2<4;r2++) for(let c2=0;c2<12;c2++)
+          m.C("bin", 0.012,0.012,0.02,6, rx-0.44+c2*0.08, F2+1.10+r2*0.13, Z1-0.755,
+              "#12161a", Math.PI/2, 0, 0);
+        for(let i=0;i<5;i++){                    // and five cords looping out
+          const jx=rx-0.36+i*0.17, jy=F2+1.10+(i%3)*0.13;
+          for(let k=0;k<5;k++){                  // a slack loop, drawn in links
+            const f=k/4;
+            m.C("bin", 0.010,0.010,0.10,5, jx+f*0.13,
+                jy-Math.sin(f*Math.PI)*0.20-f*0.06, Z1-0.80-f*0.02,
+                ["#8a3320","#2f5f8a","#7a6a22","#2f7a52","#5a2f7a"][i],
+                Math.PI/2-f*1.1, 0, 0);
+          }
+        }
+      }
+      {                                          // the chart recorder, east end
+        const tx=X1-1.45, tz=Z0+1.15;
+        m.B("weathered", 1.30, 0.06, 0.66, tx, F2+0.74, tz, 0.5,0, "#6a6558");
+        for(const q of [[-1,-1],[1,-1],[-1,1],[1,1]])
+          m.C("metal", 0.025,0.025,0.74,6, tx+q[0]*0.58, F2+0.37, tz+q[1]*0.27, DARK);
+        m.col(tx-0.66, tx+0.66, tz-0.36, tz+0.36, 0, F2+0.78);
+        m.B("weathered", 0.86, 0.34, 0.50, tx, F2+0.94, tz, 0.5,0, CASE);
+        m.C("metal", 0.13,0.13,0.62,16, tx, F2+1.12, tz, "#b4ab96", 0, 0, Math.PI/2);
+        // m.B takes ten arguments and stops; a rotation handed to it as an
+        // eleventh is silently dropped, so anything that tilts goes via m.P
+        m.P("metal", boxGeo(0.42,0.02,0.03,0), tx+0.16, F2+1.21, tz-0.13, 0,
+            "#9aa29c", 0, -0.22);                // the pen arm, still down
+        m.C("paint", 0.014,0.014,0.05,6, tx+0.36, F2+1.18, tz-0.13, "#b8331f", 0, 0, 0);
+        // the trace it was drawing, run off the drum and onto the floor
+        m.P("paper", planeGeo(0.30, 0.92, 0), tx+0.02, F2+0.70, tz-0.34, 0,
+            "#e2dcc8", -0.42, 0);
+        for(let i=0;i<7;i++)
+          m.P("paper", planeGeo(0.30, 0.34, 0), tx+0.02+((i*3)%3-1)*0.06, F2+0.010+i*0.001,
+              tz-0.78-i*0.26, ((i*5)%5-2)*0.07, "#e2dcc8", -Math.PI/2, 0);
+      }
+      {                                          // three clocks over the door
+        // On the INNER face of the front wall, so the face and hands stand
+        // proud towards the room (+z), not sunk back into the wall.
+        const cz=Z0+0.115;
+        for(let i=0;i<3;i++){
+          const kx=OX-0.86+i*0.86, hr=[0.9,-2.1,2.6][i];
+          m.C("bin", 0.135,0.135,0.045,16, kx, F2+2.46, cz, "#20252a", Math.PI/2, 0, 0);
+          m.C("plaster", 0.112,0.112,0.02,16, kx, F2+2.46, cz+0.028, "#ddd7c4",
+              Math.PI/2, 0, 0);
+          m.P("bin", boxGeo(0.011,0.075,0.008,0), kx+Math.sin(hr)*0.030,
+              F2+2.46+Math.cos(hr)*0.030, cz+0.042, 0, "#20252a", 0, -hr);
+          m.P("bin", boxGeo(0.009,0.105,0.008,0), kx+Math.sin(hr*2.3)*0.046,
+              F2+2.46+Math.cos(hr*2.3)*0.046, cz+0.042, 0, "#20252a", 0, -hr*2.3);
+          m.B("paint", 0.20, 0.035, 0.012, kx, F2+2.26, cz+0.02, 0,0, "#b8b2a2");
+        }
+      }
+      // the pass board, and the poster somebody hung crooked and never
+      // straightened — both on the east wall, which is the only clear one
+      // Clear of the wall box, not inside it: the east wall is a box centred
+      // on X1 and WT thick, so anything at X1 minus half of that is buried.
+      const EW=X1-WT/2-0.02;
+      m.P("pic:passboard", planeGeo(1.50, 1.00, 0), EW, F2+1.86, OZ+0.85,
+          -Math.PI/2, "#ffffff", 0, 0);
+      m.P("pic:believe", planeGeo(0.78, 1.09, 0), EW-0.004, F2+1.62, OZ-1.05,
+          -Math.PI/2, "#ffffff", 0, 0.085);
+      for(const q of [[-1,1],[1,1],[-1,-1],[1,-1]])  // the tape at its corners
+        m.P("paper", planeGeo(0.07, 0.05, 0), EW-0.012,
+            F2+1.62+q[1]*0.53-q[0]*0.033, OZ-1.05+q[0]*0.38, -Math.PI/2,
+            "#d8cfae", 0, 0.085);
+      // A cable tray is one continuous run on hangers, not a row of separate
+      // plates — spaced out they read as objects hanging in mid-air.
+      {
+        const ty=F2+RH-0.17, tz=Z1-1.00;
+        m.B("metal", W2-1.2, 0.035, 0.30, OX, ty, tz, 0.4,0, "#77807b");
+        for(const q of [-1,1])                   // its turned-up edges
+          m.B("metal", W2-1.2, 0.09, 0.03, OX, ty+0.05, tz+q*0.155, 0.4,0, "#6b736e");
+        for(let i=0;i<7;i++)                     // hangers up to the ceiling
+          m.C("metal", 0.012,0.012,0.13,5, X0+0.9+i*1.27, ty+0.10, tz, "#6b736e");
+        // One run each from the tray down into the top of the racks. Two
+        // stubs at guessed angles leave gaps and read as dashes in mid-air,
+        // so each drop is aimed: rx = acos(dy/len) for a +Y cylinder.
+        const ry2=F2+1.95, rz2=Z1-0.72;
+        for(let i=0;i<7;i++){
+          const dx=X0+1.1+i*1.25, dy=ry2-ty, dz=rz2-tz;
+          const L=Math.hypot(dy,dz);
+          m.C("bin", 0.030,0.030, L, 6, dx, (ty+ry2)/2, (tz+rz2)/2, "#1c2024",
+              Math.acos(dy/L), 0, 0);
+        }
+      }
       // paper, everywhere, and a mug nobody took home
       for(let i=0;i<26;i++)
         m.P("paper", planeGeo(0.18+((i*5)%3)*0.06, 0.24+((i*7)%3)*0.05, 0),
@@ -8258,7 +8398,12 @@ i===1?"#6a5a3c":"#7a6746");
       m.C("plaster", 0.045,0.040,0.09,12, CX-0.8, F2+0.94, Z0+1.12, "#dcd6c4");
       LAMPS.push({x:D.x+OX, y:m.y+F2+2.70, z:D.z+OZ, color:0xdfe8ee, intensity:0.22,
                   dist:7.5, decay:1.8, indoor:true, flicker:true});
-      m.C("ceilfix", 0.16,0.16,1.10,8, OX, F2+2.76, OZ, "#e8e2cf", 0, 0, Math.PI/2);
+      // a batten, not a bollard — a fat 8-sided cylinder on end reads as a
+      // lump hanging out of the ceiling whatever it is meant to be
+      m.B("metal", 1.30, 0.07, 0.22, OX, F2+2.88, OZ, 0.4,0, "#8d9490");
+      m.B("ceilfix", 1.22, 0.09, 0.15, OX, F2+2.82, OZ, 0.4,0, "#e8e2cf");
+      for(const q of [-1,1])
+        m.C("metal", 0.010,0.010,0.10,5, OX+q*0.56, F2+2.90, OZ, "#8d9490");
       addZone(D.x+X0, D.x+X1, D.z+Z0, D.z+Z1, m.y+F2-0.4, m.y+F2+RH,
               "THE CONTROL ROOM", true);
     })();
@@ -8288,6 +8433,30 @@ i===1?"#6a5a3c":"#7a6746");
     for(let i=0;i<9;i++)                           // tyre tracks, still there
       m.P("soot", planeGeo(0.42, 9.0+((i*5)%3)*3.0, 0), -20.0+i*5.0, 0.234,
           -18.0-((i*7)%4)*2.0, ((i*3)%5-2)*0.06, "#8a7a5e", -Math.PI/2, 0);
+    /* ---- what thirty years of nobody looks like ---------------------- */
+    for(let i=0;i<6;i++){                          // panels that came down
+      const a=1.9+i*0.6, rr=9+((i*7)%4)*2.4;
+      const g=new T.BufferGeometry();
+      const w2=1.5+((i*5)%3)*0.5, h2=1.1+((i*3)%3)*0.4, lean=0.04+((i*5)%4)*0.03;
+      g.setAttribute("position", new T.Float32BufferAttribute(
+        [-w2/2,0,-h2/2,  w2/2,lean,-h2/2,  w2/2,0,h2/2,
+         -w2/2,0,-h2/2,   w2/2,0, h2/2,   -w2/2,lean*0.4,h2/2], 3));
+      g.setAttribute("uv", new T.Float32BufferAttribute([0,0,1,0,1,1, 0,0,1,1,0,1],2));
+      g.computeVertexNormals();
+      m.P("metal", g, Math.cos(a)*rr, 0.25, Math.sin(a)*rr, a*1.7,
+          ["#8a8f88","#7d766a","#8a6a4e"][i%3], 0, 0);
+    }
+    for(let i=0;i<9;i++){                          // weeds up through the cracks
+      const a=i*0.84, rr=6+((i*11)%5)*6.5;
+      const px=Math.cos(a)*rr, pz=Math.sin(a)*rr;
+      for(let k=0;k<5;k++)
+        m.C("foliage", 0.010,0.016,0.30+((i+k)%3)*0.16, 4,
+            px+((k*7)%5-2)*0.055, 0.36, pz+((k*3)%5-2)*0.055,
+            (i+k)%3 ? "#6d7048" : "#877f4e", ((k*5)%5-2)*0.16, k*1.1, ((k*3)%5-2)*0.13);
+    }
+    for(let i=0;i<12;i++)                          // the kerb broken up
+      m.P("concrete", rockGeo(0.22+((i*7)%3)*0.10, i*13), Math.cos(i*0.9)*(D.r-1.9),
+          0.26, Math.sin(i*0.9)*(D.r-1.9), i, "#9a9182", 0, 0);
     m.zone(D.r+6, "THE TRACKING STATION");
   })();
 
@@ -9700,6 +9869,90 @@ const posterArt=i=>(x,W,H)=>{
 };
 for(let k=0;k<6;k++) bucketOf("pic:poster:"+k,
   ()=>picMat("poster:"+k, 700, posterArt(k), {side:T.DoubleSide, roughness:0.92}));
+// the one thing anybody who worked a dish this far out would have pinned up
+const believeArt=(x,W,H)=>{
+  const g=x.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,"#1c2b3c"); g.addColorStop(0.62,"#3c5468"); g.addColorStop(1,"#20303c");
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  for(let i=0;i<220;i++){                     // stars in the upper half
+    x.fillStyle="rgba(228,238,246,"+(0.12+Math.random()*0.5).toFixed(2)+")";
+    x.fillRect(Math.random()*W, Math.random()*H*0.56, 1, 1);
+  }
+  const cx=W*0.50, cy=H*0.36, r=W*0.24;
+  x.save();                                   // the beam, under the saucer
+  x.globalAlpha=0.20; x.fillStyle="#cfe6f2";
+  x.beginPath(); x.moveTo(cx-r*0.30, cy+r*0.18); x.lineTo(cx+r*0.30, cy+r*0.18);
+  x.lineTo(cx+r*1.05, H*0.70); x.lineTo(cx-r*1.05, H*0.70); x.closePath(); x.fill();
+  x.restore();
+  x.fillStyle="#11181f";                      // hull
+  x.beginPath(); x.ellipse(cx, cy+r*0.10, r, r*0.26, 0, 0, 7); x.fill();
+  x.beginPath(); x.ellipse(cx, cy-r*0.10, r*0.46, r*0.28, 0, 0, 7); x.fill();
+  for(let i=-3;i<=3;i++){                     // lamps along the rim
+    x.fillStyle=(i%2)?"#ffd27a":"#9fe8ff";
+    x.beginPath(); x.arc(cx+i*r*0.27, cy+r*0.22, r*0.045, 0, 7); x.fill();
+  }
+  x.fillStyle="#0d1418";                      // a treeline to give it scale
+  x.beginPath(); x.moveTo(0,H*0.80);
+  for(let i=0;i<=26;i++){
+    const u=i/26, t=H*0.80-Math.abs(Math.sin(u*11.3))*H*0.055-((i*7)%3)*H*0.012;
+    x.lineTo(u*W, t);
+  }
+  x.lineTo(W,H); x.lineTo(0,H); x.closePath(); x.fill();
+  // Letter-spaced by hand, and sized to fit: seventeen characters plus
+  // their tracking runs well past a 5:7 canvas at any font picked by eye,
+  // so measure the whole line and come down until it sits inside the page.
+  x.fillStyle="#eef3f6"; x.textAlign="center"; x.textBaseline="middle";
+  const word="I WANT TO BELIEVE", inner=W*0.86;
+  let fs=Math.round(H*0.075), s2=0, tw=0;
+  do{
+    fs-=1; s2=fs*0.20; tw=0;
+    x.font="700 "+fs+"px Helvetica, Arial, sans-serif";
+    for(const ch of word) tw+=x.measureText(ch).width+s2;
+    tw-=s2;
+  } while(tw>inner && fs>7);
+  let px=(W-tw)/2;
+  for(const ch of word){ const cw=x.measureText(ch).width;
+                         x.fillText(ch, px+cw/2, H*0.90); px+=cw+s2; }
+  for(let k=0;k<70;k++){                      // sun and damp
+    x.fillStyle="rgba(0,0,0,"+(Math.random()*0.10).toFixed(3)+")";
+    x.fillRect(Math.random()*W, Math.random()*H, 1+Math.random()*4, 1+Math.random()*4);
+  }
+};
+bucketOf("pic:believe", ()=>picMat("believe", 700, believeArt,
+  {side:T.DoubleSide, roughness:0.94}));
+// the pass board: what the dish was pointed at, plotted by hand and left up
+const passArt=(x,W,H)=>{
+  x.fillStyle="#17201f"; x.fillRect(0,0,W,H);
+  x.strokeStyle="rgba(120,168,150,0.22)"; x.lineWidth=1;
+  for(let i=1;i<16;i++){ x.beginPath(); x.moveTo(W*i/16,0); x.lineTo(W*i/16,H); x.stroke(); }
+  for(let i=1;i<10;i++){ x.beginPath(); x.moveTo(0,H*i/10); x.lineTo(W,H*i/10); x.stroke(); }
+  x.strokeStyle="rgba(150,200,178,0.55)"; x.lineWidth=2;
+  x.strokeRect(W*0.06, H*0.16, W*0.88, H*0.66);
+  x.strokeStyle="#e8b44a"; x.lineWidth=3;     // the arc of a pass
+  x.beginPath();
+  for(let i=0;i<=40;i++){
+    const u=i/40, px=W*0.06+u*W*0.88, py=H*0.82-Math.sin(u*Math.PI)*H*0.58;
+    i?x.lineTo(px,py):x.moveTo(px,py);
+  }
+  x.stroke();
+  x.fillStyle="#e8b44a";
+  for(let i=1;i<8;i++){ const u=i/8;
+    x.beginPath(); x.arc(W*0.06+u*W*0.88, H*0.82-Math.sin(u*Math.PI)*H*0.58, 3, 0, 7); x.fill(); }
+  x.fillStyle="#9fd3bd"; x.textAlign="left"; x.textBaseline="middle";
+  x.font="600 "+Math.round(H*0.075)+"px Helvetica, Arial, sans-serif";
+  x.fillText("ELEVATION \u00b7 AZIMUTH", W*0.06, H*0.085);
+  x.textAlign="right"; x.fillText("PASS 4417", W*0.94, H*0.085);
+  x.font="500 "+Math.round(H*0.055)+"px Helvetica, Arial, sans-serif";
+  x.textAlign="center";
+  for(let i=0;i<=8;i+=2)
+    x.fillText(String(i*45).padStart(3,"0"), W*0.06+(i/8)*W*0.88, H*0.92);
+  for(let k=0;k<50;k++){
+    x.fillStyle="rgba(0,0,0,"+(Math.random()*0.12).toFixed(3)+")";
+    x.fillRect(Math.random()*W, Math.random()*H, 1+Math.random()*5, 1+Math.random()*3);
+  }
+};
+bucketOf("pic:passboard", ()=>picMat("passboard", 768, passArt,
+  {side:T.DoubleSide, roughness:0.86}));
 bucketOf("pic:artWide",       ()=>picMat("artWide", 768, mesaArt));
 bucketOf("pic:artLand:room",  ()=>picMat("artLand:room", 640,
   (x,W,H)=>capArt(x,W,H,"CARLSBAD CAVERNS","NEW MEXICO","#2b3f5c","#6d5f7a","#1d2733")));
@@ -9836,11 +10089,15 @@ player.feetY=surfaceY(player.pos.x, player.pos.z, 0);
 
 const keys={};
 let started=false, hudOn=true, leaving=false;
-const WALK=3.05, RUN=5.6;
+// Three gaits. Q is held like Shift is held, and nothing else in the world
+// reads KeyQ, so it cannot collide with a modifier the way the "/" report did.
+const WALK=3.05, RUN=5.6, SPRINT=10.4;
 
 addEventListener("keydown",e=>{
   if(e.code==="Tab"){ e.preventDefault(); return; }
+  const held=keys[e.code];                  // keydown repeats while a key is down
   keys[e.code]=true;
+  if(e.code==="KeyQ" && !held) toast("SPRINT","#ffd48a");
   if(e.code==="KeyH"){ hudOn=!hudOn; document.querySelectorAll("#mast,#keys,#cluster,#plan").forEach(el=>el.style.display=hudOn?"":"none"); }
   if(e.code==="KeyO"){ view=(view==="fp"?"plan":"fp"); }
   if(e.code==="KeyN"){ DayNight.setHour(21.6); toast("NIGHTFALL","#6fe3ff"); }
@@ -10062,7 +10319,8 @@ function fixedUpdate(dt){
   // e.getModifierState("Shift"), which reads true for any keystroke that needs
   // Shift to produce its character — so on a layout that types "/" as a
   // shifted key, "/" was a sprint button.
-  let sp=(keys.ShiftLeft||keys.ShiftRight?RUN:WALK)*(underwater?0.45:1);
+  let sp=(keys.KeyQ ? SPRINT
+          : (keys.ShiftLeft||keys.ShiftRight) ? RUN : WALK)*(underwater?0.45:1);
   if(f||r){
     const len=Math.hypot(f,r)||1;
     const sinY=Math.sin(player.yaw), cosY=Math.cos(player.yaw);
@@ -10163,7 +10421,7 @@ function droneUpdate(dt){
   // The point of it is to get somewhere. Drag caps the speed at accel/drag,
   // so 62 against 2.3 settles around 27 m/s — nine times walking pace, and
   // the far side of the desert in half a minute.
-  const accel=62, ACCEL_Y=34;
+  const accel=keys.KeyQ?128:62, ACCEL_Y=34;   // Q opens it up out here too
   droneVel.x+=ax*accel*dt; droneVel.z+=az*accel*dt; droneVel.y+=ay*ACCEL_Y*dt;
   droneVel.multiplyScalar(Math.max(0, 1-2.3*dt));                     // air drag
   dronePos.x+=droneVel.x*dt; dronePos.y+=droneVel.y*dt; dronePos.z+=droneVel.z*dt;

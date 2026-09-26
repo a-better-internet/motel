@@ -450,8 +450,16 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   reflector is built rather than modelled: twenty-four radial ribs, five
   panels along each, four hoops round the back, a feed horn on a tripod at the
   focus and a counterweight boom behind, all of it laid out by a function that
-  returns points on the paraboloid so the ribs and the skin agree. Three
-  panels are missing.
+  returns points on the paraboloid so the ribs and the skin agree. A whole
+  sector of panels is stripped where a rib let go, with a scatter gone
+  elsewhere and six of them lying out on the pad; rust weeps down the legs
+  and stains the plinth, weeds come up through the cracks and the kerb is
+  breaking apart. Inside, the control room is a room that talked to something
+  a long way off: scopes with a trace still on the tube, tape transports in
+  the racks, a patch field with the cords still in, a chart recorder inking
+  onto paper that runs off the drum and across the floor, three clocks over
+  the door, the pass board it was tracking, and a poster somebody hung
+  crooked and never straightened.
 - **Weather and traffic.** Cumulus built the way a cloud is actually shaped — a
   row of lobes on a flat base, shaded underneath, sunlit on top — with a thin
   cirrus layer above it, and three vehicles working the highway day and night,
@@ -629,11 +637,20 @@ A few pieces are specific to this scene:
 - **A crossarm runs across the line.** The poles along the highway had their
   arms laid out along the road instead of over it, so the arm was a stub
   pointing the way you were driving and all three wires hung at the same z —
-  collinear, drawing as one. The birds perch on the outer lanes, which is why
-  some of them sat in mid-air with nothing under them. The wires now hang off
-  the ends of the arm where they belong, and both the wire and every perch
-  come from one `wireAt(x, lane)` that interpolates the catenary, so a bird
-  cannot land off the line it is supposed to be sitting on.
+  collinear, drawing as one. The wires now hang off the ends of the arm where
+  they belong, with an insulator under each. The birds that used to sit on
+  them are gone: they perched on the outer lanes, so the collinear wires left
+  some of them in mid-air with nothing under them, and after two rounds of
+  trying to seat them properly the line simply reads better bare. The
+  vultures overhead are the living things on this road now.
+- **Three gaits.** Walk is 3.05 m/s, `Shift` runs at 5.6, and `Q` — held the
+  same way — sprints at 10.4, and opens the drone up to match. `Q` was picked
+  because nothing else in the world reads it: the earlier `/` report came
+  from consulting `getModifierState("Shift")`, which is true for any keystroke
+  that needs Shift to type its character, so a physical `e.code` is the only
+  thing the gait looks at now. A fixed-step probe holds each key for a
+  simulated second and measures the ground covered, and it also checks the
+  other free keys still leave you walking.
 - **A lit sign is a box with lamps in it.** By day the sun beats the lamps and
   the face reads as paint; after dark the face is the only thing making light,
   and that difference is what makes a sign read as a cabinet rather than a

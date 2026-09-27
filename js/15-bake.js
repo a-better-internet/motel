@@ -50,6 +50,13 @@ bucketOf("rock",    ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.rock
                           roughness:0.97, metalness:0.0, flatShading:true}));
 bucketOf("brick",   ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.brick, roughness:0.95}));
 bucketOf("walk",    ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.sidewalk, roughness:0.96}));
+// the diner car's own three
+bucketOf("quilt",    ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.quilt,
+                          roughness:0.42, metalness:0.55}));
+bucketOf("hexfloor", ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.hexfloor,
+                          roughness:0.88}));
+bucketOf("dinertile",()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.dinertile,
+                          roughness:0.52}));
 bucketOf("checker", ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.checker, roughness:0.92}));
 // Cave marks have to be LIT, not emissive: the whole point is that you cannot
 // see them until the torch is on them.

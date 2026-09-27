@@ -750,3 +750,76 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
   m.position.set(x,y,z); m.rotation.y=ry; scene.add(m);
   return m;
 }
+
+/* ---- the diner car -------------------------------------------------
+   Three surfaces the rest of the world has no use for. The quilted panel
+   behind a diner counter is the one thing that says "diner" before you read
+   the sign, so it is drawn rather than faked with noise.               */
+TEX.quilt=(function(){                       // diamond-quilted stainless
+  const c=cvs(256,256), x=c.getContext("2d");
+  x.fillStyle="#8e928c"; x.fillRect(0,0,256,256);
+  const D=64;                                 // one diamond
+  for(let j=-1;j<5;j++) for(let i=-1;i<5;i++){
+    const cx=i*D+(j&1?D/2:0), cy=j*D/2+D/4;
+    // each diamond is a shallow pillow: lit on the upper left, dark lower right
+    const g=x.createLinearGradient(cx-D/2, cy-D/4, cx+D/2, cy+D/4);
+    g.addColorStop(0,"#d6dad2"); g.addColorStop(0.45,"#a8ada6");
+    g.addColorStop(0.62,"#7d827c"); g.addColorStop(1,"#5e635e");
+    x.fillStyle=g;
+    x.beginPath(); x.moveTo(cx,cy-D/4); x.lineTo(cx+D/2,cy);
+    x.lineTo(cx,cy+D/4); x.lineTo(cx-D/2,cy); x.closePath(); x.fill();
+    x.strokeStyle="rgba(38,40,38,0.55)"; x.lineWidth=2; x.stroke();
+    x.strokeStyle="rgba(236,240,234,0.30)"; x.lineWidth=1;
+    x.beginPath(); x.moveTo(cx-D/2,cy); x.lineTo(cx,cy-D/4); x.lineTo(cx+D/2,cy); x.stroke();
+  }
+  for(let i=0;i<150;i++){                     // forty years of grease and dust
+    x.fillStyle="rgba(58,50,40,"+(0.04+Math.random()*0.13).toFixed(2)+")";
+    x.beginPath(); x.arc(Math.random()*256, Math.random()*256,
+                         3+Math.random()*26, 0, 7); x.fill();
+  }
+  return rep(setSRGB(new T.CanvasTexture(c)),1,1);
+})();
+TEX.hexfloor=(function(){                    // the little hex tiles, most of them
+  const c=cvs(256,256), x=c.getContext("2d");
+  x.fillStyle="#3e4038"; x.fillRect(0,0,256,256);
+  const R=15.0, W=Math.sqrt(3)*R, H=1.5*R;
+  for(let row=-1;row<256/H+1;row++) for(let col=-1;col<256/W+1;col++){
+    const cx=col*W+((row&1)?W/2:0), cy=row*H;
+    const v=Math.random();
+    x.fillStyle = v<0.10 ? "#2a2c26" : v<0.22 ? "#6d6a58"
+                : v<0.72 ? "#9a9684" : "#87836f";
+    x.beginPath();
+    for(let k=0;k<6;k++){
+      const a=Math.PI/180*(60*k-90);
+      const px=cx+Math.cos(a)*R*0.94, py=cy+Math.sin(a)*R*0.94;
+      k?x.lineTo(px,py):x.moveTo(px,py);
+    }
+    x.closePath(); x.fill();
+  }
+  for(let i=0;i<90;i++){                      // scuffed down the walking line
+    x.fillStyle="rgba(30,30,26,"+(0.06+Math.random()*0.20).toFixed(2)+")";
+    x.beginPath(); x.arc(Math.random()*256, Math.random()*256,
+                         6+Math.random()*34, 0, 7); x.fill();
+  }
+  return rep(setSRGB(new T.CanvasTexture(c)),1,1);
+})();
+TEX.dinertile=(function(){                   // the glazed skirt, tan and olive
+  const c=cvs(256,256), x=c.getContext("2d");
+  x.fillStyle="#7a6f4a"; x.fillRect(0,0,256,256);
+  for(let i=0;i<8;i++) for(let k=0;k<8;k++){
+    const dark=((i+k)&1)===0;
+    const b=dark?[52,48,34]:[168,150,104];
+    const j=(Math.random()-0.5)*26;
+    x.fillStyle="rgb("+Math.max(0,b[0]+j|0)+","+Math.max(0,b[1]+j|0)+","+Math.max(0,b[2]+j|0)+")";
+    x.fillRect(i*32+1.4, k*32+1.4, 29.2, 29.2);
+    // the glaze catches the light along the top edge of every tile
+    x.fillStyle="rgba(255,250,236,0.16)"; x.fillRect(i*32+1.4, k*32+1.4, 29.2, 4);
+  }
+  for(let i=0;i<40;i++){                      // chipped, and the grout gone dark
+    x.fillStyle="rgba(40,36,28,"+(0.10+Math.random()*0.26).toFixed(2)+")";
+    x.fillRect(Math.random()*256, Math.random()*256, 2+Math.random()*10,
+               2+Math.random()*10);
+  }
+  return rep(setSRGB(new T.CanvasTexture(c)),1,1);
+})();
+

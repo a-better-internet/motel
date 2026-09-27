@@ -1,6 +1,6 @@
 # How the world is put together
 
-`index.html` is the page: the markup, the CSS, the HUD, and twenty-two
+`index.html` is the page: the markup, the CSS, the HUD, and twenty-three
 `<script src="js/…">` tags. Everything else lives here, one file per part of
 the world, loaded **in order** as classic scripts sharing one global scope.
 
@@ -27,6 +27,7 @@ scheduled. The numbering is the load order; nothing re-orders itself.
 | `14-desert.js` | out there, part one: the roadside, the drive-in, the snack bar |
 | `14b-desert.js` | part two: the filling station, the mast, the tracking station |
 | `14c-desert.js` | part three: the graves, the adit, the trailer, site ambience |
+| `14d-diner.js` | Roxie's Diner, the car out east — inside and out |
 | `15-bake.js` | glow materials, then merge and bake every bucket |
 | `16-lighting.js` | the pool of real lights that follows the player |
 | `17-player.js` | movement, collision response, doors, seats |
@@ -47,7 +48,7 @@ is called, every script has run.
 
 **No modules, no bundler, no build step.** ES modules will not load from a
 `file://` page, and this is meant to open by double-clicking it. Classic
-scripts share one global lexical scope, which is what lets these twenty-two files
+scripts share one global lexical scope, which is what lets these twenty-three files
 behave exactly like the single file they came from.
 
 **The desert is three files that share three helpers.** `14-desert.js` defines
@@ -55,7 +56,9 @@ behave exactly like the single file they came from.
 inside one `desertFinds` IIFE three thousand lines long; the blocks inside it
 were already self-contained IIFEs, so lifting the wrapper off and promoting
 those three was enough to let it be read in pieces. If you add a fourth
-piece, it goes after `14c` and relies on the same three.
+piece, it goes after `14c` and relies on the same three — `14d-diner.js` is
+exactly that, and was written as a new file rather than an edit to an old
+one, which is what the split was for.
 
 ## Checking it still works
 

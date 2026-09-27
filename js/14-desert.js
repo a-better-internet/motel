@@ -43,7 +43,12 @@
       col:(x0,x1,z0,z1,h0,h1)=>addCol(ox+x0,ox+x1,oz+z0,oz+z1, gy+h0, gy+h1),
       zone:(r,name)=>addZone(ox-r,ox+r,oz-r,oz+r, gy-4, gy+14, name),
       flat:(x0,x1,z0,z1,h)=>addFlat(ox+x0,ox+x1,oz+z0,oz+z1, gy+h),
-      rect:(x0,x1,z0,z1,name)=>addZone(ox+x0,ox+x1,oz+z0,oz+z1, gy-4, gy+18, name)
+      rect:(x0,x1,z0,z1,name)=>addZone(ox+x0,ox+x1,oz+z0,oz+z1, gy-4, gy+18, name),
+      // the four mkPi has had all along, so a block with an inside to it can
+      // be built either way round
+      voidAt:(x0,x1,z0,z1,h0,h1,f)=>addVoid(ox+x0,ox+x1,oz+z0,oz+z1, gy+h0, gy+h1, gy+f),
+      lamp:(x,y,z,o)=>{ o.x=ox+x; o.y=gy+y; o.z=oz+z; LAMPS.push(o); },
+      wx:(x,z)=>ox+x, wz:(x,z)=>oz+z
     };
   };
 

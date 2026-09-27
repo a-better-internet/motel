@@ -94,6 +94,16 @@ const Terrain=(function(){
     const s2=smoothstep(DISH.r, DISH.r+DISH.blend, d);
     return h+(DISH.y-h)*(1-s2);
   }
+  /* The diner's apron. A diner car was trucked in on a lowboy and dropped on
+     a graded pad beside the road, and it needs level ground under it for the
+     same reason the tracking station does — the middle ring is seven metre
+     cells out here and a building on raw desert sits on a facet.        */
+  const DINER={x:902, z:ROADZ-27, y:0.35, r:12, blend:9};
+  function dinerPad(x,z,h){
+    const d=Math.hypot(x-DINER.x, z-DINER.z);
+    if(d>DINER.r+DINER.blend) return h;
+    return h+(DINER.y-h)*(1-smoothstep(DINER.r, DINER.r+DINER.blend, d));
+  }
   function heightAt(x,z){
     const d=padDist(x,z);
     if(d<=0.001) return PAD_Y;
@@ -124,9 +134,9 @@ const Terrain=(function(){
         h=Math.max(h, top+rough+ridge+fine);
       }
     }
-    return dishPad(x,z, aditCut(x,z,h));
+    return dinerPad(x,z, dishPad(x,z, aditCut(x,z,h)));
   }
-  return {heightAt:heightAt, fbm:fbm, PAD:PAD, PAD_Y:PAD_Y, ADIT:ADIT, DISH:DISH};
+  return {heightAt:heightAt, fbm:fbm, PAD:PAD, PAD_Y:PAD_Y, ADIT:ADIT, DISH:DISH, DINER:DINER};
 })();
 
 const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};

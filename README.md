@@ -440,6 +440,15 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   days after the floor dried, a bug zapper that has been killing moths since
   1971, the pool of light each lit machine throws onto the slab in front of it,
   and one door down the far end standing ajar with the light on behind it.
+- **A diner car, nine hundred metres east.** A prefabricated diner, built like
+  a railway carriage and trucked out to a graded apron beside the highway: a
+  rounded box with no square corners, a glazed checkerboard skirt, fluted
+  stainless above and below a band of windows, a cornice of vertical ribs, and
+  a barrel roof with a clerestory monitor riding the crown. Its sign stands on
+  two posts above the lot and lights after dark. Inside is one room — a
+  counter with eight stools and the diamond-quilted panel behind it, booths
+  down the window side, a hex tile floor, pendant lamps, a porthole door into
+  the kitchen, and paper all over the floor.
 - **A tracking station, six hundred metres back.** A parabolic dish on an
   alt-az mount over a lattice pedestal, a control room you can walk into, a
   plant hut, a half-buried cable duct between them, and a ring of little white

@@ -656,6 +656,24 @@ A few pieces are specific to this scene:
   of the arithmetic rather than being animated on top of it. It runs to about
   86 mph, the headlights come on after dark, and the compass and the speed
   readout follow the bonnet.
+- **Twenty-two files, one scope.** The world used to be one 12,000-line
+  `index.html`. It is now `index.html` plus twenty-two scripts in `js/`,
+  loaded in order and sharing one global scope — `js/README.md` has the map.
+  No modules and no build step, deliberately: ES modules will not load from a
+  `file://` page and this is meant to open by double-clicking it. The one
+  thing the split changes is that a function declaration only hoists within
+  its own script, so anything called during another file's *top-level* build
+  has to be declared earlier — which is why the sign helpers moved in with
+  the textures.
+- **Drawn between two steps, not on one.** Physics runs at a fixed 60 Hz
+  whatever the display does, so anything drawn straight off the physics state
+  advances in visible increments. The drone already interpolated across the
+  leftover accumulator; the car did not, and that was the jitter. It keeps
+  exactly one step of history now and is drawn between the two, and the chase
+  camera follows the *shell* rather than the body — aimed at the body while
+  the shell was interpolated, the two were a fraction of a step apart every
+  frame. Measured at 100 Hz against the 60 Hz step, frame-to-frame position
+  noise went from 0.39 m to 0.0002 m.
 - **A hole is only a hole if it lands on the lattice.** The terrain's LOD
   rings punch a hole in the coarse grid for the finer one inside it, but a
   cell is only dropped when it falls *entirely* inside the hole — so a hole

@@ -154,6 +154,8 @@
   <div class="row"><span>Look</span><span>drag · mouse</span></div>
   <div class="row"><span>Run</span><span><kbd>Shift</kbd></span></div>
   <div class="row"><span>Sprint</span><span><kbd>Q</kbd></span></div>
+  <div class="row"><span>Drive / get out</span><span><kbd>E</kbd></span></div>
+  <div class="row"><span>Handbrake</span><span><kbd>Space</kbd></span></div>
   <div class="row"><span>Open door / use</span><span><kbd>E</kbd> · <kbd>Space</kbd></span></div>
   <div class="row"><span>Sit / stand</span><span><kbd>C</kbd></span></div>
   <div class="row"><span>Drone</span><span><kbd>F</kbd></span></div>
@@ -2139,14 +2141,17 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
 
 /* --- traffic: something passes on the highway every so often ----------- */
 const TRAFFIC=[];
+// the soft dot every lamp on a vehicle is drawn with — the traffic's and,
+// further down, the headlamps of whatever you are driving
+const GLOW_TEX=(function(){
+  const c=cvs(64,64), x=c.getContext("2d");
+  const g=x.createRadialGradient(32,32,0,32,32,32);
+  g.addColorStop(0,"rgba(255,255,255,1)"); g.addColorStop(0.25,"rgba(255,244,214,0.65)");
+  g.addColorStop(1,"rgba(255,230,170,0)");
+  x.fillStyle=g; x.fillRect(0,0,64,64); return setSRGB(new T.CanvasTexture(c));
+})();
 (function buildTraffic(){
-  const glowTex=(function(){
-    const c=cvs(64,64), x=c.getContext("2d");
-    const g=x.createRadialGradient(32,32,0,32,32,32);
-    g.addColorStop(0,"rgba(255,255,255,1)"); g.addColorStop(0.25,"rgba(255,244,214,0.65)");
-    g.addColorStop(1,"rgba(255,230,170,0)");
-    x.fillStyle=g; x.fillRect(0,0,64,64); return setSRGB(new T.CanvasTexture(c));
-  })();
+  const glowTex=GLOW_TEX;
   const BODY=["#8a3a2a","#2c3f63","#a7a69a","#3a4d38"];
   function vehicle(kind, col){
     const ent=[], m4=(x,y,z)=>new T.Matrix4().makeTranslation(x,y,z);
@@ -2326,7 +2331,7 @@ const DayNight=(function(){
     }
   };
 })();
-scene.fog=new T.Fog(0xc37946, 90, 900);
+scene.fog=new T.Fog(0xc37946, 185, 1460);
 scene.background=new T.Color(0xc37946);
 
 /* ----------------------------------------------------------------------
@@ -3053,6 +3058,7 @@ const lvlY=l=>BASE+l*FLOOR_H;
 const WALL_H0=FLOOR_H, WALL_H1=3.00;   // exterior wall height per level
 const DOORS=[], ROOMS=[], LAMPS=[];
 const NEON=[], VAC_NEON=[];   // painted panels that brighten after dark
+let SLOW_GREEN=null;          // the one screen in the control room still lit
 
 function XF(ox,oz,ry){
   const c=Math.cos(ry), s=Math.sin(ry);
@@ -5081,21 +5087,43 @@ let waterGeo=null, waterMesh=null;
   }
 })();
 
-/* --- parked cars ------------------------------------------------------
-   Same body language as the Project 76 chassis: an interpenetrating stack of
-   primitives (rocker pan, main body, hood and trunk decks, cowl lip, glass
-   house, roof cap), chrome bumpers, lens pieces for the lamps, and wheels
-   inset into the flanks with a tyre and a hub. No two layers share a plane,
-   which is what keeps the silhouette reading as a car instead of a slab.  */
-bucketOf("carpaint", ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.38, metalness:0.34}));
-bucketOf("chrome",   ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.26, metalness:0.85}));
-bucketOf("carglass", ()=>new T.MeshStandardMaterial({color:0xffffff, transparent:true, opacity:0.80,
-                          roughness:0.08, metalness:0.45}));
-bucketOf("tyre",     ()=>new T.MeshStandardMaterial({map:TEX.rubber, roughness:0.95}));
+/* --- cars you can get into ---------------------------------------------
+   Same body language as before — an interpenetrating stack of primitives,
+   chrome bumpers, lens pieces, wheels inset into the flanks — but each car
+   is now its own Group rather than a contribution to the world's merge
+   buckets, because a thing you can drive away cannot be baked into the
+   scenery. Per car that is two body meshes (opaque and glass, both vertex
+   coloured off three shared materials) and four wheels that steer and roll.
+   Frustum culling keeps the draw calls to whatever is actually in front of
+   you, which in a parking lot is a handful.                              */
+const CAR_BODY_MAT =new T.MeshStandardMaterial({vertexColors:true, roughness:0.38, metalness:0.34});
+const CAR_GLASS_MAT=new T.MeshStandardMaterial({vertexColors:true, transparent:true, opacity:0.80,
+                          roughness:0.08, metalness:0.45});
+const CAR_WHEEL_MAT=new T.MeshStandardMaterial({vertexColors:true, map:TEX.rubber, roughness:0.95});
+const CARS=[];
+let driving=null;                       // the car you are sitting in, or null
+
+/* Tuning. Suspension rest length and wheel radius set where the chassis
+   floats: at equilibrium each spring carries a quarter of the weight, so it
+   sits mass*g/(4*springK) into its travel, and the body rides that much
+   lower than its rest length. CAR_RIDE is that number worked out once so the
+   parked cars stand at exactly the height the physics will hold them at —
+   otherwise every car drops or jumps the moment you get in.            */
+const CARC={ mass:1200, engineForce:9000, brakeConstant:12000, dragConstant:5.0,
+             rollingResist:15.0, corneringFront:-5.0, corneringRear:-5.2,
+             maxGrip:2.6, maxSteer:0.42, steerSpeedBias:40,
+             restLength:0.34, springK:34000, damping:4200, wheelRadius:0.36,
+             gravity:9.81 };
+const CAR_WHEEL_Y=-0.35;                                   // mount, in car space
+const CAR_SAG=CARC.mass*CARC.gravity/(4*CARC.springK);
+const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
 (function parkedCars(){
   const BODY=["#7c1f14","#21386e","#b0b3b8","#2f5a34","#8a5a1e","#3a3735","#a8452b","#6d6b5e"];
   const GLASS="#20303a", TYRE="#0c0b0a", HUB="#9a9284", CHR="#b8b0a0";
   const R=0.36, HW=0.90, WB=1.56;            // wheel radius, track, wheelbase
+  // Where the chassis floats above the ground once the springs have taken
+  // the weight, and how far the hub hangs below its mount at that point.
+  const RIDE=CAR_RIDE, REST_DROP=R-RIDE;
   // [x, z, yaw, kind]   kind 0 sedan · 1 pickup · 2 van
   const SLOTS=[
     [-44.6,-35.6, 0.02, 0],[-38.8,-35.6,-0.03, 1],[-15.9,-35.6, 0.01, 0],
@@ -5108,16 +5136,35 @@ bucketOf("tyre",     ()=>new T.MeshStandardMaterial({map:TEX.rubber, roughness:0
     [-92.0,-36.6, 0.02, 1],[-86.2,-36.6,-0.03, 0],[-71.8,-36.6, 0.03, 2],
     [-93.6,-21.4, Math.PI/2-0.02, 0],
   ];
+  // Local car space, origin at the chassis centre of mass: x right, y up,
+  // z forward, with the wheels' rest height taken off so the suspension has
+  // somewhere to move. The old builder wrote straight to world coordinates.
+  const _ce=new T.Euler(), _cq=new T.Quaternion(), _cs=new T.Vector3(1,1,1);
+  const ent=(list,geo,x,y,z,ry,color,rx,rz)=>{
+    _ce.set(rx||0, ry||0, rz||0, "YXZ"); _cq.setFromEuler(_ce);
+    list.push({geo:geo, matrix:new T.Matrix4().compose(new T.Vector3(x,y,z), _cq, _cs),
+               color:color?new T.Color(color):null});
+  };
+  // one wheel, axle along local X so steering is a Y turn and rolling an X one
+  const wheelGeo=(()=>{
+    const L=[];
+    ent(L, new T.CylinderGeometry(R,R,0.30,18), 0,0,0, 0, TYRE, 0, Math.PI/2);
+    ent(L, new T.CylinderGeometry(R*0.64,R*0.64,0.315,16), 0,0,0, 0, "#cdc8ba", 0, Math.PI/2);
+    ent(L, new T.CylinderGeometry(R*0.50,R*0.50,0.33,12), 0,0,0, 0, HUB, 0, Math.PI/2);
+    ent(L, new T.CylinderGeometry(R*0.14,R*0.14,0.35,8),  0,0,0, 0, CHR, 0, Math.PI/2);
+    ent(L, boxGeo(0.02,R*0.90,0.336,0), 0,0,0, 0, "#6d675c", 0, 0);   // a spoke or two
+    ent(L, boxGeo(R*0.90,0.02,0.336,0), 0,0,0, 0, "#6d675c", 0, 0);
+    return mergeEntries(L);
+  })();
   for(let i=0;i<SLOTS.length;i++){
     const S=SLOTS[i], col=BODY[i%BODY.length], yaw=S[2], kind=S[3];
-    const cy=Math.cos(yaw), sy=Math.sin(yaw);
-    const at=(lx,lz)=>[S[0]+lx*cy+lz*sy, S[1]-lx*sy+lz*cy];
-    const B=(bucket,w,h,d,lx,ly,lz,c)=>{ const q=at(lx,lz);
-      push(bucket, boxGeo(w,h,d,0.45), q[0],ly,q[1], yaw, c||col); };
-    const CY=(bucket,rt,rb,h,seg,lx,ly,lz,c,rx,rz)=>{ const q=at(lx,lz);
-      push(bucket, new T.CylinderGeometry(rt,rb,h,seg), q[0],ly,q[1], yaw, c, rx||0, rz||0); };
-    const G=(w,h,d,lx,ly,lz,rx)=>{ const q=at(lx,lz);
-      push("carglass", boxGeo(w,h,d,0), q[0],ly,q[1], yaw, GLASS, rx||0); };
+    const OP=[], GL=[];
+    const B=(bucket,w,h,d,lx,ly,lz,c)=>
+      ent(OP, boxGeo(w,h,d,0.45), lx, ly-RIDE, lz, 0, c||col);
+    const CY=(bucket,rt,rb,h,seg,lx,ly,lz,c,rx,rz)=>
+      ent(OP, new T.CylinderGeometry(rt,rb,h,seg), lx, ly-RIDE, lz, 0, c, rx||0, rz||0);
+    const G=(w,h,d,lx,ly,lz,rx)=>
+      ent(GL, boxGeo(w,h,d,0), lx, ly-RIDE, lz, 0, GLASS, rx||0);
 
     /* ---- shared lower body -------------------------------------------- */
     B("carpaint", 2.04,0.30,4.22, 0,0.39,0,   "#1b1a18");     // rocker / pan
@@ -5174,19 +5221,344 @@ bucketOf("tyre",     ()=>new T.MeshStandardMaterial({map:TEX.rubber, roughness:0
       CY("carpaint", 0.012,0.012,0.80,6, 0.94,1.30,1.02, CHR, 0.16); // antenna
     }
 
-    /* ---- wheels, tucked into the flanks ------------------------------- */
+    /* ---- arches: the wheels themselves are separate objects ----------- */
     for(const w of [[-HW,WB],[HW,WB],[-HW,-WB],[HW,-WB]]){
-      CY("tyre",  R,R,0.30,18, w[0]*0.98, R, w[1], TYRE, 0, Math.PI/2);
-      CY("tyre",  R*0.64,R*0.64,0.315,16, w[0]*0.99, R, w[1], "#cdc8ba", 0, Math.PI/2); // whitewall
-      CY("chrome",R*0.50,R*0.50,0.33,12, w[0]*0.98, R, w[1], HUB, 0, Math.PI/2);
-      CY("chrome",R*0.14,R*0.14,0.35,8,  w[0]*0.98, R, w[1], CHR, 0, Math.PI/2);
       B("carpaint", 0.10,0.30,1.14, w[0]*1.02, R+0.30, w[1], "#171614");  // arch shadow
       B("carpaint", 0.05,0.09,1.22, w[0]*1.045, R+0.26, w[1]);            // fender lip
     }
-    const hx=Math.abs(cy)*1.03+Math.abs(sy)*2.28, hz=Math.abs(sy)*1.03+Math.abs(cy)*2.28;
+
+    /* ---- assemble ----------------------------------------------------- */
+    const g=new T.Group();
+    g.position.set(S[0], RIDE, S[1]);
+    g.rotation.y=yaw;
+    const body=new T.Mesh(mergeEntries(OP), CAR_BODY_MAT);
+    body.castShadow=true; body.receiveShadow=true;
+    g.add(body);
+    g.add(new T.Mesh(mergeEntries(GL), CAR_GLASS_MAT));
+    const wheels=[];
+    for(const w of [[-HW*0.98,WB],[HW*0.98,WB],[-HW*0.98,-WB],[HW*0.98,-WB]]){
+      const wm=new T.Mesh(wheelGeo, CAR_WHEEL_MAT);
+      wm.rotation.order="YXZ";                 // steer about Y, then roll about X
+      wm.position.set(w[0], REST_DROP, w[1]);
+      wm.castShadow=true;
+      g.add(wm); wheels.push(wm);
+    }
+    scene.add(g);
+    const hx=Math.abs(Math.cos(yaw))*1.03+Math.abs(Math.sin(yaw))*2.28;
+    const hz=Math.abs(Math.sin(yaw))*1.03+Math.abs(Math.cos(yaw))*2.28;
     addCol(S[0]-hx, S[0]+hx, S[1]-hz, S[1]+hz, 0, 1.5);
+    CARS.push({g:g, wheels:wheels, kind:kind, col:COL[COL.length-1],
+               home:{x:S[0], z:S[1], yaw:yaw}, veh:null, spin:0});
   }
 })();
+
+
+/* ----------------------------------------------------------------------
+   10b · DRIVING — rigid body, four springs, and a bicycle handling model
+   Adapted from the Project 76 vehicle engine. The split it draws is the
+   useful one: the suspension owns everything vertical (gravity, spring,
+   damper, and therefore pitch and roll, because a force applied AT a wheel
+   is a torque about the centre of mass), and the handling model owns
+   everything planar (traction, drag, lateral grip, yaw). The two never
+   argue because the handling model never touches Y.
+   The one thing it leaves to the game is the ground, which here is
+   surfaceY() — the same function the player walks on, so a car drives up
+   onto the lot slabs and the forecourt rather than through them.
+   ---------------------------------------------------------------------- */
+const _cv=(x,y,z)=>new T.Vector3(x||0,y||0,z||0);
+class CarBody{
+  constructor(mass,size){
+    this.mass=mass; this.invMass=1/mass;
+    this.position=_cv(); this.velocity=_cv();
+    this.quaternion=new T.Quaternion();
+    this.angularVel=_cv();                       // world space
+    const w=size.x,h=size.y,l=size.z,m=mass;
+    this.invInertiaLocal=_cv(1/((1/12)*m*(h*h+l*l)), 1/((1/12)*m*(w*w+l*l)),
+                             1/((1/12)*m*(w*w+h*h)*1.4));   // roll stiffened
+    this._force=_cv(); this._torque=_cv();
+    this._t1=_cv(); this._t2=_cv(); this._t3=_cv();
+  }
+  addForce(f){ this._force.add(f); }
+  addForceAtPosition(f,wp){
+    this._force.add(f);
+    this._torque.add(this._t1.copy(wp).sub(this.position).cross(f));
+  }
+  worldInvInertia(v,out){
+    const iq=this._q0||(this._q0=new T.Quaternion());
+    iq.copy(this.quaternion).invert();
+    return out.copy(v).applyQuaternion(iq).multiply(this.invInertiaLocal)
+              .applyQuaternion(this.quaternion);
+  }
+  integrate(dt){
+    this.velocity.addScaledVector(this._force, this.invMass*dt);
+    const sp=this.velocity.length();
+    if(sp>140) this.velocity.multiplyScalar(140/sp);
+    this.position.addScaledVector(this.velocity, dt);
+    const aa=this.worldInvInertia(this._torque, this._t2);
+    this.angularVel.addScaledVector(aa, dt);
+    const as=this.angularVel.length();
+    if(as>14) this.angularVel.multiplyScalar(14/as);
+    const w=this.angularVel, q=this.quaternion;
+    const dq=new T.Quaternion(w.x*dt*0.5, w.y*dt*0.5, w.z*dt*0.5, 0).multiply(q);
+    q.set(q.x+dq.x, q.y+dq.y, q.z+dq.z, q.w+dq.w).normalize();
+    this._force.set(0,0,0); this._torque.set(0,0,0);
+  }
+  up(){ return this._t3.set(0,1,0).applyQuaternion(this.quaternion).clone(); }
+  forward(){ return _cv(0,0,1).applyQuaternion(this.quaternion); }
+  right(){ return _cv(1,0,0).applyQuaternion(this.quaternion); }
+}
+class CarWheel{
+  constructor(body, local, steers){
+    this.body=body; this.local=local.clone(); this.steers=steers;
+    this.grounded=false; this.len=CARC.restLength; this.worldPos=_cv();
+    this._r=_cv(); this._pv=_cv(); this._f=_cv();
+  }
+  update(dt){
+    const b=this.body;
+    this.worldPos.copy(this.local).applyQuaternion(b.quaternion).add(b.position);
+    const up=b.up();
+    const gy=surfaceY(this.worldPos.x, this.worldPos.z, this.worldPos.y);
+    const clearance=this.worldPos.y-gy;
+    const maxLen=CARC.restLength+CARC.wheelRadius;
+    let len=maxLen;
+    if(clearance<=maxLen){ this.grounded=true; len=Math.max(0, clearance); }
+    else this.grounded=false;
+    // push the wheel up and the spring shortens, so displacement grows
+    const disp=CARC.restLength-(len-CARC.wheelRadius);
+    if(this.grounded){
+      this._r.copy(this.worldPos).sub(b.position);
+      this._pv.copy(b.velocity).add(_cv().copy(b.angularVel).cross(this._r));
+      const sv=up.dot(this._pv);
+      this._f.copy(up).multiplyScalar(CARC.springK*disp - CARC.damping*sv);
+      // applied AT the wheel: a difference front to back or side to side is
+      // what makes the body pitch and roll, with no extra code for either
+      b.addForceAtPosition(this._f, this.worldPos);
+    }
+    this.len=len;
+    this.groundY=gy;
+  }
+}
+class Vehicle{
+  constructor(){
+    this.body=new CarBody(CARC.mass, _cv(2.0,1.0,4.3));
+    const FX=0.90*0.98, FZ=1.56;
+    this.wheels=[ new CarWheel(this.body,_cv(-FX,CAR_WHEEL_Y, FZ),true),
+                  new CarWheel(this.body,_cv( FX,CAR_WHEEL_Y, FZ),true),
+                  new CarWheel(this.body,_cv(-FX,CAR_WHEEL_Y,-FZ),false),
+                  new CarWheel(this.body,_cv( FX,CAR_WHEEL_Y,-FZ),false) ];
+    this.b=FZ; this.c=FZ;
+    this.throttle=0; this.brake=0; this.steer=0; this.ebrake=false;
+    this._steer=0; this.steerAngle=0; this.speed=0; this.accelLong=0;
+    this.allGrounded=false;
+  }
+  handling(dt){
+    const b=this.body;
+    if(!this.allGrounded) return;              // in the air the springs have it
+    const fwd=b.forward(), rgt=b.right(), up=b.up();
+    let vf=b.velocity.dot(fwd), vl=b.velocity.dot(rgt);
+    let speed=Math.hypot(vf,vl);
+    // steering washes out with speed, or it is undriveable above walking pace
+    const sb=Math.min(speed, CARC.steerSpeedBias);
+    this.steerAngle=this.steer*(1-sb/CARC.steerSpeedBias)*CARC.maxSteer;
+    if(Math.abs(this.throttle)<0.1 && speed<0.5){      // kill the creep
+      b.velocity.x=0; b.velocity.z=0; vf=0; vl=0; speed=0;
+      b.angularVel.addScaledVector(up, -b.angularVel.dot(up));
+    }
+    if(speed<1e-5) this.steerAngle=0;
+    const yawRate=b.angularVel.dot(up);
+    let rot=0, slip=0;
+    if(speed>0.5){
+      rot =Math.atan2(yawRate, Math.abs(vf)||0.001);
+      slip=Math.atan2(vl,      Math.abs(vf)||0.001);
+    }
+    const sF=slip+rot-this.steerAngle, sR=slip-rot;
+    const axle=CARC.mass*CARC.gravity*0.5;
+    const cl=(v,a,z)=>Math.max(a,Math.min(z,v));
+    let latF=cl(CARC.corneringFront*sF, -CARC.maxGrip, CARC.maxGrip)*axle;
+    let latR=cl(CARC.corneringRear *sR, -CARC.maxGrip, CARC.maxGrip)*axle;
+    if(this.ebrake) latR*=0.5;                 // the whole of "the back steps out"
+    let trac=CARC.engineForce*this.throttle;
+    if(speed>0 && this.brake>0)
+      trac=-CARC.brakeConstant*this.brake*Math.sign(vf);
+    const drag=-CARC.dragConstant*vf*Math.abs(vf);
+    const roll=-CARC.rollingResist*vf;
+    const latRoll=-CARC.rollingResist*vl;
+    // front and rear tyre forces act at different distances from the centre
+    // of mass, and that difference is the yaw
+    b.angularVel.addScaledVector(up, (this.b*latF - this.c*latR)/CARC.mass*dt);
+    const dvf=(trac+drag+roll)/CARC.mass*dt;
+    const dvl=(latF+latR+latRoll)/CARC.mass*dt;
+    b.velocity.addScaledVector(fwd, dvf);
+    b.velocity.addScaledVector(rgt, dvl);
+    this.accelLong=dvf/dt; this.speed=speed;
+  }
+  step(dt){
+    let n=0;
+    for(const w of this.wheels){ w.update(dt); if(w.grounded) n++; }
+    this.allGrounded = n===4;
+    this.body.addForce(_cv(0, -CARC.gravity*CARC.mass, 0));
+    this.body.integrate(dt);
+    this.handling(dt);
+  }
+}
+/* A car is wider than a person, so it gets its own broad-phase rather than
+   borrowing blocked(); and it slides along a wall on the axis that is still
+   clear, the same way walking does. */
+const CAR_PTS=[[0,2.0],[0,-2.0],[-0.95,1.2],[0.95,1.2],[-0.95,-1.2],[0.95,-1.2]];
+function carHits(px,pz,yaw,lo,hi,skip){
+  const cy=Math.cos(yaw), sy=Math.sin(yaw);
+  for(const p of CAR_PTS){
+    const x=px+p[0]*cy+p[1]*sy, z=pz-p[0]*sy+p[1]*cy;
+    for(let i=0;i<COL.length;i++){
+      const c=COL[i]; if(c===skip) continue;
+      if(x>c.x0-0.12 && x<c.x1+0.12 && z>c.z0-0.12 && z<c.z1+0.12 && hi>c.y0 && lo<c.y1)
+        return true;
+    }
+  }
+  return false;
+}
+const _carP=new T.Vector3();
+// Heading about Y from a quaternion. The denominator is 1-2(y^2+z^2): with
+// x^2 in place of z^2 it happens to agree for a car sitting flat and drifts
+// as soon as the body pitches or rolls, which is exactly when it is used.
+const carYaw=q=>Math.atan2(2*(q.w*q.y+q.x*q.z), 1-2*(q.y*q.y+q.z*q.z));
+function updateCars(dt){
+  const car=driving; if(!car) return;
+  const v=car.veh, b=v.body;
+  // ---- input ----
+  const fwd=keys.KeyW||keys.ArrowUp, rev=keys.KeyS||keys.ArrowDown;
+  const vfwd=b.velocity.dot(b.forward());
+  let th=0, br=0;
+  if(fwd) th=1;
+  if(rev){ if(vfwd>0.8) br=1; else th=-0.55; }      // S brakes, then reverses
+  v.throttle=th; v.brake=br;
+  const want=(keys.KeyA||keys.ArrowLeft?1:0)-(keys.KeyD||keys.ArrowRight?1:0);
+  v._steer += (want-v._steer)*0.18;                 // smoothed, not snapped
+  v.steer=v._steer;
+  v.ebrake=!!keys.Space;
+  // ---- integrate, then push back out of anything solid ----
+  const px=b.position.x, pz=b.position.z;
+  v.step(dt);
+  const yaw=carYaw(b.quaternion);
+  const lo=b.position.y-CAR_RIDE+0.25, hi=b.position.y-CAR_RIDE+1.45;
+  if(carHits(b.position.x, pz, yaw, lo, hi, car.col)){
+    b.position.x=px; b.velocity.x*=-0.18;
+  }
+  if(carHits(b.position.x, b.position.z, yaw, lo, hi, car.col)){
+    b.position.z=pz; b.velocity.z*=-0.18;
+  }
+  // A heightfield sampled straight down cannot catch a slope that arrives
+  // faster than the spring can react: at 38 m/s the car covers two thirds of
+  // a metre a step, and a hillside can be well above the wheel before any
+  // force is applied. Once that happens the spring is pushing up from inside
+  // the mountain and it never gets out. So after every step, lift the body
+  // clear of the deepest wheel that has gone under.
+  let pen=0;
+  for(const w of v.wheels){
+    _carP.copy(w.local).applyQuaternion(b.quaternion).add(b.position);
+    pen=Math.max(pen, surfaceY(_carP.x,_carP.z,_carP.y)+CARC.wheelRadius*0.4-_carP.y);
+  }
+  if(pen>0){
+    b.position.y += Math.min(pen, 4.0*dt*60);
+    if(b.velocity.y<0) b.velocity.y=0;
+  }
+  car.spin += (b.velocity.dot(b.forward())/CARC.wheelRadius)*dt;
+}
+/* Put the shell where the physics says it is. Parked cars never come through
+   here — they keep the transform they were built with. */
+function showCar(car){
+  const v=car.veh, b=v.body;
+  car.g.position.copy(b.position);
+  car.g.quaternion.copy(b.quaternion);
+  for(let i=0;i<4;i++){
+    const w=v.wheels[i], m=car.wheels[i];
+    m.position.y = CAR_WHEEL_Y-(w.len-CARC.wheelRadius);
+    m.rotation.y = w.steers ? v.steerAngle : 0;
+    m.rotation.x = car.spin;
+  }
+}
+function nearestCar(){
+  if(driving) return null;
+  let best=null, bd=3.6;
+  for(const c of CARS){
+    const d=Math.hypot(player.pos.x-c.g.position.x, player.pos.z-c.g.position.z);
+    if(d<bd && Math.abs(player.feetY-(c.g.position.y-CAR_RIDE))<2.2){ bd=d; best=c; }
+  }
+  return best;
+}
+function enterCar(c){
+  if(seated) standUp();
+  c.veh=c.veh||new Vehicle();
+  const b=c.veh.body;
+  b.position.set(c.g.position.x, c.g.position.y, c.g.position.z);
+  b.quaternion.copy(c.g.quaternion);
+  b.velocity.set(0,0,0); b.angularVel.set(0,0,0);
+  c.veh._steer=0; c.veh.steer=0;
+  c.col.y1=c.col.y0-1;                       // it cannot block itself
+  driving=c; carCamYaw=0; carCamPitch=0.24;
+  toast("W A S D  ·  SPACE HANDBRAKE  ·  E TO GET OUT","#ffd48a");
+}
+function exitCar(){
+  const c=driving; if(!c) return;
+  driving=null;
+  const b=c.veh.body;
+  b.velocity.set(0,0,0); b.angularVel.set(0,0,0);
+  c.veh.throttle=0; c.veh.brake=0;
+  // step out on the driver's side, or wherever near it is actually standable
+  // nearestFree hands back [x, z, y] or null — not an object
+  const left=new T.Vector3(-1,0,0).applyQuaternion(b.quaternion);
+  const gy0=b.position.y-CAR_RIDE;
+  const gx=b.position.x+left.x*1.9, gz=b.position.z+left.z*1.9;
+  const sp=nearestFree(gx, gz, gy0, 7) || nearestFree(b.position.x, b.position.z, gy0, 9);
+  if(sp){ player.pos.set(sp[0], 0, sp[1]); player.feetY=sp[2]; }
+  else  { player.pos.set(gx, 0, gz);       player.feetY=surfaceY(gx, gz, gy0+0.5); }
+  const yaw=carYaw(b.quaternion);
+  const hx=Math.abs(Math.cos(yaw))*1.03+Math.abs(Math.sin(yaw))*2.28;
+  const hz=Math.abs(Math.sin(yaw))*1.03+Math.abs(Math.cos(yaw))*2.28;
+  const gy=gy0;
+  c.col.x0=b.position.x-hx; c.col.x1=b.position.x+hx;
+  c.col.z0=b.position.z-hz; c.col.z1=b.position.z+hz;
+  c.col.y0=gy; c.col.y1=gy+1.5;
+}
+/* Headlights. One spotlight and a target, made once and moved to whichever
+   car you are in — a light per parked car would be seventeen lights for a
+   renderer that runs seven. */
+const carBeam=new T.SpotLight(0xfff0d0, 0, 62, 0.62, 0.42, 1.1);
+carBeam.target=new T.Object3D();
+scene.add(carBeam); scene.add(carBeam.target);
+const carLamps=[], carTails=[];
+for(let i=0;i<2;i++){
+  const h=new T.Sprite(new T.SpriteMaterial({map:GLOW_TEX, transparent:true,
+    depthWrite:false, blending:T.AdditiveBlending, opacity:0}));
+  h.scale.set(3.2,3.2,1); scene.add(h); carLamps.push(h);
+  const t=new T.Sprite(new T.SpriteMaterial({map:GLOW_TEX, transparent:true,
+    depthWrite:false, blending:T.AdditiveBlending, opacity:0, color:0xff4020}));
+  t.scale.set(1.5,1.5,1); scene.add(t); carTails.push(t);
+}
+function updateCarLights(dark, delta){
+  const on=!!driving && dark>0.12;
+  const k=on ? Math.min(1,(dark-0.12)*3) : 0;
+  carBeam.intensity=2.7*k;
+  for(let i=0;i<2;i++){
+    carLamps[i].visible=on; carLamps[i].material.opacity=0.85*k;
+    carTails[i].visible=on; carTails[i].material.opacity=0.55*k;
+  }
+  if(!on) return;
+  const b=driving.veh.body;
+  const f=b.forward(), r=b.right();
+  // mounted on the nose, aimed well down the road rather than at the horizon
+  carBeam.position.set(b.position.x+f.x*2.1, b.position.y-0.12, b.position.z+f.z*2.1);
+  carBeam.target.position.set(b.position.x+f.x*30, b.position.y-1.55, b.position.z+f.z*30);
+  for(let i=0;i<2;i++){
+    const q=(i?1:-1)*0.66;
+    carLamps[i].position.set(b.position.x+f.x*2.16+r.x*q, b.position.y-0.16,
+                             b.position.z+f.z*2.16+r.z*q);
+    carTails[i].position.set(b.position.x-f.x*2.16+r.x*q, b.position.y-0.16,
+                             b.position.z-f.z*2.16+r.z*q);
+  }
+}
+let carCamYaw=0, carCamPitch=0.24;
+const _carTmp=new T.Vector3(), _carLook=new T.Vector3();
 
 /* ----------------------------------------------------------------------
    11 · SIGNAGE — the pole sign is the building's face from the highway
@@ -5389,27 +5761,54 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       const [bx2,bz2]=K(0,0.55);
       bx("siding", 2.28, 2.22, 4.60, bx2, 1.52, bz2, 0.45, TA, BODY);
       bx("siding", 2.32, 0.30, 4.64, bx2, 2.72, bz2, 0.45, TA, "#cfc2a4");   // the roof cap
+      // The body is 2.28 wide, so its flank is at 1.14. The band was centred
+      // on 1.16 and 40 mm thick, putting its inner face exactly on the flank
+      // and its outer face exactly where the rust plane sat — two coplanar
+      // pairs, which is the glitching. The band is buried into the body now
+      // and everything after it steps outward.
       for(const q of [-1,1]){                          // a band down each side
-        const [px,pz]=K(q*1.16, 0.55);
-        push("paint", boxGeo(0.04, 0.42, 4.30, 0.5), px, 1.62, pz, TA, TRIM2);
-        push("rust", planeGeo(1.90, 1.30, 0), px+q*0.02*c0, 0.72, pz-q*0.02*s0,
-             TA+(q>0?0:Math.PI), RUST3);
+        const [px,pz]=K(q*1.145, 0.55);
+        push("paint", boxGeo(0.06, 0.42, 4.30, 0.5), px, 1.62, pz, TA, TRIM2);
+        const [rx2,rz2]=K(q*1.21, 0.55);
+        push("rust", planeGeo(1.90, 1.30, 0), rx2, 0.72, rz2,
+             TA+(q>0?Math.PI/2:-Math.PI/2), RUST3);
       }
       const [fx2,fz2]=K(0,3.35);                       // the cab
       bx("siding", 2.10, 1.62, 1.55, fx2, 1.16, fz2, 0.45, TA, BODY);
-      bx("carglass", 1.84, 0.86, 0.06, K(0,4.10)[0], 1.62, K(0,4.10)[1], 0, TA, GLASS2);
+      // cab front is at 4.125 and its flank at 1.05: the glass used to stop
+      // dead on both, so both flickered. Stand it proud.
+      bx("carglass", 1.84, 0.86, 0.06, K(0,4.17)[0], 1.62, K(0,4.17)[1], 0, TA, GLASS2);
       for(const q of [-1,1])
-        bx("carglass", 0.06, 0.72, 1.10, K(q*1.02,3.45)[0], 1.58, K(q*1.02,3.45)[1],
+        bx("carglass", 0.06, 0.72, 1.10, K(q*1.09,3.45)[0], 1.58, K(q*1.09,3.45)[1],
            0, TA, GLASS2);
       bx("chrome", 2.16, 0.22, 0.14, K(0,4.20)[0], 0.62, K(0,4.20)[1], 0, TA, "#9aa1a6");
       for(const q of [-1,1])                           // headlamps, one of them gone
         cyl("glass", 0.16,0.16,0.10,12, K(q*0.74,4.18)[0], 0.98, K(q*0.74,4.18)[1],
             q>0?"#cfd6d2":"#2b2723", Math.PI/2, TA, 0);
-      for(const w of [[-1.02,2.95],[1.02,2.95],[-1.02,-1.15],[1.02,-1.15]]){
+      // A torus reads as a doughnut. A tyre is a cylinder with a sidewall, a
+      // rim and a hub, and these two at the front have been flat so long the
+      // van is sitting on its rims at that corner.
+      for(const w of [[-1.02,2.95,1],[1.02,2.95,1],[-1.02,-1.15,0],[1.02,-1.15,0]]){
         const [wx2,wz2]=K(w[0],w[1]);
-        push("tyre", new T.TorusGeometry(0.40,0.17,7,14), wx2, 0.34, wz2, TA,
-             "#22201e", 0, Math.PI/2);
-        cyl("metal", 0.19,0.19,0.16,12, wx2, 0.34, wz2, "#6f767a", 0, TA, Math.PI/2);
+        const flat=w[2], r0=flat?0.31:0.40, yc=flat?0.30:0.40;
+        const tg=new T.CylinderGeometry(r0,r0,0.30,16);
+        if(flat) tg.scale(1, 1, 0.80);             // squatting, not round
+        push("tyre", tg, wx2, yc, wz2, TA, "#1e1c1a", 0, Math.PI/2);
+        cyl("tyre",  r0*0.70, r0*0.70, 0.315, 14, wx2, yc, wz2, "#33302c", 0, TA, Math.PI/2);
+        cyl("metal", r0*0.52, r0*0.52, 0.33, 12, wx2, yc, wz2, "#7c837f", 0, TA, Math.PI/2);
+        cyl("metal", 0.075,0.075,0.35,8, wx2, yc, wz2, "#5e6462", 0, TA, Math.PI/2);
+        for(let k=0;k<5;k++){                      // wheel nuts
+          const a3=k*1.257;
+          push("metal", boxGeo(0.035,0.035,0.34,0), wx2, yc+Math.sin(a3)*r0*0.30, wz2,
+               TA, "#8a908c", 0, Math.PI/2+Math.cos(a3)*0);
+        }
+        // the arch it sits in, so the wheel is let into the body not stuck on
+        const [ax,az]=K(w[0]*1.10, w[1]);
+        push("siding", boxGeo(0.06,0.10,1.00,0.5), ax, yc+r0+0.06, az, TA, "#c0b59a");
+      }
+      for(const q of [-1,1]){                      // mud flaps behind the rears
+        const [fx3,fz3]=K(q*1.00, -1.72);
+        push("tyre", boxGeo(0.44,0.40,0.03,0), fx3, 0.26, fz3, TA, "#1c1a18", 0.12, 0);
       }
       // the serving hatch, propped open, and what is still behind it
       const [hx,hz]=K(1.15,1.20);
@@ -5421,6 +5820,60 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
             K(1.30,0.55+i*0.42)[1], "#8e9498", 0.5, TA, 0);
       bx("metal", 1.50, 0.62, 0.50, K(0.55,1.30)[0], 1.30, K(0.55,1.30)[1], 0, TA,
          "#8e9498");                                   // a counter gone over inside
+      /* ---- the fittings a truck that fed people actually carried -------- */
+      {
+        const P=(bk,w,h,d,lx,ly,lz,c,rx,rz)=>{ const [qx,qz]=K(lx,lz);
+          push(bk, boxGeo(w,h,d,0.45), qx, ly, qz, TA, c, rx||0, rz||0); };
+        const C2=(bk,rt,rb,h,seg,lx,ly,lz,c,rx,rz)=>{ const [qx,qz]=K(lx,lz);
+          cyl(bk, rt,rb,h,seg, qx, ly, qz, c, rx||0, TA, rz||0); };
+        // roof: an air conditioner, a cowl vent and the flue off the griddle
+        P("weathered", 1.00,0.34,1.05, 0,3.04,0.10, "#c8c2b0");
+        for(let i=0;i<5;i++) P("bin", 0.86,0.03,0.05, 0,3.02+i*0.06,-0.38, "#4e5250");
+        C2("metal", 0.17,0.20,0.42,12, -0.55,3.08,2.10, "#9aa09a");
+        C2("metal", 0.23,0.23,0.06,12, -0.55,3.32,2.10, "#8d938d");
+        C2("metal", 0.10,0.10,0.90,10, 0.60,3.32,-1.30, "#7e8480");   // the flue
+        C2("metal", 0.16,0.13,0.14,10, 0.60,3.82,-1.30, "#6e7470");
+        // a roof rack and the ladder up to it
+        for(const q of [-1,1]) P("metal", 0.05,0.05,3.80, q*0.92,3.20,0.40, "#8a908c");
+        for(let i=0;i<5;i++) P("metal", 1.90,0.04,0.04, 0,3.20,-1.30+i*0.86, "#8a908c");
+        for(let i=0;i<7;i++) C2("metal", 0.020,0.020,0.46,7, 0,0.58+i*0.40,-1.98,
+                                "#8a908c", 0, Math.PI/2);
+        for(const q of [-1,1]) C2("metal", 0.024,0.024,2.80,7, q*0.23,1.66,-1.98, "#8a908c");
+        // a propane bottle and a generator on the tail, strapped down
+        C2("paint", 0.21,0.21,0.74,14, -0.62,0.62,-2.10, "#b8b2a2");
+        C2("metal", 0.07,0.07,0.10,10, -0.62,1.04,-2.10, "#8a908c");
+        P("weathered", 0.68,0.44,0.46, 0.60,0.50,-2.10, "#6f7a6a");
+        P("bin", 0.56,0.05,0.40, 0.60,0.74,-2.10, "#3a403c");
+        C2("metal", 0.05,0.05,0.30,8, 0.86,0.60,-2.28, "#8a908c", 0, Math.PI/2);
+        // rear roller shutter, half up, with the slats reading
+        P("metal", 1.90,1.10,0.06, 0,1.92,-1.78, "#a8a294");
+        for(let i=0;i<7;i++) P("bin", 1.86,0.02,0.02, 0,1.44+i*0.16,-1.81, "#8d8578");
+        P("bin", 1.94,0.10,0.08, 0,1.34,-1.80, "#5e6260");
+        P("metal", 1.80,0.90,0.05, 0,0.92,-1.76, "#2b2f2e");        // the dark inside
+        // the step, and the crate somebody used as a second one
+        P("metal", 0.90,0.06,0.42, 1.34,0.44,1.20, "#8a908c");
+        for(const q of [-1,1]) C2("metal", 0.02,0.02,0.44,6, 1.34+q*0.40,0.22,1.20, "#8a908c");
+        P("oak", 0.52,0.34,0.40, 1.95,0.17,1.05, "#8a7148");
+        // front: grille, plate, wipers, mirrors
+        P("bin", 1.46,0.34,0.05, 0,1.06,4.16, "#33383a");
+        for(let i=0;i<6;i++) P("chrome", 1.42,0.025,0.02, 0,0.94+i*0.055,4.19, "#9aa1a6");
+        P("paint", 0.34,0.14,0.04, 0.45,0.60,4.24, "#cfc8ae");
+        for(const q of [-1,1]) P("metal", 0.52,0.02,0.02, q*0.42,1.26,4.20, "#5e6462", 0, 0.12);
+        for(const q of [-1,1]){
+          C2("metal", 0.022,0.022,0.40,6, q*1.14,1.72,3.92, "#8a908c", 0.5, 0);
+          P("metal", 0.06,0.30,0.22, q*1.26,1.90,3.86, "#6e7470");
+        }
+        // exhaust, and the sag in the back axle
+        C2("metal", 0.055,0.055,1.30,8, -0.70,0.26,-0.60, "#5e5a54", Math.PI/2, 0);
+        C2("metal", 0.075,0.075,0.20,8, -0.70,0.30,-1.90, "#4e4a46", Math.PI/2, 0);
+        // inside the hatch: a griddle, an urn, and the shelf of cups
+        P("metal", 1.10,0.10,0.56, 0.30,1.66,1.20, "#9aa1a6");
+        P("bin", 0.92,0.06,0.46, 0.30,1.73,1.20, "#33383a");
+        C2("metal", 0.14,0.14,0.42,12, -0.30,1.92,1.80, "#a8aeb0");
+        C2("bin", 0.04,0.04,0.10,8, -0.30,1.70,1.66, "#2b2f2e", Math.PI/2, 0);
+        for(let i=0;i<5;i++) C2("plaster", 0.045,0.038,0.09,10, -0.55+i*0.16,2.16,1.55,
+                                "#d8d2c0");
+      }
       // the name, painted on and half gone
       NEON.push(signPanel(3.20, 0.80, signTex(640,160,(x,W,H2)=>{
         x.fillStyle="#d8cdb4"; x.fillRect(0,0,W,H2);
@@ -5433,7 +5886,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       }), K(-1.19,0.90)[0], 1.72, K(-1.19,0.90)[1], TA+Math.PI/2, false));
       addCol(TX-2.6, TX+2.6, TZ-3.4, TZ+4.2, 0, 2.9);
       // and the stain it has left on the asphalt after all this time
-      push("soot", planeGeo(5.2,3.4,0), TX, 0.011, TZ+0.4, TA, "#2f2a24", -Math.PI/2, 0);
+      push("soot", planeGeo(5.2,3.4,0), TX, 0.018, TZ+0.4, TA, "#2f2a24", -Math.PI/2, 0);
     }
     // the bin corral: three sides of breeze block, two skips, and the overflow
     {
@@ -8271,6 +8724,42 @@ i===1?"#6a5a3c":"#7a6746");
          the console, tape on the racks, a chart recorder inking a trace
          nobody came back for, and a patch field with the cords still in. */
       const GRN="#1d2b26", CASE="#4a5450";
+      /* One screen is still alive. Not blinking, not flickering — breathing:
+         a phosphor screen with a slow sweep on it swells and fades over
+         about eleven seconds, which is long enough that you notice it only
+         after you have been standing in the room a while. That is the whole
+         effect, and it is worth more than anything else in here. */
+      {
+        // On its own bench against the west wall, facing the room. Centred on
+        // the console it stood square in the doorway.
+        const mx=X0+0.62, mz=OZ+0.30;
+        m.B("weathered", 0.52, 0.06, 1.10, mx+0.16, F2+0.78, mz, 0.5,0, "#6a6558");
+        for(const q of [[-1,-1],[1,-1],[-1,1],[1,1]])
+          m.C("metal", 0.022,0.022,0.78,6, mx+0.16+q[0]*0.20, F2+0.39, mz+q[1]*0.48, DARK);
+        m.col(mx-0.12, mx+0.46, mz-0.58, mz+0.58, 0, F2+0.82);
+        m.B("weathered", 0.56, 0.52, 0.62, mx+0.18, F2+1.07, mz, 0.5,0, CASE);
+        // The tube faces INTO the room, which is +X: a plane's normal is +Z and
+        // Ry(-PI/2) swings that to -X, so the first cut had the screen and
+        // its glow pointed at the wall it was standing against.
+        m.B("bin", 0.04, 0.40, 0.50, mx+0.48, F2+1.10, mz, 0,0, "#101a15");
+        const scr=new T.Mesh(new T.PlaneGeometry(0.44,0.34),
+          new T.MeshBasicMaterial({color:0x3df08a, transparent:true, opacity:0.20,
+            depthWrite:false, blending:T.AdditiveBlending, fog:false, toneMapped:false}));
+        scr.position.set(D.x+mx+0.515, m.y+F2+1.10, D.z+mz);
+        scr.rotation.y=Math.PI/2; scene.add(scr);
+        const hal=new T.Mesh(new T.PlaneGeometry(1.6,1.3),
+          new T.MeshBasicMaterial({map:GLOW_TEX, color:0x2fe07a, transparent:true,
+            opacity:0.10, depthWrite:false, blending:T.AdditiveBlending, fog:false,
+            toneMapped:false}));
+        hal.position.set(D.x+mx+0.60, m.y+F2+1.10, D.z+mz);
+        hal.rotation.y=Math.PI/2; scene.add(hal);
+        LAMPS.push({x:D.x+mx+1.20, y:m.y+F2+1.16, z:D.z+mz, color:0x46ff96,
+                    intensity:0.17, dist:4.6, decay:1.5, indoor:true, slow:true});
+        SLOW_GREEN={scr:scr, hal:hal};
+        for(let k=0;k<9;k++)                     // the trace it is still drawing
+          m.C("ember", 0.008,0.008,0.03,4, mx+0.495, F2+1.10+Math.sin(k*1.4)*0.075,
+              mz-0.17+k*0.042, "#49d98a", 0, 0, Math.PI/2);
+      }
       for(let i=0;i<2;i++){                      // two scopes on the console
         const sx2=CX-0.95+i*1.30;
         m.B("weathered", 0.56, 0.48, 0.46, sx2, F2+1.19, Z0+1.45, 0.5,0, CASE);
@@ -8433,6 +8922,42 @@ i===1?"#6a5a3c":"#7a6746");
     for(let i=0;i<9;i++)                           // tyre tracks, still there
       m.P("soot", planeGeo(0.42, 9.0+((i*5)%3)*3.0, 0), -20.0+i*5.0, 0.234,
           -18.0-((i*7)%4)*2.0, ((i*3)%5-2)*0.06, "#8a7a5e", -Math.PI/2, 0);
+    /* ---- the things a dish has that a bowl on a stick does not ------- */
+    {
+      // a cable loom off the feed, down a rib and into the hub, hanging
+      const fpt=FACE(RD*0.10, 0.0);
+      let prev=[fpt[0], fpt[1]+0.30, fpt[2]];
+      for(let i=1;i<=7;i++){
+        const t=i/7;
+        const nxt=[lerp(fpt[0],0,t), lerp(fpt[1]+0.30, HUB+1.60, t)-Math.sin(t*Math.PI)*0.85,
+                   lerp(fpt[2],0,t)];
+        strut(prev, nxt, 0.045, "#2a2b28"); prev=nxt;
+      }
+      // the ladder up the pedestal, and the little service platform on top
+      for(const q of [-1,1]) strut([q*0.22, PY+1.40, 2.00],[q*0.22, PY+1.30+TH, 1.42], 0.035);
+      for(let i=0;i<11;i++){
+        const t=i/10, y2=PY+1.45+t*(TH-0.30);
+        strut([-0.22, y2, lerp(2.00,1.42,t)], [0.22, y2, lerp(2.00,1.42,t)], 0.024);
+      }
+      m.P("metal", boxGeo(1.70,0.05,1.10,0.5), 0, HUB-0.86, 1.30, 0, "#79807b", 0, 0);
+      for(let i=0;i<7;i++)                          // its handrail
+        m.C("metal", 0.022,0.022,0.86,6, -0.75+i*0.25, HUB-0.44, 1.82, "#79807b");
+      m.C("metal", 0.026,0.026,1.70,6, 0, HUB-0.02, 1.82, "#79807b", 0, 0, Math.PI/2);
+      // the counterweight is a stack of plates, not one block
+      const dep=-DEPTH*0.28-2.9, yy2=dep*cE, zz2=dep*sE;
+      const [bx3,bz3]=A(0, zz2);
+      for(let i=0;i<5;i++)
+        m.B("metal", 1.16, 0.12, 1.16, bx3, HUB+1.90+yy2-0.28+i*0.145, bz3, 0.4, AZ,
+            i%2?"#5a615d":"#4e5450");
+      // and the azimuth ring the whole mount turns on
+      m.P("metal", new T.TorusGeometry(2.55,0.09,6,30), 0, PY+1.36, 0, 0, "#79807b",
+          Math.PI/2, 0);
+      for(let i=0;i<8;i++){
+        const a4=(i/8)*Math.PI*2;
+        m.C("metal", 0.10,0.10,0.26,8, Math.cos(a4)*2.55, PY+1.44, Math.sin(a4)*2.55,
+            "#6b736e");
+      }
+    }
     /* ---- what thirty years of nobody looks like ---------------------- */
     for(let i=0;i<6;i++){                          // panels that came down
       const a=1.9+i*0.6, rr=9+((i*7)%4)*2.4;
@@ -8463,19 +8988,60 @@ i===1?"#6a5a3c":"#7a6746");
   /* --- three graves and a wire fence ----------------------------------- */
   (function(){
     const m=mk(-517,-222);
+    // Scraped ground, so the plot reads as a plot and not as three sticks
+    // standing in open desert.
+    {
+      for(let ix=0; ix<7; ix++) for(let iz=0; iz<4; iz++){   // conforming tiles
+        const lx=-6.0+ix*2.00, lz=-2.6+iz*2.00;
+        const ty=Terrain.heightAt(-517+lx, -222+lz)-m.y+0.03;
+        m.P("track", new T.PlaneGeometry(2.40, 2.40), lx, ty, lz, 0, "#a99a80",
+            -Math.PI/2, 0);
+      }
+      let sd=2207; const r2=()=>{ sd=(sd*1103515245+12345)%2147483648; return sd/2147483648; };
+      for(let i=0;i<12;i++){
+        const lx=(r2()-0.5)*12, lz=0.4+(r2()-0.5)*6.6;
+        m.P("soot", planeGeo(1.4+r2()*2.4, 1.0+r2()*1.8, 0), lx,
+            Terrain.heightAt(-517+lx,-222+lz)-m.y+0.045+i*0.0004, lz, r2()*6,
+            r2()<0.45?"#7a6f5c":"#c3b79a", -Math.PI/2, 0);
+      }
+      for(let i=0;i<16;i++){
+        const px=(r2()-0.5)*12.6, pz=0.4+(r2()-0.5)*7.0;
+        for(let k=0;k<4;k++)
+          m.C("foliage", 0.008,0.013,0.15+r2()*0.18,4, px+(r2()-0.5)*0.20, 0.12,
+              pz+(r2()-0.5)*0.20, r2()<0.5?"#8d8459":"#7a7448",
+              (r2()-0.5)*0.5, k*1.5, (r2()-0.5)*0.4);
+      }
+    }
     for(let i=0;i<3;i++){
       const px=(i-1)*1.7, lean=((i*13)%5-2)*0.06;
-      m.P("oak", boxGeo(0.09,1.05,0.09,0), px,0.50,0, 0, "#6b5947", 0, lean);
-      m.P("oak", boxGeo(0.56,0.09,0.09,0), px+lean*0.3,0.76,0, 0, "#6b5947", 0, lean);
-      m.B("gravel", 0.80,0.10,1.70, px,0.05,0.95, 0.5,0, "#9a8a6e");
+      m.P("oak", boxGeo(0.10,1.12,0.10,0), px,0.53,0, 0, "#7d6a52", 0, lean);
+      m.P("oak", boxGeo(0.60,0.10,0.10,0), px+lean*0.3,0.80,0, 0, "#7d6a52", 0, lean);
+      // the nail plate where the two pieces cross, and the name long gone
+      m.P("metal", boxGeo(0.15,0.15,0.012,0), px+lean*0.2,0.80,0.055, 0, "#8a7f6c", 0, lean);
+      const md=blobGeo(0.92); md.scale(0.48, 0.24, 1.00);
+      m.P("gravel", md, px, 0.03, 0.95, lean*0.5, i%2?"#8b8168":"#7c7462", 0, 0);
+      for(const q of [-1,1])                                  // a kerb of field stone
+        for(let k=0;k<5;k++)
+          m.P("rock", rockGeo(0.085+((i*3+k)%3)*0.03, 700+i*31+k*7), px+q*0.44,
+              0.05, 0.28+k*0.34, k*1.3, "#9a8f78", 0, 0);
     }
     for(let i=-4;i<=4;i++){                                                // the fence
-      for(const sd of [-1,1]) m.C("oak", 0.05,0.06,0.95,6, i*1.5, 0.42, sd*3.2, "#5b4632");
+      for(const sd of [-1,1]) m.C("oak", 0.055,0.07,0.95,6, i*1.5, 0.42, sd*3.2,
+                                  "#6d5942", 0,0,((i*11)%5-2)*0.035);
+      // 10 mm of wire is under a pixel from the road; 26 holds together
       if(i<4) for(const sd of [-1,1]) for(const wy of [0.42,0.72])
-        m.P("metal", boxGeo(1.5,0.010,0.010,0), i*1.5+0.75, wy, sd*3.2, 0, "#7d7466");
+        m.P("metal", boxGeo(1.5,0.026,0.026,0), i*1.5+0.75, wy, sd*3.2, 0, "#8d8474");
     }
-    for(const sd of [-1,1]) for(let j=-2;j<=2;j++)
-      m.C("oak", 0.05,0.06,0.95,6, sd*6.0, 0.42, j*1.6, "#5b4632");
+    for(const sd of [-1,1]) for(let j=-2;j<=2;j++){
+      m.C("oak", 0.055,0.07,0.95,6, sd*6.0, 0.42, j*1.6, "#6d5942", 0,0,((j*7)%5-2)*0.035);
+      if(j<2) for(const wy of [0.42,0.72])
+        m.P("metal", boxGeo(0.026,0.026,1.6,0), sd*6.0, wy, j*1.6+0.8, 0, "#8d8474");
+    }
+    // a jar somebody left, and the paper flowers in it gone the colour of dust
+    m.C("glass", 0.055,0.045,0.15,9, -1.05, 0.075, -0.42, "#8a9a94");
+    for(let i=0;i<5;i++)
+      m.P("foliage", new T.IcosahedronGeometry(0.038,0), -1.05+Math.cos(i*1.2)*0.07,
+          0.17, -0.42+Math.sin(i*1.2)*0.07, i*1.1, ["#8a7f63","#9a8f70","#7d7357"][i%3]);
     m.zone(13, "THREE GRAVES");
   })();
 
@@ -8485,18 +9051,60 @@ i===1?"#6a5a3c":"#7a6746");
   (function(){
     const m=mk(-630,-68), GX=-14.5;                 // a few metres off the shoulder
     const STONE="#b6ae9c", DARK="#9c9484";
+    /* Ground first. A burying ground is a piece of desert somebody cleared
+       and then kept clearing, and from the road that difference in the dirt
+       is the thing that says a plot is here at all — without it the stones
+       read as litter on open sand. Scraped pale, with the scrub only coming
+       back at the edges and between the rows. */
+    {
+      // One big plane at a fixed height is buried wherever the desert rises
+      // under it — this ground is not flat. Tiles that each sit on the
+      // terrain at their own centre follow it, and overlapping them by a
+      // fifth hides the steps between.
+      for(let ix=0; ix<12; ix++) for(let iz=0; iz<6; iz++){
+        const lx=-12.6+ix*2.30, lz=-5.4+iz*2.15;
+        const ty=Terrain.heightAt(-630+lx, -68+lz)-m.y+0.03;
+        m.P("track", new T.PlaneGeometry(2.75, 2.58), lx, ty, lz, 0, "#a99a80",
+            -Math.PI/2, 0);
+      }
+      let sd=9311; const r2=()=>{ sd=(sd*1103515245+12345)%2147483648; return sd/2147483648; };
+      for(let i=0;i<22;i++){                        // scuff and shadow across it
+        const lx=(r2()-0.5)*25, lz=(r2()-0.5)*11;
+        m.P("soot", planeGeo(2.0+r2()*4.0, 1.4+r2()*2.6, 0), lx,
+            Terrain.heightAt(-630+lx,-68+lz)-m.y+0.045+i*0.0004, lz, r2()*6,
+            r2()<0.45?"#7a6f5c":"#c3b79a", -Math.PI/2, 0);
+      }
+      for(let i=0;i<34;i++){                        // dry grass the wind seeded back
+        const px=(r2()-0.5)*26, pz=(r2()-0.5)*11.6;
+        for(let k=0;k<5;k++)
+          m.C("foliage", 0.008,0.013,0.16+r2()*0.20,4, px+(r2()-0.5)*0.22, 0.12,
+              pz+(r2()-0.5)*0.22, r2()<0.5?"#8d8459":"#7a7448",
+              (r2()-0.5)*0.5, k*1.3, (r2()-0.5)*0.4);
+      }
+      // the track worn in from the gate, which is the only way anyone walked
+      for(let i=0;i<9;i++){
+        const lx=0.65+Math.sin(i*0.7)*0.5, lz=-5.0+i*1.25;
+        m.P("soot", planeGeo(1.25, 1.5, 0), lx,
+            Terrain.heightAt(-630+lx,-68+lz)-m.y+0.05, lz, 0.1, "#8d8168", -Math.PI/2, 0);
+      }
+    }
     // the plot: a low kerb of rubble and a gate that stopped closing
     for(let i=-9;i<=9;i++){                                          // the wire fence
       const lean=((i*17)%7-3)*0.045;
       if(i===0 || i===1) continue;                                   // the gateway
-      for(const sd of [-1,1]) m.C("oak", 0.05,0.065,1.05,6, i*1.35, 0.46, sd*5.6,
-                                  "#5b4632", 0,0,lean);
+      for(const sd of [-1,1]) m.C("oak", 0.055,0.07,1.05,6, i*1.35, 0.46, sd*5.6,
+                                  "#6d5942", 0,0,lean);
+      // 10 mm of wire is under a pixel at twenty metres and the whole fence
+      // disappears, leaving a row of sticks. 26 mm holds together from the road.
       if(i<9) for(const sd of [-1,1]) for(const wy of [0.40,0.70,0.96])
-        m.P("metal", boxGeo(1.35,0.010,0.010,0), i*1.35+0.675, wy-0.03, sd*5.6, 0, "#7d7466",
+        m.P("metal", boxGeo(1.35,0.026,0.026,0), i*1.35+0.675, wy-0.03, sd*5.6, 0, "#8d8474",
             0, ((i*5)%5-2)*0.012);
     }
-    for(const sd of [-1,1]) for(let j=-3;j<=3;j++)
-      m.C("oak", 0.05,0.065,1.05,6, sd*12.6, 0.46, j*1.6, "#5b4632", 0,0,((j*11)%5-2)*0.04);
+    for(const sd of [-1,1]) for(let j=-3;j<=3;j++){
+      m.C("oak", 0.055,0.07,1.05,6, sd*12.6, 0.46, j*1.6, "#6d5942", 0,0,((j*11)%5-2)*0.04);
+      if(j<3) for(const wy of [0.40,0.70,0.96])
+        m.P("metal", boxGeo(0.026,0.026,1.6,0), sd*12.6, wy-0.03, j*1.6+0.8, 0, "#8d8474");
+    }
     for(const q of [-0.7, 2.0])                                      // the gateposts
       m.C("oak", 0.09,0.11,1.55,7, q, 0.72, -5.6, "#5b4632");
     m.C("oak", 0.055,0.055,2.90,6, 0.65, 1.52, -5.6, "#5b4632", 0,0,Math.PI/2);
@@ -8511,7 +9119,12 @@ i===1?"#6a5a3c":"#7a6746");
       const lean=((i*19)%9-4)*0.035;
       const col=(i%3)?STONE:DARK;
       // the mound, and the kerb round it where there is one
-      m.B("gravel", 0.86, 0.07, 1.85, px, 0.035, pz+1.25, 0.5, 0, "#7c7462");
+      // A grave is a mound. Seven centimetres of gravel lying flat reads as a
+      // stain on the ground; a rounded heap twenty-five high reads as a plot.
+      {
+        const md=blobGeo(0.95); md.scale(0.50, 0.26, 1.06);
+        m.P("gravel", md, px, 0.03, pz+1.25, ((i*7)%5-2)*0.04, i%2?"#8b8168":"#7c7462", 0, 0);
+      }
       if(i%4===0){
         for(const sd of [-1,1]) m.B("concrete", 0.07,0.10,1.95, px+sd*0.50, 0.05, pz+1.25,
                                     0.5,0,"#a9a192");
@@ -8987,7 +9600,7 @@ i===1?"#6a5a3c":"#7a6746");
 
     /* ---- and what is in the chamber ------------------------------------- */
     const AX=-13.0, AZ=1.6;                            // the altar
-    const OCH="#9a3a26", OCH2="#7a2e20", BONE="#ded6c0";
+    const OCH="#9a3a26", OCH2="#7a2e20", BONE="#a1957a";
     // the altar itself: field stone, a slab on top, and sixty years of wax
     for(let i=0;i<14;i++)
       m.P("rock", rockGeo(0.24+((i*5)%4)*0.09, 3100+i*23), AX+((i%5)-2)*0.36,
@@ -8995,9 +9608,19 @@ i===1?"#6a5a3c":"#7a6746");
            ((i*7)%5-2)*0.15, ((i*3)%5-2)*0.15);
     m.B("rock", 2.10, 0.17, 1.14, AX, F+0.94, AZ, 0.4, 0.06, "#7f6f5c");
     m.col(AX-1.1, AX+1.1, AZ-0.62, AZ+0.62, 0, F+1.05);
-    for(let i=0;i<16;i++)                              // wax, run down and set
-      m.P("ochre", planeGeo(0.09+dr()*0.09, 0.22+dr()*0.34, 0), AX-0.95+i*0.127,
-          F+0.76, AZ+0.58, 0, ["#d8cdb0","#c8b894","#e2dcc4"][i%3], 0, 0);
+    // Wax, run down and set. Flat pale panels a hand wide read as sheets of
+    // paper taped to the front of the altar; a run of wax is a narrow rope
+    // that starts under a candle, varies in length, and is the colour of
+    // tallow rather than of paper.
+    for(let i=0;i<34;i++){
+      const wx2=AX-0.98+i*0.058+dr()*0.02, len=0.10+dr()*0.44;
+      m.C("plaster", 0.014+dr()*0.012, 0.020+dr()*0.014, len, 6,
+          wx2, F+0.93-len/2, AZ+0.585, ["#c4b694","#b3a482","#cdc0a0"][i%3],
+          0, 0, (dr()-0.5)*0.12);
+      if(i%4===0)                                    // and the pool it set in
+        m.P("plaster", blobGeo(0.045+dr()*0.03), wx2, F+0.93-len, AZ+0.585, 0,
+            "#bdb08e", 0, 0);
+    }
     m.C("metal", 0.26,0.22,0.15,16, AX-0.30, F+1.10, AZ, RUST2);      // the bowl
     m.C("bin",   0.22,0.19,0.06,16, AX-0.30, F+1.14, AZ, "#2b2622");   // and the ash in it
     m.P("metal", boxGeo(0.30,0.012,0.045,0), AX+0.46, F+1.035, AZ-0.10, 0.4, "#6f6a60", 0, 0);
@@ -9025,10 +9648,23 @@ i===1?"#6a5a3c":"#7a6746");
           m.P("teal", new T.TorusGeometry(0.068,0.011,4,9), px, F+hy+k*0.026, pz,
               0, "#6a5f4a", Math.PI/2, 0);
       if(i%3===0){                                     // a skull on this one
-        m.P("plaster", blobGeo(0.115), px, F+H2+0.07, pz, 0, BONE);
-        m.P("plaster", boxGeo(0.13,0.10,0.09,0), px, F+H2+0.02, pz+0.10, a, "#cfc6ac", 0, 0);
-        for(const q of [-1,1])
-          m.P("bin", planeGeo(0.045,0.05,0), px+q*0.04, F+H2+0.09, pz+0.10, a, "#2b2622", 0, 0);
+        // A sphere with two dots on it is a snowman. A skull is a cranium
+        // that is wider than it is tall, a brow, a short muzzle and a jaw
+        // under it, and it is the colour of old ivory, not of paper.
+        const cr=blobGeo(0.105); cr.scale(1.00, 0.86, 1.12);
+        m.P("plaster", cr, px, F+H2+0.075, pz, a, BONE, 0, 0);
+        m.P("plaster", boxGeo(0.155,0.045,0.07,0), px, F+H2+0.075, pz+0.075, a,
+            "#b6aa8c", 0, 0);                            // the brow
+        m.P("plaster", boxGeo(0.105,0.085,0.10,0), px, F+H2+0.005, pz+0.085, a,
+            "#b0a486", 0, 0);                            // the muzzle
+        m.P("plaster", boxGeo(0.115,0.035,0.09,0), px, F+H2-0.048, pz+0.075, a,
+            "#a89c7e", -0.18, 0);                        // the jaw, dropped
+        for(const q of [-1,1]){
+          m.P("bin", blobGeo(0.030), px+q*0.045, F+H2+0.052, pz+0.088, a, "#241f1b");
+          m.P("bin", planeGeo(0.028,0.022,0), px+q*0.045, F+H2+0.052, pz+0.112, a,
+              "#1a1614", 0, 0);
+        }
+        m.P("bin", planeGeo(0.026,0.030,0), px, F+H2+0.010, pz+0.118, a, "#1a1614", 0, 0);
       }else if(i%3===1){                               // a bundle of feathers and bone
         for(let k=0;k<5;k++)
           m.C("plaster", 0.008,0.012,0.22+((k*5)%3)*0.07,5, px+((k%3)-1)*0.03,
@@ -9037,30 +9673,39 @@ i===1?"#6a5a3c":"#7a6746");
         m.P("fabric", boxGeo(0.11,0.13,0.05,0.5), px, F+H2-0.02, pz, a, "#6a3a30", 0, 0);
       }
     }
-    // the circle on the floor, and the star inside it
+    /* The circle on the floor, and the star inside it. Unbroken bars of
+       bright red read as tape laid down last week; ochre ground into a rock
+       floor sixty years ago is dark, uneven, and gone altogether in the
+       places people walked. Widths vary, some segments are missing, and the
+       colour sits close enough to the rock that you have to look. */
     for(let i=0;i<40;i++){
+      if(i%9===3 || i%13===7) continue;                // worn through
       const a=(i/40)*Math.PI*2;
-      m.P("ochre", planeGeo(0.58, 0.075, 0), AX+Math.cos(a)*3.40, F+0.014,
-          AZ+Math.sin(a)*3.40, -a, OCH, -Math.PI/2, 0);
+      m.P("ochre", planeGeo(0.52+((i*5)%4)*0.06, 0.032+((i*7)%4)*0.014, 0),
+          AX+Math.cos(a)*(3.40+((i*3)%5-2)*0.035), F+0.014,
+          AZ+Math.sin(a)*(3.40+((i*3)%5-2)*0.035), -a,
+          (i%3)?"#4e2318":"#5a2b1d", -Math.PI/2, 0);
     }
     for(let i=0;i<20;i++){
+      if(i%7===2) continue;
       const a=(i/20)*Math.PI*2;
-      m.P("ochre", planeGeo(0.44, 0.05, 0), AX+Math.cos(a)*2.72, F+0.015,
-          AZ+Math.sin(a)*2.72, -a, OCH2, -Math.PI/2, 0);
+      m.P("ochre", planeGeo(0.40+((i*3)%3)*0.05, 0.024+((i*5)%3)*0.010, 0),
+          AX+Math.cos(a)*2.72, F+0.015, AZ+Math.sin(a)*2.72, -a,
+          (i%2)?"#452017":"#502619", -Math.PI/2, 0);
     }
     for(let k=0;k<5;k++){                              // the five strokes of it
       const a0=(k/5)*Math.PI*2-Math.PI/2, a1=(((k+2)%5)/5)*Math.PI*2-Math.PI/2;
       const x0=AX+Math.cos(a0)*3.28, z0=AZ+Math.sin(a0)*3.28;
       const x1=AX+Math.cos(a1)*3.28, z1=AZ+Math.sin(a1)*3.28;
       const L=Math.hypot(x1-x0,z1-z0);
-      m.P("ochre", planeGeo(L, 0.085, 0), (x0+x1)/2, F+0.017, (z0+z1)/2,
-          -Math.atan2(z1-z0, x1-x0), OCH, -Math.PI/2, 0);
+      m.P("ochre", planeGeo(L, 0.050, 0), (x0+x1)/2, F+0.017, (z0+z1)/2,
+          -Math.atan2(z1-z0, x1-x0), "#4e2318", -Math.PI/2, 0);
     }
     for(let i=0;i<24;i++){                             // and the marks between the points
       const a=(i/24)*Math.PI*2+0.13;
       m.P("ochre", planeGeo(0.09+((i*5)%4)*0.05, 0.09, 0), AX+Math.cos(a)*(3.85+((i*3)%3)*0.22),
           F+0.016, AZ+Math.sin(a)*(3.85+((i*3)%3)*0.22), -a+((i*7)%5-2)*0.3,
-          OCH2, -Math.PI/2, 0);
+          "#4a2317", -Math.PI/2, 0);
     }
     // the eye, on the far wall, where the torch finds it last
     (function(){
@@ -9069,17 +9714,17 @@ i===1?"#6a5a3c":"#7a6746");
         const t=(i/21)*2-1, w=1.55;
         for(const q of [-1,1])
           m.P("ochre", planeGeo(0.18, 0.085, 0), ex, ey+q*Math.cos(t*1.35)*0.60,
-              ez+t*w, Math.PI/2, OCH, 0, -q*t*0.62);
+              ez+t*w, Math.PI/2, "#552818", 0, -q*t*0.62);
       }
       for(let i=0;i<13;i++){                           // the iris
         const a=(i/13)*Math.PI*2;
         m.P("ochre", planeGeo(0.24, 0.10, 0), ex+0.006, ey+Math.sin(a)*0.44,
-            ez+Math.cos(a)*0.44, Math.PI/2, OCH2, 0, a);
+            ez+Math.cos(a)*0.44, Math.PI/2, "#4a2317", 0, a);
       }
       m.P("ochre", planeGeo(0.40, 0.40, 0), ex+0.010, ey, ez, Math.PI/2, "#2b2420", 0, 0);
       for(let i=0;i<11;i++)                            // and the rays off it
         m.P("ochre", planeGeo(0.05, 0.42+((i*5)%4)*0.16, 0), ex, ey+Math.sin(i*0.57)*1.15,
-            ez+Math.cos(i*0.57)*2.15, Math.PI/2, OCH, 0, i*0.57);
+            ez+Math.cos(i*0.57)*2.15, Math.PI/2, "#552818", 0, i*0.57);
     })();
     // sigils on the other two walls, and a row of hands
     for(let i=0;i<16;i++){
@@ -9087,15 +9732,15 @@ i===1?"#6a5a3c":"#7a6746");
       const ry=(i%2)?0:Math.PI;
       for(let k=0;k<3;k++)
         m.P("ochre", planeGeo(0.06, 0.20+((i+k)%3)*0.10, 0), sx+((k)-1)*0.11,
-            F+1.30+((i*5)%4)*0.34, nsz, ry, (i%3)?OCH:OCH2, 0, ((i*7)%5-2)*0.42+k*0.5);
+            F+1.30+((i*5)%4)*0.34, nsz, ry, (i%3)?"#552818":"#4a2317", 0, ((i*7)%5-2)*0.42+k*0.5);
     }
     for(let i=0;i<9;i++){
       const hx=CX0+2.0+i*0.86;
       m.P("ochre", planeGeo(0.15, 0.20, 0), hx, F+1.44+((i*5)%3)*0.07, CZ0+0.42, 0,
-          OCH, 0, ((i*7)%5-2)*0.10);
+          "#552818", 0, ((i*7)%5-2)*0.10);
       for(let k=0;k<4;k++)
         m.P("ochre", planeGeo(0.035, 0.11, 0), hx-0.055+k*0.037,
-            F+1.58+((i*5)%3)*0.07, CZ0+0.42, 0, OCH, 0, (k-1.5)*0.18);
+            F+1.58+((i*5)%3)*0.07, CZ0+0.42, 0, "#552818", 0, (k-1.5)*0.18);
     }
     // things hung from the roof on cords
     for(let i=0;i<15;i++){
@@ -9127,10 +9772,15 @@ i===1?"#6a5a3c":"#7a6746");
       m.col(fx-0.9, fx+0.9, fz-0.9, fz+0.9, 0, F+0.3);
     })();
     // and the rest of it: wax, bottles, bones, a chair somebody broke
+    // These were thirteen near-white spheres at up to 200 mm and they read as
+    // golf balls scattered on the floor. A fragment lying in dirt is flat,
+    // angular and the colour of the dirt around it — bone in a dark room
+    // lit by three candles is nowhere near white.
     for(let i=0;i<13;i++){
       const wx=AX+Math.cos(i*1.7)*(1.6+((i*5)%4)*0.7), wz=AZ+Math.sin(i*1.7)*(1.6+((i*5)%4)*0.7);
-      m.P("plaster", blobGeo(0.07+((i*3)%4)*0.045), wx, F+0.035, wz,
-           i*1.1, ["#d8cdb0","#c8b894","#e2dcc4"][i%3]);
+      const g=rockGeo(0.055+((i*3)%4)*0.030, 5100+i*37); g.scale(1.25, 0.34, 0.95);
+      m.P("plaster", g, wx, F+0.022, wz, i*1.1,
+          ["#7f7660","#726a56","#8a7f68"][i%3], ((i*5)%5-2)*0.06, ((i*7)%5-2)*0.06);
     }
     for(let i=0;i<11;i++)
       m.C("glass", 0.038,0.045,0.24,9, CX0+1.2+((i*2.11)%(CX1-CX0-2.2)), F+0.045,
@@ -10104,10 +10754,12 @@ addEventListener("keydown",e=>{
   if(e.code==="KeyM"){ DayNight.setHour(12.5); toast("MIDDAY","#ffb324"); }
   if(e.code==="BracketLeft")  DayNight.nudge(-0.02);
   if(e.code==="BracketRight") DayNight.nudge( 0.02);
-  if(e.code==="KeyC" && !droneMode) sitToggle();
-  if(e.code==="KeyF") setDrone(!droneMode);
+  if(e.code==="KeyC" && !droneMode && !driving) sitToggle();
+  if(e.code==="KeyF" && !driving) setDrone(!droneMode);   // no driverless cars
   if(e.code==="KeyL"){ torchOn=!torchOn; toast(torchOn?"FLASHLIGHT ON":"FLASHLIGHT OFF","#ffe9a8"); }
-  if((e.code==="KeyE"||e.code==="Space") && !droneMode) interact();
+  // Space is the handbrake once you are in a car, so it must not also be
+  // the key that gets you out of it
+  if((e.code==="KeyE" || (e.code==="Space" && !driving)) && !droneMode) interact();
 });
 addEventListener("keyup",e=>{ keys[e.code]=false; });
 // Alt-tab away mid-stride and the keyup for whatever you were holding never
@@ -10129,6 +10781,11 @@ addEventListener("mousemove",e=>{
   look(e.clientX-lastX, e.clientY-lastY); lastX=e.clientX; lastY=e.clientY;
 });
 function look(dx,dy){
+  if(driving){                       // orbit the car rather than turn a head
+    carCamYaw   -= dx*0.0042;
+    carCamPitch  = clamp(carCamPitch - dy*0.0032, -0.18, 1.05);
+    return;
+  }
   if(droneMode){                       // the same stick, pointed at the drone
     droneYaw  -= dx*0.0026;
     dronePitch = clamp(dronePitch - dy*0.0026, -0.15, 1.35);
@@ -10240,6 +10897,8 @@ function sitToggle(){
 }
 function interact(){
   if(!started) return;
+  if(driving){ exitCar(); return; }
+  { const c=nearestCar(); if(c){ enterCar(c); return; } }
   if(nearestDoor){
     nearestDoor.manual = (nearestDoor.target>0.5) ? -1 : 1;
     return;
@@ -10269,10 +10928,13 @@ function updateDoors(dt){
   const el=document.getElementById("prompt");
   if(droneMode){ el.classList.remove("show"); return; }
   const bits=[];
-  if(seated) bits.push("C  ·  "+(seated.lie?"GET UP":"STAND UP"));
+  if(driving) bits.push("E  ·  GET OUT");
+  else if(seated) bits.push("C  ·  "+(seated.lie?"GET UP":"STAND UP"));
   else{
+    const nc=nearestCar();
+    if(nc) bits.push("E  ·  DRIVE");
     if(nearestSeat) bits.push("C  ·  "+(nearestSeat.lie?"LIE DOWN":"SIT")+"  ·  "+nearestSeat.label);
-    if(best) bits.push("E  ·  "+(best.label.length>3 ? best.label : "ROOM "+best.label));
+    if(best && !nc) bits.push("E  ·  "+(best.label.length>3 ? best.label : "ROOM "+best.label));
   }
   if(bits.length){ el.textContent=bits.join("      "); el.classList.add("show"); }
   else el.classList.remove("show");
@@ -10287,6 +10949,13 @@ function inPool(x,z){
   return x>POOL.x0-0.35 && x<POOL.x1+0.35 && z>POOL.z0-0.35 && z<POOL.z1+0.35;
 }
 function fixedUpdate(dt){
+  if(driving){                       // you are in the car; the car is driving
+    updateCars(dt);
+    const b=driving.veh.body;
+    player.pos.set(b.position.x, 0, b.position.z);
+    player.feetY=b.position.y-CAR_RIDE;
+    return;
+  }
   const f=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
   const r=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
   if(seated){                       // sitting: look where you like, go nowhere
@@ -10479,7 +11148,12 @@ function toast(text,color){
 }
 function updateHUD(){
   // the camera looks down -Z at yaw 0, so -Z reads as north and +X as east
-  let deg=(-(droneMode?droneYaw+Math.PI:player.yaw)*180/Math.PI)%360; if(deg<0) deg+=360;
+  let head=player.yaw;
+  if(droneMode) head=droneYaw+Math.PI;
+  else if(driving){                      // the compass follows the bonnet
+    head=carYaw(driving.veh.body.quaternion)+Math.PI;
+  }
+  let deg=(-head*180/Math.PI)%360; if(deg<0) deg+=360;
   hud.hdg.textContent=Math.round(deg).toString().padStart(3,"0");
   hud.card.textContent=CARD[Math.round(deg/45)%8];
   hud.rose.setAttribute("transform","rotate("+(-deg)+" 100 100)");
@@ -10488,6 +11162,11 @@ function updateHUD(){
   const hx=droneMode?dronePos.x:player.pos.x, hz=droneMode?dronePos.z:player.pos.z;
   if(droneMode){ hud.where.textContent="DRONE  ·  "+Math.round(dronePos.y-surfaceY(hx,hz,dronePos.y))+" M AGL"; return; }
   const z=zoneAt(hx, hz, player.feetY);
+  if(driving){
+    hud.where.textContent=(z||(Math.abs(hz-ROADZ)<9?"ROUTE 66":"OPEN DESERT"))+
+      "  ·  "+Math.round(driving.veh.speed*2.237)+" MPH";
+    return;
+  }
   hud.where.textContent = z ||
     (Math.abs(hz-ROADZ)<9 ? "ROUTE 66" : "OPEN DESERT");
 }
@@ -10850,8 +11529,28 @@ function frame(){
     camera.up.set(0,1,0);
     camera.lookAt(droneLook.x, droneLook.y+0.25, droneLook.z);
     wetEl.classList.remove("on");
+  }else if(driving){
+    showCar(driving);
+    const b=driving.veh.body;
+    // Behind and above, on the car's heading plus whatever the mouse has
+    // added. It pulls back with speed like the drone's does.
+    const a2=carYaw(b.quaternion)+Math.PI+carCamYaw;
+    const sp3=Math.min(1, Math.abs(driving.veh.speed)/28);
+    const horiz=(7.6+sp3*3.0)*Math.cos(carCamPitch);
+    _carTmp.set(b.position.x+Math.sin(a2)*horiz,
+                b.position.y+2.20+(3.4+sp3*1.3)*Math.sin(carCamPitch),
+                b.position.z+Math.cos(a2)*horiz);
+    const gy=surfaceY(_carTmp.x, _carTmp.z, _carTmp.y)+0.9;   // never under the ground
+    if(_carTmp.y<gy) _carTmp.y=gy;
+    camera.position.lerp(_carTmp, 1-Math.exp(-10*delta));
+    if(_carLook.lengthSq()===0) _carLook.copy(b.position);
+    _carLook.lerp(b.position, 1-Math.exp(-15*delta));
+    camera.up.set(0,1,0);
+    camera.lookAt(_carLook.x, _carLook.y+0.85, _carLook.z);
+    wetEl.classList.remove("on");
   }else{
     droneLook.set(0,0,0);
+    _carLook.set(0,0,0);
   const eyeY=player.feetY+EYE+player.bob-player.sit*sitDrop;  // seated low, lying lower
   camera.position.set(player.pos.x, eyeY, player.pos.z);
   const cp=Math.cos(player.pitch);
@@ -10913,8 +11612,12 @@ function frame(){
   // into it; by day it matches the horizon so distance reads as heat and dust.
   scene.fog.color.copy(skyImg.hz).lerp(NIGHT_HAZE, dn.nightAmount*0.72);
   if(Wind.gust>0.01) scene.fog.color.lerp(DUSTC, Wind.gust*0.50*(1-dn.nightAmount*0.55));
-  scene.fog.near=120+dn.nightAmount*44;
-  scene.fog.far =(900+dn.nightAmount*270)*(1-Wind.gust*0.52);
+  // Linear fog reaches full strength at `far`, so a mesa at 700 m was sitting
+  // at three quarters haze and reading as one flat orange silhouette. Pushing
+  // near and far out halves that without losing the distance cue: the same
+  // mesa now keeps about half its strata and its shading.
+  scene.fog.near=185+dn.nightAmount*52;
+  scene.fog.far =(1460+dn.nightAmount*330)*(1-Wind.gust*0.46);
   updateSand(delta, dark);
   scene.background=skyImg.hz;
 
@@ -11100,6 +11803,13 @@ function frame(){
                            0.16*Math.sin(d.life*Math.PI)*(1-dn.nightAmount);
   }
 
+  if(SLOW_GREEN){
+    // eleven seconds a cycle, never fully off — a sweep, not a blink
+    const q=0.36+0.64*(0.5-0.5*Math.cos(tt*0.571));
+    SLOW_GREEN.scr.material.opacity=0.13+0.30*q;
+    SLOW_GREEN.hal.material.opacity=0.05+0.17*q;
+  }
+  updateCarLights(dark, delta);
   updateHUD();
   drawPlan();
 
@@ -11127,6 +11837,8 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                terrain:Terrain, camera:camera, images:()=>IMG_STATUS,
                gifDecode:gifDecode, gifFrames:gifFrames,
                seats:SEATS, geckos:GECKOS, seatedNow:()=>!!seated, sit:sitToggle,
+               cars:CARS, drivingNow:()=>driving, enterCar:enterCar, exitCar:exitCar,
+               nearestCar:nearestCar,
                drone:setDrone, dronePos:dronePos, droneOn:()=>droneMode,
                zoneNow:()=>zoneAt(camera.position.x, camera.position.z, camera.position.y),
                indoorsNow:()=>indoorsAt(player.pos.x, player.pos.z, player.feetY+EYE),

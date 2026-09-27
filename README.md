@@ -643,6 +643,19 @@ A few pieces are specific to this scene:
   some of them in mid-air with nothing under them, and after two rounds of
   trying to seat them properly the line simply reads better bare. The
   vultures overhead are the living things on this road now.
+- **Cars you can drive.** Every car in every lot is a real object rather than
+  a contribution to the scenery, and `E` at the door of any of them puts you
+  behind the wheel: W and S throttle, brake and reverse, A and D steer, Space
+  is the handbrake, `E` gets you out again on the driver's side. The physics
+  is the Project 76 model, and the split it draws is the useful one — the
+  suspension owns everything vertical and the bicycle model owns everything
+  planar, so they never argue. Four springs each sample the same `surfaceY()`
+  the player walks on, which is why a car drives up onto the lot slabs and
+  the forecourt instead of through them, and because a spring force is
+  applied *at* its wheel, pitch under braking and roll in a corner come out
+  of the arithmetic rather than being animated on top of it. It runs to about
+  86 mph, the headlights come on after dark, and the compass and the speed
+  readout follow the bonnet.
 - **Three gaits.** Walk is 3.05 m/s, `Shift` runs at 5.6, and `Q` — held the
   same way — sprints at 10.4, and opens the drone up to match. `Q` was picked
   because nothing else in the world reads it: the earlier `/` report came
@@ -651,6 +664,18 @@ A few pieces are specific to this scene:
   thing the gait looks at now. A fixed-step probe holds each key for a
   simulated second and measures the ground covered, and it also checks the
   other free keys still leave you walking.
+- **Bone is not white.** The chamber floor had thirteen near-white spheres on
+  it at up to 200 mm, which read as golf balls; the skulls on the stakes were
+  spheres with two dots. A fragment lying in dirt is flat, angular and close
+  to the colour of the dirt, and a skull is a cranium wider than it is tall
+  with a brow, a muzzle and a dropped jaw under it. The circle and star got
+  the same treatment — unbroken bars of bright red read as tape laid down
+  last week, so they are darker, thinner, uneven and worn through in places.
+- **Distance is a cue, not a coat of paint.** Linear fog reaches full strength
+  at `far`, so with far at 900 m a mesa seven hundred metres out sat at three
+  quarters haze and read as one flat orange silhouette. Near and far moved to
+  185 and 1460, which halves that: the same mesa keeps its strata and its
+  shading and still reads as a long way off.
 - **A lit sign is a box with lamps in it.** By day the sun beats the lamps and
   the face reads as paint; after dark the face is the only thing making light,
   and that difference is what makes a sign read as a cabinet rather than a

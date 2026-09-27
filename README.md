@@ -656,6 +656,45 @@ A few pieces are specific to this scene:
   of the arithmetic rather than being animated on top of it. It runs to about
   86 mph, the headlights come on after dark, and the compass and the speed
   readout follow the bonnet.
+- **A hole is only a hole if it lands on the lattice.** The terrain's LOD
+  rings punch a hole in the coarse grid for the finer one inside it, but a
+  cell is only dropped when it falls *entirely* inside the hole — so a hole
+  whose edge lands mid-cell leaves the coarse grid covering up to a whole
+  cell of ground the fine grid also covers. The near site's edges were not on
+  the middle ring's 7 m lattice, so the two overlapped by part of a cell the
+  whole way round, and along the highway corridor, where both are dead flat
+  at y = −0.25, they were *exactly* coplanar. That was the colour fringing
+  down the edge of the road. Snapping the hole outward to the lowest common
+  multiple of the two cell sizes puts its boundary on both lattices at once:
+  every coarse cell is now wholly in or wholly out, and the fine grid's own
+  cells divide the span evenly. No overlap, and no gap either.
+- **A lamp is a small bright thing that throws a large dim thing.** Both the
+  traffic and the car you drive used to carry three-metre glow sprites, so an
+  oncoming car was a pair of headlight-shaped clouds. The lamp is a lens the
+  size of a lamp now — a lit rectangle, red at the back — and all the size is
+  in the beam: two real spotlights per car, mounted on the nose and aimed at
+  one point forty metres down the road so the cones converge the way a car's
+  do.
+- **A car in the air arcs; it does not tumble.** Nothing damped rotation once
+  the wheels left the ground, and the suspension always imparts some spin on
+  the lip of a jump because the front wheels unload before the rear — so the
+  car went end over end for the whole flight. The fix is the one San
+  Francisco Rush uses: split the angular velocity into the part about the
+  car's own roof and everything else, bleed everything else off hard, keep
+  the yaw, and run a damped torque about `up × worldUp` that brings the roof
+  back up. Thrown off a lip at 3.2 rad/s on two axes, the car now peaks at 28
+  degrees of tilt, never inverts, and lands on its wheels. You still get a
+  little attitude control on the way down, which is all Rush ever gave you.
+- **The desert is solid.** Every saguaro, barrel cactus, boulder over half a
+  metre, power pole and fence post has a collider, which took the count from
+  a few hundred to seventeen hundred. A linear scan over that is the whole
+  frame budget — `blocked()` runs several times a frame for the player and
+  ten times a step for a car — so the static colliders go into a uniform
+  12 m grid once the world is built and a query looks at one cell. Bounds are
+  padded when indexing so a point near a cell edge still sees a collider just
+  over the line, anything spanning a silly number of cells goes in a short
+  always-checked list, and the seventeen car colliders stay out of the grid
+  altogether because they move.
 - **Three gaits.** Walk is 3.05 m/s, `Shift` runs at 5.6, and `Q` — held the
   same way — sprints at 10.4, and opens the drone up to match. `Q` was picked
   because nothing else in the world reads it: the earlier `/` report came

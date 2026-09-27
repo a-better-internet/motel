@@ -1698,14 +1698,29 @@ const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
   // on the 7 m lattice exactly (MID.x0 + 7k, MID.z0 + 7k) so the coarse grid
   // drops precisely those cells and the two meshes meet without a seam.
   const ADIT_SITE={x0:-588, x1:-546, z0:14, z1:56};
+  /* A hole is only punched for a cell that falls ENTIRELY inside it, so a
+     hole whose edge lands mid-cell leaves the coarse grid covering up to a
+     whole cell of ground the fine grid also covers. NEAR_SITE's edges were
+     not on the 7 m lattice, so the middle ring overlapped the near one by
+     part of a cell the whole way round — and along the highway corridor,
+     where both are dead flat at y = -0.25, the two were exactly coplanar.
+     That is the colour fringing down the edge of the road.
+     Snapping outward to the lowest common multiple of the two cell sizes
+     puts the boundary on both lattices at once, so every coarse cell is
+     either wholly in the hole or wholly out, and the fine grid's own cells
+     divide the span evenly. No overlap, and no gap either. */
+  const snapOut=(r, step, ox, oz)=>({
+    x0: ox+Math.floor((r.x0-ox)/step)*step, x1: ox+Math.ceil((r.x1-ox)/step)*step,
+    z0: oz+Math.floor((r.z0-oz)/step)*step, z1: oz+Math.ceil((r.z1-oz)/step)*step });
+  const NEAR_G=snapOut(NEAR_SITE, 14, MID.x0, MID.z0);      // 7 m ring, 2 m patch
   grid(-1800,1800,-1740,1860, 24, [MID], "desert-far");
-  grid(MID.x0, MID.x1, MID.z0, MID.z1, 7, [NEAR_SITE, ADIT_SITE], "desert-mid", 6);
+  grid(MID.x0, MID.x1, MID.z0, MID.z1, 7, [NEAR_G, ADIT_SITE], "desert-mid", 6);
   // Half-metre cells here, not two. The cut's back wall is a 4.5 m step and
   // the grid triangle that carries it has to land inside the thickness of the
   // rock face: at 2 m that triangle ramps out of the floor and up through the
   // doorway, which is the sand that was covering the entrance.
   grid(ADIT_SITE.x0, ADIT_SITE.x1, ADIT_SITE.z0, ADIT_SITE.z1, 0.5, [], "desert-adit", 6);
-  grid(NEAR_SITE.x0, NEAR_SITE.x1, NEAR_SITE.z0, NEAR_SITE.z1, 2, [POOL.deck], "desert-near", 6);
+  grid(NEAR_G.x0, NEAR_G.x1, NEAR_G.z0, NEAR_G.z1, 2, [POOL.deck], "desert-near", 6);
 })();
 
 /* ----------------------------------------------------------------------
@@ -2199,16 +2214,30 @@ const GLOW_TEX=(function(){
     mesh.castShadow=true;
     const g=new T.Group(); g.add(mesh);
     const nose=(kind===2?5.1:2.25), tail=(kind===2?-8.2:-2.25);
+    /* A lamp is a small bright rectangle; the glow is a separate, much
+       dimmer thing behind it. These were three-metre sprites, which is why
+       a car coming the other way was a pair of headlight-shaped clouds. */
     const lamps=[];
+    const hy=(kind===2?1.25:0.80), ty2=(kind===2?1.10:0.80);
     for(const lx of [-0.72,0.72]){
-      const hs=new T.Sprite(new T.SpriteMaterial({map:glowTex, transparent:true, depthWrite:false,
-        blending:T.AdditiveBlending, opacity:0}));
-      hs.scale.set(3.4,3.4,1); hs.position.set(lx, kind===2?1.25:0.80, nose);
-      g.add(hs); lamps.push({s:hs, head:true});
-      const ts=new T.Sprite(new T.SpriteMaterial({map:glowTex, transparent:true, depthWrite:false,
-        blending:T.AdditiveBlending, opacity:0, color:0xff4020}));
-      ts.scale.set(1.5,1.5,1); ts.position.set(lx, kind===2?1.10:0.80, tail);
-      g.add(ts); lamps.push({s:ts, head:false});
+      const hm=new T.Mesh(new T.PlaneGeometry(0.30,0.18),
+        new T.MeshBasicMaterial({color:0xfff0c8, transparent:true, opacity:0,
+          depthWrite:false, fog:false, toneMapped:false}));
+      hm.position.set(lx, hy, nose+0.02);
+      g.add(hm); lamps.push({s:hm, head:true});
+      const hs=new T.Sprite(new T.SpriteMaterial({map:glowTex, transparent:true,
+        depthWrite:false, blending:T.AdditiveBlending, opacity:0}));
+      hs.scale.set(1.15,1.15,1); hs.position.set(lx, hy, nose+0.06);
+      g.add(hs); lamps.push({s:hs, head:true, soft:true});
+      const tm=new T.Mesh(new T.PlaneGeometry(0.34,0.14),
+        new T.MeshBasicMaterial({color:0xff2a12, transparent:true, opacity:0,
+          depthWrite:false, fog:false, toneMapped:false, side:T.DoubleSide}));
+      tm.position.set(lx, ty2, tail-0.02);
+      g.add(tm); lamps.push({s:tm, head:false});
+      const ts=new T.Sprite(new T.SpriteMaterial({map:glowTex, transparent:true,
+        depthWrite:false, blending:T.AdditiveBlending, opacity:0, color:0xff3418}));
+      ts.scale.set(0.62,0.62,1); ts.position.set(lx, ty2, tail-0.06);
+      g.add(ts); lamps.push({s:ts, head:false, soft:true});
     }
     scene.add(g);
     return {g:g, lamps:lamps, kind:kind};
@@ -2238,7 +2267,10 @@ function updateTraffic(dt, dark){
     const lit=dark>0.04;                       // no lamp draws at all by day
     for(const L of v.lamps){
       L.s.visible=lit;
-      if(lit) L.s.material.opacity = L.head ? dark*0.95 : dark*0.55;
+      if(!lit) continue;
+      // the lens is bright and small; the bloom behind it is faint and small
+      L.s.material.opacity = L.soft ? dark*(L.head?0.34:0.22)
+                                    : dark*(L.head?0.98:0.90);
     }
   }
 }
@@ -2341,7 +2373,38 @@ scene.background=new T.Color(0xc37946);
    plates or ramps; the player picks the highest one within step-up reach,
    which is all a two-storey motel with outdoor stairs actually needs.
    ---------------------------------------------------------------------- */
-const COL=[];    // {x0,x1,z0,z1,y0,y1}
+const COL=[];    // {x0,x1,z0,z1,y0,y1} — static, indexed into a grid below
+const COL_DYN=[];// colliders that move: the cars, and only the cars
+/* Every rock, cactus and fence post out in the desert is solid now, which
+   takes the collider count from a few hundred into the thousands, and
+   blocked() is called several times a frame by the player and six times a
+   step by each car. A linear scan over that is the whole frame budget.
+   So the static colliders go into a uniform grid once the world is built
+   and every query looks at one cell. The bounds are padded when indexing so
+   a query point near a cell edge still sees a collider just over the line,
+   and anything spanning a silly number of cells is kept in a short list
+   that is always checked. */
+const COL_BIG=[], CG=12, CPAD=1.4;
+let COLG=null;
+function buildColGrid(){
+  COLG=new Map(); COL_BIG.length=0;
+  for(let i=0;i<COL.length;i++){
+    const c=COL[i];
+    const gx0=Math.floor((c.x0-CPAD)/CG), gx1=Math.floor((c.x1+CPAD)/CG);
+    const gz0=Math.floor((c.z0-CPAD)/CG), gz1=Math.floor((c.z1+CPAD)/CG);
+    if((gx1-gx0+1)*(gz1-gz0+1)>64){ COL_BIG.push(c); continue; }
+    for(let gx=gx0;gx<=gx1;gx++) for(let gz=gz0;gz<=gz1;gz++){
+      const k=gx*131071+gz;
+      let a=COLG.get(k); if(!a){ a=[]; COLG.set(k,a); }
+      a.push(c);
+    }
+  }
+}
+const _noCols=[];
+function colsNear(x,z){
+  if(!COLG) return COL;                       // before the grid is built
+  return COLG.get(Math.floor(x/CG)*131071+Math.floor(z/CG)) || _noCols;
+}
 const SEATS=[];  // somewhere to sit: the cushion's x/z/height, which way it
                  // faces, and what the prompt should call it
 function addSeat(x,z,y,yaw,label,lie){
@@ -2432,13 +2495,18 @@ function surfaceY(x,z,curY){
   }
   return best;
 }
-function blocked(x,z,feetY){
-  const r=PLAYER_R, lo=feetY+0.12, hi=feetY+1.72;
-  for(let i=0;i<COL.length;i++){
-    const c=COL[i];
+function hitsAny(list,x,z,r,lo,hi,skip){
+  for(let i=0;i<list.length;i++){
+    const c=list[i]; if(c===skip) continue;
     if(x>c.x0-r && x<c.x1+r && z>c.z0-r && z<c.z1+r && hi>c.y0 && lo<c.y1) return true;
   }
   return false;
+}
+function blocked(x,z,feetY){
+  const r=PLAYER_R, lo=feetY+0.12, hi=feetY+1.72;
+  return hitsAny(colsNear(x,z), x,z,r,lo,hi) ||
+         hitsAny(COL_BIG,       x,z,r,lo,hi) ||
+         hitsAny(COL_DYN,       x,z,r,lo,hi);
 }
 function zoneAt(x,z,y){
   let hit=null;
@@ -2633,6 +2701,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     if(rnd()<0.72){
       const h=2.4+rnd()*2.8, rt=0.30+rnd()*0.06, rb=rt+0.08;
       cyl("foliage", rt,rb,h,14, x, y+h/2, z, green);
+      addCol(x-rb, x+rb, z-rb, z+rb, y, y+h);       // you cannot drive through it
       push("foliage", new T.SphereGeometry(rt,12,7), x, y+h, z, 0, green);      // the crown
       const arms=rnd()<0.75?2:1;
       for(let k=0;k<arms;k++){
@@ -2643,6 +2712,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
       const br=0.40+rnd()*0.26;
       const g2=new T.SphereGeometry(br, 12, 8); g2.scale(1, 0.80, 1);
       push("foliage", g2, x, y+br*0.70, z, rnd()*6, green);
+      addCol(x-br*0.8, x+br*0.8, z-br*0.8, z+br*0.8, y, y+br*1.3);
       push("foliage", new T.SphereGeometry(br*0.30,10,6), x, y+br*1.38, z, 0, green);
     }
   }
@@ -2862,6 +2932,9 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     const s=0.5+rnd()*2.6;
     push("rock", rockGeo(s, i*13+5), x, y+s*0.22, z, rnd()*6,
       pick(["#d8c6ac","#c6b298","#e2d0b6","#b9a68e"]), rnd()*0.4-0.2, rnd()*0.4-0.2);
+    // rockGeo jitters out to about 1.2x, and anything over half a metre is
+    // something you hit rather than something you drive over
+    if(s>0.55) addCol(x-s*0.95, x+s*0.95, z-s*0.95, z+s*0.95, y, y+s*1.1);
   }
   for(let i=0;i<130;i++){                       // and the small stuff, scattered
     const a=rnd()*Math.PI*2, r=40+rnd()*470;
@@ -2916,8 +2989,10 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
     if(onRoad(z)||built(x,z)) continue;
     const sc=0.7+rnd()*3.2;
-    push("rock", rockGeo(sc, i*17+3), x, Terrain.heightAt(x,z)+sc*0.22, z, rnd()*6,
+    const fy=Terrain.heightAt(x,z);
+    push("rock", rockGeo(sc, i*17+3), x, fy+sc*0.22, z, rnd()*6,
       pick(["#d8c6ac","#c6b298","#e2d0b6","#b9a68e"]), rnd()*0.4-0.2, rnd()*0.4-0.2);
+    addCol(x-sc*0.95, x+sc*0.95, z-sc*0.95, z+sc*0.95, fy, fy+sc*1.1);
   }
 
   // Power poles along the highway. A crossarm runs ACROSS the line, and the
@@ -2931,6 +3006,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   for(let x=POLE_X0;x<=704;x+=POLE_DX){
     const y=Terrain.heightAt(x,POLE_Z);
     cyl("oak", 0.17,0.21,8.2,8, x, y+4.1, POLE_Z, "#5b4632");
+    addCol(x-0.26, x+0.26, POLE_Z-0.26, POLE_Z+0.26, y, y+8.2);
     bx("oak", 0.16,0.16,2.4, x, y+7.5, POLE_Z, 0.4, 0, "#5b4632");
     bx("oak", 0.14,0.14,1.7, x, y+6.7, POLE_Z, 0.4, 0, "#5b4632");
     for(const sg of [-1,0,1])                       // an insulator under each wire
@@ -5246,8 +5322,10 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
     scene.add(g);
     const hx=Math.abs(Math.cos(yaw))*1.03+Math.abs(Math.sin(yaw))*2.28;
     const hz=Math.abs(Math.sin(yaw))*1.03+Math.abs(Math.cos(yaw))*2.28;
-    addCol(S[0]-hx, S[0]+hx, S[1]-hz, S[1]+hz, 0, 1.5);
-    CARS.push({g:g, wheels:wheels, kind:kind, col:COL[COL.length-1],
+    // A car's collider moves, so it stays out of the static grid
+    const cc={x0:S[0]-hx, x1:S[0]+hx, z0:S[1]-hz, z1:S[1]+hz, y0:0, y1:1.5};
+    COL_DYN.push(cc);
+    CARS.push({g:g, wheels:wheels, kind:kind, col:cc,
                home:{x:S[0], z:S[1], yaw:yaw}, veh:null, spin:0});
   }
 })();
@@ -5349,7 +5427,8 @@ class Vehicle{
     this.b=FZ; this.c=FZ;
     this.throttle=0; this.brake=0; this.steer=0; this.ebrake=false;
     this._steer=0; this.steerAngle=0; this.speed=0; this.accelLong=0;
-    this.allGrounded=false;
+    this.allGrounded=false; this.anyGrounded=false;
+    this.airPitch=0; this.airRoll=0;
   }
   handling(dt){
     const b=this.body;
@@ -5392,28 +5471,64 @@ class Vehicle{
     b.velocity.addScaledVector(rgt, dvl);
     this.accelLong=dvf/dt; this.speed=speed;
   }
+  /* Airborne. With nothing acting on it, whatever spin the suspension
+     imparted on the lip of a jump — and it is always some, because the
+     front wheels unload before the rear — just keeps going, and the car
+     tumbles end over end for the whole flight. Rush's answer, and it is the
+     right one for a car that is meant to land and keep driving: split the
+     spin into yaw and everything else, damp everything else hard, hold on
+     to yaw, and run a damped torque that brings the roof back up. The
+     result arcs rather than tumbles, and you can still adjust the attitude
+     on the way down. */
+  airborne(dt){
+    const b=this.body, up=b.up();
+    const spin=b.angularVel.dot(up);
+    const yaw=_cv(up.x,up.y,up.z).multiplyScalar(spin);
+    const rest=_cv(b.angularVel.x,b.angularVel.y,b.angularVel.z).sub(yaw);
+    rest.multiplyScalar(Math.exp(-3.6*dt));      // pitch and roll bleed off fast
+    yaw.multiplyScalar(Math.exp(-0.45*dt));      // a spin round the roof persists
+    b.angularVel.copy(rest).add(yaw);
+    // torque about (up x worldUp) is exactly what rolls the roof back up
+    const ax=_cv(up.x,up.y,up.z).cross(_cv(0,1,0));
+    const sn=ax.length();
+    if(sn>1e-5){
+      ax.multiplyScalar(1/sn);
+      const ang=Math.atan2(sn, up.y);            // how far over it is
+      b.angularVel.addScaledVector(ax, Math.min(ang,1.3)*4.6*dt);
+    }
+    // and a little attitude control, which is all Rush ever gave you
+    b.angularVel.addScaledVector(b.right(),   this.airPitch*1.25*dt);
+    b.angularVel.addScaledVector(b.forward(), -this.airRoll*1.25*dt);
+    const cap=2.3;
+    if(b.angularVel.length()>cap) b.angularVel.setLength(cap);
+  }
   step(dt){
     let n=0;
     for(const w of this.wheels){ w.update(dt); if(w.grounded) n++; }
     this.allGrounded = n===4;
+    this.anyGrounded = n>0;
     this.body.addForce(_cv(0, -CARC.gravity*CARC.mass, 0));
     this.body.integrate(dt);
     this.handling(dt);
+    if(!this.anyGrounded) this.airborne(dt);
+    else if(n<4) this.body.angularVel.multiplyScalar(Math.exp(-1.2*dt));
   }
 }
 /* A car is wider than a person, so it gets its own broad-phase rather than
    borrowing blocked(); and it slides along a wall on the axis that is still
    clear, the same way walking does. */
-const CAR_PTS=[[0,2.0],[0,-2.0],[-0.95,1.2],[0.95,1.2],[-0.95,-1.2],[0.95,-1.2]];
+// Ten points round the shell rather than six, so a post cannot slip between
+// two of them, and every query goes through the collider grid.
+const CAR_PTS=[[0,2.1],[0,-2.1],[-0.95,1.9],[0.95,1.9],[-0.95,-1.9],[0.95,-1.9],
+               [-1.00,0.7],[1.00,0.7],[-1.00,-0.7],[1.00,-0.7]];
 function carHits(px,pz,yaw,lo,hi,skip){
   const cy=Math.cos(yaw), sy=Math.sin(yaw);
-  for(const p of CAR_PTS){
+  for(let k=0;k<CAR_PTS.length;k++){
+    const p=CAR_PTS[k];
     const x=px+p[0]*cy+p[1]*sy, z=pz-p[0]*sy+p[1]*cy;
-    for(let i=0;i<COL.length;i++){
-      const c=COL[i]; if(c===skip) continue;
-      if(x>c.x0-0.12 && x<c.x1+0.12 && z>c.z0-0.12 && z<c.z1+0.12 && hi>c.y0 && lo<c.y1)
-        return true;
-    }
+    if(hitsAny(colsNear(x,z), x,z,0.12,lo,hi,skip) ||
+       hitsAny(COL_BIG,       x,z,0.12,lo,hi,skip) ||
+       hitsAny(COL_DYN,       x,z,0.12,lo,hi,skip)) return true;
   }
   return false;
 }
@@ -5436,6 +5551,8 @@ function updateCars(dt){
   v._steer += (want-v._steer)*0.18;                 // smoothed, not snapped
   v.steer=v._steer;
   v.ebrake=!!keys.Space;
+  v.airPitch=(fwd?1:0)-(rev?1:0);               // attitude while airborne
+  v.airRoll=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
   // ---- integrate, then push back out of anything solid ----
   const px=b.position.x, pz=b.position.z;
   v.step(dt);
@@ -5523,38 +5640,60 @@ function exitCar(){
 /* Headlights. One spotlight and a target, made once and moved to whichever
    car you are in — a light per parked car would be seventeen lights for a
    renderer that runs seven. */
-const carBeam=new T.SpotLight(0xfff0d0, 0, 62, 0.62, 0.42, 1.1);
-carBeam.target=new T.Object3D();
-scene.add(carBeam); scene.add(carBeam.target);
+/* Two real projected beams, one per lamp, aimed at a common point well down
+   the road so the cones converge the way a car's do. What they replaced was
+   a single beam plus a pair of three-metre glow sprites, and the sprites
+   were the problem: a headlamp is a small bright thing that throws a large
+   dim thing, not a large bright thing. So the lamp itself is now a lens the
+   size of a lamp, and all the size is in the beam. */
+const carBeams=[0,1].map(()=>{
+  const L=new T.SpotLight(0xffe6a8, 0, 90, Math.PI/6, 0.5, 1.4);
+  L.castShadow=false; L.target=new T.Object3D();
+  scene.add(L); scene.add(L.target);
+  return L;
+});
+const LENS_MAT=new T.MeshBasicMaterial({color:0xfff0c8, transparent:true, opacity:0,
+  depthWrite:false, fog:false, toneMapped:false});
+const TAIL_MAT=new T.MeshBasicMaterial({color:0xff2a12, transparent:true, opacity:0,
+  depthWrite:false, fog:false, toneMapped:false});
 const carLamps=[], carTails=[];
 for(let i=0;i<2;i++){
-  const h=new T.Sprite(new T.SpriteMaterial({map:GLOW_TEX, transparent:true,
-    depthWrite:false, blending:T.AdditiveBlending, opacity:0}));
-  h.scale.set(3.2,3.2,1); scene.add(h); carLamps.push(h);
-  const t=new T.Sprite(new T.SpriteMaterial({map:GLOW_TEX, transparent:true,
-    depthWrite:false, blending:T.AdditiveBlending, opacity:0, color:0xff4020}));
-  t.scale.set(1.5,1.5,1); scene.add(t); carTails.push(t);
+  const h=new T.Mesh(new T.PlaneGeometry(0.30,0.20), LENS_MAT);
+  scene.add(h); carLamps.push(h);
+  const t=new T.Mesh(new T.PlaneGeometry(0.34,0.15), TAIL_MAT);
+  scene.add(t); carTails.push(t);
 }
 function updateCarLights(dark, delta){
   const on=!!driving && dark>0.12;
   const k=on ? Math.min(1,(dark-0.12)*3) : 0;
-  carBeam.intensity=2.7*k;
   for(let i=0;i<2;i++){
-    carLamps[i].visible=on; carLamps[i].material.opacity=0.85*k;
-    carTails[i].visible=on; carTails[i].material.opacity=0.55*k;
+    carBeams[i].intensity=2.2*k;
+    carLamps[i].visible=on; carTails[i].visible=on;
   }
+  LENS_MAT.opacity=0.92*k;
+  TAIL_MAT.opacity=0.88*k;
   if(!on) return;
   const b=driving.veh.body;
-  const f=b.forward(), r=b.right();
-  // mounted on the nose, aimed well down the road rather than at the horizon
-  carBeam.position.set(b.position.x+f.x*2.1, b.position.y-0.12, b.position.z+f.z*2.1);
-  carBeam.target.position.set(b.position.x+f.x*30, b.position.y-1.55, b.position.z+f.z*30);
+  const f=b.forward(), r=b.right(), u=b.up();
+  // one aim point well down the road, so the two cones converge
+  const tx=b.position.x+f.x*40-u.x*0.4, ty=b.position.y+f.y*40-u.y*0.4,
+        tz=b.position.z+f.z*40-u.z*0.4;
   for(let i=0;i<2;i++){
-    const q=(i?1:-1)*0.66;
-    carLamps[i].position.set(b.position.x+f.x*2.16+r.x*q, b.position.y-0.16,
-                             b.position.z+f.z*2.16+r.z*q);
-    carTails[i].position.set(b.position.x-f.x*2.16+r.x*q, b.position.y-0.16,
-                             b.position.z-f.z*2.16+r.z*q);
+    const q=(i?1:-1)*0.62;
+    carBeams[i].position.set(b.position.x+f.x*2.35+r.x*q-u.x*0.2,
+                             b.position.y+f.y*2.35+r.y*q-u.y*0.2,
+                             b.position.z+f.z*2.35+r.z*q-u.z*0.2);
+    carBeams[i].target.position.set(tx,ty,tz);
+    // the lenses sit in the bodywork and face the way the car does
+    carLamps[i].position.set(b.position.x+f.x*2.20+r.x*0.66*(i?1:-1)-u.x*0.16,
+                             b.position.y+f.y*2.20+r.y*0.66*(i?1:-1)-u.y*0.16,
+                             b.position.z+f.z*2.20+r.z*0.66*(i?1:-1)-u.z*0.16);
+    carLamps[i].quaternion.copy(b.quaternion);
+    carTails[i].position.set(b.position.x-f.x*2.20+r.x*0.68*(i?1:-1)-u.x*0.16,
+                             b.position.y-f.y*2.20+r.y*0.68*(i?1:-1)-u.y*0.16,
+                             b.position.z-f.z*2.20+r.z*0.68*(i?1:-1)-u.z*0.16);
+    carTails[i].quaternion.copy(b.quaternion);
+    carTails[i].rotateY(Math.PI);
   }
 }
 let carCamYaw=0, carCamPitch=0.24;
@@ -9026,14 +9165,17 @@ i===1?"#6a5a3c":"#7a6746");
               0.05, 0.28+k*0.34, k*1.3, "#9a8f78", 0, 0);
     }
     for(let i=-4;i<=4;i++){                                                // the fence
-      for(const sd of [-1,1]) m.C("oak", 0.055,0.07,0.95,6, i*1.5, 0.42, sd*3.2,
-                                  "#6d5942", 0,0,((i*11)%5-2)*0.035);
+      for(const sd of [-1,1]){
+        m.C("oak", 0.055,0.07,0.95,6, i*1.5, 0.42, sd*3.2, "#6d5942", 0,0,((i*11)%5-2)*0.035);
+        m.col(i*1.5-0.10, i*1.5+0.10, sd*3.2-0.10, sd*3.2+0.10, 0, 0.92);
+      }
       // 10 mm of wire is under a pixel from the road; 26 holds together
       if(i<4) for(const sd of [-1,1]) for(const wy of [0.42,0.72])
         m.P("metal", boxGeo(1.5,0.026,0.026,0), i*1.5+0.75, wy, sd*3.2, 0, "#8d8474");
     }
     for(const sd of [-1,1]) for(let j=-2;j<=2;j++){
       m.C("oak", 0.055,0.07,0.95,6, sd*6.0, 0.42, j*1.6, "#6d5942", 0,0,((j*7)%5-2)*0.035);
+      m.col(sd*6.0-0.10, sd*6.0+0.10, j*1.6-0.10, j*1.6+0.10, 0, 0.92);
       if(j<2) for(const wy of [0.42,0.72])
         m.P("metal", boxGeo(0.026,0.026,1.6,0), sd*6.0, wy, j*1.6+0.8, 0, "#8d8474");
     }
@@ -9092,8 +9234,10 @@ i===1?"#6a5a3c":"#7a6746");
     for(let i=-9;i<=9;i++){                                          // the wire fence
       const lean=((i*17)%7-3)*0.045;
       if(i===0 || i===1) continue;                                   // the gateway
-      for(const sd of [-1,1]) m.C("oak", 0.055,0.07,1.05,6, i*1.35, 0.46, sd*5.6,
-                                  "#6d5942", 0,0,lean);
+      for(const sd of [-1,1]){
+        m.C("oak", 0.055,0.07,1.05,6, i*1.35, 0.46, sd*5.6, "#6d5942", 0,0,lean);
+        m.col(i*1.35-0.10, i*1.35+0.10, sd*5.6-0.10, sd*5.6+0.10, 0, 1.0);
+      }
       // 10 mm of wire is under a pixel at twenty metres and the whole fence
       // disappears, leaving a row of sticks. 26 mm holds together from the road.
       if(i<9) for(const sd of [-1,1]) for(const wy of [0.40,0.70,0.96])
@@ -9102,6 +9246,7 @@ i===1?"#6a5a3c":"#7a6746");
     }
     for(const sd of [-1,1]) for(let j=-3;j<=3;j++){
       m.C("oak", 0.055,0.07,1.05,6, sd*12.6, 0.46, j*1.6, "#6d5942", 0,0,((j*11)%5-2)*0.04);
+      m.col(sd*12.6-0.10, sd*12.6+0.10, j*1.6-0.10, j*1.6+0.10, 0, 1.0);
       if(j<3) for(const wy of [0.40,0.70,0.96])
         m.P("metal", boxGeo(0.026,0.026,1.6,0), sd*12.6, wy-0.03, j*1.6+0.8, 0, "#8d8474");
     }
@@ -10671,6 +10816,7 @@ bucketOf("pic:vendFront:snack", ()=>picGlowMat("vendFront:snack", 512, vendArt("
 bucketOf("pic:vendFront:soda",  ()=>picGlowMat("vendFront:soda", 512, vendArt("ICE COLD","#2f5c8a",3), "cool"));
 
 const BAKED=bakeBuckets(scene);
+buildColGrid();                     // everything solid is in place by now
 
 /* --- roof-mounted swamp coolers and vents, added after the bake ------ */
 (function rooftopClutter(){
@@ -11530,7 +11676,6 @@ function frame(){
     camera.lookAt(droneLook.x, droneLook.y+0.25, droneLook.z);
     wetEl.classList.remove("on");
   }else if(driving){
-    showCar(driving);
     const b=driving.veh.body;
     // Behind and above, on the car's heading plus whatever the mouse has
     // added. It pulls back with speed like the drone's does.
@@ -11803,6 +11948,10 @@ function frame(){
                            0.16*Math.sin(d.life*Math.PI)*(1-dn.nightAmount);
   }
 
+  // Where the car is drawn is presentation, not physics, and it must not
+  // depend on which camera happens to be active — hung off the chase-camera
+  // branch, the shell stayed behind whenever anything else was looking.
+  if(driving) showCar(driving);
   if(SLOW_GREEN){
     // eleven seconds a cycle, never fully off — a sweep, not a blink
     const q=0.36+0.64*(0.5-0.5*Math.cos(tt*0.571));
@@ -11837,6 +11986,7 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                terrain:Terrain, camera:camera, images:()=>IMG_STATUS,
                gifDecode:gifDecode, gifFrames:gifFrames,
                seats:SEATS, geckos:GECKOS, seatedNow:()=>!!seated, sit:sitToggle,
+               cols:COL, colsDyn:COL_DYN,
                cars:CARS, drivingNow:()=>driving, enterCar:enterCar, exitCar:exitCar,
                nearestCar:nearestCar,
                drone:setDrone, dronePos:dronePos, droneOn:()=>droneMode,

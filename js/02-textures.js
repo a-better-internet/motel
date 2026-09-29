@@ -783,26 +783,36 @@ TEX.quilt=(function(){                       // diamond-quilted stainless
   return rep(setSRGB(new T.CanvasTexture(c)),1,1);
 })();
 TEX.hexfloor=(function(){                    // the little hex tiles, most of them
+  /* A diner floor is white hex with a scatter of black ones and a grey grout
+     line between, and it has to READ as that. The first one was four tones
+     of mud with ninety dark scuffs up to thirty-four pixels across dropped
+     over it — and the texture repeats every seventy centimetres, so those
+     scuffs tiled into a camouflage pattern and the hexes disappeared under
+     it. Grout first, then the tiles, then dirt fine enough not to tile. */
   const c=cvs(256,256), x=c.getContext("2d");
-  x.fillStyle="#3e4038"; x.fillRect(0,0,256,256);
+  x.fillStyle="#8b8778"; x.fillRect(0,0,256,256);          // the grout
   const R=15.0, W=Math.sqrt(3)*R, H=1.5*R;
   for(let row=-1;row<256/H+1;row++) for(let col=-1;col<256/W+1;col++){
     const cx=col*W+((row&1)?W/2:0), cy=row*H;
     const v=Math.random();
-    x.fillStyle = v<0.10 ? "#2a2c26" : v<0.22 ? "#6d6a58"
-                : v<0.72 ? "#9a9684" : "#87836f";
+    x.fillStyle = v<0.13 ? "#33332d" : v<0.20 ? "#a9a493" : "#dcd8ca";
     x.beginPath();
     for(let k=0;k<6;k++){
-      const a=Math.PI/180*(60*k-90);
-      const px=cx+Math.cos(a)*R*0.94, py=cy+Math.sin(a)*R*0.94;
+      const a2=Math.PI/180*(60*k-90);
+      const px=cx+Math.cos(a2)*R*0.90, py=cy+Math.sin(a2)*R*0.90;
       k?x.lineTo(px,py):x.moveTo(px,py);
     }
     x.closePath(); x.fill();
+    if(Math.random()<0.05){                                // one lifted, or cracked
+      x.strokeStyle="rgba(50,48,42,0.55)"; x.lineWidth=1.4;
+      x.beginPath(); x.moveTo(cx-R*0.7, cy-R*0.3);
+      x.lineTo(cx+R*0.5, cy+R*0.6); x.stroke();
+    }
   }
-  for(let i=0;i<90;i++){                      // scuffed down the walking line
-    x.fillStyle="rgba(30,30,26,"+(0.06+Math.random()*0.20).toFixed(2)+")";
+  for(let i=0;i<260;i++){                      // grime worked into the grout
+    x.fillStyle="rgba(46,44,38,"+(0.03+Math.random()*0.07).toFixed(3)+")";
     x.beginPath(); x.arc(Math.random()*256, Math.random()*256,
-                         6+Math.random()*34, 0, 7); x.fill();
+                         1.5+Math.random()*5.0, 0, 7); x.fill();
   }
   return rep(setSRGB(new T.CanvasTexture(c)),1,1);
 })();

@@ -490,7 +490,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   // in mid-air with nothing under them.
   const POLE_Z=ROADZ-7.4, POLE_X0=-704, POLE_DX=44, LANE=1.05;
   const tops=[];
-  for(let x=POLE_X0;x<=704;x+=POLE_DX){
+  for(let x=POLE_X0;x<=1144;x+=POLE_DX){   // past the diner, not short of it
     const y=Terrain.heightAt(x,POLE_Z);
     cyl("oak", 0.17,0.21,8.2,8, x, y+4.1, POLE_Z, "#5b4632");
     addCol(x-0.26, x+0.26, POLE_Z-0.26, POLE_Z+0.26, y, y+8.2);
@@ -547,8 +547,8 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
            q[1]+Math.sin(i*1.3)*0.34, q[2]+i*0.22, "#26231f", 0, Math.sin(i*2.1)*0.30);
   }
   // a hubcap, a boot with nobody in it, and a can that has been here for years
-  for(let i=0;i<22;i++){
-    const rx=-660+((i*137)%1320), rz=ROADZ+(((i*47)%2)?1:-1)*(7.5+((i*31)%9));
+  for(let i=0;i<30;i++){
+    const rx=-660+((i*137)%1990), rz=ROADZ+(((i*47)%2)?1:-1)*(7.5+((i*31)%9));
     if(!clear(rx,rz)) continue;
     const y=TG(rx,rz);
     const k=i%4;

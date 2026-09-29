@@ -117,8 +117,20 @@ const Terrain=(function(){
     const dune=(fbm(x*0.0060+31, z*0.0060+31)-0.5)*10
              + (fbm(x*0.0210,    z*0.0210)   -0.5)*1.9;
     let h=PAD_Y + smoothstep(0,7,d)*0.25 + t*(1.1+dune);
-    // far ring: ground lifts into broken badlands past ~430 m
-    const cut=smoothstep(0, 210, boxDist(CORR,x,z));     // the highway's cut
+    /* Far ring: ground lifts into broken badlands past ~430 m, cut away
+       either side of the highway so the road runs off to a vanishing point.
+
+       That cut is 210 m of graded flat on each side, and held at 210 m all
+       the way to the end of the world it left a four-hundred-metre-wide
+       valley floor running straight at the horizon — so looking east past
+       the diner the walls never closed and the view ended on a notch of open
+       sky. The ramp tightens with distance instead: near the motel it is the
+       full 210 m, and by a mile out it is twenty-odd, which brings the walls
+       in against the shoulder and turns the far highway into a slot. The
+       road still runs to a vanishing point; there is just canyon behind it
+       now rather than a hole. */
+    const slot=smoothstep(700, 1350, Math.abs(x));
+    const cut=smoothstep(0, 210-slot*186, boxDist(CORR,x,z));
     const dc=Math.hypot(x, z+8);
     const ring=smoothstep(600, 1400, dc)*cut;
     if(ring>0){

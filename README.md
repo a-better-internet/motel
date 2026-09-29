@@ -453,11 +453,13 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   two down to the floor flange and one over on its side — the diamond-quilted
   panel, twin urns, a milkshake mixer, a pie case and the register behind it,
   and four booths down the window side with channelled backs, cap rails, coat
-  hooks, laminate tables on cast pedestals and a chrome wall box on the ledge
+  hooks, terrazzo tables on cast pedestals and a chrome wall box on the ledge
   at every one of them, wired back to a jukebox that is not there any more.
-  Through the bulkhead is the
+  A host's stand inside the door still has the menus in it. Through the
+  bulkhead — past a swing door with a porthole that you can push either way —
+  is the
   kitchen, which you can walk into: cook line, hood and flue, fryer, prep
-  table, dish sink, wire shelving and a walk-in standing open on the dark. By
+  table, dish sink, wire shelving and a reach-in with the glass gone. By
   day it is lit through the window band and the door somebody left open; after
   dark it is as black as the desert and you go in with the torch.
 - **A tracking station, six hundred metres back.** A parabolic dish on an

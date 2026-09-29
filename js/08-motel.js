@@ -103,6 +103,24 @@ function makeDoor(xf, lx, ly, lz, roomNo, opensIn, ajar, style){
     }
     ent.push({geo:new T.CylinderGeometry(0.030,0.030,0.020,10),
               matrix:rot(leafW-0.10, 1.03, 0, Math.PI/2), color:dark});
+  }else if(style==="swing"){
+    // the kitchen's swing door: a painted slab with a porthole, a push plate
+    // and a kick plate, and nothing to hold it shut — it works from both
+    // sides because a cook comes through it with both hands full
+    const grn=new T.Color(0x77806e), gl2=new T.Color(0x3d4a48);
+    ent.push({geo:boxGeo(leafW,leafH,leafT,0.5), matrix:m4(leafW/2, leafH/2, 0), color:grn});
+    for(const sd of [1,-1]){
+      ent.push({geo:new T.CylinderGeometry(0.200,0.200,0.020,18),
+                matrix:rot(leafW/2, 1.46, sd*(leafT/2+0.008), Math.PI/2), color:steel});
+      ent.push({geo:new T.CylinderGeometry(0.163,0.163,0.020,18),
+                matrix:rot(leafW/2, 1.46, sd*(leafT/2+0.015), Math.PI/2), color:gl2});
+      ent.push({geo:boxGeo(leafW-0.14,0.34,0.012,0.5),                  // push plate
+                matrix:m4(leafW/2, 1.02, sd*(leafT/2+0.008)), color:steel});
+      ent.push({geo:boxGeo(leafW-0.04,0.26,0.012,0.5),                  // kick plate
+                matrix:m4(leafW/2, 0.17, sd*(leafT/2+0.008)), color:steel});
+      ent.push({geo:boxGeo(leafW-0.04,0.022,0.016,0.5),
+                matrix:m4(leafW/2, 0.31, sd*(leafT/2+0.010)), color:dark});
+    }
   }else{
     // pivot sits at the hinge edge; leaf extends +x from it
     ent.push({geo:boxGeo(leafW,leafH,leafT,0.5), matrix:m4(leafW/2, leafH/2, 0), color:cream});

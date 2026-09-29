@@ -135,6 +135,16 @@
     // asphalt reads as a carpet
     m.P("concrete", cap, 0, 0.03, 0, 0, "#7f7460", -Math.PI/2, 0);
     m.flat(-D.r, D.r, -D.r, D.r, 0.03);
+    /* A lot does not end on a drawn arc. Overlapping discs round the rim,
+       sitting just under the main one so they only show where they run past
+       it, break the circle into something the desert has been taking back. */
+    for(let i=0;i<20;i++){
+      const a=(i/20)*6.283+r2()*0.22, rr=D.r-1.2+r2()*3.4, sc=2.2+r2()*3.4;
+      const fr=new T.CircleGeometry(sc, 11), fu=fr.attributes.uv;
+      for(let k=0;k<fu.count;k++) fu.setXY(k, fu.getX(k)*sc, fu.getY(k)*sc);
+      m.P("concrete", fr, Math.cos(a)*rr, 0.024+i*0.0003, Math.sin(a)*rr, a,
+          (i%3===0)?"#8a7f67":((i%3===1)?"#7a6f59":"#847a63"), -Math.PI/2, 0);
+    }
     let lay=0;
     const dec=(bk,w,h,x,z,ry,c)=>m.P(bk, planeGeo(w,h,0.5), x, 0.036+(lay++)*0.0004, z,
                                      ry, c, -Math.PI/2, 0);
@@ -150,6 +160,18 @@
           r2()*6.283, r2()<0.5?"#645d4e":"#7a7263");
     for(let i=0;i<4;i++)                        // four stall lines, nearly gone
       dec("paint", 0.09, 4.8, -6.0+i*2.9, -4.6, 0, i===1?"#7d7566":"#918872");
+    for(let i=0;i<5;i++){                       // oil where each of them stood
+      const ox2=-6.0+i*2.9+1.45;
+      dec("concrete", 0.5+r2()*0.5, 0.7+r2()*0.6, ox2, -5.4+r2()*1.2, r2()*6.28, "#4a4136");
+      for(let k=0;k<4;k++)
+        dec("concrete", 0.07+r2()*0.08, 0.09+r2()*0.09, ox2+(r2()-0.5)*1.1,
+            -5.6+r2()*1.6, r2()*6.28, "#413a31");
+    }
+    for(let i=0;i<9;i++){                       // and the tracks coming off the drive
+      const t=i/9, tz=-11.6+t*7.4, tw=0.30;
+      for(const sd2 of [-1,1])
+        dec("concrete", tw, 1.1, sd2*(1.3+t*2.2), tz, sd2*t*0.22, "#5c5344");
+    }
     for(let i=0;i<22;i++){                      // weeds through the cracks
       const ax=-11+r2()*22, az=-9+r2()*15;
       if(Math.hypot(ax, az)>D.r-1) continue;
@@ -178,9 +200,13 @@
       }
       return z>WP[0][0] ? WP[0][1] : WP[WP.length-1][1];
     };
+    /* Built up thick and sunk into the ground rather than laid on it as
+       plates. At 12 cm the sides and the undersides of these showed, and
+       from a car's eye height the drive read as a handful of grey boards
+       dropped in the sand. */
     for(let i=0;i<WP.length-1;i++){
-      const p0=WP[i], p1=WP[i+1], wid=7.4-i*0.08;
-      tilt("concrete", wid, TH, p0[0], WY(p0[1]-TH/2), p1[0], WY(p1[1]-TH/2),
+      const p0=WP[i], p1=WP[i+1], wid=6.6-i*0.06;
+      tilt("concrete", wid, 0.80, p0[0], WY(p0[1]-0.40), p1[0], WY(p1[1]-0.40),
            (i%2)?"#6f6550":"#786d55", 0.22, 0);
       m.flat(-wid/2, wid/2, p1[0], p0[0], WY(Math.max(p0[1],p1[1])+0.01));
     }
@@ -196,19 +222,14 @@
           WY(driveY(rz)+0.016), rz, r2()*6.28,
           ["#6a5f47","#7a6e55","#5c5240"][i%3], -Math.PI/2, 0);
     }
-    for(let i=0;i<11;i++){                      // sand drifted across it
-      const rz=-12.6-r2()*8.6;
-      const g=blobGeo(0.55+r2()*0.5); g.scale(2.2, 0.05, 0.8);
-      m.P("sand", g, (r2()-0.5)*6.0, WY(driveY(rz)+0.02), rz, r2()*6.28,
-          r2()<0.5?"#9c8b6a":"#8e7f61", 0, 0);
-    }
-    for(let i=0;i<9;i++)                        // weeds down the middle of it
-      for(let k=0;k<4;k++){
-        const rz=-13.6-r2()*7.0;
-        m.C("foliage", 0.008,0.013,0.14+r2()*0.20,4, (r2()-0.5)*1.6,
-            WY(driveY(rz)+0.08), rz, r2()<0.5?"#7d7448":"#6d7048",
-            (r2()-0.5)*0.5, k*1.3, (r2()-0.5)*0.4);
-      }
+    /* And NOTHING scattered on top of it. A blob squashed to five
+       centimetres is not a drift of sand, it is a flat angular shard, and
+       eleven of them fanned out beside the highway with a scatter of little
+       spikes through them read as a pile of rubbish somebody had tipped at
+       the end of the drive. The drift is drawn as a low wedge against each
+       shoulder of the causeway, where sand actually collects. */
+    // and nothing laid on top of it at all: a tilted plate at the edge of the
+    // causeway is another slab dropped in the sand, whichever bucket it is in
   }
 
   /* ---- the plinth the car sits on --------------------------------------- */
@@ -349,17 +370,31 @@
     for(let i=0;i<8;i++)                        // rivet lines down the monitor
       for(const sz of [-1,1])
         m.B("metal", L-3.6, 0.03, 0.03, 0, MY+0.14+i*0.07, sz*1.16, 0, 0, "#7d837e");
-    // the flue cluster, and a vent cowl beside it
-    for(let i=0;i<4;i++)
-      m.C("metal", 0.055,0.055, 0.95+((i*5)%3)*0.28, 8, -5.4+i*0.34, MY+1.16, 1.5,
+    /* The flue cluster and the cowl stand on the BARREL, out past the edge of
+       the monitor, so they have to be set on the curve of it — at a height
+       measured off the monitor they hung the better part of a metre in the
+       air above the roof, which is what the float probe found. */
+    const roofY=z=>CT + Math.sqrt(Math.max(0, 1-(z/(HW+0.06))*(z/(HW+0.06))))*RR*0.52;
+    for(let i=0;i<4;i++){
+      const fz=1.46+((i*3)%2)*0.10, ln=0.95+((i*5)%3)*0.28;
+      m.C("metal", 0.055,0.055, ln, 8, -5.4+i*0.34, roofY(fz)-0.16+ln/2, fz,
           i%2?"#6e746f":RUSTD, ((i*7)%5-2)*0.03, 0, ((i*3)%5-2)*0.03);
-    m.C("metal", 0.26,0.30,0.44,12, 4.3, MY+0.90, 1.2, "#6e746f");
-    m.C("metal", 0.34,0.34,0.10,12, 4.3, MY+1.16, 1.2, "#5e645f");
-    // the swamp cooler that used to keep it bearable, seized solid
-    m.B("metal", 1.10, 0.92, 1.10, 1.4, MY+0.92, -1.34, 0.45, 0, "#8a8f88");
-    for(const q of [-1,1])
-      m.B("bin", 0.94, 0.70, 0.04, 1.4, MY+0.92, -1.34+q*0.55, 0, 0, "#3f443f");
-    m.C("metal", 0.30,0.30,0.16,14, 1.4, MY+1.46, -1.34, RUSTD);
+    }
+    m.C("metal", 0.26,0.30,0.44,12, 4.3, roofY(1.34)-0.10+0.22, 1.34, "#6e746f");
+    m.C("metal", 0.34,0.34,0.10,12, 4.3, roofY(1.34)-0.10+0.49, 1.34, "#5e645f");
+    /* The swamp cooler that used to keep it bearable, seized solid. It sat
+       on the ROAD side of the roof, which put a metre of grey box between
+       the highway and the middle of the name board. It lives at the back
+       now, where the flue and the cowl are. */
+    {
+      const cz=1.44, cy=roofY(cz)-0.14+0.46;     // sat on the curve, not in the air
+      m.B("metal", 1.10, 0.92, 1.10, -2.6, cy, cz, 0.45, 0, "#8a8f88");
+      for(const q of [-1,1])
+        m.B("bin", 0.94, 0.70, 0.04, -2.6, cy, cz+q*0.55, 0, 0, "#3f443f");
+      m.C("metal", 0.30,0.30,0.16,14, -2.6, cy+0.54, cz, RUSTD);
+      for(const q of [-1,1])                     // and the bearers under it
+        m.B("weathered", 1.24, 0.10, 0.12, -2.6, cy-0.50, cz+q*0.42, 0.4, 0, "#6f6656");
+    }
   }
 
   /* ---- the roof sign -----------------------------------------------------
@@ -394,6 +429,27 @@
     for(const sd2 of [-1,1])
       signPanel(6.30, 1.444, tex, D.x, m.y+SY+0.22, D.z-0.3+sd2*0.10,
                 sd2>0 ? 0 : Math.PI, false);
+    /* The neon that used to trace the board, most of it broken off at the
+       supports. Plain glass, unlit, like everything else here — the tubes
+       are what is left, not what they did. */
+    for(const sd2 of [-1,1]){
+      const nz=-0.3+sd2*0.13;
+      for(let i=0;i<13;i++){                     // the top and bottom runs
+        const px=-2.9+i*0.48;
+        if(i===4 || i===9) continue;             // where a length is gone
+        for(const q of [SY+0.52, SY-0.08])
+          m.C("glass", 0.018,0.018,0.44,7, px, q, nz, "#b6c4bc", 0, 0, Math.PI/2);
+      }
+      for(const q of [-3.14, 3.14])              // and the two returns
+        m.C("glass", 0.018,0.018,0.58,7, q, SY+0.22, nz, "#b6c4bc");
+      for(let i=0;i<8;i++)                       // the tube supports
+        m.C("metal", 0.010,0.010,0.09,5, -2.9+i*0.86, SY+0.52, nz-sd2*0.05,
+            "#6e746f", Math.PI/2*sd2, 0, 0);
+    }
+    // the transformer box it all ran off, hanging open
+    m.B("metal", 0.30, 0.22, 0.16, -3.0, SY-0.42, -0.30, 0.4, 0, "#6b716b");
+    m.P("metal", boxGeo(0.30,0.20,0.02,0.4), -3.0, SY-0.46, -0.44, 0.5, "#5f655f", 0, 0.3);
+    m.C("metal", 0.008,0.008,0.50,5, -2.86, SY-0.58, -0.36, "#3a3f3c", 0.4, 0, 0.2);
     // the lamps that used to wash it, hanging off their conduit, all dead
     for(const q of [-1.9, 0, 1.9]){
       m.C("metal", 0.03,0.03,0.46,8, q, SY-0.62, -0.72, DARKM, 0.6, 0, 0);
@@ -413,21 +469,44 @@
     m.B("glass", DOORW+0.10, CH-DOTOP-0.26, 0.05, DX, (DOTOP+0.22+CH)/2, Z+0.02,
         0, 0, "#5f6f70");                       // the transom over it
     m.B("metal", DOORW+0.64, 0.14, 0.40, DX, CH+0.04, Z-0.12, 0.4, 0, STLD);
-    // three concrete steps, cracked, with the rail that is left
+    /* A stoop, in three risers from the apron to the floor. The first cut of
+       this ran the other way: the tread FURTHEST from the door was the
+       tallest and the one against the threshold the shortest, so the flight
+       climbed away from the building and walking in meant going down two
+       steps and then up over a knee-high sill. Nearest the door highest, and
+       each tread is a real walkable plate at its own top. */
+    const APR=0.03, TRD=0.36, SW=2.10;
     for(let i=0;i<3;i++){
-      const sy=0.20+i*0.20, sz0=Z-0.52-i*0.22;
-      m.B("concrete", 1.90-i*0.16, 0.20, 0.52+i*0.30, DX, sy-0.10, sz0,
-          0.5, 0, i?"#8d8474":"#7f7767");
-      // a tread to stand on, or the step is only something to walk into
-      m.flat(DX-(1.90-i*0.16)/2, DX+(1.90-i*0.16)/2,
-             sz0-(0.52+i*0.30)/2, sz0+(0.52+i*0.30)/2, sy);
+      const top=FY-(i+1)*((FY-APR)/3);         // 0.42, 0.22, 0.03
+      const z1=Z-0.34-i*TRD, z0=z1-TRD;        // and each one further out
+      const w=SW-i*0.10;
+      m.B("concrete", w, top-APR+0.26, TRD+0.02, DX, (APR+top)/2-0.13, (z0+z1)/2,
+          0.5, 0, (i%2)?"#8d8474":"#847b6b");
+      m.flat(DX-w/2, DX+w/2, z0, z1, top);
+      // the nosing, and the crack across it that every one of these has
+      m.B("concrete", w, 0.035, 0.05, DX, top-0.018, z0+0.025, 0.4, 0, "#9a9182");
+      m.P("soot", planeGeo(0.05+((i*7)%3)*0.04, TRD*0.9, 0),
+          DX-0.5+((i*5)%3)*0.5, top+0.004, (z0+z1)/2, 0.2*(i-1), "#57503f",
+          -Math.PI/2, 0);
     }
+    for(const q of [-1,1]){                    // a low cheek wall either side
+      m.B("concrete", 0.22, 0.52, 3*TRD+0.36, DX+q*(SW/2+0.06), 0.22, Z-0.34-1.5*TRD,
+          0.5, 0, "#8d8474");
+      m.B("concrete", 0.30, 0.06, 3*TRD+0.44, DX+q*(SW/2+0.06), 0.51, Z-0.34-1.5*TRD,
+          0.4, 0, "#9a9182");
+    }
+    m.col(DX-SW/2-0.20, DX-SW/2+0.06, Z-0.34-3*TRD-0.2, Z-0.28, 0, 0.52);
+    m.col(DX+SW/2-0.06, DX+SW/2+0.20, Z-0.34-3*TRD-0.2, Z-0.28, 0, 0.52);
     // the sill has to reach the interior floor's own edge, or there is a
     // hand's width of threshold that drops you back onto the apron
     m.flat(DX-0.7, DX+0.7, Z-0.34, Z+0.34, FY+0.012);
     m.B("metal", 1.34, 0.04, 0.40, DX, FY+0.01, Z+0.08, 0.4, 0, CHRD);
-    m.C("metal", 0.030,0.030,0.94,8, DX+0.92, 0.66, Z-0.62, "#7d837e");
-    m.C("metal", 0.030,0.030,0.62,8, DX+0.92, 1.10, Z-0.34, "#7d837e", 0, 0, 1.15);
+    m.C("metal", 0.030,0.030,0.62,8, DX+1.18, 0.82, Z-0.50, "#7d837e");   // the newel
+    m.C("metal", 0.030,0.030,0.62,8, DX+1.18, 0.62, Z-1.42, "#7d837e");
+    // pi/2 lays a cylinder along z; the rake is that less the pitch of the
+    // flight. At 0.42 it stood almost upright beside the steps.
+    m.P("metal", new T.CylinderGeometry(0.032,0.032,1.00,8), DX+1.18, 1.03, Z-0.96,
+        0, "#7d837e", Math.PI/2-0.215, 0);                                 // the rake
     // a CLOSED card taped inside the glass, and the hours nobody reads
     m.P("paper", planeGeo(0.30,0.20,0), DX-0.78, FY+1.62, Z+0.06, 0, "#cfc6ae", 0, 0.18);
     m.P("paper", planeGeo(0.22,0.30,0), DX+0.80, FY+1.50, Z+0.06, 0, "#c4bba3", 0, -0.06);
@@ -469,11 +548,88 @@
   for(const sz of [-1,1])                          // the dirt line off the apron
     m.P("soot", planeGeo(L-1.4, 0.44, 0), 0, SK+0.26, sz*(HW+0.09),
         sz>0?0:Math.PI, "#6d6455", 0, 0);
-  for(let i=0;i<9;i++){                            // sand banked against the ends
-    const g=blobGeo(0.60+((i*5)%3)*0.26); g.scale(1.5, 0.22, 1.0);
-    m.P("sand", g, (i<5?-1:1)*(HL+0.18+((i*3)%3)*0.14), 0.06,
-        -1.6+((i*7)%5)*0.9, i*0.9, "#b09b79", 0, 0);
+  /* Sand banked against the ends. A blobGeo is a lumpy polyhedron and
+     squashing one to a fifth of its height does not make a drift — it makes
+     a flat angular shard with a hard silhouette, and nine of them stacked
+     against the end of the building read as a pile of broken plasterboard.
+     A squashed sphere stays convex and smooth, which is what a drift is. */
+  for(let i=0;i<9;i++){
+    const g=new T.SphereGeometry(0.60+((i*5)%3)*0.26, 14, 8);
+    g.scale(1.5, 0.30, 1.0);
+    m.P("sand", g, (i<5?-1:1)*(HL+0.16+((i*3)%3)*0.12), 0.02,
+        -1.6+((i*7)%5)*0.9, i*0.9, "#a89473", 0, 0);
   }
+  /* ---- the ground round it ----------------------------------------------
+     There was nothing out here at all. The desert scatter runs to five
+     hundred metres from the motel and the pole line stopped at seven
+     hundred, so the diner stood on a bare plain with a clean circular edge
+     to its lot and open sand to the horizon. Rocks, brush, a fence line, the
+     tank and the bins that belong behind a kitchen.               */
+  {
+    const GY=(x,z)=>Terrain.heightAt(D.x+x, D.z+z)-m.y;
+    for(let i=0;i<26;i++){                      // rocks, outside the lot
+      const a=r2()*6.283, rr=D.r+1.5+r2()*26;
+      const rx=Math.cos(a)*rr, rz=Math.sin(a)*rr*0.8;
+      if(rz<-17) continue;                      // not out on the highway
+      const sc=0.28+r2()*0.95;
+      m.P("rock", rockGeo(sc, (i*37)|0), rx, GY(rx,rz)+sc*0.34, rz, r2()*6.283,
+          r2()<0.5?"#8a7a62":"#7d6e57", (r2()-0.5)*0.2, (r2()-0.5)*0.2);
+    }
+    for(let i=0;i<22;i++){                      // creosote and dead brush
+      const a=r2()*6.283, rr=D.r-1+r2()*30;
+      const bx2=Math.cos(a)*rr, bz=Math.sin(a)*rr*0.85;
+      if(bz<-16) continue;
+      const gy=GY(bx2,bz), dead=r2()<0.4;
+      for(let k=0;k<7;k++){
+        const an=k*0.9, ln=0.22+r2()*0.34;
+        m.C("foliage", 0.012,0.020,ln, 4, bx2+Math.cos(an)*0.10, gy+ln*0.42,
+            bz+Math.sin(an)*0.10, dead?"#6d6144":(r2()<0.5?"#4f6b3a":"#57713f"),
+            (r2()-0.5)*0.7, an, (r2()-0.5)*0.7);
+      }
+    }
+    // the fence that used to mark the back of the lot, most of it down
+    for(let i=0;i<11;i++){
+      const px=-15+i*3.0, pz=15.5+((i*7)%3)*0.4, gy=GY(px,pz);
+      const lean=(i===4||i===8) ? 0.9 : (i%3===0 ? 0.18 : 0.05);
+      m.P("weathered", boxGeo(0.10, 1.45, 0.10, 0.4), px, gy+0.70*Math.cos(lean), pz,
+          i*0.4, "#7a6c52", 0, lean*((i%2)?1:-1));
+      if(i<10 && lean<0.5)
+        for(const wy of [0.42, 0.86, 1.24])
+          m.P("metal", boxGeo(3.0, 0.016, 0.016, 0), px+1.5, gy+wy+((i%2)?0.03:0), pz,
+              0, "#6b6255", 0, ((i%3)-1)*0.012);
+    }
+    // a propane tank on its cradle, and the bins, round the back
+    m.C("metal", 0.44,0.44,1.90,16, -6.2, GY(-6.2,4.6)+0.62, 4.6, "#b0b4ac", 0,0,Math.PI/2);
+    for(const q of [-1,1]){
+      m.P("metal", new T.SphereGeometry(0.44,14,9), -6.2+q*0.95, GY(-6.2,4.6)+0.62, 4.6,
+          0, "#b0b4ac");
+      m.B("weathered", 0.14, 0.62, 0.62, -6.2+q*0.70, GY(-6.2,4.6)+0.31, 4.6, 0.4, 0,
+          "#6f6656");
+    }
+    m.C("metal", 0.05,0.05,0.34,8, -6.2, GY(-6.2,4.6)+1.20, 4.6, "#8a908a");
+    m.col(-7.4, -5.0, 4.0, 5.2, 0, 1.2);
+    for(let i=0;i<2;i++){                       // two bins, one on its side
+      const bx3=-2.6+i*1.5, bz3=4.4;
+      if(i===0){
+        m.C("bin", 0.34,0.30,0.92,14, bx3, GY(bx3,bz3)+0.46, bz3, "#4a5a4e");
+        m.C("bin", 0.36,0.36,0.05,14, bx3, GY(bx3,bz3)+0.94, bz3, "#3f4f45");
+        m.col(bx3-0.36, bx3+0.36, bz3-0.36, bz3+0.36, 0, 0.98);
+      }else{
+        m.P("bin", new T.CylinderGeometry(0.34,0.30,0.92,14), bx3, GY(bx3,bz3)+0.34,
+            bz3-0.2, 0.6, "#4a5a4e", Math.PI/2, 0);
+        for(let k=0;k<6;k++)
+          m.P("paper", planeGeo(0.16+r2()*0.12, 0.20+r2()*0.12, 0), bx3+0.5+r2()*1.4,
+              GY(bx3,bz3)+0.02, bz3-0.6+r2()*1.2, r2()*6.28, "#c9c1aa", -Math.PI/2, 0);
+      }
+    }
+    // a dead pole at the lot entrance with the bracket its sign hung off
+    m.C("weathered", 0.09,0.11,3.40,8, -9.4, GY(-9.4,-10.6)+1.70, -10.6, "#7a6c52",
+        0.02, 0, 0.03);
+    m.B("metal", 0.70, 0.06, 0.06, -9.08, GY(-9.4,-10.6)+3.24, -10.6, 0.4, 0, RUSTD);
+    m.C("metal", 0.012,0.012,0.30,6, -8.78, GY(-9.4,-10.6)+3.10, -10.6, RUSTD);
+    m.col(-9.55, -9.25, -10.75, -10.45, 0, 3.4);
+  }
+
   m.zone(D.r+5, "ROXIE'S DINER");
 
   /* ======================================================================
@@ -497,7 +653,9 @@
   const CY=FY+1.04;                                // the counter top surface
   const SZ=CTZ0-0.41;                              // where the stools stand
   const CX0=-2.95, CX1=4.34;                       // the counter's two ends
-  const BX0=-2.80, BPITCH=1.90;                    // the first booth, and the pitch
+  // -2.55, not -2.80: at -2.80 the first booth's west bench stood 20 cm into
+  // the lane the door probe walks through the kitchen doorway
+  const BX0=-2.55, BPITCH=1.90;                    // the first booth, and the pitch
   const PZ0=0.60, PZ1=1.92;                        // the pass, over the counter's back
   const KDZ0=IZ0+0.10, KDZ1=-1.10;                 // the kitchen door, on the window side
   const CEILW=CH-0.10, RISE=0.58;
@@ -524,8 +682,9 @@
         FY+0.030+i*0.0006, IZ0+0.4+r2()*(IZ1-IZ0-0.8), r2()*6.28, "#3f3a30",
         -Math.PI/2, 0);
   for(let i=0;i<8;i++){                            // sand in under the door
-    const g=blobGeo(0.5+r2()*0.5); g.scale(1.4, 0.05, 1.0);
-    m.P("sand", g, DX-1.6+r2()*3.0, FY+0.02, IZ0+0.30+r2()*1.2, r2()*6.28, "#b5a181", 0, 0);
+    const g=new T.SphereGeometry(0.5+r2()*0.5, 12, 7); g.scale(1.4, 0.055, 1.0);
+    m.P("sand", g, DX-1.6+r2()*3.0, FY+0.012, IZ0+0.30+r2()*1.2, r2()*6.28,
+        "#b5a181", 0, 0);
   }
 
   /* ---- the ceiling -------------------------------------------------------
@@ -555,6 +714,21 @@
         Math.PI/2, 0);
   }
   m.P("metal", boxGeo(1.20,0.05,0.86,0.5), -1.1, FY+0.06, -0.45, 0.4, "#7d817b", 0.08, 0.05);
+  /* Two panels out of the barrel and one hanging off its fixing. The dark
+     behind them is the roof space, which is the only thing up there that is
+     supposed to be black. */
+  for(const g of [[1.9,-0.9],[-2.6,0.7]]){
+    const z0=g[1]-0.34, z1=g[1]+0.34;
+    tilt("bin", 1.10, 0.05, z0, ceilY(z0)+0.055, z1, ceilY(z1)+0.055, "#1d1f1c", 0.5, g[0]);
+    for(let k=0;k<3;k++)                        // the batten behind, catching light
+      tilt("metal", 0.05, 0.05, z0, ceilY(z0)+0.10, z1, ceilY(z1)+0.10, "#6e746f",
+           0.4, g[0]-0.34+k*0.34);
+  }
+  m.P("metal", boxGeo(0.88, 0.04, 0.60, 0.5), 4.6, ceilY(0.6)-0.36, 0.62, 0.15,
+      "#cbc6b7", 0.88, 0.06);                   // the one that is still hanging
+  for(let i=0;i<7;i++)                          // and the dust coming through
+    m.P("soot", planeGeo(0.6+r2()*0.9, 0.5+r2()*0.7, 0), 1.9+(r2()-0.5)*1.6,
+        FY+0.024+i*0.0007, -0.9+(r2()-0.5)*1.4, r2()*6.28, "#4a4237", -Math.PI/2, 0);
 
   /* ---- the wall finishes -------------------------------------------------
      The shell's inner faces ARE the walls now, so these are linings over them
@@ -574,7 +748,15 @@
   m.P("roomwall", planeGeo(IX1-IX0, GY0-FY-0.05, 2.4), 0, FY+(GY0-FY)/2, IZ0+0.02,
       0, WOOD, 0, 0);
   m.B("metal", IX1-IX0, 0.07, 0.06, 0, GY0-0.05, IZ0+0.05, 0.4, 0, CHRD);
-  m.B("lino", IX1-IX0, 0.05, 0.16, 0, GY0+0.03, IZ0+0.09, 0.5, 0, LAMD);      // the sill
+  // stiles down the wainscot, so it reads as panelling and not as paint
+  for(let i=0;i<17;i++)
+    m.B("roomwall", 0.055, GY0-FY-0.10, 0.030, IX0+0.35+i*((IX1-IX0)-0.7)/16,
+        FY+(GY0-FY)/2, IZ0+0.045, 0.5, 0, "#879475");
+  m.B("roomwall", IX1-IX0, 0.045, 0.030, 0, FY+0.10, IZ0+0.045, 0.5, 0, "#879475");
+  // 0.12 and tucked back: at 0.16 it stood out to IZ0+0.17 and the booth
+  // benches began at IZ0+0.08, so the ledge ran straight through the end of
+  // every one of them
+  m.B("lino", IX1-IX0, 0.05, 0.12, 0, GY0+0.03, IZ0+0.07, 0.5, 0, LAMD);      // the sill
   // the end walls, taken up to the barrel in strips — and stopping short of
   // the one light in each end, or the lining boards straight over the window
   for(const sx of [-1,1])
@@ -649,13 +831,17 @@
     for(let i=0;i<4;i++)
       m.P("paper", planeGeo(0.09,0.13,0), KX+0.07, FY+1.48-i*0.03,
           PZ1-0.14+((i%2)?0.03:-0.03), 0, "#cfc6ae", 0, 0.2+i*0.3);
-    // the swing door itself, off one hinge and standing open into the kitchen
-    m.P("plank", boxGeo(0.90, 2.02, 0.055, 0.5), KX-0.38, FY+1.03, KDZ1-0.34,
-        0.62, "#6f7566", 0, 0.03);
-    m.P("bin", new T.CylinderGeometry(0.17,0.17,0.03,16), KX-0.35, FY+1.46, KDZ1-0.30,
-        0.62, "#22262a", 0, Math.PI/2+0.03);
-    m.P("glass", new T.CylinderGeometry(0.14,0.14,0.03,16), KX-0.33, FY+1.46, KDZ1-0.29,
-        0.62, "#3d4a48", 0, Math.PI/2+0.03);
+    /* The swing door itself, and a real one: it was a slab of geometry stuck
+       at a fixed angle, so the one door in the building you would actually
+       push was the one that could not move. XF at +pi/2 sends the leaf's own
+       +x down the bulkhead in -z, so hinging it at KDZ1 swings it across the
+       opening toward KDZ0. */
+    makeDoor(XF(D.x+KX, D.z+KDZ1, Math.PI/2), 0, m.y+FY, 0,
+             "THE KITCHEN", true, 0.30, "swing");
+    for(const q of [-1,1])                       // the jamb it hangs on
+      m.B("metal", 0.20, 2.10, 0.06, KX, FY+1.05, (q>0?KDZ1+0.03:KDZ0-0.03), 0.4, 0,
+          "#8a908a");
+    m.B("metal", 0.20, 0.06, KDZ1-KDZ0+0.12, KX, FY+2.13, (KDZ0+KDZ1)/2, 0.4, 0, "#8a908a");
     // what hangs on a bulkhead: the punch clock, the rack the cards went in,
     // an extinguisher on its bracket and a calendar nobody turned over
     const BFX=KX+0.08;
@@ -877,7 +1063,9 @@
      between them is laminate on a cast pedestal with a chrome band round the
      edge. */
   {
-    const BZ0=IZ0+0.06, BL=1.16, BZC=BZ0+BL/2+0.02;
+    // off the wall by 0.22, not 0.06 — clear of the window ledge above it,
+    // and a booth that is not jammed into the panelling
+    const BZ0=IZ0+0.22, BL=1.16, BZC=BZ0+BL/2+0.02;
     for(let b=0;b<4;b++){
       const bx0=BX0+b*BPITCH;                          // west bench centre line
       const gone=(b===2), split=(b===1);
@@ -1031,17 +1219,39 @@
           -1.60+Math.sin(i*1.571)*0.09, CHRD, 0, -i*1.571, 1.1);
     m.P("metal", new T.TorusGeometry(0.075,0.006,5,14), IX1-0.48, FY+1.42, -1.54,
         0.4, "#8e948e", 0.2, 0);
-    // a newspaper rack east of the door, and the papers that were in it
-    m.B("bin", 0.40, 0.52, 0.34, 6.85, FY+0.28, IZ0+0.32, 0.4, 0, "#46504c");
-    m.B("tvglass", 0.34, 0.26, 0.02, 6.85, FY+0.42, IZ0+0.15, 0, 0, "#20282a");
-    m.col(6.62, 7.08, IZ0, IZ0+0.52, 0, FY+0.56);
+    /* Everything here lives EAST of the lane through the door, which runs
+       from 4.88 to 6.12. The bin stood at 4.50 — inside the last booth's
+       bench — and the paper rack at 6.85 was in the corner the coat rack
+       wanted. */
+    m.B("bin", 0.40, 0.52, 0.34, 6.60, FY+0.28, IZ0+0.32, 0.4, 0, "#46504c");
+    m.B("tvglass", 0.34, 0.26, 0.02, 6.60, FY+0.42, IZ0+0.15, 0, 0, "#20282a");
+    m.col(6.38, 6.82, IZ0, IZ0+0.52, 0, FY+0.56);
     for(let i=0;i<7;i++)
-      m.P("paper", planeGeo(0.22,0.28,0), 6.4+r2()*0.9, FY+0.021+i*0.001,
+      m.P("paper", planeGeo(0.22,0.28,0), 6.3+r2()*0.7, FY+0.021+i*0.001,
           IZ0+0.30+r2()*0.7, r2()*6.28, "#c9c1aa", -Math.PI/2, 0);
-    // and a bin by the door that nobody emptied
-    m.C("bin", 0.19,0.16,0.52,14, 4.50, FY+0.26, IZ0+0.32, "#4f5a52");
-    m.C("metal", 0.20,0.20,0.03,14, 4.50, FY+0.53, IZ0+0.32, CHRX);
-    m.col(4.29, 4.71, IZ0+0.11, IZ0+0.53, 0, FY+0.54);
+    // the host's stand, standing off the wall the way one does
+    {
+      const hx=6.60, hz=-1.05;
+      m.B("oak", 0.52, 0.96, 0.42, hx, FY+0.48, hz, 0.5, 0, "#5c4a30");
+      m.B("lino", 0.58, 0.05, 0.48, hx, FY+0.97, hz, 0.8, 0, LAMD);
+      bullnose("metal", 0.58, 0.48, hx, FY+0.97, hz, 0.018, CHRD);
+      m.B("oak", 0.44, 0.03, 0.34, hx, FY+0.62, hz, 0.5, 0, "#4a3d2c");   // the shelf
+      for(let k=0;k<7;k++)                                    // the menus on it
+        m.P("paper", planeGeo(0.21,0.30,0), hx-0.04+((k%2)*0.03), FY+0.636+k*0.006,
+            hz+((k%3)-1)*0.03, 0.2*((k%3)-1), (k%2)?"#c9c1aa":"#bdb49c",
+            -Math.PI/2, 0);
+      m.P("paper", planeGeo(0.24,0.32,0), hx+0.02, FY+1.001, hz-0.02, 0.18,
+          "#cfc6ae", -Math.PI/2, 0);                          // the book, open
+      m.C("oak", 0.005,0.005,0.15,5, hx+0.16, FY+1.00, hz+0.10, "#c8a23c",
+          1.5, 0.8, 0);                                       // and a pencil
+      m.col(hx-0.31, hx+0.31, hz-0.27, hz+0.27, 0, FY+1.00);
+      m.P("paper", planeGeo(0.30,0.14,0), hx-0.30, FY+0.74, hz, -Math.PI/2,
+          "#cfc6ae", 0, 0.03);                                // PLEASE WAIT
+    }
+    // and the bin that nobody emptied, over in the corner
+    m.C("bin", 0.19,0.16,0.52,14, 7.05, FY+0.26, -0.30, "#4f5a52");
+    m.C("metal", 0.20,0.20,0.03,14, 7.05, FY+0.53, -0.30, CHRX);
+    m.col(6.84, 7.26, -0.51, -0.09, 0, FY+0.54);
   }
 
   /* ======================================================================
@@ -1138,10 +1348,30 @@
       else m.C("metal", 0.115,0.100,0.055,14, KW0+0.26, py+0.04, pz,
                (i%2)?"#7d837e":"#6e746f");
     }
-    // the walk-in door in the end wall, standing open on darkness
-    m.B("metal", 0.10, 1.90, 1.00, KW0+0.03, FY+0.95, IZ1-0.95, 0.4, 0, "#a2a89f");
-    m.B("bin", 0.03, 1.80, 0.90, KW0+0.12, FY+0.92, IZ1-0.95, 0, 0, "#16191a");
-    m.C("metal", 0.020,0.020,0.22,8, KW0+0.16, FY+1.00, IZ1-1.37, CHRD);
+    /* A reach-in, not a walk-in. The end wall of a diner car has the desert
+       on the other side of it, so a cooler door in it opened onto nothing —
+       and it could not be made to work either, because the lane a door probe
+       walks would have run straight into the shell. A cabinet standing
+       against the wall is the thing that was actually in these. */
+    {
+      const rx2=KW0+0.42, rz2=IZ1-1.05;
+      m.B("metal", 0.80, 1.94, 1.10, rx2, FY+0.97, rz2, 0.45, 0, "#9aa09a");
+      m.B("metal", 0.84, 0.08, 1.14, rx2, FY+1.97, rz2, 0.4, 0, "#8a908a");
+      m.B("bin",   0.03, 1.66, 0.94, rx2+0.40, FY+0.92, rz2, 0, 0, "#3a423e");
+      m.B("tvglass",0.02, 1.42, 0.78, rx2+0.42, FY+0.98, rz2, 0, 0, "#1d2724");
+      for(let k=0;k<3;k++)                          // what is left on the shelves
+        m.B("metal", 0.02, 0.02, 0.74, rx2+0.41, FY+0.54+k*0.42, rz2, 0, 0, "#6e746f");
+      m.C("metal", 0.022,0.022,0.70,8, rx2+0.45, FY+1.00, rz2-0.40, CHR);
+      m.B("metal", 0.05,0.05,0.05, rx2+0.45, FY+1.30, rz2-0.40, 0, 0, CHRD);
+      m.B("metal", 0.05,0.05,0.05, rx2+0.45, FY+0.70, rz2-0.40, 0, 0, CHRD);
+      m.B("metal", 0.70, 0.22, 0.98, rx2, FY+2.12, rz2, 0.4, 0, "#7d837e");   // the deck
+      for(let k=0;k<5;k++)
+        m.B("metal", 0.64, 0.02, 0.03, rx2, FY+2.06+k*0.045, rz2, 0, 0, "#6b716b");
+      m.col(rx2-0.44, rx2+0.44, rz2-0.58, rz2+0.58, 0, FY+1.96);
+      for(let i=0;i<9;i++)                          // rust up the foot of it
+        m.P("rust", planeGeo(0.09+r2()*0.09, 0.22+r2()*0.22, 0), rx2+0.44,
+            FY+0.22, rz2-0.44+r2()*0.88, -Math.PI/2, "#7c4526", 0, 0);
+    }
     // a mop, a bucket and a crate of empties
     m.C("bin", 0.17,0.14,0.26,14, KW0+2.95, FY+0.13, 0.55, "#4f5a52");
     m.C("oak", 0.017,0.017,1.32,8, KW0+2.85, FY+0.66, 0.67, "#6d5a3e", 0.16, 0, 0.10);
@@ -1219,6 +1449,24 @@
       m.P("glass", g, px, CY+0.165, CTZ1-0.26, 0, "#8a9a94", 0, 0); }
     m.C("metal", 0.022,0.022,0.035,10, px, CY+0.315, CTZ1-0.26, CHRD);
   }
+  {                                                  // a coffee pot left on the warmer
+    const px=KX+2.95;
+    m.C("metal", 0.085,0.085,0.030,14, px, FY+0.90, BBZ0+0.02, CHRD);
+    m.C("glass", 0.070,0.058,0.155,14, px, FY+0.99, BBZ0+0.02, "#4a3a28");
+    m.C("glass", 0.062,0.070,0.035,14, px, FY+1.085, BBZ0+0.02, "#8a9a94");
+    m.P("bin", boxGeo(0.10,0.030,0.030,0.4), px+0.08, FY+1.02, BBZ0+0.02, 0.5, "#2b3230");
+  }
+  {                                                  // a broom nobody put away
+    const px=KX+5.40;
+    m.C("oak", 0.016,0.016,1.32,8, px, FY+0.68, BBZ0-0.12, "#8a7248", 0.20, 0, 0.06);
+    m.B("bin", 0.26, 0.07, 0.10, px+0.13, FY+0.07, BBZ0-0.24, 0.4, 0.06, "#6a5f42");
+    for(let k=0;k<9;k++)
+      m.C("foliage", 0.006,0.006,0.16,4, px+0.02+k*0.026, FY+0.06, BBZ0-0.24,
+          "#7a6a46", 0.1, 0, 0.05);
+  }
+  for(let i=0;i<5;i++)                               // a bus tub of plates, never cleared
+    m.C("plaster", 0.088,0.088,0.016,14, CX1-1.95, CY+0.135+i*0.019, CTZ1-0.30, "#bfb6a0");
+  m.B("bin", 0.42, 0.14, 0.32, CX1-1.95, CY+0.10, CTZ1-0.30, 0.4, 0, "#4b5450");
   for(let i=0;i<14;i++)                              // broken glass under the window
     m.P("glass", planeGeo(0.09+((i*5)%3)*0.05, 0.07+((i*3)%3)*0.04, 0),
         IX0+1.0+((i*2.7)%(IX1-IX0-2.0)), FY+0.022, IZ0+0.30, i*1.1, "#8a9a94",

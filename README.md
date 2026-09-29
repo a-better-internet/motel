@@ -441,14 +441,25 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   1971, the pool of light each lit machine throws onto the slab in front of it,
   and one door down the far end standing ajar with the light on behind it.
 - **A diner car, nine hundred metres east.** A prefabricated diner, built like
-  a railway carriage and trucked out to a graded apron beside the highway: a
+  a railway carriage and trucked out to a graded lot on the north shoulder,
+  entrance square to the highway with a dirt drive coming in over the kerb: a
   rounded box with no square corners, a glazed checkerboard skirt, fluted
   stainless above and below a band of windows, a cornice of vertical ribs, and
-  a barrel roof with a clerestory monitor riding the crown. Its sign stands on
-  two posts above the lot and lights after dark. Inside is one room — a
-  counter with eight stools and the diamond-quilted panel behind it, booths
-  down the window side, a hex tile floor, pendant lamps, a porthole door into
-  the kitchen, and paper all over the floor.
+  a barrel roof with a clerestory monitor riding the crown. Nothing on it is
+  lit — the sign is painted steel that stays dark, and the lamps that used to
+  wash it hang off their conduit. Inside, the barrel comes down over your head
+  as a ribbed ceiling; the counter runs the length of the back wall with
+  twelve swivel stools in front of it — cast bases, foot rings, buttoned pads,
+  two down to the floor flange and one over on its side — the diamond-quilted
+  panel, twin urns, a milkshake mixer, a pie case and the register behind it,
+  and four booths down the window side with channelled backs, cap rails, coat
+  hooks, laminate tables on cast pedestals and a chrome wall box on the ledge
+  at every one of them, wired back to a jukebox that is not there any more.
+  Through the bulkhead is the
+  kitchen, which you can walk into: cook line, hood and flue, fryer, prep
+  table, dish sink, wire shelving and a walk-in standing open on the dark. By
+  day it is lit through the window band and the door somebody left open; after
+  dark it is as black as the desert and you go in with the torch.
 - **A tracking station, six hundred metres back.** A parabolic dish on an
   alt-az mount over a lattice pedestal, a control room you can walk into, a
   plant hut, a half-buried cable duct between them, and a ring of little white
@@ -471,8 +482,12 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   crooked and never straightened.
 - **Weather and traffic.** Cumulus built the way a cloud is actually shaped — a
   row of lobes on a flat base, shaded underneath, sunlit on top — with a thin
-  cirrus layer above it, and three vehicles working the highway day and night,
-  headlights on after dark.
+  cirrus layer above it, and sixteen vehicles working the highway day and
+  night, headlights on after dark. They keep right — eastbound in the north
+  lane, westbound in the south — and they are solid: pull out in front of one
+  and it hits you and puts you off the road. A pedestrian it passes straight
+  through, because a box sweeping over you at thirty metres a second would
+  only hold you still inside it until it had gone.
 
 ## Putting your own pictures in it
 

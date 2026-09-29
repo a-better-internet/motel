@@ -757,14 +757,17 @@ function signPanel(w,h,tex,x,y,z,ry,lit){
    the sign, so it is drawn rather than faked with noise.               */
 TEX.quilt=(function(){                       // diamond-quilted stainless
   const c=cvs(256,256), x=c.getContext("2d");
-  x.fillStyle="#8e928c"; x.fillRect(0,0,256,256);
+  // brighter than it was: this panel stands on the north wall of the diner
+  // behind a counter that shades it, and at the old tone it read as a black
+  // wall with a pattern on it rather than as stainless
+  x.fillStyle="#b0b4ad"; x.fillRect(0,0,256,256);
   const D=64;                                 // one diamond
   for(let j=-1;j<5;j++) for(let i=-1;i<5;i++){
     const cx=i*D+(j&1?D/2:0), cy=j*D/2+D/4;
     // each diamond is a shallow pillow: lit on the upper left, dark lower right
     const g=x.createLinearGradient(cx-D/2, cy-D/4, cx+D/2, cy+D/4);
-    g.addColorStop(0,"#d6dad2"); g.addColorStop(0.45,"#a8ada6");
-    g.addColorStop(0.62,"#7d827c"); g.addColorStop(1,"#5e635e");
+    g.addColorStop(0,"#eef1ea"); g.addColorStop(0.45,"#c6cac2");
+    g.addColorStop(0.62,"#9aa099"); g.addColorStop(1,"#787d78");
     x.fillStyle=g;
     x.beginPath(); x.moveTo(cx,cy-D/4); x.lineTo(cx+D/2,cy);
     x.lineTo(cx,cy+D/4); x.lineTo(cx-D/2,cy); x.closePath(); x.fill();
@@ -773,7 +776,7 @@ TEX.quilt=(function(){                       // diamond-quilted stainless
     x.beginPath(); x.moveTo(cx-D/2,cy); x.lineTo(cx,cy-D/4); x.lineTo(cx+D/2,cy); x.stroke();
   }
   for(let i=0;i<150;i++){                     // forty years of grease and dust
-    x.fillStyle="rgba(58,50,40,"+(0.04+Math.random()*0.13).toFixed(2)+")";
+    x.fillStyle="rgba(58,50,40,"+(0.03+Math.random()*0.10).toFixed(2)+")";
     x.beginPath(); x.arc(Math.random()*256, Math.random()*256,
                          3+Math.random()*26, 0, 7); x.fill();
   }

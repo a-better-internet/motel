@@ -51,6 +51,14 @@ is called, every script has run.
 scripts share one global lexical scope, which is what lets these twenty-three files
 behave exactly like the single file they came from.
 
+**A wall you can stand inside has to be a ring, not a slab.** A course of
+wall built as one box the full width of the building reads correctly from
+outside and is a disaster in: the underside of the course above the windows
+becomes the ceiling of the room, everything above it disappears, and the
+course at eye level is not there at all, so the back wall is open desert.
+Anything with an interior gets four thin runs and a corner at each end —
+`band()` in `14d-diner.js` is the worked example.
+
 **The desert is three files that share three helpers.** `14-desert.js` defines
 `G`, `mk` and `mkPi` at file scope and `14b` / `14c` use them. They were all
 inside one `desertFinds` IIFE three thousand lines long; the blocks inside it
@@ -66,5 +74,7 @@ The harness in the scratchpad drives a headless build: `sync.sh` mirrors
 `js/` next to a local three.js, `r17c.js` is the smoke test, `doors18.js`
 walks every doorway, `stuck26.js` hunts for places the player cannot leave,
 `float.js` looks for clusters hanging in the air, `coplanar.js` finds faces
-sharing a plane, and `drive29.js` / `jump30.js` / `jitter31.js` exercise the
-car.
+sharing a plane, `reach33.js` floods a building's floor from its front door
+and says which rooms you can actually get to, `why33.js` walks a line and
+names whatever is standing in it, and `drive29.js` / `jump30.js` /
+`jitter31.js` exercise the car.

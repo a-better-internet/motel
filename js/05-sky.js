@@ -520,12 +520,24 @@ const GLOW_TEX=(function(){
       g.add(ts); lamps.push({s:ts, head:false, soft:true});
     }
     scene.add(g);
-    return {g:g, lamps:lamps, kind:kind};
+    /* Something moving at thirty metres a second is a solid object. The
+       extents are kept in the vehicle's own frame — nose and tail down its
+       length, hw across it — and turned into a world AABB every frame by
+       updateTraffic, because which way round nose and tail land in x depends
+       on which way the thing is going. */
+    return {g:g, lamps:lamps, kind:kind, nose:nose, tail:tail,
+            hw:(kind===2?1.26:1.05), ht:(kind===2?3.70:1.50),
+            col:{x0:0,x1:0,z0:0,z1:0,y0:0,y1:0}};
   }
   // The wrap moved out to 1500 m so nothing is seen appearing, which spread
   // three cars over four kilometres of road. Sixteen puts them past the old
   // sighting rate by about a fifth.
-  const lanes=[[ROADZ-2.2, 1], [ROADZ+2.2, -1]];
+  /* +x is east and +z is north, so the right-hand side of an eastbound car
+     is the NORTH half of the road — the motel's side. Eastbound therefore
+     belongs at ROADZ+2.2 and westbound at ROADZ-2.2; they were the other way
+     round, which is two lanes of oncoming traffic passing on the wrong side
+     of each other. */
+  const lanes=[[ROADZ+2.2, 1], [ROADZ-2.2, -1]];
   for(let i=0;i<16;i++){
     const kind=[0,1,0,2,1,0][i%6];
     const v=vehicle(kind, BODY[(i*3+((i/4)|0))%BODY.length]);
@@ -543,7 +555,14 @@ function updateTraffic(dt, dark){
     // wrap well past the fog, so nothing is ever seen appearing or vanishing
     if(v.x> 1500) v.x=-1500;
     if(v.x<-1500) v.x= 1500;
-    v.g.position.set(v.x, Terrain.heightAt(v.x, v.z)+0.02, v.z);
+    const gy=Terrain.heightAt(v.x, v.z)+0.02;
+    v.g.position.set(v.x, gy, v.z);
+    // the shell's world box, for carHits — nose leads, whichever way it runs
+    const c=v.col;
+    c.x0=v.x+(v.dir>0 ? v.tail : -v.nose);
+    c.x1=v.x+(v.dir>0 ? v.nose : -v.tail);
+    c.z0=v.z-v.hw; c.z1=v.z+v.hw;
+    c.y0=gy;       c.y1=gy+v.ht;
     const lit=dark>0.04;                       // no lamp draws at all by day
     for(const L of v.lamps){
       L.s.visible=lit;

@@ -22,6 +22,14 @@ const COL_DYN=[];// colliders that move: the cars, and only the cars
    and anything spanning a silly number of cells is kept in a short list
    that is always checked. */
 const COL_BIG=[], CG=12, CPAD=1.4;
+/* The highway traffic. It is solid to a car and NOT to a pedestrian: a
+   sedan doing thirty sweeps its box over you in a third of a second, and
+   blocked() would simply hold you still inside it until it had gone by,
+   which reads as being stuck rather than as being hit. So it gets its own
+   list, checked by carHits and by nothing else. TRAFFIC is built in
+   05-sky.js, which loads before this file, so the boxes can be collected
+   here once; updateTraffic keeps each one in step with its vehicle. */
+const COL_TRAF=TRAFFIC.map(v=>v.col);
 let COLG=null;
 function buildColGrid(){
   COLG=new Map(); COL_BIG.length=0;

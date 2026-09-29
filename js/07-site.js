@@ -162,7 +162,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     [-654,-606, -90, -46],   // the burying ground
     [-580,-552,  22,  50],   // the adit bench and its spoil fan
     [-300,-200,-700,-600],   // the tracking station's pad
-    [ 872, 932, -100,  -46],   // the diner car and its apron
+    [ 872, 932,  -48,    2],   // the diner car and its apron
   ];
   const built=(x,z)=>{
     for(const r of KEEP_CLEAR) if(x>r[0]&&x<r[1]&&z>r[2]&&z<r[3]) return true;

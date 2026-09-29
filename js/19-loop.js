@@ -649,6 +649,8 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                gifDecode:gifDecode, gifFrames:gifFrames,
                seats:SEATS, geckos:GECKOS, seatedNow:()=>!!seated, sit:sitToggle,
                cols:COL, colsDyn:COL_DYN, showCar:showCar,
+               traffic:TRAFFIC, colsTraf:COL_TRAF,
+               stepTraffic:(dt)=>updateTraffic(dt, 0),
                setStepAlpha:(a)=>{ stepAlpha=a; },
                cars:CARS, drivingNow:()=>driving, enterCar:enterCar, exitCar:exitCar,
                nearestCar:nearestCar,

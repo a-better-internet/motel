@@ -223,7 +223,8 @@ function carHits(px,pz,yaw,lo,hi,skip){
     const x=px+p[0]*cy+p[1]*sy, z=pz-p[0]*sy+p[1]*cy;
     if(hitsAny(colsNear(x,z), x,z,0.12,lo,hi,skip) ||
        hitsAny(COL_BIG,       x,z,0.12,lo,hi,skip) ||
-       hitsAny(COL_DYN,       x,z,0.12,lo,hi,skip)) return true;
+       hitsAny(COL_DYN,       x,z,0.12,lo,hi,skip) ||
+       hitsAny(COL_TRAF,      x,z,0.12,lo,hi,skip)) return true;
   }
   return false;
 }
@@ -273,6 +274,40 @@ function updateCars(dt){
   if(pen>0){
     b.position.y += Math.min(pen, 4.0*dt*60);
     if(b.velocity.y<0) b.velocity.y=0;
+  }
+  /* Being blocked by the traffic is not the same as being hit by it. The
+     axis revert above holds the car still while a truck doing thirty sweeps
+     its box across it, which reads as sticking rather than as a collision.
+     So an actual overlap also lands one impulse — down the road the way the
+     thing was going, plus a shove off the centre line and a little spin —
+     and then that vehicle is marked until it is clear again, or it would
+     hand out the same impulse sixty times a second. */
+  const cy0=b.position.y-CAR_RIDE;
+  for(let i=0;i<TRAFFIC.length;i++){
+    const tv=TRAFFIC[i], c=tv.col;
+    const over = b.position.x>c.x0-1.4 && b.position.x<c.x1+1.4 &&
+                 b.position.z>c.z0-1.2 && b.position.z<c.z1+1.2 &&
+                 cy0+1.4>c.y0 && cy0<c.y1;
+    if(!over){ tv.struck=false; continue; }
+    if(tv.struck) continue;
+    tv.struck=true;
+    const heavy=(tv.kind===2?1.9:1.0);
+    const off=b.position.z-(c.z0+c.z1)/2;
+    b.velocity.x += tv.dir*tv.speed*0.30*heavy;
+    b.velocity.z += (off>=0?1:-1)*(3.2+2.6*heavy);
+    b.velocity.y += 1.1;
+    b.angularVel.y += (off>=0?1:-1)*tv.dir*1.5;
+    const sp=b.velocity.length();
+    if(sp>44) b.velocity.multiplyScalar(44/sp);
+    /* And put it clear of the box in the same breath. Velocity alone does
+       nothing here: the thing that hit you goes on covering your own
+       position for most of a second, the axis revert above puts you back
+       every step and takes 82% of the speed off each time, and by the time
+       the box has gone by there is nothing left of the shove. Only move it
+       if where it is going is actually free, or a truck could post a car
+       into a fence and leave it inside one. */
+    const tz=(off>=0 ? c.z1+2.6 : c.z0-2.6);
+    if(!carHits(b.position.x, tz, yaw, lo, hi, car.col)) b.position.z=tz;
   }
   car.spin += (b.velocity.dot(b.forward())/CARC.wheelRadius)*dt;
 }

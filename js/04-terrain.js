@@ -98,7 +98,9 @@ const Terrain=(function(){
      a graded pad beside the road, and it needs level ground under it for the
      same reason the tracking station does — the middle ring is seven metre
      cells out here and a building on raw desert sits on a facet.        */
-  const DINER={x:902, z:ROADZ-27, y:0.35, r:12, blend:9};
+  // North of the road, because the entrance is on the car's -z face and a
+  // diner's door faces the highway it was put there to catch.
+  const DINER={x:902, z:ROADZ+25, y:0.02, r:13, blend:10};
   function dinerPad(x,z,h){
     const d=Math.hypot(x-DINER.x, z-DINER.z);
     if(d>DINER.r+DINER.blend) return h;
@@ -106,7 +108,11 @@ const Terrain=(function(){
   }
   function heightAt(x,z){
     const d=padDist(x,z);
-    if(d<=0.001) return PAD_Y;
+    // The apron is graded up out of the highway corridor and its blend runs
+    // back down into it, so it has to be applied on this path too. Returning
+    // the flat sub-base here put a six-centimetre step through the middle of
+    // the building, along the line where the corridor ends.
+    if(d<=0.001) return dinerPad(x,z,PAD_Y);
     const t=smoothstep(0,46,d);                                   // graded shoulder
     const dune=(fbm(x*0.0060+31, z*0.0060+31)-0.5)*10
              + (fbm(x*0.0210,    z*0.0210)   -0.5)*1.9;

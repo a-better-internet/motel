@@ -455,9 +455,15 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   and four booths down the window side with channelled backs, cap rails, coat
   hooks, terrazzo tables on cast pedestals and a chrome wall box on the ledge
   at every one of them, wired back to a jukebox that is not there any more.
-  A host's stand inside the door still has the menus in it. Through the
-  bulkhead — past a swing door with a porthole that you can push either way —
-  is the
+  A host's stand inside the door still has the menus in it, and the wall
+  behind the till carries a mirror strip, a hat rail and the licences in
+  cheap frames. Outside, the slab it stands on is aged rather than
+  decorated: wandering slab joints, cracks that fork, tar patches, spalled
+  aggregate, soft blooms of weathering, oil where five cars stood and four
+  stall lines worn back to broken dashes, with the edge of the pour lapped
+  over by the gravel lot and the sand lying over the lot in tongues, heaviest
+  at the rim where nothing has driven for forty years. Through the bulkhead —
+  past a swing door with a porthole that you can push either way — is the
   kitchen, which you can walk into: cook line, hood and flue, fryer, prep
   table, dish sink, wire shelving and a reach-in with the glass gone. By
   day it is lit through the window band and the door somebody left open; after
@@ -602,12 +608,19 @@ headless Chromium and asks the scene about itself rather than looking at it:
   triangle count and whether it carries a map. It found 70% of the world's
   triangles on materials with none — foliage alone is 45% of the world and was
   flat colour — which is now 12%;
+- a seam probe, which hides each terrain ring in turn and measures how far
+  apart two rings are along the border they share — the only way to tell a
+  hole in the world from a hole in one mesh;
+- a reach probe, which floods a building's floor from its front door and says
+  which rooms you can actually get to, and a blocker probe that walks a line
+  and names whatever is standing in it;
 - a fixed-step movement probe (`MOTEL.sim`) for anything about speed or keys.
 
 ## How it is built
 
-`index.html` is the whole game — one file, one IIFE, three.js r128 from cdnjs,
-no bundler and no image assets. It follows two references:
+`index.html` plus twenty-three scripts in `js/` are the whole game — classic
+scripts in one shared scope, three.js r128 from cdnjs, no bundler and no image
+assets. It follows two references:
 
 - The **Coconuts scene technical style guide** for the engine and the look:
   every texture is drawn at runtime into a 2D canvas, materials default to high
@@ -631,10 +644,17 @@ A few pieces are specific to this scene:
   the ground floor and the balcony independently. Walkable surfaces are flat
   plates and ramps; the player takes the highest one within step-up reach, which
   is all an outdoor stair needs.
-- **A hole in the ground.** The terrain is built as a hand-rolled grid rather
-  than a `PlaneGeometry` so cells can be dropped — the pool tank is a real void,
-  and three rings (2 m over the site, 7 m across the canyon country, 24 m to the
-  horizon) each cut a hole for the finer one inside it.
+- **A hole in the ground, and not one in the sky.** The terrain is built as a
+  hand-rolled grid rather than a `PlaneGeometry` so cells can be dropped — the
+  pool tank is a real void, and four rings (0.5 m at the adit, 2 m over the
+  site, 6 m across the canyon country, 12 m to the horizon) each cut a hole for
+  the finer one inside it. Two rules make the seams between them close: the
+  coarser cell has to be a whole multiple of the finer one, so the two rings
+  sample the shared border in step, and the inner ring's box has to land on the
+  outer ring's lattice at all four edges, or the cells that straddle an edge are
+  not dropped. Each ring also hangs an apron down from its outer border AND from
+  every hole rim, deep enough to swallow what the two still disagree about where
+  an escarpment crosses the seam.
 - **Light you can look at.** Tone mapping is off, per the style guide, so
   nothing may exceed a radiance of 1. Fixtures run at low intensity with a decay
   around 1.2 rather than the physical 2, which spreads the falloff and keeps
@@ -682,8 +702,8 @@ A few pieces are specific to this scene:
   of the arithmetic rather than being animated on top of it. It runs to about
   86 mph, the headlights come on after dark, and the compass and the speed
   readout follow the bonnet.
-- **Twenty-two files, one scope.** The world used to be one 12,000-line
-  `index.html`. It is now `index.html` plus twenty-two scripts in `js/`,
+- **Twenty-three files, one scope.** The world used to be one 12,000-line
+  `index.html`. It is now `index.html` plus twenty-three scripts in `js/`,
   loaded in order and sharing one global scope — `js/README.md` has the map.
   No modules and no build step, deliberately: ES modules will not load from a
   `file://` page and this is meant to open by double-clicking it. The one

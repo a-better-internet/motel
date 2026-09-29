@@ -506,6 +506,17 @@ function furnishRoom(xf, y0, roomNo){
   // ending in a knife edge
   const noseZ=(bucket,len,r,x,y,z,col)=>P(bucket, new T.CylinderGeometry(r,r,len,10), x,y,z, col, Math.PI/2, 0);
   const noseX=(bucket,len,r,x,y,z,col)=>P(bucket, new T.CylinderGeometry(r,r,len,10), x,y,z, col, 0, Math.PI/2);
+  const knob=(bucket,r,x,y,z,col)=>P(bucket, new T.SphereGeometry(r,9,7), x,y,z, col);
+  /* A rolled edge all the way round a top: two runs, two returns and a ball
+     at each corner. Every case and cabinet in here was a box ending in a
+     ninety-degree arris, which is the one thing that reads as untouched
+     geometry rather than as furniture. */
+  const roundTop=(bucket,w,d,x,y,z,r,col)=>{
+    noseZ(bucket, d, r, x-w/2, y, z, col);  noseZ(bucket, d, r, x+w/2, y, z, col);
+    noseX(bucket, w, r, x, y, z-d/2, col);  noseX(bucket, w, r, x, y, z+d/2, col);
+    for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]])
+      knob(bucket, r, x+a[0]*w/2, y, z+a[1]*d/2, col);
+  };
 
   /* --- bathroom ---------------------------------------------------------
      Tub along the long right-hand wall, toilet in the near-left corner with
@@ -627,7 +638,7 @@ function furnishRoom(xf, y0, roomNo){
     const nz=ns[0];
     B("oak", 0.50,0.54,0.48, 2.42, 0.27, nz, 0.7, pal.head);
     B("oak", 0.56,0.05,0.54, 2.42, 0.56, nz, 0.7, pal.head);
-    noseZ("oak", 0.54, 0.035, 2.16, 0.56, nz, pal.head);
+    roundTop("oak", 0.56, 0.54, 2.42, 0.56, nz, 0.028, pal.head);
     C(0.52,0.52, 2.42,nz, 0.60);
     if(ns[1]==="lamp"){
       B("metal",0.10,0.30,0.10, 2.42, 0.73, nz, 0, "#b8a67e");
@@ -648,9 +659,16 @@ function furnishRoom(xf, y0, roomNo){
   B("oak", 0.44,0.78,1.94, -2.48, 0.39, 2.60, 0.6, "#6f4a2c");
   for(let k=0;k<3;k++) B("oak", 0.05,0.20,1.74, -2.27, 0.24+k*0.24, 2.60, 0, "#4d3520");
   B("oak", 0.50,0.06,2.00, -2.48, 0.81, 2.60, 0.6, "#7a5636");
-  noseZ("oak", 2.00, 0.04, -2.25, 0.81, 2.60, "#7a5636");
+  roundTop("oak", 0.50, 2.00, -2.48, 0.81, 2.60, 0.032, "#7a5636");
+  for(let k=0;k<3;k++) for(const dz2 of [-0.52,0.52])
+    noseZ("metal", 0.22, 0.016, -2.235, 0.24+k*0.24, 2.60+dz2, "#b8a67e");
   C(0.50,1.98, -2.48,2.60, 0.86);
   B("paint",0.44,0.42,0.58, -2.44, 1.05, 2.10, 0, "#2f2f2e");                // television
+  roundTop("paint", 0.44, 0.58, -2.44, 1.26, 2.10, 0.030, "#2f2f2e");        // its case
+  roundTop("paint", 0.44, 0.58, -2.44, 0.84, 2.10, 0.030, "#2f2f2e");
+  for(const q of [-1,1]) for(const q2 of [-1,1])
+    P("paint", new T.CylinderGeometry(0.030,0.030,0.42,9), -2.44+q*0.22, 1.05,
+      2.10+q2*0.29, "#2f2f2e");
   B("paint",0.03,0.38,0.52, -2.215, 1.06, 2.10, 0, "#191919");               // bezel
   PY("pic:tv:"+(roomNo%4), planeGeo(0.44,0.33,0), -2.196, 1.06, 2.10, Math.PI/2, "#ffffff");
   B("metal",0.03,0.28,0.03, -2.46, 1.38, 2.32, 0, "#9a9a94");
@@ -661,8 +679,11 @@ function furnishRoom(xf, y0, roomNo){
     P("glass", new T.CylinderGeometry(0.040,0.034,0.10,10), -2.44, 0.89, 3.86+t, "#cfe0e6");
   // fridge and microwave stacked at the back of the dresser wall
   B("paint", 0.44,0.72,0.54, -2.48, 0.36, 4.30, 0, "#d8d4c8");
+  roundTop("paint", 0.44, 0.54, -2.48, 0.72, 4.30, 0.026, "#d8d4c8");        // the fridge
   B("metal", 0.03,0.58,0.05, -2.25, 0.36, 4.06, 0, "#9a9a94");
+  noseZ("metal", 0.58, 0.014, -2.235, 0.36, 4.06, "#b8b4a8");
   B("paint", 0.40,0.30,0.60, -2.48, 0.87, 4.30, 0, "#2f2f2e");
+  roundTop("paint", 0.40, 0.60, -2.48, 1.02, 4.30, 0.022, "#2f2f2e");        // the microwave
   P("tvglass", boxGeo(0.03,0.16,0.34,0), -2.27, 0.88, 4.30, "#1d262b");
   C(0.48,0.66, -2.48,4.30, 1.05);
   // the mirror by the door: hung ON the wall, not IN it
@@ -683,10 +704,15 @@ function furnishRoom(xf, y0, roomNo){
     const cz2=0.92+dz, cxx=cx2+dx;
     addSeat(xf.x(cxx,cz2), xf.z(cxx,cz2), y0+0.50, xf.ry+(cx2<0?-1.15:1.15), "THE CHAIR");
     B("oak", 0.46,0.06,0.46, cxx, 0.44, cz2, 0.7, "#6f4a2c");
+    roundTop("oak", 0.46, 0.46, cxx, 0.44, cz2, 0.026, "#6f4a2c");
     B("spread",0.42,0.10,0.42, cxx, 0.51, cz2, 0.5, spread);
+    roundTop("spread", 0.42, 0.42, cxx, 0.545, cz2, 0.048, spread);
     for(const d of [[-0.18,-0.18],[0.18,-0.18],[-0.18,0.18],[0.18,0.18]])
       B("oak", 0.05,0.44,0.05, cxx+d[0], 0.22, cz2+d[1], 0, "#5c4029");
     B("oak", 0.05,0.46,0.44, cxx+(cx2<0?-0.20:0.20), 0.70, cz2, 0.7, "#6f4a2c");
+    noseZ("oak", 0.44, 0.030, cxx+(cx2<0?-0.20:0.20), 0.93, cz2, "#6f4a2c");
+    for(const q of [-1,1])
+      knob("oak", 0.030, cxx+(cx2<0?-0.20:0.20), 0.93, cz2+q*0.22, "#6f4a2c");
     if(outs===2)                               // a towel left over the back of this one
       P("bedding", boxGeo(0.10,0.34,0.40,0.4), cxx+(cx2<0?-0.22:0.22), 0.78, cz2,
         "#eceadf", 0, 0.04);

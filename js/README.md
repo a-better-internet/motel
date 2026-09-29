@@ -59,6 +59,54 @@ course at eye level is not there at all, so the back wall is open desert.
 Anything with an interior gets four thin runs and a corner at each end —
 `band()` in `14d-diner.js` is the worked example.
 
+**A doorway is a hole in every course, not just the one with the frame in
+it.** The diner's front entrance had a collider hole, a step up to it and a
+door leaf hung in it, and `doors18.js` reported the lane clear every single
+run — because the thing blocking it carried no collider at all. Three
+decorative courses of the shell (the tile skirt, its capping, the stainless
+below the glass) ran unbroken along the road face, so there was 72 cm of
+wall standing in the opening that you could walk straight through and still
+not see past. `band()` takes a `gap` flag now and splits the road-face run
+either side of the door, and the fluting that crosses the head is split the
+same way. If you add a course to a wall with a door in it, split it.
+
+**A skirt emitted in both windings shades black.** The aprons that hide the
+cracks between terrain rings were built as double-wound quads so they would
+show whichever side the crack opened on. `computeVertexNormals` sums face
+normals per vertex and two opposite windings sum to zero, so every skirt
+vertex came out with no normal and shaded pure black: the apron was hiding
+the sky behind a strip of void, which looked like the same hole. They are
+single-wound now and the terrain material is `DoubleSide`, which makes
+three.js flip the normal on back faces instead.
+
+**Decals stack, so the order you write them in is the order they read —
+and the step has to fit the count.** Everything scattered on a flat surface
+here is a plane a fraction of a millimetre above the one under it, indexed
+off a counter. Two ways that goes wrong. Write the crack pattern first and
+three passes of weathering on top and the cracks are gone, which is how the
+diner's apron ended up as soft grey clouds with no crack in it; the thing
+you want read goes LAST. And give five hundred decals a 0.4 mm step and the
+topmost one is twenty centimetres in the air, so a count and a step are one
+decision, not two — trim the count until a step that survives z-fighting
+still fits inside a few centimetres.
+
+**A vertex colour can only ever darken the texture under it.** `TEX.gravel`
+is built on `#8a5f45`, so two dozen "spalled concrete" patches drawn in that
+bucket came out as orange-red tiles scattered over grey; `TEX.paint` and
+`TEX.sand` are bright, so "nearly gone" stall lines came out fresh white and
+"blown sand" came out as spilled cement. Pick the bucket for the colour you
+want to end at, not the material you would name the thing after.
+
+**Two terrain rings that meet have to sample the border in step.** The
+coarse ring had 12 m cells and the middle one 7 m, so along the shared line
+the two only touched ground at the same place every 84 m. Where an
+escarpment crossed the seam the ground moved 46 m across one coarse cell and
+all of it could open as sky. The middle ring is 6 m now — 12 is a whole
+number of 6 — so every coarse node on the border falls on a fine node too.
+Whatever cell sizes you pick, the outer one has to be an exact multiple of
+the inner one, and the inner ring's box has to land on the outer ring's
+lattice at all four edges.
+
 **The desert is three files that share three helpers.** `14-desert.js` defines
 `G`, `mk` and `mkPi` at file scope and `14b` / `14c` use them. They were all
 inside one `desertFinds` IIFE three thousand lines long; the blocks inside it
@@ -77,4 +125,6 @@ walks every doorway, `stuck26.js` hunts for places the player cannot leave,
 sharing a plane, `reach33.js` floods a building's floor from its front door
 and says which rooms you can actually get to, `why33.js` walks a line and
 names whatever is standing in it, and `drive29.js` / `jump30.js` /
-`jitter31.js` exercise the car.
+`jitter31.js` exercise the car. `seam35.js` hides each terrain ring in turn
+and measures how far apart the rings are along their shared border, which is
+the only way to tell a hole in the world from a hole in one mesh.

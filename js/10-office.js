@@ -297,18 +297,38 @@
          cx+1.2+Math.cos(a)*0.52, y0+h-0.50, cz+0.4+Math.sin(a)*0.52, 0, "#f0e0b0");
   }
   OC("metal", 0.02,0.02,0.50,6, cx+1.2, h-0.30, cz+0.4, "#6b6f72");
-  // The office read as one flat wash of amber. The chandelier stays warm but
-  // goes paler, and three low fills — a cool one off the shopfront glazing and
-  // two soft ones down the room — give it somewhere for the light to fall off
-  // to instead of a single colour everywhere.
-  LAMPS.push({x:cx+1.2, y:y0+h-0.75, z:cz+0.4, color:0xfff0d8, intensity:0.50,
-              dist:15, decay:1.25, indoor:true});
-  LAMPS.push({x:O.x1-2.4, y:y0+2.10, z:O.z0+1.40, color:0xd8e6f2, intensity:0.30,
-              dist:12, decay:1.5, indoor:true});                    // daylight off the glass
-  LAMPS.push({x:O.x0+4.4, y:y0+2.30, z:(O.z0+O.z1)/2, color:0xf6efdf, intensity:0.26,
-              dist:11, decay:1.5, indoor:true});
-  LAMPS.push({x:O.x1-4.6, y:y0+2.30, z:O.z1-2.2, color:0xf2ead8, intensity:0.24,
-              dist:11, decay:1.5, indoor:true});
+  /* The office read as one flat wash of amber, then as a room lit by three
+     neutral fills, which is the same problem the other way: an evenly lit box
+     is an office at four in the afternoon and nothing else. What makes a room
+     cosy is not more light, it is fewer sources that fall off faster — a warm
+     pool under the chandelier, a second under the desk lamp, a third at the
+     sofa, and dimmer air between them. The one cool source stays, because it
+     is daylight off the shopfront and the room would be a cave without it. */
+  LAMPS.push({x:cx+1.2, y:y0+h-0.78, z:cz+0.4, color:0xffe2b0, intensity:0.62,
+              dist:9.5, decay:1.9, indoor:true});                   // the chandelier
+  LAMPS.push({x:O.x1-2.4, y:y0+2.10, z:O.z0+1.40, color:0xdde8f0, intensity:0.22,
+              dist:12, decay:1.6, indoor:true});                    // daylight off the glass
+  LAMPS.push({x:O.x0+4.4, y:y0+1.95, z:(O.z0+O.z1)/2, color:0xffd9a2, intensity:0.30,
+              dist:8.0, decay:1.9, indoor:true});
+  LAMPS.push({x:O.x1-4.6, y:y0+1.90, z:O.z1-2.2, color:0xffd296, intensity:0.26,
+              dist:7.5, decay:1.9, indoor:true});
+  /* And a banker's lamp on the desk, which is the one fitting that makes a
+     room read as an office AND as somewhere somebody sits: a green glass
+     shade throws a small hard pool on the register and leaves everything
+     past the counter to the chandelier. */
+  {
+    const lx=dx-0.10, lz=cz+1.55;
+    OC("metal", 0.085,0.095,0.022,14, lx, 1.228, lz, "#8a6a2e");       // the foot
+    OC("metal", 0.016,0.016,0.24,8,  lx, 1.35, lz, "#8a6a2e");         // the stem
+    push("lampshade", new T.CylinderGeometry(0.115,0.115,0.10,16,1,true),
+         lx, y0+1.485, lz, 0, "#2f5f42", Math.PI/2, 0);                // the shade
+    push("lampshade", boxGeo(0.30,0.02,0.16,0), lx, y0+1.535, lz, 0, "#2f5f42");
+    for(const q of [-1,1])
+      push("lampshade", boxGeo(0.02,0.11,0.16,0), lx+q*0.15, y0+1.485, lz, 0, "#2a5439");
+    OC("metal", 0.012,0.012,0.09,8, lx, 1.30, lz+0.07, "#8a6a2e", Math.PI/2);
+    LAMPS.push({x:lx, y:y0+1.40, z:lz, color:0xffdda6, intensity:0.42,
+                dist:3.4, decay:2.2, indoor:true});
+  }
   // longhorn skull over the key board, and a jackalope beside it
   O_("paint", 0.22,0.26,0.52, O.x0+0.40, 2.30, cz-1.6, 0, "#e6e0cc");
   for(const sd of [-1,1]){
@@ -617,10 +637,16 @@
     addCol(gx-0.28, gx+0.28, gz-0.28, gz+0.28, y0, y0+0.9);
   })();
 
-  // three warm ceiling pans
+  /* Three ceiling pans. The rest of this room was relit round a warm pool
+     under the chandelier, one at the desk and one at the sofa — and then
+     these three went on throwing 0.62 of near-white sixteen metres with a
+     decay of 1.2, which is a flat even wash over the whole box and undoes
+     every one of them. An office ceiling fitting is still a ceiling
+     fitting, so they stay on: warmer, a third as bright, and falling off
+     fast enough to leave dim air between them. */
   for(const p of [[O.x0+2.6,cz-2.4],[O.x0+6.4,cz],[O.x1-2.4,cz+2.2]]){
-    push("ceilfix", new T.CylinderGeometry(0.34,0.40,0.14,14), p[0], y0+h-0.30, p[1], 0, "#e8dcc0");
-    LAMPS.push({x:p[0], y:y0+h-0.45, z:p[1], color:0xfff2e0, intensity:0.62, dist:16, decay:1.2, indoor:true});
+    push("ceilfix", new T.CylinderGeometry(0.34,0.40,0.14,14), p[0], y0+h-0.30, p[1], 0, "#e8d4ac");
+    LAMPS.push({x:p[0], y:y0+h-0.45, z:p[1], color:0xffe6c2, intensity:0.34, dist:9.0, decay:1.9, indoor:true});
   }
 })();
 

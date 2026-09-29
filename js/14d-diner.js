@@ -115,8 +115,21 @@
       }
     }
   };
-  const band=(bk,y0,y1,col,ix,uv)=>{
-    for(const sz of [-1,1]) face(bk, -HL+CR, HL-CR, y0,y1, sz, ix||0, col, uv);
+  /* `gap` leaves the doorway out of the road-side run. Every course was laid
+     as one continuous band down each face, so the skirt, its capping and the
+     stainless below the glass all ran STRAIGHT ACROSS THE FRONT DOOR — three
+     quarters of a metre of wall standing in the opening from the floor up.
+     Nothing there has a collider, so the door probe walked the lane happily
+     and reported it clear; you simply could not see in, and from the apron
+     the entrance read as bricked up. Anything whose course is below the door
+     head has to be told about the hole. */
+  const band=(bk,y0,y1,col,ix,uv,gap)=>{
+    for(const sz of [-1,1]){
+      if(sz<0 && gap){
+        face(bk, -HL+CR, DOX0, y0,y1, sz, ix||0, col, uv);
+        face(bk, DOX1,  HL-CR, y0,y1, sz, ix||0, col, uv);
+      }else face(bk, -HL+CR, HL-CR, y0,y1, sz, ix||0, col, uv);
+    }
     for(const sx of [-1,1]) endf(bk, -HW+CR, HW-CR, y0,y1, sx, ix||0, col, uv);
     corners(bk, y0,y1, col, ix||0, uv);
   };
@@ -133,7 +146,7 @@
     // colour can only ever darken it, so anything drawn in it comes out the
     // red-brown of a xeriscape bed — which beside pale desert and grey
     // asphalt reads as a carpet
-    m.P("concrete", cap, 0, 0.03, 0, 0, "#7f7460", -Math.PI/2, 0);
+    m.P("concrete", cap, 0, 0.03, 0, 0, "#6f6552", -Math.PI/2, 0);
     m.flat(-D.r, D.r, -D.r, D.r, 0.03);
     /* A lot does not end on a drawn arc. Overlapping discs round the rim,
        sitting just under the main one so they only show where they run past
@@ -143,34 +156,163 @@
       const fr=new T.CircleGeometry(sc, 11), fu=fr.attributes.uv;
       for(let k=0;k<fu.count;k++) fu.setXY(k, fu.getX(k)*sc, fu.getY(k)*sc);
       m.P("concrete", fr, Math.cos(a)*rr, 0.024+i*0.0003, Math.sin(a)*rr, a,
-          (i%3===0)?"#8a7f67":((i%3===1)?"#7a6f59":"#847a63"), -Math.PI/2, 0);
+          (i%3===0)?"#7a7060":((i%3===1)?"#6b6252":"#746b5b"), -Math.PI/2, 0);
     }
+    /* And the desert taking the gravel back. The lot read as one clean pale
+       disc twenty-six metres across with a building in the middle of it,
+       which is a car park somebody still sweeps. Sand lies over it in
+       tongues now, heaviest at the rim where nothing has driven for forty
+       years and thinning towards the middle where they did. They sit between
+       the gravel cap and the concrete slab, so the slab still reads as the
+       harder thing under them — and they are the colour of the ground they
+       blew off. The first cut of them was a pale grey-tan over TEX.sand,
+       which is already a bright texture and a vertex colour can only darken
+       it, so what came out was eight-metre tongues of near-white lying
+       across the lot like spilled cement. The desert out here is a warm
+       red-brown; so is what it drops. */
+    for(let i=0;i<20;i++){
+      const a=(i/20)*6.283+r2()*0.30, rr=4.2+Math.pow(r2(),0.7)*(D.r+1.2);
+      // twenty segments, not twelve: at four metres across a twelve-sided
+      // disc is a visible dodecagon lying on the ground
+      const sc=0.8+r2()*1.9, g=new T.CircleGeometry(1, 20), u=g.attributes.uv;
+      for(let k=0;k<u.count;k++) u.setXY(k, u.getX(k)*sc*2, u.getY(k)*sc*2);
+      g.scale(sc*1.5, sc*(0.7+r2()*0.5), 1);
+      m.P("sand", g, Math.cos(a)*rr, 0.031+i*0.00006, Math.sin(a)*rr, a+r2(),
+          ["#7d5c3e","#866847","#725438"][i%3], -Math.PI/2, 0);
+    }
+    /* Everything scattered on the slab shares one counter and one step, so
+       the order it is written in is the order it stacks — and the step has
+       to be small enough that three hundred of them do not end up as a deck
+       of cards five centimetres off the ground. */
     let lay=0;
-    const dec=(bk,w,h,x,z,ry,c)=>m.P(bk, planeGeo(w,h,0.5), x, 0.036+(lay++)*0.0004, z,
+    const LY=()=>0.036+(lay++)*0.00014;
+    const dec=(bk,w,h,x,z,ry,c)=>m.P(bk, planeGeo(w,h,0.5), x, LY(), z,
                                      ry, c, -Math.PI/2, 0);
-    // the concrete apron, only as far as the cars ever parked
-    m.P("concrete", planeGeo(19.0, 10.4, 0.5), 0, 0.035, -1.6, 0, "#736d60", -Math.PI/2, 0);
-    for(let i=0;i<14;i++)                       // slab joints
-      dec("concrete", 0.07, 9.6+r2()*0.6, -8.8+i*1.35, -1.6, 0, "#57503f");
-    for(let i=0;i<20;i++)                       // and the cracks across them
-      dec("concrete", 0.06+r2()*0.05, 1.4+r2()*3.0, -9+r2()*18, -6.4+r2()*9.4,
-          r2()*6.283, "#4e4738");
-    for(let i=0;i<16;i++)                       // what the weather left on it
-      dec("concrete", 2.2+r2()*3.4, 1.4+r2()*2.2, -8+r2()*16, -6.2+r2()*9.0,
-          r2()*6.283, r2()<0.5?"#645d4e":"#7a7263");
-    for(let i=0;i<4;i++)                        // four stall lines, nearly gone
-      dec("paint", 0.09, 4.8, -6.0+i*2.9, -4.6, 0, i===1?"#7d7566":"#918872");
-    for(let i=0;i<5;i++){                       // oil where each of them stood
-      const ox2=-6.0+i*2.9+1.45;
-      dec("concrete", 0.5+r2()*0.5, 0.7+r2()*0.6, ox2, -5.4+r2()*1.2, r2()*6.28, "#4a4136");
-      for(let k=0;k<4;k++)
-        dec("concrete", 0.07+r2()*0.08, 0.09+r2()*0.09, ox2+(r2()-0.5)*1.1,
-            -5.6+r2()*1.6, r2()*6.28, "#413a31");
+    /* A stain is not a rectangle. Every blotch on this slab was a rotated
+       quad, so from standing height the apron read as a heap of dark cards
+       dropped on a white floor — the hardest edge in the whole lot was a
+       patch of weathering. A disc with its uv scaled to world size takes the
+       concrete texture the same way and has no corner to catch the eye. */
+    const blot=(bk,rx,rz,x,z,ry,c)=>{
+      const g=new T.CircleGeometry(1, 13), u=g.attributes.uv;
+      for(let k=0;k<u.count;k++) u.setXY(k, u.getX(k)*rx*2, u.getY(k)*rz*2);
+      g.scale(rx, rz, 1);
+      m.P(bk, g, x, LY(), z, ry, c, -Math.PI/2, 0);
+    };
+    /* The concrete apron, only as far as the cars ever parked — and aged
+       properly. Scattered rectangles in two greys read as a clean slab with
+       some dirt on it; what ages concrete is the crack pattern, and a crack
+       is a line that wanders and forks, not a box. */
+    m.P("concrete", planeGeo(19.0, 10.4, 0.9), 0, 0.035, -1.6, 0, "#67624f", -Math.PI/2, 0);
+    /* And the slab does not end on a drawn rectangle any more than the lot
+       ends on a drawn arc. Discs of the same grey lapped over the edge, and
+       drifts of the lot's colour lapped back in, so the boundary is a line
+       the sand has been working at rather than a ruler's edge. */
+    for(let i=0;i<16;i++){
+      const t=i/16, ed=i%2;
+      const ex=ed? (t<0.5?-9.5:9.5) : -9.5+((t*2)%1)*19.0;
+      const ez=ed? -6.8+((t*2)%1)*10.4 : (t<0.5?-6.8:3.6);
+      blot("concrete", 0.7+r2()*1.5, 0.6+r2()*1.2, ex+(r2()-0.5)*1.2,
+           ez+(r2()-0.5)*1.2, r2()*6.283, r2()<0.5?"#67624f":"#6f6957");
     }
-    for(let i=0;i<9;i++){                       // and the tracks coming off the drive
-      const t=i/9, tz=-11.6+t*7.4, tw=0.30;
+    for(let i=0;i<14;i++){
+      const a=(i/14)*6.283, rr=5.4+r2()*4.6;
+      blot("concrete", 0.5+r2()*1.3, 0.4+r2()*1.0, Math.cos(a)*rr*1.7,
+           -1.6+Math.sin(a)*rr, r2()*6.283, r2()<0.5?"#6b6252":"#746b5b");
+    }
+    // a plane laid flat has its width along (cos ry, -sin ry), so a segment
+    // running (dx,dz) wants ry = atan2(-dz, dx)
+    const seg=(x0,z0,x1,z1,w,col)=>{
+      const dx2=x1-x0, dz2=z1-z0, ln=Math.hypot(dx2,dz2);
+      if(ln<0.02) return;
+      m.P("concrete", planeGeo(ln*1.08, w, 0.5), (x0+x1)/2, LY(),
+          (z0+z1)/2, Math.atan2(-dz2, dx2), col, -Math.PI/2, 0);
+    };
+    const crack=(x0,z0,a0,steps,w,col,depth)=>{
+      let px=x0, pz=z0, a=a0;
+      for(let i=0;i<steps;i++){
+        const sl=0.35+r2()*0.75;
+        a += (r2()-0.5)*0.85;
+        const nx=px+Math.cos(a)*sl, nz=pz+Math.sin(a)*sl;
+        if(Math.abs(nx)>9.4 || nz<-6.9 || nz>3.5) break;
+        seg(px,pz,nx,nz, w*(1-i/steps*0.45), col);
+        if(depth>0 && r2()<0.34)                 // and it forks
+          crack(nx, nz, a+(r2()<0.5?0.9:-0.9), 2+((r2()*3)|0), w*0.6, col, depth-1);
+        px=nx; pz=nz;
+      }
+    };
+    for(let i=0;i<5;i++){                        // tar patches over the worst of it
+      // these ARE poured as a shape with an edge, so they keep theirs — but
+      // a ragged one, three overlapping lobes rather than one rectangle
+      const px=-8+r2()*16, pz=-6+r2()*8.6, pw=0.7+r2()*1.5, pd=0.55+r2()*1.1;
+      for(let k=0;k<2;k++)
+        blot("asphalt", pw*(0.7+r2()*0.5), pd*(0.7+r2()*0.5),
+             px+(r2()-0.5)*pw*0.9, pz+(r2()-0.5)*pd*0.9, r2()*6.283,
+             k?"#6f6a5d":"#78736a");
+    }
+    /* NOT the gravel bucket, for the reason written at the top of this block:
+       its texture is built on #8a5f45 and a vertex colour can only darken it,
+       so two dozen spalled patches came out as orange-red tiles scattered
+       over grey concrete. Broken concrete shows paler aggregate, not rust. */
+    for(let i=0;i<14;i++)
+      blot("concrete", 0.30+r2()*0.60, 0.24+r2()*0.48, -8.6+r2()*17.2, -6.4+r2()*9.4,
+           r2()*6.283, r2()<0.5?"#8e8672":"#847c68");
+    /* Weathering goes on in three passes of falling size and rising contrast,
+       every one of them a soft disc: broad pale bloom first, then the damp
+       that sits in the low spots, then fine speckle. Sixteen big dark
+       rectangles is what it was, and that is a tarpaulin, not a stain. */
+    for(let i=0;i<10;i++)
+      blot("concrete", 1.6+r2()*2.6, 1.1+r2()*1.8, -8+r2()*16, -6.2+r2()*9.0,
+           r2()*6.283, r2()<0.5?"#857c6b":"#8e8676");
+    for(let i=0;i<12;i++)
+      blot("concrete", 0.55+r2()*1.35, 0.40+r2()*1.00, -8.4+r2()*16.8,
+           -6.4+r2()*9.4, r2()*6.283, r2()<0.5?"#6e6757":"#7a7363");
+    for(let i=0;i<26;i++)
+      blot("concrete", 0.07+r2()*0.20, 0.06+r2()*0.16, -9.0+r2()*18.0,
+           -6.7+r2()*9.9, r2()*6.283, r2()<0.5?"#5f5849":"#6b6454");
+    /* And the joints and the cracks go on LAST, over the weathering rather
+       than under it. They were laid first and then three passes of blotches
+       were drawn on top of them, which left an apron of soft grey clouds
+       with no crack pattern in it at all — and the crack pattern is the
+       whole point: what ages concrete is a line that wanders and forks, not
+       a stain. */
+    for(let i=0;i<8;i++)                         // the slab joints, wandering
+      for(let k=0;k<6;k++)
+        seg(-8.8+i*2.2+(r2()-0.5)*0.1, -6.8+k*1.5, -8.8+i*2.2+(r2()-0.5)*0.1,
+            -6.8+(k+1)*1.5, 0.055, "#544d3d");
+    for(let i=0;i<4;i++)
+      for(let k=0;k<8;k++)
+        seg(-9.4+k*2.1, -6.2+i*2.1+(r2()-0.5)*0.08, -9.4+(k+1)*2.1,
+            -6.2+i*2.1+(r2()-0.5)*0.08, 0.05, "#544d3d");
+    for(let i=0;i<8;i++)                         // and the cracks across them
+      crack(-8.4+r2()*16.8, -6.4+r2()*9.4, r2()*6.283, 5+((r2()*5)|0),
+            0.075+r2()*0.05, r2()<0.5?"#4a4334":"#413b2e", 2);
+    /* Four stall lines, nearly gone — and "nearly gone" has to survive the
+       paint bucket, which is a bright texture a vertex colour can only pull
+       down. At #918872 they came out as fresh white lines on an abandoned
+       lot. Each one is broken into short lengths with gaps, and the lengths
+       are different shades, because that is how a painted line wears. */
+    for(let i=0;i<4;i++){
+      const lx=-6.0+i*2.9;
+      for(let k=0;k<9;k++){
+        if(r2()<0.30) continue;                  // and here it has gone entirely
+        dec("paint", 0.075+r2()*0.02, 0.30+r2()*0.22, lx+(r2()-0.5)*0.05,
+            -6.9+k*0.54, 0, r2()<0.5?"#565044":"#665f50");
+      }
+    }
+    for(let i=0;i<5;i++){                        // oil where each of them stood
+      const ox2=-6.0+i*2.9+1.45, oz=-5.4+r2()*1.2;
+      for(let k=0;k<3;k++)                       // the pool, soaked in and spread
+        blot("concrete", 0.24+r2()*0.26, 0.32+r2()*0.30, ox2+(r2()-0.5)*0.5,
+             oz+(r2()-0.5)*0.6, r2()*6.28, k?"#5a5245":"#4c443a");
+      for(let k=0;k<4;k++)                       // and the drips round it
+        blot("concrete", 0.04+r2()*0.05, 0.05+r2()*0.06, ox2+(r2()-0.5)*1.1,
+             -5.6+r2()*1.6, r2()*6.28, "#453e34");
+    }
+    for(let i=0;i<10;i++){                       // and the tracks coming off the drive
+      const t=i/10, tz=-11.6+t*7.4;
       for(const sd2 of [-1,1])
-        dec("concrete", tw, 1.1, sd2*(1.3+t*2.2), tz, sd2*t*0.22, "#5c5344");
+        blot("concrete", 0.16, 0.62, sd2*(1.3+t*2.2), tz, sd2*t*0.22, "#6a6152");
     }
     for(let i=0;i<22;i++){                      // weeds through the cracks
       const ax=-11+r2()*22, az=-9+r2()*15;
@@ -243,18 +385,40 @@
           sz*(W/2+0.26), sz>0?0:Math.PI, "#4f483c", 0, 0);
 
   /* ---- the courses ------------------------------------------------------ */
-  band("dinertile", 0.02, SK, "#ffffff", 0, 1.9);          // the glazed skirt
-  band("metal", SK, SK+0.10, STL, -0.06, 0.4);             // its capping
-  band("galv", SK+0.10, GY0, CRM, 0.03, 2.6);              // stainless below the glass
-  band("galv", GY1, CH,     CRM, 0.03, 2.6);               // and again above it
+  band("dinertile", 0.02, SK, "#ffffff", 0, 1.9, true);    // the glazed skirt
+  band("metal", SK, SK+0.10, STL, -0.06, 0.4, true);       // its capping
+  band("galv", SK+0.10, GY0, CRM, 0.03, 2.6, true);        // stainless below the glass
+  /* The course above the glass runs from 2.40 and the door head is at 2.68,
+     so this one crossed the top 28 cm of the opening as well — the three
+     below it were the obvious 72 cm and this was the quiet bit nobody looks
+     at until they are standing in the doorway. Split at the head: broken
+     round the door below it, solid across above. */
+  band("galv", GY1, DOTOP,  CRM, 0.03, 2.6, true);         // and again above it
+  band("galv", DOTOP, CH,   CRM, 0.03, 2.6);
   // fluting. Both stainless courses are rolled sheet, and flat paint is what
   // they read as without something for the light to break on.
-  for(let k=0;k<5;k++)
-    for(const sz of [-1,1])
-      m.B("metal", L-CR*1.4, 0.035, 0.035, 0, SK+0.20+k*0.055, sz*(HW-0.005), 0,0, STLD);
-  for(let k=0;k<4;k++)
-    for(const sz of [-1,1])
-      m.B("metal", L-CR*1.4, 0.030, 0.035, 0, GY1+0.10+k*0.075, sz*(HW-0.005), 0,0, STLD);
+  for(let k=0;k<5;k++){
+    for(const sz of [-1,1]){
+      if(sz<0){                                 // broken round the doorway
+        m.B("metal", DOX0-(-HL+CR*0.7), 0.035, 0.035, ((-HL+CR*0.7)+DOX0)/2,
+            SK+0.20+k*0.055, sz*(HW-0.005), 0,0, STLD);
+        m.B("metal", (HL-CR*0.7)-DOX1, 0.035, 0.035, (DOX1+(HL-CR*0.7))/2,
+            SK+0.20+k*0.055, sz*(HW-0.005), 0,0, STLD);
+      }else m.B("metal", L-CR*1.4, 0.035, 0.035, 0, SK+0.20+k*0.055, sz*(HW-0.005),
+                0,0, STLD);
+    }
+  }
+  for(let k=0;k<4;k++){
+    const fy=GY1+0.10+k*0.075;
+    for(const sz of [-1,1]){
+      if(sz<0 && fy<DOTOP+0.04){                // the lowest of these cross the head
+        m.B("metal", DOX0-(-HL+CR*0.7), 0.030, 0.035, ((-HL+CR*0.7)+DOX0)/2, fy,
+            sz*(HW-0.005), 0,0, STLD);
+        m.B("metal", (HL-CR*0.7)-DOX1, 0.030, 0.035, (DOX1+(HL-CR*0.7))/2, fy,
+            sz*(HW-0.005), 0,0, STLD);
+      }else m.B("metal", L-CR*1.4, 0.030, 0.035, 0, fy, sz*(HW-0.005), 0,0, STLD);
+    }
+  }
   // the cornice: a deeper band with vertical ribs cut into it
   band("metal", CH, CT, STLD, -0.04, 0.6);
   for(let i=0;i<64;i++){                        // the ribs, round three sides
@@ -466,8 +630,6 @@
       m.B("metal", 0.20, DOTOP-SK+0.16, 0.34, DX+q*(DOORW/2+0.12), (SK+DOTOP+0.16)/2,
           Z-0.10, 0.4, 0, STL);
     m.B("metal", DOORW+0.64, 0.18, 0.34, DX, DOTOP+0.09, Z-0.10, 0.4, 0, STL);
-    m.B("glass", DOORW+0.10, CH-DOTOP-0.26, 0.05, DX, (DOTOP+0.22+CH)/2, Z+0.02,
-        0, 0, "#5f6f70");                       // the transom over it
     m.B("metal", DOORW+0.64, 0.14, 0.40, DX, CH+0.04, Z-0.12, 0.4, 0, STLD);
     /* A stoop, in three risers from the apron to the floor. The first cut of
        this ran the other way: the tread FURTHEST from the door was the
@@ -557,8 +719,38 @@
     const g=new T.SphereGeometry(0.60+((i*5)%3)*0.26, 14, 8);
     g.scale(1.5, 0.30, 1.0);
     m.P("sand", g, (i<5?-1:1)*(HL+0.16+((i*3)%3)*0.12), 0.02,
-        -1.6+((i*7)%5)*0.9, i*0.9, "#a89473", 0, 0);
+        -1.6+((i*7)%5)*0.9, i*0.9, "#9a7c5d", 0, 0);
   }
+  /* And along the foot of both long sides, where the sand banks up against
+     the plinth and nobody has swept it back in forty years. Lower and longer
+     than the drifts at the ends, broken round the steps so the stoop still
+     reads as something you walk up. */
+  for(const sz of [-1,1]) for(let i=0;i<16;i++){
+    const px=-HL+0.5+i*((L-1.0)/15);
+    if(sz<0 && px>DX-1.5 && px<DX+1.5) continue;       // not across the steps
+    const g=new T.SphereGeometry(0.42+((i*5)%4)*0.16, 12, 7);
+    g.scale(1.9, 0.20+((i*3)%3)*0.05, 0.85);
+    m.P("sand", g, px, 0.02, sz*(HW+0.30+((i*7)%3)*0.07), (i%2?1:-1)*0.09,
+        ["#97795a","#a08461","#8d7052"][i%3], 0, 0);
+  }
+  /* And what blew in and stopped against the front of it. A sphere in the
+     foliage bucket is not a tumbleweed, it is a large olive pea — four of
+     them sitting at the bottom of the steps looked like garden ornaments.
+     A thistle is a tangle, so it is drawn as one: stems out of a crown, each
+     one leaning somewhere else. */
+  for(let i=0;i<4;i++){
+    const wx2=[DX-1.85, DX+1.75, -HL-0.8, HL+0.65][i];
+    const wz2=-HW-0.55-((i*3)%3)*0.28, R=0.22+((i*5)%3)*0.07;
+    for(let k=0;k<13;k++){
+      const th=(k*2.399)+i, ph=Math.acos(1-2*((k+0.5)/13));
+      const dx2=Math.sin(ph)*Math.cos(th), dy=Math.cos(ph), dz2=Math.sin(ph)*Math.sin(th);
+      m.C("foliage", 0.007,0.010, R*(1.25+((k*7)%3)*0.30), 4,
+          wx2+dx2*R*0.5, R*0.9+dy*R*0.4, wz2+dz2*R*0.5,
+          (k%3)?"#7d7448":"#6d6448",
+          Math.atan2(dz2, dy)*0.8, th, Math.atan2(dx2, dy)*0.8);
+    }
+  }
+
   /* ---- the ground round it ----------------------------------------------
      There was nothing out here at all. The desert scatter runs to five
      hundred metres from the motel and the pole line stopped at seven
@@ -572,7 +764,13 @@
       const rx=Math.cos(a)*rr, rz=Math.sin(a)*rr*0.8;
       if(rz<-17) continue;                      // not out on the highway
       const sc=0.28+r2()*0.95;
-      m.P("rock", rockGeo(sc, (i*37)|0), rx, GY(rx,rz)+sc*0.34, rz, r2()*6.283,
+      /* Sunk, not perched. heightAt is the analytic ground and the mesh that
+         draws it samples that on a six-metre lattice, so on the face of a
+         mesa the triangle you can see is metres below the number a rock was
+         placed with — and the rock hangs in the air off the slope. A rock
+         half-buried in sand is what the desert does with them anyway, and it
+         cannot float. */
+      m.P("rock", rockGeo(sc, (i*37)|0), rx, GY(rx,rz)-sc*0.30, rz, r2()*6.283,
           r2()<0.5?"#8a7a62":"#7d6e57", (r2()-0.5)*0.2, (r2()-0.5)*0.2);
     }
     for(let i=0;i<22;i++){                      // creosote and dead brush
@@ -681,10 +879,15 @@
     m.P("soot", planeGeo(0.7+r2()*1.2, 0.7+r2()*1.1, 0), IX0+0.8+r2()*(IX1-IX0-1.6),
         FY+0.030+i*0.0006, IZ0+0.4+r2()*(IZ1-IZ0-0.8), r2()*6.28, "#3f3a30",
         -Math.PI/2, 0);
-  for(let i=0;i<8;i++){                            // sand in under the door
-    const g=new T.SphereGeometry(0.5+r2()*0.5, 12, 7); g.scale(1.4, 0.055, 1.0);
-    m.P("sand", g, DX-1.6+r2()*3.0, FY+0.012, IZ0+0.30+r2()*1.2, r2()*6.28,
-        "#b5a181", 0, 0);
+  /* Sand in under the door — and ONLY under the door. At three metres wide
+     and half a metre across this reached the fourth booth, so there was a
+     pale drift sitting in somebody's seat. It stays in the lane you walk in
+     along, it is flatter, and it is the colour of what blew in rather than
+     of fresh sand. */
+  for(let i=0;i<9;i++){
+    const g=new T.SphereGeometry(0.34+r2()*0.30, 12, 7); g.scale(1.5, 0.038, 1.0);
+    m.P("sand", g, DX-1.15+r2()*2.3, FY+0.012, IZ0+0.22+r2()*0.72, r2()*6.28,
+        i%3?"#a08c6e":"#96856a", 0, 0);
   }
 
   /* ---- the ceiling -------------------------------------------------------
@@ -844,17 +1047,28 @@
     m.B("metal", 0.20, 0.06, KDZ1-KDZ0+0.12, KX, FY+2.13, (KDZ0+KDZ1)/2, 0.4, 0, "#8a908a");
     // what hangs on a bulkhead: the punch clock, the rack the cards went in,
     // an extinguisher on its bracket and a calendar nobody turned over
-    const BFX=KX+0.08;
-    m.B("bin", 0.06, 0.34, 0.26, BFX, FY+1.58, KDZ1-0.55, 0.4, 0, "#4a4f4b");
-    m.C("clockface", 0.085,0.085,0.02,16, BFX+0.04, FY+1.66, KDZ1-0.55, "#b8b2a0",
+    /* KDZ1 is the doorway's NEAR edge, not a piece of wall: KDZ1-0.55 and
+       KDZ1-0.90 are both inside the opening, so the punch clock, the card
+       rack and the extinguisher were all screwed to thin air in the middle
+       of the doorway. They go on the wall EAST of it, between the door and
+       the pass, which is the only solid bulkhead on this side. */
+    const BFX=KX+0.08, BW1=KDZ1+0.30, BW2=KDZ1+0.86;
+    m.B("bin", 0.06, 0.34, 0.26, BFX, FY+1.58, BW1, 0.4, 0, "#4a4f4b");
+    m.C("clockface", 0.085,0.085,0.02,16, BFX+0.04, FY+1.66, BW1, "#b8b2a0",
         0, 0, Math.PI/2);
-    m.B("metal", 0.05, 0.16, 0.30, BFX, FY+1.28, KDZ1-0.55, 0.4, 0, "#8a908a");
+    m.B("metal", 0.05, 0.16, 0.30, BFX, FY+1.28, BW1, 0.4, 0, "#8a908a");
     for(let i=0;i<6;i++)
-      m.P("paper", planeGeo(0.05,0.12,0), BFX+0.03, FY+1.30, KDZ1-0.68+i*0.05,
+      m.P("paper", planeGeo(0.05,0.12,0), BFX+0.03, FY+1.30, BW1-0.13+i*0.05,
           -Math.PI/2, "#cfc6ae", 0, 0.06*((i%3)-1));
-    m.C("bin", 0.075,0.075,0.44,14, BFX+0.09, FY+1.02, KDZ1-0.90, "#8e3a26");
-    m.C("metal", 0.035,0.035,0.10,10, BFX+0.09, FY+1.28, KDZ1-0.90, CHRX);
-    m.B("metal", 0.10, 0.03, 0.13, BFX+0.04, FY+0.94, KDZ1-0.90, 0, 0, "#5f655f");
+    m.C("bin", 0.075,0.075,0.44,14, BFX+0.09, FY+1.02, BW2, "#8e3a26");
+    m.C("metal", 0.035,0.035,0.10,10, BFX+0.09, FY+1.28, BW2, CHRX);
+    m.B("metal", 0.10, 0.03, 0.13, BFX+0.04, FY+0.94, BW2, 0, 0, "#5f655f");
+    m.B("metal", 0.03, 0.05, 0.19, BFX+0.02, FY+1.14, BW2, 0.4, 0, "#5f655f");   // and the strap
+    for(const q of [-1,1])                                      // screwed to the wall
+      m.C("metal", 0.008,0.008,0.03,6, BFX+0.01, FY+1.14, BW2+q*0.085, CHRX,
+          0, 0, Math.PI/2);
+    m.P("rust", planeGeo(0.09, 0.26, 0), BFX+0.015, FY+0.80, BW2, -Math.PI/2,
+        "#6b5a45", 0, 0);                                       // and weeping below it
     m.P("paper", planeGeo(0.26, 0.36, 0), BFX+0.02, FY+1.52, PZ1+0.22, -Math.PI/2,
         "#cbc3ac", 0, 0.05);
     m.P("bin", planeGeo(0.26, 0.09, 0), BFX+0.03, FY+1.67, PZ1+0.22, -Math.PI/2,
@@ -1196,6 +1410,33 @@
      Everything in here stands clear of the lane through the door: x from 4.88
      to 6.12 is what you walk in along, and the door probe walks it. */
   {
+    /* The north wall east of the counter was bare shell, and it is the first
+       thing you see when you come through the door — so it gets the things
+       that hang by a till: a mirror strip, the licences, a hat rail. */
+    {
+      const wz2=IZ1-0.03, x0=CX1+0.24, x1=IX1-0.90, cxm=(x0+x1)/2;
+      m.P("mirror", planeGeo(x1-x0, 0.86, 0), cxm, GY0+0.34, wz2, Math.PI,
+          "#b6c6cc", 0, 0);
+      for(const q of [GY0-0.10, GY0+0.78])
+        m.B("metal", x1-x0+0.08, 0.05, 0.06, cxm, q, wz2-0.02, 0.4, 0, CHRD);
+      for(const q of [-1,1])
+        m.B("metal", 0.05, 0.92, 0.06, cxm+q*((x1-x0)/2+0.02), GY0+0.34, wz2-0.02,
+            0.4, 0, CHRD);
+      for(let i=0;i<9;i++)                       // the silvering gone at the edges
+        m.P("rust", planeGeo(0.10+r2()*0.14, 0.10+r2()*0.20, 0), x0+r2()*(x1-x0),
+            GY0-0.06+r2()*0.86, wz2-0.035, Math.PI, "#6b6255", 0, 0);
+      m.B("oak", x1-x0, 0.05, 0.14, cxm, GY1+0.28, wz2-0.05, 0.5, 0, "#5c4a30");
+      for(let i=0;i<5;i++)                       // hooks under the hat rail
+        m.C("metal", 0.010,0.010,0.07,6, x0+0.22+i*((x1-x0)-0.44)/4, GY1+0.22,
+            wz2-0.06, CHRD);
+      for(const q of [[0.30,0.38],[0.70,0.30]]){ // the licences, in cheap frames
+        const fx=x0+(x1-x0)*q[0];
+        m.P("oak", planeGeo(q[1], q[1]*1.28, 0), fx, GY1+0.74, wz2, Math.PI,
+            "#4a3d2c", 0, (q[0]<0.5?0.03:-0.04));
+        m.P("paper", planeGeo(q[1]*0.86, q[1]*1.10, 0), fx, GY1+0.74, wz2-0.012,
+            Math.PI, "#cfc6ae", 0, (q[0]<0.5?0.03:-0.04));
+      }
+    }
     // a cigarette machine in the far corner, pulled off the wall and emptied
     m.B("bin", 0.62, 1.42, 0.44, IX1-0.42, FY+0.71, IZ1-0.36, 0.45, 0, "#4a4f4b");
     m.B("metal", 0.64, 0.10, 0.46, IX1-0.42, FY+1.44, IZ1-0.36, 0.4, 0, CHRD);

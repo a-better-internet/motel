@@ -130,7 +130,7 @@ const Terrain=(function(){
        road still runs to a vanishing point; there is just canyon behind it
        now rather than a hole. */
     const slot=smoothstep(700, 1350, Math.abs(x));
-    const cut=smoothstep(0, 210-slot*186, boxDist(CORR,x,z));
+    const cut=smoothstep(0, 210-slot*170, boxDist(CORR,x,z));
     const dc=Math.hypot(x, z+8);
     const ring=smoothstep(600, 1400, dc)*cut;
     if(ring>0){
@@ -210,22 +210,55 @@ const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
        one side, half a metre on the other, and between them the edges bow
        away from each other. That is a hairline crack with the sky behind it,
        all the way round every inner ring. A skirt hangs a short apron down
-       from each border node and fills them. Both windings, so it shows
-       whichever side the crack opens on.                                  */
+       from each border node and fills them.                               */
+    /* Hang an apron off a ring of nodes.
+
+       The first version of this emitted every skirt quad twice, once each
+       way round, so it would show whichever side the crack opened on. It
+       did — as a black line. computeVertexNormals sums the face normals at
+       each vertex, and two faces with opposite winding sum to zero, so the
+       whole bottom row came out with no normal at all and shaded pure
+       black. The apron was hiding the sky behind a strip of void.
+       So: one winding, its own copy of the top row (the terrain rim keeps
+       its own flat-ground normal that way), and the material is
+       double-sided, which makes three.js flip the normal on back faces for
+       us. The apron now shades like the cliff it hangs off.              */
+    const hangSkirt=(ring,drop)=>{
+      const base=P.length/3;
+      for(let pass=0;pass<2;pass++) for(const v of ring){
+        P.push(P[v*3], P[v*3+1]-(pass?drop:0), P[v*3+2]);
+        C.push(C[v*3]*(pass?0.86:1), C[v*3+1]*(pass?0.86:1), C[v*3+2]*(pass?0.86:1));
+        U.push(U[v*2], U[v*2+1]+(pass?drop*0.045:0));
+      }
+      const n=ring.length;
+      for(let k=0;k<n-1;k++){
+        const a1=base+k, b1=base+k+1, a2=base+n+k, b2=base+n+k+1;
+        IDX.push(a1,a2,b1, b1,a2,b2);
+      }
+    };
     if(skirt){
-      const base=P.length/3, border=[];
+      const border=[];
       for(let i=0;i<=nx;i++) border.push(i);
       for(let j=1;j<=nz;j++) border.push(j*(nx+1)+nx);
       for(let i=nx-1;i>=0;i--) border.push(nz*(nx+1)+i);
       for(let j=nz-1;j>=1;j--) border.push(j*(nx+1));
-      for(const v of border){
-        P.push(P[v*3], P[v*3+1]-skirt, P[v*3+2]);
-        C.push(C[v*3], C[v*3+1], C[v*3+2]);
-        U.push(U[v*2], U[v*2+1]);
-      }
-      for(let k=0;k<border.length-1;k++){
-        const a1=border[k], b1=border[k+1], a2=base+k, b2=base+k+1;
-        IDX.push(a1,a2,b1, b1,a2,b2, a1,b1,a2, b1,b2,a2);
+      border.push(0);                                  // close the loop
+      hangSkirt(border, skirt);
+      /* And round the inside of every hole. A skirt on the outer border only
+         covers the crack when the ring that owns the skirt is the HIGHER of
+         the two; where the coarse ring rides above the fine one instead, you
+         were looking in under the rim of the hole and out at the sky. One
+         apron each way and it is covered whichever way the two disagree. */
+      for(const h of holes||[]){
+        const i0=Math.round((h.x0-x0)/cell), i1=Math.round((h.x1-x0)/cell);
+        const j0=Math.round((h.z0-z0)/cell), j1=Math.round((h.z1-z0)/cell);
+        if(i0<0 || j0<0 || i1>nx || j1>nz || i1-i0<1 || j1-j0<1) continue;
+        const ring=[];
+        for(let i=i0;i<=i1;i++) ring.push(j0*(nx+1)+i);
+        for(let j=j0+1;j<=j1;j++) ring.push(j*(nx+1)+i1);
+        for(let i=i1-1;i>=i0;i--) ring.push(j1*(nx+1)+i);
+        for(let j=j1-1;j>=j0;j--) ring.push(j*(nx+1)+i0);
+        hangSkirt(ring, skirt);
       }
     }
     const g=new T.BufferGeometry();
@@ -233,22 +266,23 @@ const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
     g.setAttribute("color",    new T.Float32BufferAttribute(C,3));
     g.setAttribute("uv",       new T.Float32BufferAttribute(U,2));
     g.setIndex(IDX); g.computeVertexNormals();
-    const m=new T.MeshStandardMaterial({vertexColors:true, map:TEX.sand, roughness:0.97, metalness:0});
+    const m=new T.MeshStandardMaterial({vertexColors:true, map:TEX.sand, roughness:0.97,
+                                        metalness:0, side:T.DoubleSide});
     const mesh=new T.Mesh(g,m); mesh.receiveShadow=true; mesh.name=name;
     scene.add(mesh); return mesh;
   }
   // Three rings: a coarse horizon, a 5 m band across the canyon country where
   // the strata and cliff faces need to read, and a 2 m grid over the site.
   const MID={x0:-1008, x1:1008, z0:-1078, z1:938};
-  // The bench is a 4 m step in the ground and the middle ring's 7 m cells
+  // The bench is a 4 m step in the ground and the middle ring's 6 m cells
   // would smear it into a dimple, so it gets 2 m cells of its own. Its box is
-  // on the 7 m lattice exactly (MID.x0 + 7k, MID.z0 + 7k) so the coarse grid
+  // on the 6 m lattice exactly (MID.x0 + 6k, MID.z0 + 6k) so the coarse grid
   // drops precisely those cells and the two meshes meet without a seam.
   const ADIT_SITE={x0:-588, x1:-546, z0:14, z1:56};
   /* A hole is only punched for a cell that falls ENTIRELY inside it, so a
      hole whose edge lands mid-cell leaves the coarse grid covering up to a
      whole cell of ground the fine grid also covers. NEAR_SITE's edges were
-     not on the 7 m lattice, so the middle ring overlapped the near one by
+     not on the middle ring's lattice, so it overlapped the near one by
      part of a cell the whole way round — and along the highway corridor,
      where both are dead flat at y = -0.25, the two were exactly coplanar.
      That is the colour fringing down the edge of the road.
@@ -259,9 +293,32 @@ const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
   const snapOut=(r, step, ox, oz)=>({
     x0: ox+Math.floor((r.x0-ox)/step)*step, x1: ox+Math.ceil((r.x1-ox)/step)*step,
     z0: oz+Math.floor((r.z0-oz)/step)*step, z1: oz+Math.ceil((r.z1-oz)/step)*step });
-  const NEAR_G=snapOut(NEAR_SITE, 14, MID.x0, MID.z0);      // 7 m ring, 2 m patch
-  grid(-1800,1800,-1740,1860, 24, [MID], "desert-far");
-  grid(MID.x0, MID.x1, MID.z0, MID.z1, 7, [NEAR_G, ADIT_SITE], "desert-mid", 6);
+  const NEAR_G=snapOut(NEAR_SITE, 6, MID.x0, MID.z0);       // 6 m ring, 2 m patch
+  /* The horizon ring and the middle ring, and the seam between them.
+
+     A hole in the world can only ever happen AT A SEAM — inside one mesh the
+     ground is continuous however steep it gets. So there are exactly two
+     things to get right here, and both of them were wrong.
+
+     One: the hole punched in the coarse ring has to land on the coarse
+     ring's own lattice at all four edges, or the cells that straddle an edge
+     are not dropped and the two meshes overlap. The x edges did; the z edges
+     did not, because -1740 and 1860 are not a whole number of cells from
+     -1078 and 938. Moving the coarse ring's z bounds two metres fixes all
+     four at once.
+
+     Two: the two rings have to sample the border in step. The coarse ring
+     had 12 m cells and the middle one 7 m, so along the shared line the two
+     edges only touched ground at the same place every 84 m; everywhere
+     between, one ring was reading a cliff the other had not reached yet. A
+     probe walking the border said the ground changes by up to 46 m across
+     ONE coarse cell where the escarpment crosses it, and that whole 46 m
+     could open as sky. Six metres of cell is the fix: 12 is a whole number
+     of 6, so every coarse node on the border now falls on a fine node too
+     and the two meshes agree exactly there. What is left between them is
+     one triangle's worth of bow, and the skirts swallow that. */
+  grid(-1800,1800,-1738,1862, 12, [MID], "desert-far", 40);
+  grid(MID.x0, MID.x1, MID.z0, MID.z1, 6, [NEAR_G, ADIT_SITE], "desert-mid", 55);
   // Half-metre cells here, not two. The cut's back wall is a 4.5 m step and
   // the grid triangle that carries it has to land inside the thickness of the
   // rock face: at 2 m that triangle ramps out of the floor and up through the

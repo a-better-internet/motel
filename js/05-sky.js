@@ -357,12 +357,18 @@ const NIGHT_HAZE=new T.Color(0x0a1020);        // haze colour once the sun is go
       const a0=Math.PI*(k/9), a1=Math.PI*((k+1)/9);
       x.fillStyle=pal2[k%pal2.length];
       x.beginPath();
-      for(let t=0;t<=12;t++){                     // an envelope, not a circle
-        const u=t/12, w=Math.sin(Math.PI*(0.22+u*0.78))*62;
+      /* The profile started at sin(0.22*pi), which is 0.64 of the full width
+         — so the envelope's crown was a flat chord eighty pixels across and
+         every balloon looked as though its top had been sliced off. It runs
+         from a small crown ring, through the belly at about two fifths down,
+         to a pinched mouth at the bottom. */
+      const prof=u=>(0.10 + 0.18*u + 0.82*Math.sin(Math.PI*Math.pow(u,0.72)))*62;
+      for(let t=0;t<=16;t++){
+        const u=t/16, w=prof(u);
         x.lineTo(64+Math.cos(a0)*w, 8+u*118);
       }
-      for(let t=12;t>=0;t--){
-        const u=t/12, w=Math.sin(Math.PI*(0.22+u*0.78))*62;
+      for(let t=16;t>=0;t--){
+        const u=t/16, w=prof(u);
         x.lineTo(64+Math.cos(a1)*w, 8+u*118);
       }
       x.closePath(); x.fill();

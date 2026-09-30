@@ -430,7 +430,20 @@ function frame(){
 
   /* ---- artificial light: emissives ramp, real lights follow the player -- */
   for(const g of GLOW){
-    if(g.basic){ g.m.opacity=(g.day?(1-dark):dark)*(g.max===undefined?1:g.max); continue; }
+    if(g.basic){
+      let a=(g.day?(1-dark):dark)*(g.max===undefined?1:g.max);
+      /* An obstruction light on a mast is not a lamp that comes on at dusk
+         and sits there: it is a beacon, and what makes it read across a
+         kilometre of dark desert is the gap between flashes. `blink` is the
+         period in seconds and `duty` the fraction of it the lamp is lit,
+         with a short ramp either side so it pulses rather than switching. */
+      if(g.blink){
+        const u=(now/g.blink)%1, d2=g.duty===undefined?0.16:g.duty;
+        a *= u<d2 ? Math.sin(Math.PI*(u/d2)) : 0;
+      }
+      g.m.opacity=a;
+      continue;
+    }
     const k=g.kind==="pool" ? 0.30+dark*2.0 : 0.10+dark*3.0;
     if(g.base) g.m.emissive.copy(g.base);
     g.m.emissiveIntensity=g.baseInt*k;
@@ -644,6 +657,7 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                                  player.feetY=surfaceY(x,z, y===undefined?0:y); },
                sim:n=>{ for(let i=0;i<n;i++){ fixedUpdate(1/60); updateDoors(1/60); } },
                weeds:WEEDS, flyers:FLYERS, blowLitter:()=>{ flyerWait=0; },
+               glow:GLOW,     // so a probe can hold a beacon lit for a frame
                wind:Wind, blow:(g)=>{ Wind.gust=(g===undefined?0.9:g); Wind.hold=Wind.gust>0; },
                terrain:Terrain, camera:camera, images:()=>IMG_STATUS,
                gifDecode:gifDecode, gifFrames:gifFrames,

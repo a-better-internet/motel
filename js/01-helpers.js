@@ -41,6 +41,12 @@ function artTex(key, long, draw){
    Underneath it all the screens run procedural static, so a set is never a
    still photograph of snow even when the network gives us nothing.        */
 const ANIM=[], STATIC_TILES=[];
+/* Everything in the world that changes with the time of day registers here
+   and 19-loop.js walks it once a frame: {m, kind} ramps a material's
+   emissive, {m, basic:true} ramps its opacity, and `blink` on top of that
+   makes a beacon rather than a lamp. It is declared this early because the
+   desert files build lamps and they load a long way before 15-bake.       */
+const GLOW=[];
 (function buildStatic(){
   for(let k=0;k<6;k++){
     const c=cvs(128,96), x=c.getContext("2d");

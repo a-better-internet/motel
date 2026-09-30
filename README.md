@@ -91,10 +91,26 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   the counter edge. A fan has been oscillating since 1974, a radio is tuned
   to whatever still comes in, and the cat has the warm end of the counter.
   There is a door behind the desk that is not for guests, with a light under
-  it; a board of guests pinned up over thirty summers by the entrance;
+  it, and it opens — see below; a board of guests pinned up over thirty summers by the entrance;
   venetian blinds half drawn over the bay nearest the desk; a floor fan and
   the lead it runs off; and a bucket under the corner where the ceiling has
   been letting go for years.
+- **The manager's apartment**, through that door. Whoever ran this place did
+  not go home at the end of a shift, and this is the only private room on
+  the property — so it is deliberately not dressed like a guest room. One
+  room, seven metres by eight: a bed against the north wall that has not
+  been made and a spread thrown back to the foot of it, a portable
+  television on a wheeled stand with foil on one rabbit ear, a kitchen run
+  down the west wall with a hob, a kettle, a wall cupboard with one door
+  hanging open, a fridge with a postcard and a shopping list under a magnet
+  — and one plate, one mug and a fork left standing in the sink under the
+  window. A table with two chairs, one of them pushed back and turned away,
+  carries the property's ledger brought through from the desk, a cup that
+  has been there long enough to ring the wood and an ashtray that needs
+  emptying. Four shirts on a rail because there is no wardrobe, a case
+  under them, a calendar that stopped, a photograph that did not, and the
+  spare keys on a board by the door. The rug is worn through on the line
+  between the door, the kitchen and the bed.
 - **The Rusty Canteen**, a dive bar on the next lot west — a separate
   business, fenced off from the motel's asphalt, with its own parking, its own
   pole sign out by the road and a neon BEER ON TAP in the window. It is about
@@ -468,6 +484,33 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   table, dish sink, wire shelving and a reach-in with the glass gone. By
   day it is lit through the window band and the door somebody left open; after
   dark it is as black as the desert and you go in with the torch.
+- **A fire lookout on the mesa rim, and a fire road up to it.** Five hundred
+  metres north-west and a hundred metres up, on the tabletop of a butte you
+  can see from the walkway. You get there on foot: a graded bench eight
+  hundred metres long is cut into the butte's south flank in five
+  switchbacks at a one-in-eight grade, with a pale compacted running
+  surface, two ruts worn into it, spoil pushed over the outside edge, marker
+  posts, cairns at the hairpins and a gate across it at the bottom. The
+  trail is cut into the heightfield rather than laid on it — on a
+  forty-degree flank a path drawn on the ground either floats off it or is
+  buried in it — and the butte has three-metre terrain cells of its own so
+  the bench is something you can see as well as walk on. At the top: a
+  glazed cab on timber legs with a catwalk all the way round, a hip roof
+  with a cupola, a stove flue and an aerial, and a stair down the one side
+  the tabletop falls away on. Inside, an Osborne firefinder on its pedestal
+  in the dead centre of the floor, a map table under the west window, a cot
+  with glass insulators under its legs, a stove and a radio that has been
+  off since the last season. What you go up there for is the view back:
+  from the catwalk the whole property is laid out below you — both wings,
+  the pool, the sign, and the highway running away in both directions.
+- **A lone mast on a further butte.** Seventy-two metres of guyed lattice on
+  the tabletop of the next butte north, with an equipment hut and a solar
+  panel at its foot. By day it is a scratch against the sky you might not
+  notice. After dark the obstruction light on its crown is the only thing
+  burning anywhere off the property — a flash every two and a half seconds
+  with two seconds of nothing in between, which is what makes it read across
+  half a kilometre of desert, and the one thing out there you can navigate
+  by at night.
 - **A tracking station, six hundred metres back.** A parabolic dish on an
   alt-az mount over a lattice pedestal, a control room you can walk into, a
   plant hut, a half-buried cable duct between them, and a ring of little white
@@ -595,10 +638,15 @@ headless Chromium and asks the scene about itself rather than looking at it:
 - a coplanar-face analyser over a given box, which catches z-fighting before
   it is visible;
 - a float scan that clusters every primitive and reports the ones with nothing
-  underneath them — birds on a wire, ceiling fittings, the flies in the bar and
-  the set in 206 are the only ones left that are supposed to be up there;
+  underneath them — birds on a wire, ceiling fittings, the lookout's own roof
+  and cupola, the flies in the bar and the set in 206 are the only ones left
+  that are supposed to be up there. It caught six guy anchors for the mast
+  placed at the mast's ground height rather than their own, thirty-four
+  metres out on a tabletop with a metre and a half of noise in it;
 - a flood fill of the adit at 20 cm, from the spoil fan outside to the far wall
-  of the chamber, so nowhere on that route can wedge you;
+  of the chamber, so nowhere on that route can wedge you — and the same fill
+  over any building's floor from its front door, which is how the lookout cab
+  turned out to have a third of its floor walled off behind a map table;
 - a terrain profile dump over any footprint, for checking a cut before building
   anything on it;
 - a stuck scan, which walks the whole site at 45 cm on both storeys and
@@ -608,6 +656,12 @@ headless Chromium and asks the scene about itself rather than looking at it:
   triangle count and whether it carries a map. It found 70% of the world's
   triangles on materials with none — foliage alone is 45% of the world and was
   flat colour — which is now 12%;
+- a doorway-clearance probe, which walks every triangle of every baked bucket
+  against a prism drawn through an opening and names whatever is standing in
+  it. The doorway probe above walks *colliders*, and the things that block a
+  door are usually decorative — three courses of shell wall, a chrome cap
+  rail, a handrail, a chair rail, a board of keys — so it kept reporting
+  lanes clear that you could not see through;
 - a seam probe, which hides each terrain ring in turn and measures how far
   apart two rings are along the border they share — the only way to tell a
   hole in the world from a hole in one mesh;
@@ -646,9 +700,9 @@ A few pieces are specific to this scene:
   is all an outdoor stair needs.
 - **A hole in the ground, and not one in the sky.** The terrain is built as a
   hand-rolled grid rather than a `PlaneGeometry` so cells can be dropped — the
-  pool tank is a real void, and four rings (0.5 m at the adit, 2 m over the
-  site, 6 m across the canyon country, 12 m to the horizon) each cut a hole for
-  the finer one inside it. Two rules make the seams between them close: the
+  pool tank is a real void, and five rings (0.5 m at the adit, 2 m over the
+  site, 3 m over the lookout butte, 6 m across the canyon country, 12 m to the
+  horizon) each cut a hole for the finer one inside it. Two rules make the seams between them close: the
   coarser cell has to be a whole multiple of the finer one, so the two rings
   sample the shared border in step, and the inner ring's box has to land on the
   outer ring's lattice at all four edges, or the cells that straddle an edge are

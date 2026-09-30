@@ -70,6 +70,55 @@ not see past. `band()` takes a `gap` flag now and splits the road-face run
 either side of the door, and the fluting that crosses the head is split the
 same way. If you add a course to a wall with a door in it, split it.
 
+**Nothing carries a collider, so check the geometry.** This is the same bug
+three rounds running and it is always the same shape: something is drawn
+across an opening, none of it collides, and `doors18.js` — which walks
+colliders — reports the lane clear while you stand in the doorway unable to
+see in. It was three courses of shell wall, then the wainscot's chrome cap
+rail and the sill ledge over it running the full length of the car, then a
+stoop handrail a metre off the door centre at chest height. `clear36.js`
+walks every triangle of every baked bucket against a prism drawn through
+the opening and names the bucket and the height band. Run it on every
+doorway you touch, and on every new one before you ship it — it caught a
+full-width oak chair rail across the office's brand-new apartment door, and
+a board of room keys hung on the door's own centre-line, in the same
+session they were written.
+
+**A vertex test is not enough to find what is in a doorway.** The first cut
+of `clear36.js` asked whether any of a triangle's three corners was inside
+the prism, and the diner's wainscot is one plane the full width of the car:
+both of its triangles pass clean through the opening with every corner
+metres away on either side. It reported the door clear. It does the
+separating-axis test now — thirteen axes, triangle against box — which
+finds a triangle crossing the opening however far away its corners are.
+
+**Lay a room out from a plan, with a named lane nothing may enter.** The
+manager's apartment was first placed by eye, each thing against the nearest
+wall, and it came out with the bed and the fridge inside each other and the
+door opening onto the bed. It is laid out from a block of named anchors at
+the top of the function now, with `LANE` as the strip from the door into
+the room. That is the same rule the doorways get from `clear36.js`, applied
+to a room instead of an opening.
+
+**A registry other files push into has to be declared before all of them.**
+`GLOW` — the list 19-loop walks once a frame to ramp everything that
+changes with the time of day — sat at the top of `15-bake.js` for twenty
+rounds, because nothing earlier had ever registered a lamp. The moment
+14c did, for the obstruction light on the mast, the page threw on load. It
+lives in `01-helpers.js` now, with `ANIM`.
+
+**A path up a steep slope has to be cut INTO the ground, and the ground has
+to be drawn finely enough to show it.** The fire road up the lookout butte
+is a 6.4 m bench forced into `heightAt` along a polyline, blending out over
+seven more metres either side — which is the cut bank above it and the fill
+below. Laid on top of the terrain instead it would either float off a
+forty-degree flank or be buried in it, and you can walk on neither. Two
+things it needs: the butte's own `flat` had to come down from 0.80 to 0.42
+so there was a flank to put a trail on at all, and the butte gets 3 m cells
+of its own, because at the middle ring's six the bench is one cell wide and
+smears into a slight lean on the hillside — a trail you can walk up and
+cannot see.
+
 **A skirt emitted in both windings shades black.** The aprons that hide the
 cracks between terrain rings were built as double-wound quads so they would
 show whichever side the crack opened on. `computeVertexNormals` sums face
@@ -127,4 +176,5 @@ and says which rooms you can actually get to, `why33.js` walks a line and
 names whatever is standing in it, and `drive29.js` / `jump30.js` /
 `jitter31.js` exercise the car. `seam35.js` hides each terrain ring in turn
 and measures how far apart the rings are along their shared border, which is
-the only way to tell a hole in the world from a hole in one mesh.
+the only way to tell a hole in the world from a hole in one mesh, and
+`clear36.js` walks the geometry of a doorway rather than its colliders.

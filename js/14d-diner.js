@@ -663,12 +663,21 @@
     // hand's width of threshold that drops you back onto the apron
     m.flat(DX-0.7, DX+0.7, Z-0.34, Z+0.34, FY+0.012);
     m.B("metal", 1.34, 0.04, 0.40, DX, FY+0.01, Z+0.08, 0.4, 0, CHRD);
-    m.C("metal", 0.030,0.030,0.62,8, DX+1.18, 0.82, Z-0.50, "#7d837e");   // the newel
-    m.C("metal", 0.030,0.030,0.62,8, DX+1.18, 0.62, Z-1.42, "#7d837e");
-    // pi/2 lays a cylinder along z; the rake is that less the pitch of the
-    // flight. At 0.42 it stood almost upright beside the steps.
-    m.P("metal", new T.CylinderGeometry(0.032,0.032,1.00,8), DX+1.18, 1.03, Z-0.96,
-        0, "#7d837e", Math.PI/2-0.215, 0);                                 // the rake
+    /* THE HANDRAIL IS GONE, and this is the third thing in a row to be
+       standing in this doorway. It was a metre off the door centre and it
+       topped out at 1.13, which is chest height on a 1.24 m opening — so
+       from anywhere on the apron the rake crossed the entrance, and because
+       it had no collider the doorway probe went on saying the lane was
+       clear. A three-riser stoop with cheek walls either side does not need
+       a rail. What is left is the two sockets it was bolted into, cut off
+       flush and weeping rust, which says more about the place than the rail
+       did. Nothing else goes within the door's lane at any height: see
+       clear36.js, which walks the geometry rather than the colliders. */
+    for(const q of [-1,1]) for(const zz of [Z-0.50, Z-1.42]){
+      m.C("metal", 0.034,0.034,0.05,8, DX+q*(SW/2+0.06), 0.545, zz, "#6e746f");
+      m.P("rust", planeGeo(0.06, 0.30, 0), DX+q*(SW/2+0.06)+q*0.112, 0.38, zz,
+          q>0?Math.PI/2:-Math.PI/2, "#6b5a45", 0, 0);
+    }
     // a CLOSED card taped inside the glass, and the hours nobody reads
     m.P("paper", planeGeo(0.30,0.20,0), DX-0.78, FY+1.62, Z+0.06, 0, "#cfc6ae", 0, 0.18);
     m.P("paper", planeGeo(0.22,0.30,0), DX+0.80, FY+1.50, Z+0.06, 0, "#c4bba3", 0, -0.06);
@@ -681,9 +690,16 @@
   }
 
   /* ---- what forty years in the sun does to stainless ---------------------- */
+  /* A decal hung on the outside of the road face is still in the doorway if
+     it is drawn over the hole — you are looking through the opening at a
+     plane floating in front of it. `overDoor` is the one test everything
+     scattered on this face goes through. */
+  const overDoor=(px,hw)=>(px+hw>DOX0-0.06 && px-hw<DOX1+0.06);
   for(let i=0;i<34;i++){                          // rust weeping from the seams
     const px=-HL+0.8+((i*2.17)%(L-1.6)), sz=(i%2)?1:-1;
-    m.P("rust", planeGeo(0.20+((i*5)%3)*0.10, 0.70+((i*7)%4)*0.55, 0),
+    const w=0.20+((i*5)%3)*0.10;
+    if(sz<0 && overDoor(px, w/2)) continue;
+    m.P("rust", planeGeo(w, 0.70+((i*7)%4)*0.55, 0),
         px, CH-0.30, sz*(HW+0.09), sz>0?0:Math.PI, "#7c4526", 0, 0);
   }
   /* Large-scale tone on the stainless. The soot bucket is 16% and the rust
@@ -703,13 +719,19 @@
         GY1+0.20+r2()*0.44, sz*(HW-0.02), 0, "#8d8878", (r2()-0.5)*0.3, (r2()-0.5)*0.3);
   }
   for(let i=0;i<22;i++){                          // streaks off the window heads
-    const px=-HL+0.9+((i*3.11)%(L-1.8)), sz=(i%2)?1:-1;
-    m.P("soot", planeGeo(0.24+r2()*0.30, 0.8+r2()*0.6, 0), px, GY0-0.44, sz*(HW+0.09),
+    const px=-HL+0.9+((i*3.11)%(L-1.8)), sz=(i%2)?1:-1, w=0.24+r2()*0.30;
+    if(sz<0 && overDoor(px, w/2)) continue;
+    m.P("soot", planeGeo(w, 0.8+r2()*0.6, 0), px, GY0-0.44, sz*(HW+0.09),
         sz>0?0:Math.PI, "#6a6053", 0, 0);
   }
-  for(const sz of [-1,1])                          // the dirt line off the apron
-    m.P("soot", planeGeo(L-1.4, 0.44, 0), 0, SK+0.26, sz*(HW+0.09),
-        sz>0?0:Math.PI, "#6d6455", 0, 0);
+  for(const sz of [-1,1]){                         // the dirt line off the apron
+    if(sz<0){                                      // and round the door, not over it
+      for(const q of [[-HL+0.7, DOX0-0.06],[DOX1+0.06, HL-0.7]])
+        m.P("soot", planeGeo(q[1]-q[0], 0.44, 0), (q[0]+q[1])/2, SK+0.26,
+            sz*(HW+0.09), Math.PI, "#6d6455", 0, 0);
+    }else m.P("soot", planeGeo(L-1.4, 0.44, 0), 0, SK+0.26, sz*(HW+0.09),
+              0, "#6d6455", 0, 0);
+  }
   /* Sand banked against the ends. A blobGeo is a lumpy polyhedron and
      squashing one to a fifth of its height does not make a drift — it makes
      a flat angular shard with a hard silhouette, and nine of them stacked
@@ -947,19 +969,45 @@
     for(const q of [q0, GY1-0.02, q1])
       m.B("metal", qw+0.04, 0.05, 0.07, qx, q, IZ1-0.045, 0.4, 0, CHRD);
   }
-  // vertical boarding on the window side, below the glass
-  m.P("roomwall", planeGeo(IX1-IX0, GY0-FY-0.05, 2.4), 0, FY+(GY0-FY)/2, IZ0+0.02,
-      0, WOOD, 0, 0);
-  m.B("metal", IX1-IX0, 0.07, 0.06, 0, GY0-0.05, IZ0+0.05, 0.4, 0, CHRD);
+  /* THE WAINSCOT ON THE WINDOW SIDE, AND THE DOOR IN THE MIDDLE OF IT.
+
+     This is what the railing across the front entrance actually was. The
+     lining, its chrome cap rail, its stiles, its kick and the sill ledge over
+     it were each drawn as one piece IX1-IX0 long — the whole interior width
+     of the car — and the front door is in the middle of that wall. So a
+     chrome bar ran across the opening at 1.29, a laminate ledge at 1.37 and
+     seventy centimetres of panelling under both, and because a lining
+     carries no collider the doorway probe went on calling the lane clear.
+
+     `road()` runs a piece down the road side in the two lengths either side
+     of the door instead of one length through it. Everything at this height
+     on this wall goes through it, and clear36.js is the thing that checks. */
+  const road=(fn)=>{ fn(IX0, DOX0-0.02); fn(DOX1+0.02, IX1); };
+  road((a,b)=>{
+    const w=b-a, cx=(a+b)/2;
+    m.P("roomwall", planeGeo(w, GY0-FY-0.05, 2.4), cx, FY+(GY0-FY)/2, IZ0+0.02,
+        0, WOOD, 0, 0);
+    m.B("metal", w, 0.07, 0.06, cx, GY0-0.05, IZ0+0.05, 0.4, 0, CHRD);
+    m.B("roomwall", w, 0.045, 0.030, cx, FY+0.10, IZ0+0.045, 0.5, 0, "#879475");
+    // 0.12 and tucked back: at 0.16 it stood out to IZ0+0.17 and the booth
+    // benches began at IZ0+0.08, so the ledge ran through the end of every one
+    m.B("lino", w, 0.05, 0.12, cx, GY0+0.03, IZ0+0.07, 0.5, 0, LAMD);         // the sill
+  });
   // stiles down the wainscot, so it reads as panelling and not as paint
-  for(let i=0;i<17;i++)
-    m.B("roomwall", 0.055, GY0-FY-0.10, 0.030, IX0+0.35+i*((IX1-IX0)-0.7)/16,
-        FY+(GY0-FY)/2, IZ0+0.045, 0.5, 0, "#879475");
-  m.B("roomwall", IX1-IX0, 0.045, 0.030, 0, FY+0.10, IZ0+0.045, 0.5, 0, "#879475");
-  // 0.12 and tucked back: at 0.16 it stood out to IZ0+0.17 and the booth
-  // benches began at IZ0+0.08, so the ledge ran straight through the end of
-  // every one of them
-  m.B("lino", IX1-IX0, 0.05, 0.12, 0, GY0+0.03, IZ0+0.07, 0.5, 0, LAMD);      // the sill
+  for(let i=0;i<17;i++){
+    const px=IX0+0.35+i*((IX1-IX0)-0.7)/16;
+    if(px>DOX0-0.10 && px<DOX1+0.10) continue;                 // not across the door
+    m.B("roomwall", 0.055, GY0-FY-0.10, 0.030, px, FY+(GY0-FY)/2, IZ0+0.045,
+        0.5, 0, "#879475");
+  }
+  /* And the reveal, so the cut ends of all that read as a finished opening
+     rather than as a lining somebody sawed through: a stile down each side
+     of the doorway and a return across the head of the wainscot. */
+  for(const q of [DOX0-0.02, DOX1+0.02])
+    m.B("roomwall", 0.055, GY0-FY-0.05, 0.048, q, FY+(GY0-FY)/2, IZ0+0.048,
+        0.5, 0, "#7d8a6c");
+  for(const q of [DOX0-0.02, DOX1+0.02])
+    m.C("metal", 0.030,0.030,0.11,8, q, GY0-0.05, IZ0+0.05, CHRD, 0, 0, Math.PI/2);
   // the end walls, taken up to the barrel in strips — and stopping short of
   // the one light in each end, or the lining boards straight over the window
   for(const sx of [-1,1])
@@ -1712,6 +1760,102 @@
     m.P("glass", planeGeo(0.09+((i*5)%3)*0.05, 0.07+((i*3)%3)*0.04, 0),
         IX0+1.0+((i*2.7)%(IX1-IX0-2.0)), FY+0.022, IZ0+0.30, i*1.1, "#8a9a94",
         -Math.PI/2, 0);
+  /* ---- the menu board over the back bar ---------------------------------
+     A diner's prices are the loudest thing in the room and they are the one
+     thing a place that closed in the seventies still has on the wall. Black
+     letterboard, white plastic letters, and a third of them gone — fallen
+     out of the slots and lying on the back bar under it. */
+  {
+    const bx0=KX+0.95, bx1=KX+4.05, by0=FY+1.62, by1=FY+2.26;
+    m.B("metal", bx1-bx0+0.10, by1-by0+0.10, 0.05, (bx0+bx1)/2, (by0+by1)/2, IZ1-0.05,
+        0.4, 0, CHRD);                                        // the frame
+    m.P("bin", planeGeo(bx1-bx0, by1-by0, 0), (bx0+bx1)/2, (by0+by1)/2, IZ1-0.08,
+        Math.PI, "#2a2b28", 0, 0);                            // the board
+    for(let r=0;r<5;r++){                                     // the slats
+      const ly=by1-0.10-r*0.125;
+      m.B("metal", bx1-bx0, 0.012, 0.022, (bx0+bx1)/2, ly-0.062, IZ1-0.095, 0.4, 0, "#4a4b46");
+      for(let c=0;c<22;c++){                                  // and the letters in them
+        const px=bx0+0.10+c*((bx1-bx0)-0.20)/21;
+        const h2=((r*7+c*3)%11);
+        if(h2<3) continue;                                    // this one has gone
+        m.B("paper", 0.035, 0.052, 0.010, px, ly, IZ1-0.098, 0.4, 0,
+            (c>16)?"#d8c47e":"#e8e4d6");
+      }
+    }
+    for(let i=0;i<7;i++)                                      // where they ended up
+      m.P("paper", planeGeo(0.035,0.052,0), KX+1.3+((i*1.7)%2.6), FY+0.955,
+          BBZ0-0.10+((i*5)%3)*0.07, i*1.1, "#e8e4d6", -Math.PI/2, 0);
+    m.C("metal", 0.016,0.016,0.16,6, bx0-0.02, by1+0.12, IZ1-0.07, CHRD, 0.5, 0, 0.3);
+  }
+
+  /* ---- the entry, from the inside --------------------------------------
+     Now the doorway is actually open this is the first thing you see, so it
+     gets the four things that are always in one: something to wipe your
+     feet on, a bell over the door, a sign telling you to wait, and a rack
+     of papers nobody has taken since. Everything here stands clear of the
+     lane through the door — x 4.88 to 6.12 — because that is the rule now. */
+  {
+    m.P("fabric", planeGeo(1.30, 0.80, 0.8), DX, FY+0.022, IZ0+0.58, 0,
+        "#4e4a40", -Math.PI/2, 0);                            // the mat
+    m.B("metal", 1.36, 0.02, 0.06, DX, FY+0.026, IZ0+0.18, 0.4, 0, "#7f857f");
+    m.B("metal", 1.36, 0.02, 0.06, DX, FY+0.026, IZ0+0.98, 0.4, 0, "#7f857f");
+    for(let i=0;i<9;i++)                                      // worn through in the middle
+      m.P("soot", planeGeo(0.16+r2()*0.20, 0.14+r2()*0.18, 0), DX-0.4+r2()*0.8,
+          FY+0.026, IZ0+0.34+r2()*0.48, r2()*6.28, "#3f3a31", -Math.PI/2, 0);
+    // the bell on its bracket, set back off the head so it is not in the hole
+    m.C("metal", 0.010,0.010,0.22,6, DX, FY+2.16, IZ0+0.26, CHRD, 0, 0, Math.PI/2);
+    m.C("metal", 0.010,0.010,0.13,6, DX, FY+2.16, IZ0+0.15, CHRD, Math.PI/2);
+    { const g=new T.SphereGeometry(0.055,12,8); g.scale(1,0.78,1);
+      m.P("metal", g, DX, FY+2.10, IZ0+0.26, 0, "#a89a5e"); }
+    m.C("metal", 0.008,0.008,0.10,5, DX, FY+2.02, IZ0+0.26, "#8a7c48");
+    // PLEASE WAIT TO BE SEATED, on a stand, knocked half round
+    { const sx=DX-1.52, sz=IZ0+0.92;
+      m.C("metal", 0.14,0.17,0.02,14, sx, FY+0.02, sz, CHRD);
+      m.C("metal", 0.022,0.022,1.02,8, sx, FY+0.53, sz, CHRD);
+      m.B("bin", 0.42, 0.28, 0.03, sx, FY+1.12, sz, 0.4, 0.42, "#2f312c");
+      m.P("paper", planeGeo(0.36, 0.22, 0), sx+Math.sin(0.42)*0.02, FY+1.12,
+          sz-Math.cos(0.42)*0.02, 0.42, "#cfc6ae", 0, 0);
+      m.col(sx-0.18, sx+0.18, sz-0.18, sz+0.18, 0, FY+1.20); }
+    // the paper rack, empty but for one that never got picked up
+    { const rx=DX+1.44, rz=IZ0+0.34;
+      for(const q of [-1,1]) m.C("metal", 0.016,0.016,0.94,6, rx+q*0.22, FY+0.47, rz, CHRD);
+      for(let k=0;k<3;k++)
+        m.B("metal", 0.50, 0.018, 0.22, rx, FY+0.30+k*0.30, rz+0.04, 0.4, 0, CHRD);
+      m.P("paper", planeGeo(0.30, 0.40, 0), rx-0.05, FY+0.63, rz+0.05, 0.1, "#c9c1a8",
+          -0.9, 0.06);
+      m.col(rx-0.26, rx+0.26, rz-0.16, rz+0.18, 0, FY+0.96); }
+    // and the path worn from the door to the counter
+    for(let i=0;i<13;i++){
+      const t=i/12;
+      m.P("soot", planeGeo(0.62+r2()*0.5, 0.70+r2()*0.5, 0),
+          DX-t*(DX-CX1+0.4)+((i%2)?0.10:-0.12), FY+0.020+i*0.0004,
+          IZ0+0.70+t*(SZ-IZ0-0.7), r2()*6.28, "#4a4237", -Math.PI/2, 0);
+    }
+  }
+
+  /* ---- and the service end, outside ------------------------------------- */
+  {
+    const ex=IX0-0.14;                                       // the west end wall
+    m.C("metal", 0.30,0.30,0.16,14, ex-0.06, FY+1.62, -0.90, "#8a908a", 0, 0, Math.PI/2);
+    m.C("metal", 0.34,0.34,0.05,14, ex-0.14, FY+1.62, -0.90, "#6e746f", 0, 0, Math.PI/2);
+    for(let k=0;k<4;k++)                                      // the extract fan behind it
+      m.B("metal", 0.03, 0.52, 0.10, ex-0.10, FY+1.62, -0.90, 0.4, k*0.8, "#5f655f");
+    m.P("soot", planeGeo(0.70, 1.20, 0), ex-0.16, FY+0.92, -0.90, -Math.PI/2,
+        "#544c40", 0, 0);                                     // the grease run under it
+    m.C("metal", 0.018,0.018,0.20,6, ex-0.06, FY+0.10, 0.90, "#8a908a", 0, 0, Math.PI/2);
+    for(let k=0;k<9;k++){                                     // the hose, coiled on its hook
+      const a=k*0.72;
+      m.P("bin", new T.TorusGeometry(0.17+k*0.004, 0.017, 5, 14), ex-0.14,
+          FY+0.42, 0.90, 0, "#3f4a42", 0, Math.PI/2+0.06*Math.sin(a));
+    }
+    m.C("metal", 0.014,0.014,0.10,5, ex-0.10, FY+0.62, 0.90, "#8a908a", 0, 0, Math.PI/2);
+    for(let i=0;i<6;i++)                                      // milk crates by the back door
+      m.B("bin", 0.34, 0.26, 0.34, IX0+0.55+((i%2)?0.38:0), 0.15+((i/2)|0)*0.27,
+          IZ1+0.62+((i%3)*0.06), 0.5, ((i*7)%5-2)*0.10,
+          ["#3f5c6a","#5c3f4a","#4a5c3f"][i%3]);
+    m.col(D.x+IX0+0.35, D.x+IX0+1.30, D.z+IZ1+0.40, D.z+IZ1+0.90, 0, 1.0);
+  }
+
   /* zoneAt takes the LAST zone that matches, so the order here is the
      answer. The volume that keeps the blown sand out covers the whole car and
      goes down first; the two rooms name themselves over the top of it. The

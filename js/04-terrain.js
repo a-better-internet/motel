@@ -39,7 +39,11 @@ const Terrain=(function(){
     {x:-620, z:-980, h:150, r:430, flat:0.55},
     {x: 980, z:-660, h:180, r:520, flat:0.62},
     // nearer buttes, steep-sided, that stand clear of the escarpment
-    {x:-330, z: 430, h: 96, r:190, flat:0.80},
+    // flat 0.42, not 0.80. This is the butte the fire road climbs, and at
+    // 0.80 its flank was thirty-eight metres wide for a ninety-six metre
+    // rise — a cliff, with nowhere to put a trail. The tabletop is still
+    // a hundred and sixty metres across; the flank is now a hundred and ten.
+    {x:-330, z: 430, h: 96, r:190, flat:0.42},
     {x: 250, z: 520, h:118, r:220, flat:0.82},
     {x: 560, z: 180, h: 74, r:150, flat:0.78},
     {x:-520, z: 130, h: 62, r:140, flat:0.76},
@@ -106,6 +110,76 @@ const Terrain=(function(){
     if(d>DINER.r+DINER.blend) return h;
     return h+(DINER.y-h)*(1-smoothstep(DINER.r, DINER.r+DINER.blend, d));
   }
+  /* ---- the fire road up the lookout butte -----------------------------
+     A trail on a mesa flank is not scenery you lay on the ground, it is a
+     bench somebody cut into it, and it has to be the ground for the same
+     reason the adit bench does: a path drawn on a forty-degree slope either
+     floats off it or is buried in it, and you cannot walk on either.
+
+     Five legs traversing back and forth across a seventy-degree sector of
+     the south flank, the radius closing from 184 m at the toe to 76 m at
+     the rim, climbing at a steady grade the whole way. The bench is 6.4 m
+     wide — a fire road, not a footpath, because at three metres it would
+     vanish into one cell of the grid that draws it — and it blends out
+     over seven more, which is the cut bank above it and the fill below.
+
+     Five across seventy, and not six across a hundred and forty: the wide
+     version measured out at 1963 m of trail for a 65 m climb, which is a
+     3.3% grade — a highway, and an eight-minute walk to get up a hill you
+     can see the top of. This one is about eight hundred metres at 12%,
+     which is what a fire road actually is.                              */
+  const LOOK={x:-330, z:430, r:190, r0:184, r1:76,
+              a0:-Math.PI*0.70, a1:-Math.PI*0.31, legs:5,
+              half:3.2, blend:7.0};
+  let TRAIL=null, _noTrail=false;
+  function trailPath(){
+    if(TRAIL) return TRAIL;
+    const pts=[];
+    for(let i=0;i<LOOK.legs;i++){
+      const t0=i/LOOK.legs, t1=(i+1)/LOOK.legs, up=(i%2)===0;
+      for(let k=(i?1:0);k<=30;k++){
+        const u=k/30, t=t0+(t1-t0)*u;
+        const rr=LOOK.r0+(LOOK.r1-LOOK.r0)*t;
+        const a=up ? LOOK.a0+(LOOK.a1-LOOK.a0)*u : LOOK.a1+(LOOK.a0-LOOK.a1)*u;
+        pts.push({x:LOOK.x+Math.cos(a)*rr, z:LOOK.z+Math.sin(a)*rr, y:0, s:0});
+      }
+    }
+    let run=0;
+    for(let i=1;i<pts.length;i++){
+      run+=Math.hypot(pts[i].x-pts[i-1].x, pts[i].z-pts[i-1].z);
+      pts[i].s=run;
+    }
+    /* The two ends are sampled off the untouched ground, and everything
+       between them is a straight grade from one to the other. Sampling
+       every point off the ground instead would give a trail that follows
+       the gullies up and down, which is a goat track, not a graded road. */
+    _noTrail=true;
+    const y0=heightAt(pts[0].x, pts[0].z), y1=heightAt(pts[pts.length-1].x, pts[pts.length-1].z);
+    _noTrail=false;
+    for(const q of pts) q.y=y0+(y1-y0)*(q.s/run);
+    TRAIL=pts; return TRAIL;
+  }
+  function trailCut(x,z,h){
+    if(_noTrail) return h;
+    const dx=x-LOOK.x, dz=z-LOOK.z;
+    if(dx*dx+dz*dz > (LOOK.r+30)*(LOOK.r+30)) return h;     // nowhere near it
+    const P=trailPath(), lim=LOOK.half+LOOK.blend;
+    let best=1e9, ty=h;
+    for(let i=1;i<P.length;i++){
+      const a=P[i-1], b=P[i];
+      if(x<Math.min(a.x,b.x)-lim || x>Math.max(a.x,b.x)+lim ||
+         z<Math.min(a.z,b.z)-lim || z>Math.max(a.z,b.z)+lim) continue;
+      const ex=b.x-a.x, ez=b.z-a.z, L2=ex*ex+ez*ez;
+      const t=L2>0 ? Math.max(0, Math.min(1, ((x-a.x)*ex+(z-a.z)*ez)/L2)) : 0;
+      const px=a.x+ex*t, pz=a.z+ez*t;
+      const d=Math.hypot(x-px, z-pz);
+      if(d<best){ best=d; ty=a.y+(b.y-a.y)*t; }
+    }
+    if(best>=lim) return h;
+    const s2=smoothstep(lim, LOOK.half, best);
+    // the bench falls a little to the outside, the way a graded road drains
+    return h+(ty-h)*s2 - s2*0.10*Math.min(1, best/LOOK.half);
+  }
   function heightAt(x,z){
     const d=padDist(x,z);
     // The apron is graded up out of the highway corridor and its blend runs
@@ -152,9 +226,10 @@ const Terrain=(function(){
         h=Math.max(h, top+rough+ridge+fine);
       }
     }
-    return dinerPad(x,z, dishPad(x,z, aditCut(x,z,h)));
+    return trailCut(x,z, dinerPad(x,z, dishPad(x,z, aditCut(x,z,h))));
   }
-  return {heightAt:heightAt, fbm:fbm, PAD:PAD, PAD_Y:PAD_Y, ADIT:ADIT, DISH:DISH, DINER:DINER};
+  return {heightAt:heightAt, fbm:fbm, PAD:PAD, PAD_Y:PAD_Y, ADIT:ADIT, DISH:DISH,
+          DINER:DINER, LOOK:LOOK, trailPath:trailPath};
 })();
 
 const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
@@ -294,6 +369,14 @@ const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
     x0: ox+Math.floor((r.x0-ox)/step)*step, x1: ox+Math.ceil((r.x1-ox)/step)*step,
     z0: oz+Math.floor((r.z0-oz)/step)*step, z1: oz+Math.ceil((r.z1-oz)/step)*step });
   const NEAR_G=snapOut(NEAR_SITE, 6, MID.x0, MID.z0);       // 6 m ring, 2 m patch
+  /* The lookout butte gets three-metre cells of its own. The fire road is a
+     6.4 m bench and the middle ring is six: at that size the bench is one
+     cell wide and the grid smears it into a slight lean on the hillside,
+     which is a trail you can walk up and cannot see. The box is on the
+     middle ring's own lattice at all four edges — (MID.x0 + 6k, MID.z0 + 6k)
+     — so every coarse cell inside it is dropped whole, and 3 divides 6, so
+     the fine grid's own cells land on the coarse nodes along the seam. */
+  const LOOK_G={x0:-540, x1:-120, z0:218, z1:644};
   /* The horizon ring and the middle ring, and the seam between them.
 
      A hole in the world can only ever happen AT A SEAM — inside one mesh the
@@ -318,7 +401,8 @@ const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
      and the two meshes agree exactly there. What is left between them is
      one triangle's worth of bow, and the skirts swallow that. */
   grid(-1800,1800,-1738,1862, 12, [MID], "desert-far", 40);
-  grid(MID.x0, MID.x1, MID.z0, MID.z1, 6, [NEAR_G, ADIT_SITE], "desert-mid", 55);
+  grid(MID.x0, MID.x1, MID.z0, MID.z1, 6, [NEAR_G, ADIT_SITE, LOOK_G], "desert-mid", 55);
+  grid(LOOK_G.x0, LOOK_G.x1, LOOK_G.z0, LOOK_G.z1, 3, [], "desert-look", 22);
   // Half-metre cells here, not two. The cut's back wall is a 4.5 m step and
   // the grid triangle that carries it has to land inside the thickness of the
   // rock face: at 2 m that triangle ramps out of the floor and up through the

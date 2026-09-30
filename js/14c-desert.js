@@ -1377,6 +1377,485 @@
   for(const d of [-0.8,0.8]) bx("metal", 0.09,0.46,0.38, 30.0+d, 0.25, -43.0, 0, 0, "#4b4f52");
   addSeat(30.0, -42.9, 0.55, Math.PI, "THE BUS BENCH");        // watching the road
   addCol(29.0,31.0, -43.4,-42.7, 0, 0.95);
+  /* --- the mast on the butte -------------------------------------------
+     Five hundred and seventy metres north, on the tabletop of the nearer
+     butte, and the only thing on this map you navigate by after dark. By
+     day it is a scratch of lattice against the sky and you might not notice
+     it at all; at night the obstruction light on the crown is the one thing
+     burning anywhere off the property, and it is a beacon rather than a
+     lamp — a flash every three seconds with two and a half of nothing in
+     between, which is what makes it read across a kilometre of desert.
+     Nothing at the foot of it has been switched on since the cabinets were
+     stripped: the light runs off the solar panel on the hut roof. */
+  (function mast(){
+    const mx=250, mz=520, gy=Terrain.heightAt(mx,mz);
+    const H=72, BAYS=16, SB=3.40, ST=1.50;        // base and top face widths
+    const RC=s2=>s2/Math.sqrt(3);                 // circumradius of the triangle
+    const LEGA=[Math.PI/2, Math.PI*7/6, Math.PI*11/6];
+    const node=(i,k)=>{                           // leg k at bay level i
+      const t=i/BAYS, r=RC(SB+(ST-SB)*t);
+      return [mx+Math.cos(LEGA[k])*r, gy+t*H, mz+Math.sin(LEGA[k])*r];
+    };
+    // a cylinder's axis is +y, and with Euler "YXZ" and rz=0 the axis lands
+    // on (sin ry sin rx, cos rx, cos ry sin rx) — so rx is the angle off
+    // vertical and ry the compass bearing, which is all a strut needs
+    const strut=(bk,a,b,r,col,seg)=>{
+      const dx=b[0]-a[0], dy=b[1]-a[1], dz=b[2]-a[2], L=Math.hypot(dx,dy,dz);
+      if(L<0.01) return;
+      push(bk, new T.CylinderGeometry(r,r,L,seg||6), (a[0]+b[0])/2, (a[1]+b[1])/2,
+           (a[2]+b[2])/2, Math.atan2(dx,dz), col, Math.acos(Math.max(-1,Math.min(1,dy/L))), 0);
+    };
+    const STEEL="#9aa1a6", STEELD="#7b8288";
+    for(let i=0;i<BAYS;i++){
+      for(let k=0;k<3;k++){
+        const r=0.30-0.11*(i/BAYS);
+        strut("metal", node(i,k), node(i+1,k), r, STEEL);       // the legs
+        strut("metal", node(i,k), node(i,(k+1)%3), r*0.55, STEELD);
+        // one diagonal per face per bay, alternating hand, which is what
+        // makes a lattice read as a zigzag rather than as a ladder
+        const a=node(i,k), b=node(i+1,(k+1)%3), c=node(i+1,k), d=node(i,(k+1)%3);
+        strut("metal", (i%2)?a:d, (i%2)?b:c, r*0.42, STEELD);
+      }
+    }
+    for(let k=0;k<3;k++) strut("metal", node(BAYS,k), node(BAYS,(k+1)%3), 0.12, STEELD);
+    for(const lv of [0.36, 0.76]){                 // two sets of guys, three each
+      const i=Math.round(lv*BAYS);
+      for(let k=0;k<3;k++){
+        const a=node(i,k), ang=LEGA[k];
+        // on ITS OWN ground, not the mast's. Thirty-four metres out on a
+        // tabletop with a metre and a half of noise in it, six anchor
+        // blocks placed at the mast's own height hang in the air.
+        const bg=Terrain.heightAt(mx+Math.cos(ang)*34, mz+Math.sin(ang)*34);
+        const b=[mx+Math.cos(ang)*34, bg+0.6, mz+Math.sin(ang)*34];
+        strut("metal", a, b, 0.055, "#6e757a", 4);
+        if(lv<0.5){                                // the anchor block it lands on
+          bx("concrete", 1.5,0.9,1.5, b[0], bg+0.30, b[2], 0.4, 0, "#8d8474");
+          cyl("metal", 0.07,0.07,1.1,6, b[0], bg+1.0, b[2], STEELD, 0.3, 0, 0.2);
+        }
+      }
+    }
+    cyl("metal", 0.09,0.09,3.2,6, mx, gy+H+1.6, mz, STEEL);      // the lightning finial
+    for(const l of [[0,1],[1,2],[2,0]])                          // and the crown frame
+      strut("metal", node(BAYS,l[0]), [mx, gy+H+0.5, mz], 0.06, STEELD, 4);
+    /* The two lamps. A sprite rather than geometry, because what has to
+       carry over half a kilometre is a point of colour and not a shape, and
+       with fog off it stays a hard red dot when the mast behind it has gone
+       soft in the haze. The lower one runs at half the crown's brightness
+       and on the same flash, the way a real pair does. */
+    const lampTex=(()=>{
+      const c=cvs(64,64), x=c.getContext("2d");
+      /* A wide, soft falloff and a small hot core reads as a smudge at half
+         a kilometre. The core has to hold most of the radius, and only the
+         last third may fade, or the lamp is dimmer than the stars behind
+         it — which is what the first cut of this looked like. */
+      const g=x.createRadialGradient(32,32,0,32,32,32);
+      g.addColorStop(0,"rgba(255,244,238,1)");    g.addColorStop(0.22,"rgba(255,138,98,1)");
+      g.addColorStop(0.40,"rgba(240,54,28,0.92)"); g.addColorStop(0.64,"rgba(206,26,14,0.40)");
+      g.addColorStop(1,"rgba(180,16,10,0)");
+      x.fillStyle=g; x.fillRect(0,0,64,64);
+      return setSRGB(new T.CanvasTexture(c));
+    })();
+    for(const L of [[H+0.9, 19.0, 1.00],[H*0.52, 11.0, 0.55]]){
+      const mt=new T.SpriteMaterial({map:lampTex, transparent:true, opacity:0,
+        depthWrite:false, fog:false, blending:T.AdditiveBlending});
+      const sp=new T.Sprite(mt);
+      sp.scale.set(L[1], L[1], 1); sp.position.set(mx, gy+L[0], mz);
+      scene.add(sp);
+      GLOW.push({m:mt, basic:true, max:L[2], blink:2.6, duty:0.20});
+      cyl("metal", 0.13,0.13,0.26,8, mx, gy+L[0], mz, "#6b2018");   // the housing
+    }
+    // the hut at the foot of it, and the compound nobody has opened
+    bx("concrete", 3.10, 2.45, 2.30, mx+5.2, gy+1.22, mz-1.4, 0.5, 0, "#a49b88");
+    bx("concrete", 3.30, 0.16, 2.50, mx+5.2, gy+2.50, mz-1.4, 0.4, 0, "#8d8474");
+    bx("paint", 0.06, 1.95, 0.86, mx+3.63, gy+0.98, mz-1.4, 0.4, 0, "#5b6b62");   // the door
+    push("metal", boxGeo(1.30,0.05,0.90,0.4), mx+5.4, gy+2.66, mz-1.9, 0.5,
+         "#2c3038", -0.42, 0);                                     // the solar panel
+    for(const q of [-1,1])
+      cyl("metal", 0.05,0.05,0.50,6, mx+5.4+q*0.55, gy+2.44, mz-1.6, STEELD);
+    addCol(mx+3.6, mx+6.8, mz-2.6, mz-0.2, 0, 2.5);
+    for(let k=0;k<3;k++) addCol(node(0,k)[0]-0.4, node(0,k)[0]+0.4,
+                                node(0,k)[2]-0.4, node(0,k)[2]+0.4, 0, 3.0);
+  })();
+
+  /* --- the fire lookout on the mesa rim ---------------------------------
+     Five hundred and thirty metres north-west and a hundred metres up, at
+     the top of the fire road cut into the butte's flank in 04-terrain.js.
+     It is the only place in this world you can stand above the motel and
+     look down on the whole of it — the wings, the pool, the sign, the road
+     going both ways — which is the entire reason it is here. Everything
+     else about it follows from what a live-in lookout actually was: one
+     glazed room on legs, a catwalk all the way round so you can walk to
+     whichever side the smoke is on, a firefinder in the middle of the
+     floor, and a bed, a stove and a radio round the edges of it.
+     Nothing is powered. The radio has been off since the last season.  */
+  (function firelookout(){
+    const LK=Terrain.LOOK;
+    const P=Terrain.trailPath(), TOP=P[P.length-1];
+    const lx=-302, lz=374, gy=Terrain.heightAt(lx,lz);
+    const FLR=5.40, CAB=4.40, HC=CAB/2, WALK=1.05, CHh=2.32;
+    const TIM="#6f5a3e", TIMD="#54432e", GALV2="#9aa1a6", GALVD="#767d82";
+    const F=gy+FLR;                                // the catwalk / cab floor
+    const OUT=HC+WALK;
+
+    /* the legs. Four of them, cross-braced on all four faces, standing on
+       footings rather than on the dirt — a tower that meets the ground in
+       four points is the one thing that makes a lookout read as built
+       rather than dropped. */
+    for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]]){
+      const px=lx+a[0]*HC, pz=lz+a[1]*HC;
+      const g2=Terrain.heightAt(px,pz);
+      bx("concrete", 0.62,0.50,0.62, px, g2+0.10, pz, 0.4, 0, "#a49b88");
+      bx("oak", 0.22, F-g2+0.3, 0.22, px, (g2+F)/2, pz, 0.5, 0, TIM);
+    }
+    for(let k=0;k<4;k++){                          // and the braces up each face
+      const s2=[[-1,-1,1,-1],[1,-1,1,1],[1,1,-1,1],[-1,1,-1,-1]][k];
+      const ax=lx+s2[0]*HC, az=lz+s2[1]*HC, bx2=lx+s2[2]*HC, bz=lz+s2[3]*HC;
+      const g1=Terrain.heightAt(ax,az), g2=Terrain.heightAt(bx2,bz);
+      for(let t=0;t<3;t++){                        // three bays, X-braced
+        const y0b=Math.min(g1,g2)+0.5+t*((F-Math.min(g1,g2)-0.7)/3);
+        const y1b=Math.min(g1,g2)+0.5+(t+1)*((F-Math.min(g1,g2)-0.7)/3);
+        for(const dir of [0,1]){
+          const A=[dir?ax:bx2, y0b, dir?az:bz], B=[dir?bx2:ax, y1b, dir?bz:az];
+          const dxx=B[0]-A[0], dyy=B[1]-A[1], dzz=B[2]-A[2], L=Math.hypot(dxx,dyy,dzz);
+          push("oak", new T.CylinderGeometry(0.055,0.055,L,5),
+               (A[0]+B[0])/2, (A[1]+B[1])/2, (A[2]+B[2])/2, Math.atan2(dxx,dzz), TIMD,
+               Math.acos(dyy/L), 0);
+        }
+        bx("oak", (k%2)?0.10:CAB+0.2, 0.10, (k%2)?CAB+0.2:0.10,
+           (ax+bx2)/2, y1b, (az+bz)/2, 0.4, 0, TIM);
+      }
+      addCol(Math.min(ax,bx2)-0.14, Math.max(ax,bx2)+0.14,
+             Math.min(az,bz)-0.14, Math.max(az,bz)+0.14, gy-1, F-0.3);
+    }
+
+    /* the deck and the catwalk round it. One plate, and the cab sits in the
+       middle of it — the catwalk IS the floor, continued past the walls. */
+    bx("oak", OUT*2, 0.16, OUT*2, lx, F-0.08, lz, 0.6, 0, TIM);
+    for(let i=0;i<19;i++)                          // joists under it, seen from below
+      bx("oak", OUT*2, 0.12, 0.09, lx, F-0.22, lz-OUT+i*(OUT*2/18), 0.4, 0, TIMD);
+    addFlat(lx-OUT, lx+OUT, lz-OUT, lz+OUT, F);
+    addZone(lx-OUT-0.4, lx+OUT+0.4, lz-OUT-0.4, lz+OUT+0.4, F-0.6, F+CHh+1.2,
+            "THE FIRE LOOKOUT");
+    // the pipe rail round the catwalk, with the gap where the stair lands
+    for(let e=0;e<4;e++){
+      const hx=(e%2)?0:1, sg=e<2?-1:1;
+      for(const hgt of [0.46, 0.96]){
+        if(hx){                                    // rails running in x
+          if(sg<0){                                // the south side, split at the stair
+            bx("metal", (OUT-0.75)*1.0, 0.045, 0.045, lx-OUT+(OUT-0.75)/2, F+hgt, lz+sg*OUT, 0.4, 0, GALV2);
+            bx("metal", (OUT-0.75)*1.0, 0.045, 0.045, lx+OUT-(OUT-0.75)/2, F+hgt, lz+sg*OUT, 0.4, 0, GALV2);
+          }else bx("metal", OUT*2, 0.045, 0.045, lx, F+hgt, lz+sg*OUT, 0.4, 0, GALV2);
+        }else bx("metal", 0.045, 0.045, OUT*2, lx+sg*OUT, F+hgt, lz, 0.4, 0, GALV2);
+      }
+      for(let i=0;i<7;i++){                        // the stanchions
+        const t=i/6;
+        const px=hx ? lx-OUT+t*OUT*2 : lx+sg*OUT;
+        const pz=hx ? lz+sg*OUT : lz-OUT+t*OUT*2;
+        if(hx && sg<0 && Math.abs(px-lx)<0.80) continue;
+        cyl("metal", 0.028,0.028,1.02,6, px, F+0.51, pz, GALVD);
+      }
+    }
+    for(const sg of [-1,1]){                       // and a kick board, as there is a drop
+      bx("oak", OUT*2, 0.14, 0.05, lx, F+0.09, lz+sg*OUT, 0.4, 0, TIMD);
+      bx("oak", 0.05, 0.14, OUT*2, lx+sg*OUT, F+0.09, lz, 0.4, 0, TIMD);
+    }
+    addCol(lx-OUT-0.1, lx+OUT+0.1, lz+OUT-0.06, lz+OUT+0.1, F, F+1.05);
+    addCol(lx-OUT-0.1, lx+OUT+0.1, lz-OUT-0.1, lz-OUT+0.06, F, F+1.05);
+    addCol(lx+OUT-0.06, lx+OUT+0.1, lz-OUT-0.1, lz+OUT+0.1, F, F+1.05);
+    addCol(lx-OUT-0.1, lx-OUT+0.06, lz-OUT-0.1, lz+OUT+0.1, F, F+1.05);
+
+    /* THE STAIR RUNS SOUTH, and which way it runs is not a free choice.
+       The first cut of it ran north, because north is where the door is —
+       and the ground north of this tower climbs 2.9 m in the 3.6 m the
+       flight covers, so twelve of its treads were underground and the
+       handrail came out of the hillside. A probe over the four sides says
+       the tabletop falls away south and is dead level at about 95.4 from
+       three metres out, which is the only side a flight can land on. It is
+       also the side the fire road arrives from, so you come up the butte
+       and the stair is facing you.
+
+       The flight sizes itself: the drop from the deck to the ground it is
+       actually landing on decides the number of treads, rather than a
+       number picked in advance and hoped over. */
+    const SW=1.06, GO=0.27;
+    const gLand=Terrain.heightAt(lx, lz-OUT-5.6);
+    const NT=Math.max(20, Math.round((F-gLand)/0.2261));
+    const RIS=(F-gLand)/NT;
+    const tz=i=>lz-OUT-0.16-i*GO;                  // tread i, counting down from the deck
+    for(let i=1;i<=NT;i++){
+      const ty=F-i*RIS, pz=tz(i);
+      bx("oak", SW, 0.075, GO+0.04, lx, ty-0.038, pz, 0.4, 0, TIM);
+      addFlat(lx-SW/2, lx+SW/2, pz-GO/2-0.02, pz+GO/2+0.02, ty);
+      if(i%4===0){                                 // posted down to the real ground
+        for(const q of [-1,1]){
+          const g3=Terrain.heightAt(lx+q*SW/2, pz);
+          if(ty-g3<0.25) continue;
+          cyl("oak", 0.065,0.075, ty-g3, 6, lx+q*SW/2, (g3+ty)/2, pz, TIMD);
+        }
+      }
+    }
+    for(const q of [-1,1]){                        // the stringers and the handrails
+      const a=[lx+q*(SW/2+0.06), F-0.20, lz-OUT-0.10];
+      const b2=[lx+q*(SW/2+0.06), F-NT*RIS-0.20, tz(NT)-0.10];
+      const dyy=b2[1]-a[1], dzz=b2[2]-a[2], L=Math.hypot(dyy,dzz);
+      push("oak", boxGeo(0.09, 0.30, L, 0.5), (a[0]+b2[0])/2, (a[1]+b2[1])/2,
+           (a[2]+b2[2])/2, 0, TIMD, Math.atan2(dyy, -dzz), 0);
+      /* A cylinder's axis is +y, and with Euler "YXZ", ry = 0 and rz = 0 it
+         lands on (0, cos rx, sin rx) — so rx is atan2 of the run over the
+         rise, and nothing else. The first cut had pi/2 minus the other
+         atan2, which pointed both handrails off into the sky above the
+         cab. */
+      push("metal", new T.CylinderGeometry(0.028,0.028,L,6), a[0], (a[1]+b2[1])/2+1.02,
+           (a[2]+b2[2])/2, 0, GALV2, Math.atan2(dzz, dyy), 0);
+      for(let i=2;i<NT;i+=4)
+        cyl("metal", 0.024,0.024,1.02,6, a[0], F-i*RIS+0.31, tz(i), GALVD);
+    }
+    addCol(lx-SW/2-0.14, lx+SW/2+0.14, tz(NT)-0.3, lz-OUT, gLand-0.5, gLand+0.2);
+
+    /* the cab. Waist-high boarding, then glass the whole way round, which
+       is what a lookout is for — you have to be able to see every bearing
+       from the middle of the floor without standing up. */
+    /* The cab, and a real hole in the side of it for the door. The first
+       cut of this ran the boarding, the sill, the head, the glass and the
+       mullions the full width of all four sides and then hung a door leaf
+       on the south one — so the one door on the mesa opened onto a sheet of
+       glass. clear36.js reported six things in the opening. `gapA`/`gapB`
+       are the door's edges and every course on the south side is drawn in
+       the two lengths either side of them. */
+    const SILL=0.92, HEAD=1.98, DXC=lx-0.42, DWC=0.92;
+    const gapA=DXC-DWC/2, gapB=DXC+DWC/2;
+    bx("plank", CAB, 0.06, CAB, lx, F+0.03, lz, 1.1, 0, "#8a7c58");
+    for(let e=0;e<4;e++){
+      const hx=(e%2), sg=e<2?-1:1;
+      const door=(hx && sg<0);                     // only the south side has one
+      const W2=hx?CAB:0.10, D3=hx?0.10:CAB;
+      const px=hx?lx:lx+sg*HC, pz=hx?lz+sg*HC:lz;
+      const spans = door ? [[lx-CAB/2, gapA],[gapB, lx+CAB/2]] : [[null,null]];
+      for(const sp of spans){
+        const w3 = door ? sp[1]-sp[0] : W2, cx3 = door ? (sp[0]+sp[1])/2 : px;
+        if(door && w3<0.05) continue;
+        bx("plank", door?w3:W2, SILL, D3, cx3, F+SILL/2, pz, 0.9, 0, "#93805c");
+        /* the sill's 10 cm overhang goes on the OUTER end of a split run
+           only: put it on both and each half pokes 5 cm back into the
+           doorway, which is the whole class of bug this door already had */
+        const over = door ? 0.10 : 0.20, sh = door ? ((sp[0]===lx-CAB/2)?-1:1) : 0;
+        bx("oak", (door?w3:W2)+over, 0.07, D3+0.10, cx3+sh*over/2, F+SILL+0.03, pz,
+           0.5, 0, TIM);
+        push("glass", boxGeo(hx?(door?w3:CAB)-0.10:0.04, HEAD-SILL-0.06, hx?0.04:CAB-0.10, 0),
+             cx3, F+(SILL+HEAD)/2, pz, 0, "#8fa4a8");
+      }
+      bx("oak", W2+0.10, 0.10, D3+0.10, px, F+HEAD+0.05, pz, 0.5, 0, TIM);   // head, unbroken
+      for(let i=1;i<4;i++){                        // three mullions a side
+        const q=-CAB/2+i*CAB/4;
+        if(door && lx+q>gapA-0.08 && lx+q<gapB+0.08) continue;
+        bx("oak", hx?0.07:0.12, HEAD-SILL, hx?0.12:0.07, hx?lx+q:px, F+(SILL+HEAD)/2,
+           hx?pz:lz+q, 0.4, 0, TIM);
+      }
+      if(door){                                    // and the jambs round the opening
+        for(const q of [gapA, gapB])
+          bx("oak", 0.08, HEAD, 0.14, q, F+HEAD/2, pz, 0.4, 0, TIM);
+        addCol(lx-CAB/2, gapA, pz-0.09, pz+0.09, F, F+CHh);
+        addCol(gapB, lx+CAB/2, pz-0.09, pz+0.09, F, F+CHh);
+        addCol(gapA, gapB, pz-0.09, pz+0.09, F+HEAD, F+CHh);
+      }else addCol(px-(hx?CAB/2:0.09), px+(hx?CAB/2:0.09),
+                   pz-(hx?0.09:CAB/2), pz+(hx?0.09:CAB/2), F, F+CHh);
+    }
+    addFlat(lx-HC+0.1, lx+HC-0.1, lz-HC+0.1, lz+HC-0.1, F+0.06);
+    addZone(lx-HC, lx+HC, lz-HC, lz+HC, F-0.3, F+CHh+0.3, "THE FIRE LOOKOUT", true);
+    makeDoor(XF(gapA+0.02, lz-HC-0.02, 0), 0, F+0.06, 0, "THE FIRE LOOKOUT", true, 0.62);
+    // the hip roof, its eaves, and the cupola over the middle of it
+    for(let e=0;e<4;e++){
+      const hx=(e%2), sg=e<2?-1:1;
+      push("roofG", boxGeo(hx?CAB+1.9:1.35, 0.10, hx?1.35:CAB+1.9, 0.5),
+           hx?lx:lx+sg*(HC+0.42), F+CHh+0.30, hx?lz+sg*(HC+0.42):lz,
+           0, "#6b6f62", hx?sg*0.30:0, hx?0:-sg*0.30);
+    }
+    bx("oak", CAB+2.0, 0.09, CAB+2.0, lx, F+CHh+0.06, lz, 0.5, 0, TIM);
+    bx("metal", 1.10, 0.36, 1.10, lx, F+CHh+0.62, lz, 0.5, 0, GALV2);          // the cupola
+    push("roofG", boxGeo(1.40,0.08,1.40,0.5), lx, F+CHh+0.84, lz, 0, "#6b6f62");
+    for(const q of [-1,1]) bx("metal", 1.12, 0.16, 0.03, lx, F+CHh+0.62, lz+q*0.56, 0.4, 0, GALVD);
+    cyl("metal", 0.10,0.10,1.30,8, lx+1.32, F+CHh+0.80, lz+1.10, "#5f5348");   // the stove flue
+    cyl("metal", 0.14,0.14,0.16,8, lx+1.32, F+CHh+1.50, lz+1.10, "#5f5348");
+    cyl("metal", 0.020,0.020,2.10,6, lx-1.90, F+CHh+1.10, lz-1.70, GALVD);     // the aerial
+    for(let i=0;i<3;i++)
+      bx("metal", 0.62, 0.02, 0.02, lx-1.90, F+CHh+1.70+i*0.20, lz-1.70, 0.4, 0, GALVD);
+
+    /* --- inside: the firefinder in the middle, and one person's season -- */
+    // the Osborne firefinder, which is the whole job: a brass ring on a
+    // pedestal in the dead centre of the floor with a sighting bar across it
+    cyl("oak", 0.26,0.32,0.88,10, lx, F+0.50, lz, TIM);
+    bx("oak", 0.78, 0.06, 0.78, lx, F+0.95, lz, 0.5, 0, "#7a6444");
+    cyl("metal", 0.34,0.34,0.05,24, lx, F+1.00, lz, "#9a8248");
+    cyl("paper", 0.30,0.30,0.012,24, lx, F+1.03, lz, "#d6cdb2");
+    for(let i=0;i<24;i++)                          // the bearing ring
+      bx("metal", 0.05, 0.014, 0.014, lx+Math.cos(i*Math.PI/12)*0.32, F+1.035,
+         lz+Math.sin(i*Math.PI/12)*0.32, 0, i*Math.PI/12, "#6e6250");
+    bx("metal", 0.74, 0.016, 0.030, lx, F+1.06, lz, 0.4, 0.42, "#b0a070");     // sighting bar
+    for(const q of [-1,1])
+      bx("metal", 0.03, 0.17, 0.02, lx+q*0.34*Math.cos(0.42), F+1.14,
+         lz-q*0.34*Math.sin(0.42), 0.4, 0.42, "#b0a070");
+    addCol(lx-0.38, lx+0.38, lz-0.38, lz+0.38, F, F+1.10);
+    // the cot under the north window, made up, because he did make that
+    bx("metal", 1.86, 0.06, 0.74, lx+0.30, F+0.44, lz+HC-0.52, 0.5, 0, GALVD);
+    for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]])
+      cyl("metal", 0.020,0.020,0.42,6, lx+0.30+a[0]*0.86, F+0.21, lz+HC-0.52+a[1]*0.30, GALVD);
+    bx("bedding", 1.80, 0.16, 0.70, lx+0.30, F+0.54, lz+HC-0.52, 0.42, 0, "#cfc6ae");
+    push("spread", boxGeo(1.80,0.10,0.72,0.42), lx+0.30, F+0.64, lz+HC-0.52, 0, "#6b5a44");
+    { const g2=new T.SphereGeometry(0.26,10,7); g2.scale(0.80,0.30,1.00);
+      push("bedding", g2, lx-0.42, F+0.66, lz+HC-0.52, 0.1, "#e8e2d2"); }
+    addCol(lx-0.62, lx+1.22, lz+HC-0.88, lz+HC-0.16, F, F+0.62);
+    for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]])  // glass insulators under the legs
+      push("glass", new T.CylinderGeometry(0.055,0.048,0.07,10), lx+0.30+a[0]*0.86,
+           F+0.035, lz+HC-0.52+a[1]*0.30, 0, "#7fa89a");
+    // the stove in the corner, and the wood beside it
+    bx("metal", 0.52, 0.56, 0.42, lx+1.32, F+0.30, lz+1.10, 0.5, 0, "#4a443c");
+    cyl("metal", 0.10,0.10,1.28,8, lx+1.32, F+1.22, lz+1.10, "#5f5348");
+    bx("metal", 0.30, 0.22, 0.03, lx+1.32, F+0.30, lz+0.88, 0.4, 0, "#2f2b26");
+    for(let i=0;i<7;i++)
+      cyl("oak", 0.045,0.040,0.34,6, lx+1.38+((i%3)-1)*0.09, F+0.05+((i/3)|0)*0.09,
+          lz+0.58+((i%2)?0.06:-0.05), "#6a5436", Math.PI/2, ((i*5)%4)*0.3, 0);
+    addCol(lx+1.02, lx+1.58, lz+0.84, lz+1.36, F, F+0.60);
+    /* The map table goes ALONG the west wall, not out from it. Standing off
+       the wall it left a 48 cm slot between its end and the firefinder's
+       pedestal, and a reach probe over the cab floor came back at 74%: a
+       player is 84 cm across, so a third of the room — the whole north-west
+       quarter, the cot end — was walled off behind a table. Turned through
+       ninety degrees it is against the glass where a map table belongs and
+       the floor is one room again. */
+    const mtx=lx-HC+0.34, mtz=lz-0.30;
+    bx("oak", 0.62, 0.05, 1.30, mtx, F+0.74, mtz, 0.6, 0, "#6f4a2c");
+    for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]])
+      cyl("oak", 0.030,0.030,0.72,6, mtx+a[0]*0.24, F+0.38, mtz+a[1]*0.58, TIMD);
+    push("paper", planeGeo(0.52, 1.10, 0), mtx, F+0.772, mtz, 0.04, "#cfc6ae", -Math.PI/2, 0);
+    push("art", planeGeo(0.34, 0.70, 0), mtx-0.02, F+0.774, mtz-0.06, 0.04,
+         "#9aa07e", -Math.PI/2, 0);
+    push("bin", boxGeo(0.32,0.03,0.24,0.5), mtx+0.02, F+0.79, mtz+0.44, 0.22, "#5a4a3a");
+    cyl("plaster", 0.042,0.036,0.090,12, mtx+0.04, F+0.81, mtz-0.42, "#c6bda6");
+    addCol(lx-HC+0.02, mtx+0.32, mtz-0.68, mtz+0.68, F, F+0.76);
+    // the stool, the radio on its shelf, and the glasses on the sill
+    cyl("oak", 0.17,0.17,0.05,12, lx-HC+1.02, F+0.50, lz-0.34, "#7a6444");
+    for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]])
+      cyl("metal", 0.016,0.016,0.48,6, lx-HC+1.02+a[0]*0.12, F+0.24, lz-0.34+a[1]*0.12, GALVD);
+    /* The radio shelf goes on the EAST wall. It was on the south one, at
+       1.34 over a door head at 1.98 — a shelf, a set and a clock hanging in
+       the doorway. Nothing goes on the wall the door is in. */
+    bx("oak", 0.26, 0.04, 0.72, lx+HC-0.16, F+1.34, lz-0.50, 0.5, 0, TIM);
+    bx("paint", 0.20, 0.24, 0.44, lx+HC-0.18, F+1.48, lz-0.50, 0.5, 0, "#4e4a42");
+    for(let i=0;i<4;i++)
+      cyl("metal", 0.022,0.022,0.018,10, lx+HC-0.09, F+1.44, lz-0.66+i*0.11, "#b0a070",
+          0, 0, Math.PI/2);
+    push("clockface", new T.CylinderGeometry(0.05,0.05,0.012,14), lx+HC-0.08, F+1.50,
+         lz-0.16, 0, "#cfc6ae", 0, Math.PI/2);
+    for(const q of [0, 0.10])                      // the glasses, on the same shelf
+      cyl("metal", 0.040,0.034,0.14,10, lx+HC-0.20, F+1.44, lz+0.02+q, "#3a3733",
+          0, 0, Math.PI/2);
+    // and the things a season leaves: a kettle, a lamp, boots, a jacket
+    cyl("metal", 0.070,0.058,0.13,12, lx+1.32, F+0.64, lz+1.10, "#9aa1a6");
+    cyl("metal", 0.05,0.06,0.03,10, mtx+0.16, F+0.775, mtz+0.52, "#b8a67e");
+    cyl("glass", 0.055,0.048,0.16,12, mtx+0.16, F+0.86, mtz+0.52, "#c8bb8a");
+    cyl("metal", 0.045,0.045,0.06,10, mtx+0.16, F+0.95, mtz+0.52, "#8e948e");
+    for(const q of [-1,1])
+      bx("fabric", 0.11, 0.13, 0.27, lx+HC-0.30+q*0.07, F+0.07, lz-HC+0.44, 0.5, 0, "#4e4438");
+    for(let i=0;i<3;i++)
+      cyl("metal", 0.008,0.008,0.05,5, lx+HC-0.06, F+1.70, lz-0.4+i*0.34, GALVD, 0,0,Math.PI/2);
+    push("fabric", boxGeo(0.05,0.62,0.38,0.6), lx+HC-0.10, F+1.36, lz-0.06, 0, "#5e6a52");
+
+    /* --- and what is round the foot of it -------------------------------- */
+    cyl("metal", 0.44,0.44,0.90,14, lx-OUT-0.9, gy+0.45, lz+0.6, "#7d7466");    // water butt
+    cyl("metal", 0.46,0.46,0.05,14, lx-OUT-0.9, gy+0.92, lz+0.6, "#6b6357");
+    addCol(lx-OUT-1.4, lx-OUT-0.4, lz+0.1, lz+1.1, gy, gy+0.95);
+    for(let i=0;i<11;i++)                                                        // the woodpile
+      cyl("oak", 0.055,0.050,0.80,6, lx-OUT-0.4+((i%4))*0.12, gy+0.06+((i/4)|0)*0.10,
+          lz-1.5, "#6a5436", 0, Math.PI/2, 0);
+    // a Stevenson screen on legs, because a lookout also reported the weather
+    bx("paint", 0.52, 0.44, 0.44, lx+OUT+1.5, gy+1.24, lz-1.2, 0.5, 0, "#e2ddcc");
+    push("roofG", boxGeo(0.62,0.05,0.54,0.4), lx+OUT+1.5, gy+1.48, lz-1.2, 0, "#cfc7b2");
+    for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]])
+      cyl("oak", 0.035,0.035,1.02,6, lx+OUT+1.5+a[0]*0.20, gy+0.51, lz-1.2+a[1]*0.16, TIMD);
+    addCol(lx+OUT+1.2, lx+OUT+1.8, lz-1.5, lz-0.9, gy, gy+1.5);
+    // the outhouse, a decent distance off and downwind
+    {
+      const ox=lx+7.4, oz=lz+5.2, og=Terrain.heightAt(ox,oz);
+      bx("plank", 1.10, 2.05, 1.20, ox, og+1.02, oz, 0.7, 0, "#8a7654");
+      push("roofG", boxGeo(1.36,0.08,1.44,0.4), ox, og+2.12, oz, 0, "#6b6f62", -0.14);
+      bx("plank", 0.06, 1.70, 0.62, ox-0.55, og+0.90, oz, 0.6, 0, "#7d6a4a");
+      cyl("metal", 0.020,0.020,0.07,6, ox-0.60, og+1.00, oz+0.22, GALVD, 0,0,Math.PI/2);
+      push("soot", planeGeo(0.16,0.22,0), ox-0.585, og+1.52, oz, -Math.PI/2, "#4a4338", 0, 0);
+      addCol(ox-0.6, ox+0.6, oz-0.65, oz+0.65, og, og+2.1);
+    }
+    // the trailhead: a gate across the road at the toe, and a sign on it
+    {
+      const T0=P[0], T1=P[3];
+      const ang=Math.atan2(T1.z-T0.z, T1.x-T0.x);
+      const gx=T0.x, gz=T0.z, gg=Terrain.heightAt(gx,gz);
+      for(const q of [-1,1])
+        cyl("metal", 0.075,0.075,1.50,8, gx-Math.sin(ang)*q*3.4, gg+0.75,
+            gz+Math.cos(ang)*q*3.4, GALVD);
+      push("metal", boxGeo(6.8,0.10,0.10,0), gx, gg+1.02, gz, ang+Math.PI/2, "#b03a2a");
+      push("metal", boxGeo(6.8,0.06,0.06,0), gx, gg+0.62, gz, ang+Math.PI/2, "#b03a2a");
+      push("plank", boxGeo(1.30,0.62,0.05,0.6), gx+0.9, gg+1.46, gz, ang+Math.PI/2, "#b6a680");
+      for(const q of [-1,1])
+        cyl("oak", 0.05,0.05,1.70,6, gx+0.9-Math.sin(ang)*q*0.55, gg+0.85,
+            gz+Math.cos(ang)*q*0.55, TIMD);
+      addCol(gx-3.6, gx+3.6, gz-0.3, gz+0.3, 0, 1.2);
+    }
+    /* --- the running surface of the fire road ---------------------------
+       The bench cut into the hillside reads as a set of terraces from a
+       distance and as nothing at all from on it, because it is the same
+       rock as the slope it is cut out of. A graded road is paler and
+       flatter than the country it crosses — it is crushed and compacted —
+       so the surface goes on as a strip of the pale bucket down the middle
+       of the bench, with two ruts worn into it and the spoil pushed over
+       the outside edge. That is what turns four shelves on a hillside into
+       something you can see is a road. */
+    for(let i=1;i<P.length;i++){
+      const a=P[i-1], b2=P[i];
+      const dxx=b2.x-a.x, dzz=b2.z-a.z, L=Math.hypot(dxx,dzz);
+      if(L<0.2) continue;
+      const mx2=(a.x+b2.x)/2, mz2=(a.z+b2.z)/2, my=(a.y+b2.y)/2;
+      const ry=Math.atan2(-dzz, dxx);
+      /* LAID ON THE GRADE, not flat. These were horizontal planes dropped on
+         a bench that climbs at one in eight, so each one's far end was 36 cm
+         off the ground — buried at one end, floating at the other — and the
+         road came out as a chain of pale slabs with gaps between them, like
+         runway lights up the hillside. They were too pale as well: a graded
+         road in red country is a shade greyer and DARKER than what it is
+         cut through, not brighter than the sunlit slope beside it.
+
+         A plane's normal is +z and its length runs along its own +y here,
+         so rx of -pi/2 lays it flat and anything past that is the grade;
+         ry then swings it onto the bearing of the segment. */
+      const dyy=b2.y-a.y, Ln=Math.hypot(L, dyy);
+      const g3=Math.asin(dyy/Ln);
+      const bear=Math.atan2(-dxx/L, -dzz/L);
+      push("sand", planeGeo(5.5, Ln*1.30, 1.6), mx2, my+0.05, mz2, bear,
+           (i%3)?"#6a5c45":"#62543d", -Math.PI/2+g3, 0);
+      for(const q of [-1,1])                       // the ruts worn down it
+        push("soot", planeGeo(0.56, Ln*1.24, 0), mx2-Math.sin(-ry)*q*0.90,
+             my+0.064, mz2-Math.cos(-ry)*q*0.90, bear, "#6a6052", -Math.PI/2+g3, 0);
+      if(i%7===0){                                 // spoil over the outside edge
+        const ox2=(mx2-LK.x), oz2=(mz2-LK.z), on=Math.hypot(ox2,oz2)||1;
+        const g3=new T.SphereGeometry(1.5+((i*5)%3)*0.5, 10, 6); g3.scale(1, 0.22, 1);
+        push("sand", g3, mx2+ox2/on*3.5, my-0.55, mz2+oz2/on*3.5, i*0.7, "#7a6a50");
+      }
+      if(i%11===0){                                // and a marker post on the outside
+        const ox2=(mx2-LK.x), oz2=(mz2-LK.z), on=Math.hypot(ox2,oz2)||1;
+        const px2=mx2+ox2/on*2.6, pz2=mz2+oz2/on*2.6;
+        cyl("oak", 0.055,0.055,1.05,5, px2, my+0.42, pz2, "#7a6a4a", 0.06, 0, 0.05);
+        bx("paint", 0.10, 0.14, 0.10, px2, my+0.92, pz2, 0.4, 0, "#c8c0a8");
+      }
+    }
+    // cairns at the hairpins, which is where you look for the next leg
+    for(let i=1;i<5;i++){
+      const q=P[i*30];
+      if(!q) continue;
+      const cg=Terrain.heightAt(q.x+2.6, q.z+2.6);
+      for(let k=0;k<4;k++)
+        push("rock", rockGeo(0.24-k*0.04, i*7+k), q.x+2.6, cg+0.12+k*0.17, q.z+2.6,
+             k*1.2, k%2?"#8a7a62":"#7d6e57", 0, 0);
+    }
+  })();
+
   (function watertower(){
     const wx=-168, wz=88, gy=Terrain.heightAt(wx,wz);
     for(const l of [[-2.6,-2.6],[2.6,-2.6],[-2.6,2.6],[2.6,2.6]])

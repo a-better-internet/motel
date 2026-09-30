@@ -6,7 +6,11 @@
 /* ----------------------------------------------------------------------
    12 · MATERIALS FOR THE GLOWING BUCKETS, THEN BAKE EVERYTHING
    ---------------------------------------------------------------------- */
-const GLOW=[];   // {m, kind}
+// GLOW is declared in 01-helpers.js, not here. It used to live at the top of
+// this file, and the moment something built earlier than 15-bake wanted to
+// register a lamp — the obstruction light on the mast, in 14c — the page
+// threw on load. A registry that other files push into has to be declared
+// before all of them.
 let TVWIN_MAT=null;   // the one window with a television still on behind it
 function glowMat(opts, kind){
   const m=new T.MeshStandardMaterial(Object.assign({roughness:0.5, metalness:0.0}, opts));

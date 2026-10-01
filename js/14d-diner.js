@@ -123,11 +123,19 @@
      and reported it clear; you simply could not see in, and from the apron
      the entrance read as bricked up. Anything whose course is below the door
      head has to be told about the hole. */
+  /* `gap` is either true — split this whole course round the door — or the
+     height of the door head, in which case only the part BELOW it splits
+     and the part above runs across. One band from GY1 to CH rather than two
+     stacked ones, because two bands draw two sets of corner arcs and two
+     sets of end faces, and the pairs land on each other's planes. */
   const band=(bk,y0,y1,col,ix,uv,gap)=>{
+    const top = (typeof gap==="number" && gap>y0 && gap<y1) ? gap : null;
     for(const sz of [-1,1]){
       if(sz<0 && gap){
-        face(bk, -HL+CR, DOX0, y0,y1, sz, ix||0, col, uv);
-        face(bk, DOX1,  HL-CR, y0,y1, sz, ix||0, col, uv);
+        const yg = top===null ? y1 : top;
+        face(bk, -HL+CR, DOX0, y0,yg, sz, ix||0, col, uv);
+        face(bk, DOX1,  HL-CR, y0,yg, sz, ix||0, col, uv);
+        if(top!==null) face(bk, -HL+CR, HL-CR, top,y1, sz, ix||0, col, uv);
       }else face(bk, -HL+CR, HL-CR, y0,y1, sz, ix||0, col, uv);
     }
     for(const sx of [-1,1]) endf(bk, -HW+CR, HW-CR, y0,y1, sx, ix||0, col, uv);
@@ -379,10 +387,12 @@
   for(let i=0;i<9;i++)                          // and the blocks under the ends
     m.B("concrete", 0.46, FY+0.06, 0.46, -HL+0.5+i*(L-1)/8, (FY+0.06)/2,
         (i%2?1:-1)*(HW-0.55), 0.5, 0, "#7f7767");
-  for(let i=0;i<20;i++)                         // stains down the plinth
+  // each on its own plane: twenty decals at one depth is twenty overlapping
+  // pairs of coplanar faces, and every overlap of them flickers
+  for(let i=0;i<20;i++)
     for(const sz of [-1,1])
       m.P("soot", planeGeo(0.26+r2()*0.5, FY*0.9, 0), -HL+0.4+r2()*(L-0.8), FY*0.5,
-          sz*(W/2+0.26), sz>0?0:Math.PI, "#4f483c", 0, 0);
+          sz*(W/2+0.26+i*0.0035), sz>0?0:Math.PI, "#4f483c", 0, 0);
 
   /* ---- the courses ------------------------------------------------------ */
   band("dinertile", 0.02, SK, "#ffffff", 0, 1.9, true);    // the glazed skirt
@@ -393,8 +403,7 @@
      below it were the obvious 72 cm and this was the quiet bit nobody looks
      at until they are standing in the doorway. Split at the head: broken
      round the door below it, solid across above. */
-  band("galv", GY1, DOTOP,  CRM, 0.03, 2.6, true);         // and again above it
-  band("galv", DOTOP, CH,   CRM, 0.03, 2.6);
+  band("galv", GY1, CH,     CRM, 0.03, 2.6, DOTOP);        // and again above it
   // fluting. Both stainless courses are rolled sheet, and flat paint is what
   // they read as without something for the light to break on.
   for(let k=0;k<5;k++){
@@ -700,7 +709,7 @@
     const w=0.20+((i*5)%3)*0.10;
     if(sz<0 && overDoor(px, w/2)) continue;
     m.P("rust", planeGeo(w, 0.70+((i*7)%4)*0.55, 0),
-        px, CH-0.30, sz*(HW+0.09), sz>0?0:Math.PI, "#7c4526", 0, 0);
+        px, CH-0.30, sz*(HW+0.095+i*0.0030), sz>0?0:Math.PI, "#7c4526", 0, 0);
   }
   /* Large-scale tone on the stainless. The soot bucket is 16% and the rust
      bucket 30%, which reads on asphalt and reads as nothing at all on a pale
@@ -710,26 +719,27 @@
     const px=-HL+0.6+r2()*(L-1.2), sz=(i%2)?1:-1;
     const y0=(i%3===0) ? SK+0.14 : GY1+0.06, y1=(i%3===0) ? GY0-0.04 : CH-0.04;
     const h=(y1-y0)*(0.35+r2()*0.6), w=0.5+r2()*2.2;
-    m.B("galv", w, h, 0.03, px, y0+(y1-y0)*r2()*0.4+h/2, sz*(HW-0.015), 2.6, 0,
+    m.B("galv", w, h, 0.03, px, y0+(y1-y0)*r2()*0.4+h/2, sz*(HW-0.015-i*0.0011), 2.6, 0,
         ["#a49d8c","#9b9484","#ada695"][i%3]);
   }
   for(let i=0;i<10;i++){                          // and a few dents in the sheet
     const px=-HL+1.0+r2()*(L-2.0), sz=(i%2)?1:-1;
     m.P("galv", boxGeo(0.34+r2()*0.4, 0.22+r2()*0.3, 0.03, 2.6), px,
-        GY1+0.20+r2()*0.44, sz*(HW-0.02), 0, "#8d8878", (r2()-0.5)*0.3, (r2()-0.5)*0.3);
+        GY1+0.20+r2()*0.44, sz*(HW-0.047-i*0.0013), 0, "#8d8878",
+        (r2()-0.5)*0.3, (r2()-0.5)*0.3);
   }
   for(let i=0;i<22;i++){                          // streaks off the window heads
     const px=-HL+0.9+((i*3.11)%(L-1.8)), sz=(i%2)?1:-1, w=0.24+r2()*0.30;
     if(sz<0 && overDoor(px, w/2)) continue;
-    m.P("soot", planeGeo(w, 0.8+r2()*0.6, 0), px, GY0-0.44, sz*(HW+0.09),
+    m.P("soot", planeGeo(w, 0.8+r2()*0.6, 0), px, GY0-0.44, sz*(HW+0.09+i*0.0035),
         sz>0?0:Math.PI, "#6a6053", 0, 0);
   }
   for(const sz of [-1,1]){                         // the dirt line off the apron
     if(sz<0){                                      // and round the door, not over it
       for(const q of [[-HL+0.7, DOX0-0.06],[DOX1+0.06, HL-0.7]])
         m.P("soot", planeGeo(q[1]-q[0], 0.44, 0), (q[0]+q[1])/2, SK+0.26,
-            sz*(HW+0.09), Math.PI, "#6d6455", 0, 0);
-    }else m.P("soot", planeGeo(L-1.4, 0.44, 0), 0, SK+0.26, sz*(HW+0.09),
+            sz*(HW+0.148), Math.PI, "#6d6455", 0, 0);
+    }else m.P("soot", planeGeo(L-1.4, 0.44, 0), 0, SK+0.26, sz*(HW+0.148),
               0, "#6d6455", 0, 0);
   }
   /* Sand banked against the ends. A blobGeo is a lumpy polyhedron and
@@ -780,7 +790,7 @@
      to its lot and open sand to the horizon. Rocks, brush, a fence line, the
      tank and the bins that belong behind a kitchen.               */
   {
-    const GY=(x,z)=>Terrain.heightAt(D.x+x, D.z+z)-m.y;
+    const GY=(x,z)=>Terrain.groundAt(D.x+x, D.z+z)-m.y;
     for(let i=0;i<26;i++){                      // rocks, outside the lot
       const a=r2()*6.283, rr=D.r+1.5+r2()*26;
       const rx=Math.cos(a)*rr, rz=Math.sin(a)*rr*0.8;
@@ -884,15 +894,15 @@
   /* ---- the floor --------------------------------------------------------- */
   // +0.2 and no more: the shell's outer face is only 0.17 beyond IX1, and a
   // floor that overhangs it is a slab of tile sticking out of the building
-  m.P("hexfloor", planeGeo(IX1-IX0+0.2, IZ1-IZ0+0.2, 1.4), 0, FY+0.012, 0, 0,
-      "#b0aa9c", -Math.PI/2, 0);
+  m.P("hexfloor", planeGeo(IX1-(KX-0.08)+0.2, IZ1-IZ0+0.2, 1.4), ((KX-0.08)+IX1)/2,
+      FY+0.012, 0, 0, "#b0aa9c", -Math.PI/2, 0);
   m.flat(IX0-0.1, IX1+0.1, IZ0-0.1, IZ1+0.1, FY+0.012);
   m.voidAt(IX0-0.1, IX1+0.1, IZ0-0.1, IZ1+0.1, FY-1.0, FY+CH+0.8, FY+0.012);
   for(const q of [IZ0+0.14, IZ1-0.14])             // the dark border tile
-    m.P("hexfloor", planeGeo(IX1-IX0, 0.28, 1.4), 0, FY+0.014, q, 0,
+    m.P("hexfloor", planeGeo(IX1-(KX-0.08), 0.28, 1.4), ((KX-0.08)+IX1)/2, FY+0.0205, q, 0,
         "#6b6a63", -Math.PI/2, 0);
-  for(const q of [IX0+0.14, IX1-0.14])
-    m.P("hexfloor", planeGeo(0.28, IZ1-IZ0, 1.4), q, FY+0.014, 0, 0,
+  for(const q of [KX-0.08+0.14, IX1-0.14])
+    m.P("hexfloor", planeGeo(0.28, IZ1-IZ0, 1.4), q, FY+0.0205, 0, 0,
         "#6b6a63", -Math.PI/2, 0);
   for(let i=0;i<18;i++)                            // where forty years of feet went
     m.P("soot", planeGeo(1.5+r2()*1.6, 0.8+r2()*0.7, 0), CX0+r2()*(CX1-CX0),
@@ -1089,10 +1099,15 @@
        opening toward KDZ0. */
     makeDoor(XF(D.x+KX, D.z+KDZ1, Math.PI/2), 0, m.y+FY, 0,
              "THE KITCHEN", true, 0.30, "swing");
+    /* THE JAMBS OVERLAP THE BULKHEAD, they do not butt onto it. At 0.06
+       thick and offset 0.03 their outer face landed EXACTLY on the plane
+       where the bulkhead's run ends — two surfaces on one plane, which is
+       the flicker you see down both sides of this doorway. Interpenetration
+       is free; sharing a plane is what costs you. Same for the head. */
     for(const q of [-1,1])                       // the jamb it hangs on
-      m.B("metal", 0.20, 2.10, 0.06, KX, FY+1.05, (q>0?KDZ1+0.03:KDZ0-0.03), 0.4, 0,
+      m.B("metal", 0.20, 2.10, 0.11, KX, FY+1.05, (q>0?KDZ1+0.015:KDZ0-0.015), 0.4, 0,
           "#8a908a");
-    m.B("metal", 0.20, 0.06, KDZ1-KDZ0+0.12, KX, FY+2.13, (KDZ0+KDZ1)/2, 0.4, 0, "#8a908a");
+    m.B("metal", 0.20, 0.11, KDZ1-KDZ0+0.12, KX, FY+2.105, (KDZ0+KDZ1)/2, 0.4, 0, "#8a908a");
     // what hangs on a bulkhead: the punch clock, the rack the cards went in,
     // an extinguisher on its bracket and a calendar nobody turned over
     /* KDZ1 is the doorway's NEAR edge, not a piece of wall: KDZ1-0.55 and
@@ -1548,7 +1563,13 @@
      ====================================================================== */
   {
     const KW0=IX0, KW1=KX-0.08;
-    m.P("dinertile", planeGeo(KW1-KW0+0.2, IZ1-IZ0+0.2, 2.6), (KW0+KW1)/2, FY+0.013, 0, 0,
+    /* 0.016, not 0.013. The main floor is a single sheet of hex tile from
+       end to end of the car at 0.012, and this quarry tile was laid a
+       millimetre over it across the whole kitchen — sixteen square metres
+       of two floors on one plane, which is the worst single case of it in
+       the building. Four millimetres clear, and the sheet underneath it
+       stops at the bulkhead now rather than running under the whole room. */
+    m.P("dinertile", planeGeo(KW1-KW0+0.2, IZ1-IZ0+0.2, 2.6), (KW0+KW1)/2, FY+0.016, 0, 0,
         "#6f6a60", -Math.PI/2, 0);
     for(let i=0;i<11;i++)                           // grease worked into the tile
       m.P("soot", planeGeo(0.7+r2()*0.9, 0.6+r2()*0.8, 0), KW0+0.5+r2()*(KW1-KW0-1.0),
@@ -1767,9 +1788,17 @@
      out of the slots and lying on the back bar under it. */
   {
     const bx0=KX+0.95, bx1=KX+4.05, by0=FY+1.62, by1=FY+2.26;
-    m.B("metal", bx1-bx0+0.10, by1-by0+0.10, 0.05, (bx0+bx1)/2, (by0+by1)/2, IZ1-0.05,
-        0.4, 0, CHRD);                                        // the frame
-    m.P("bin", planeGeo(bx1-bx0, by1-by0, 0), (bx0+bx1)/2, (by0+by1)/2, IZ1-0.08,
+    /* A FRAME, not a slab behind the board. A box the size of the board sat
+       3 mm behind it, which is two square metres of two surfaces on one
+       plane — the single biggest patch of it in the car. Four strips round
+       the edge and there is nothing behind the face at all. */
+    for(const q of [[0,(by0+by1)/2, bx1-bx0+0.10, 0.07],[1,(by0+by1)/2, bx1-bx0+0.10, 0.07]])
+      m.B("metal", q[2], q[3], 0.06, (bx0+bx1)/2, q[0]?by1+0.035:by0-0.035, IZ1-0.045,
+          0.4, 0, CHRD);
+    for(const q of [-1,1])
+      m.B("metal", 0.07, by1-by0, 0.06, q<0?bx0-0.035:bx1+0.035, (by0+by1)/2, IZ1-0.045,
+          0.4, 0, CHRD);
+    m.P("bin", planeGeo(bx1-bx0, by1-by0, 0), (bx0+bx1)/2, (by0+by1)/2, IZ1-0.072,
         Math.PI, "#2a2b28", 0, 0);                            // the board
     for(let r=0;r<5;r++){                                     // the slats
       const ly=by1-0.10-r*0.125;

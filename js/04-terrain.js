@@ -137,10 +137,17 @@ const Terrain=(function(){
     const pts=[];
     for(let i=0;i<LOOK.legs;i++){
       const t0=i/LOOK.legs, t1=(i+1)/LOOK.legs, up=(i%2)===0;
-      for(let k=(i?1:0);k<=30;k++){
-        const u=k/30, t=t0+(t1-t0)*u;
+      /* 44 samples a leg, not 30, and the sweep eased at both ends with a
+         smoothstep. A leg that starts and stops its turn abruptly meets the
+         next one at a corner, and the bench — and the surface laid on it —
+         came out of the hairpins as a crossed pair of straight runs rather
+         than a turn. Eased, the radius is already closing as the angle
+         stops, so the two legs hand over to each other on a curve. */
+      for(let k=(i?1:0);k<=44;k++){
+        const u=k/44, t=t0+(t1-t0)*u;
+        const e=u*u*(3-2*u);                     // ease the swing, not the climb
         const rr=LOOK.r0+(LOOK.r1-LOOK.r0)*t;
-        const a=up ? LOOK.a0+(LOOK.a1-LOOK.a0)*u : LOOK.a1+(LOOK.a0-LOOK.a1)*u;
+        const a=up ? LOOK.a0+(LOOK.a1-LOOK.a0)*e : LOOK.a1+(LOOK.a0-LOOK.a1)*e;
         pts.push({x:LOOK.x+Math.cos(a)*rr, z:LOOK.z+Math.sin(a)*rr, y:0, s:0});
       }
     }
@@ -233,6 +240,19 @@ const Terrain=(function(){
 })();
 
 const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
+/* EVERY GRID BUILT, FINEST FIRST — so anything outside this file can ask for
+   the height of the ground it can SEE rather than the height of the field
+   the ground was sampled from. Those are not the same number. `heightAt` is
+   a continuous analytic field; the terrain is drawn by sampling it on a
+   lattice of 0.5, 2, 3, 6 or 12 m and joining the samples with flat
+   triangles. On the flat that difference is millimetres. On the flank of a
+   mesa, where the field climbs most of a metre per metre, a 6 m cell can cut
+   ten metres off a spur or bridge ten metres over a gully — so a player
+   walking at `heightAt` sinks into the hillside they can see, or strides out
+   into the air above it, and a rock placed at `heightAt` hangs over the
+   slope it is supposed to be lying on. That is the hollow mesa.
+   `Terrain.groundAt` interpolates the same triangle the renderer draws. */
+const TERRAIN_RINGS=[];
 (function buildTerrain(){
   const floorC=new T.Color(0xb99165), duneC=new T.Color(0xa47a4e),
         mountC=new T.Color(0x8a5540), peakC=new T.Color(0xbb9068), rockC=new T.Color(0x5e4032);
@@ -258,6 +278,7 @@ const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
   // the site must not double up on the coarse one that covers the horizon.
   function grid(x0,x1,z0,z1,cell,holes,name,skirt){
     const nx=Math.round((x1-x0)/cell), nz=Math.round((z1-z0)/cell);
+    TERRAIN_RINGS.push({x0:x0, x1:x1, z0:z0, z1:z1, cell:cell, holes:holes||[], name:name});
     const P=[], C=[], U=[], IDX=[], c=new T.Color();
     for(let j=0;j<=nz;j++) for(let i=0;i<=nx;i++){
       const x=x0+i*cell, z=z0+j*cell, y=Terrain.heightAt(x,z);
@@ -409,4 +430,40 @@ const NEAR_SITE={x0:-118, x1:82, z0:-104, z1:74};
   // doorway, which is the sand that was covering the entrance.
   grid(ADIT_SITE.x0, ADIT_SITE.x1, ADIT_SITE.z0, ADIT_SITE.z1, 0.5, [], "desert-adit", 6);
   grid(NEAR_G.x0, NEAR_G.x1, NEAR_G.z0, NEAR_G.z1, 2, [POOL.deck], "desert-near", 6);
+  TERRAIN_RINGS.sort((a,b)=>a.cell-b.cell);          // finest ring wins
 })();
+
+/* The height of the ground you can SEE at (x,z): find the finest ring that
+   actually draws a triangle there, work out which of the cell's two
+   triangles the point is in, and interpolate it. `grid` splits each cell
+   as (a,d,b) and (b,d,e) with a at the low corner, so the diagonal runs
+   u + v = 1 and the two halves are either side of it. Four heightAt calls
+   per query, which the player makes a handful of times a frame. */
+function groundAt(x,z){
+  for(let r=0;r<TERRAIN_RINGS.length;r++){
+    const R=TERRAIN_RINGS[r];
+    if(x<R.x0 || x>R.x1 || z<R.z0 || z>R.z1) continue;
+    const c=R.cell;
+    let i=Math.floor((x-R.x0)/c), j=Math.floor((z-R.z0)/c);
+    const nx=Math.round((R.x1-R.x0)/c), nz=Math.round((R.z1-R.z0)/c);
+    if(i<0) i=0; if(j<0) j=0; if(i>=nx) i=nx-1; if(j>=nz) j=nz-1;
+    const cx0=R.x0+i*c, cz0=R.z0+j*c;
+    let holed=false;                                 // this cell was dropped
+    for(let k=0;k<R.holes.length;k++){
+      const h=R.holes[k];
+      if(cx0>=h.x0 && cx0+c<=h.x1 && cz0>=h.z0 && cz0+c<=h.z1){ holed=true; break; }
+    }
+    if(holed) continue;                              // a finer ring draws it, or nothing does
+    const u=Math.min(1,Math.max(0,(x-cx0)/c)), v=Math.min(1,Math.max(0,(z-cz0)/c));
+    const ha=Terrain.heightAt(cx0, cz0);
+    if(u+v<=1){
+      const hb=Terrain.heightAt(cx0+c, cz0), hd=Terrain.heightAt(cx0, cz0+c);
+      return ha + (hb-ha)*u + (hd-ha)*v;
+    }
+    const he=Terrain.heightAt(cx0+c, cz0+c);
+    const hb=Terrain.heightAt(cx0+c, cz0), hd=Terrain.heightAt(cx0, cz0+c);
+    return he + (hd-he)*(1-u) + (hb-he)*(1-v);
+  }
+  return Terrain.heightAt(x,z);
+}
+Terrain.groundAt=groundAt;

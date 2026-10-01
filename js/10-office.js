@@ -9,10 +9,21 @@
 /* The opening between the office and the room behind it. Both sides of the
    wall read these, so the door cannot end up in a different place in each. */
 const APT = { x0:-44.0, x1:-36.0, z1:6.20, h:2.62 };
-/* The door sits in the one gap in that wall: between the urn station and
-   the soda machine. Everything else on this side of the office is a run of
-   furniture standing shoulder to shoulder. */
-const APT_DX=-42.95, APT_DW=0.98, APT_DH=2.08;
+/* WHERE THE DOOR IS, AND WHY IT IS NOT WHERE IT WAS.
+
+   A doorway probe tests the hole. It does not test whether you can get to
+   the hole. This door passed clear36 and doors18 and was still unusable in
+   play, because the route to it ran through a 20 cm slot between the north
+   end of the front desk and the soda machine — technically passable, and in
+   practice you bump along the furniture and never find it.
+
+   So the door moved EAST of the desk, into the 2.1 m gap between the desk's
+   east face and the credenza, and the two vending machines moved west out
+   of the approach. You now walk straight at it from the middle of the
+   office floor with nothing in the way. A flood fill from the office's own
+   front door is the test that catches this, and it is the one that has to
+   be run every time a door goes into a room that already has furniture. */
+const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
 (function buildOffice(){
   const O=OFFICE, y0=BASE, h=O.h, cx=(O.x0+O.x1)/2, cz=(O.z0+O.z1)/2;
   const w=O.x1-O.x0, d=O.z1-O.z0;
@@ -410,14 +421,18 @@ const APT_DX=-42.95, APT_DW=0.98, APT_DH=2.08;
          y0+0.70+t*0.325, pz+Math.sin(a)*0.011, f, "#ffffff");
   }
   addCol(O.x1-1.85,O.x1-1.15, cz-3.15, cz-2.45, y0, y0+1.6);
-  // soda machine and a cigarette machine against the north wall
-  O_("paint", 1.00,1.86,0.66, O.x0+4.6, 0.93, O.z1-0.58, 0, "#8f2c22");
-  push("pic:vendFront:snack", planeGeo(0.76,1.52,0), O.x0+4.6, y0+1.04, O.z1-0.955,
+  /* Soda and cigarette machines, shifted two metres west. They used to sit
+     either side of where the apartment door now is, and between them and
+     the north end of the desk they closed the approach to it. West of the
+     desk they are out of everyone's way: behind the counter is staff side,
+     and nobody has to squeeze past them to get anywhere. */
+  O_("paint", 1.00,1.86,0.66, O.x0+2.6, 0.93, O.z1-0.58, 0, "#8f2c22");
+  push("pic:vendFront:snack", planeGeo(0.76,1.52,0), O.x0+2.6, y0+1.04, O.z1-0.955,
        Math.PI, "#ffffff");
-  addCol(O.x0+4.1,O.x0+5.1, O.z1-1.0, O.z1-0.3, y0, y0+1.9);
-  O_("paint", 0.62,1.40,0.46, O.x0+5.9, 0.70, O.z1-0.48, 0, "#3a4a52");
-  O_("metal", 0.54,0.10,0.04, O.x0+5.9, 1.16, O.z1-0.74, 0, "#b8bcbc");
-  addCol(O.x0+5.6,O.x0+6.2, O.z1-0.8, O.z1-0.25, y0, y0+1.5);
+  addCol(O.x0+2.1,O.x0+3.1, O.z1-1.0, O.z1-0.3, y0, y0+1.9);
+  O_("paint", 0.62,1.40,0.46, O.x0+3.7, 0.70, O.z1-0.48, 0, "#3a4a52");
+  O_("metal", 0.54,0.10,0.04, O.x0+3.7, 1.16, O.z1-0.74, 0, "#b8bcbc");
+  addCol(O.x0+3.4,O.x0+4.0, O.z1-0.8, O.z1-0.25, y0, y0+1.5);
   // payphone by the door
   O_("paint", 0.30,0.56,0.20, O.x1-0.36, 1.42, cz-1.6, 0, "#22303a");
   O_("paint", 0.10,0.24,0.08, O.x1-0.52, 1.44, cz-1.6, 0, "#12191f");

@@ -12,7 +12,7 @@
     {
       for(let ix=0; ix<7; ix++) for(let iz=0; iz<4; iz++){   // conforming tiles
         const lx=-6.0+ix*2.00, lz=-2.6+iz*2.00;
-        const ty=Terrain.heightAt(-517+lx, -222+lz)-m.y+0.03;
+        const ty=Terrain.groundAt(-517+lx, -222+lz)-m.y+0.03;
         m.P("track", new T.PlaneGeometry(2.40, 2.40), lx, ty, lz, 0, "#a99a80",
             -Math.PI/2, 0);
       }
@@ -20,7 +20,7 @@
       for(let i=0;i<12;i++){
         const lx=(r2()-0.5)*12, lz=0.4+(r2()-0.5)*6.6;
         m.P("soot", planeGeo(1.4+r2()*2.4, 1.0+r2()*1.8, 0), lx,
-            Terrain.heightAt(-517+lx,-222+lz)-m.y+0.045+i*0.0004, lz, r2()*6,
+            Terrain.groundAt(-517+lx,-222+lz)-m.y+0.045+i*0.0004, lz, r2()*6,
             r2()<0.45?"#7a6f5c":"#c3b79a", -Math.PI/2, 0);
       }
       for(let i=0;i<16;i++){
@@ -85,7 +85,7 @@
       // fifth hides the steps between.
       for(let ix=0; ix<12; ix++) for(let iz=0; iz<6; iz++){
         const lx=-12.6+ix*2.30, lz=-5.4+iz*2.15;
-        const ty=Terrain.heightAt(-630+lx, -68+lz)-m.y+0.03;
+        const ty=Terrain.groundAt(-630+lx, -68+lz)-m.y+0.03;
         m.P("track", new T.PlaneGeometry(2.75, 2.58), lx, ty, lz, 0, "#a99a80",
             -Math.PI/2, 0);
       }
@@ -93,7 +93,7 @@
       for(let i=0;i<22;i++){                        // scuff and shadow across it
         const lx=(r2()-0.5)*25, lz=(r2()-0.5)*11;
         m.P("soot", planeGeo(2.0+r2()*4.0, 1.4+r2()*2.6, 0), lx,
-            Terrain.heightAt(-630+lx,-68+lz)-m.y+0.045+i*0.0004, lz, r2()*6,
+            Terrain.groundAt(-630+lx,-68+lz)-m.y+0.045+i*0.0004, lz, r2()*6,
             r2()<0.45?"#7a6f5c":"#c3b79a", -Math.PI/2, 0);
       }
       for(let i=0;i<34;i++){                        // dry grass the wind seeded back
@@ -107,7 +107,7 @@
       for(let i=0;i<9;i++){
         const lx=0.65+Math.sin(i*0.7)*0.5, lz=-5.0+i*1.25;
         m.P("soot", planeGeo(1.25, 1.5, 0), lx,
-            Terrain.heightAt(-630+lx,-68+lz)-m.y+0.05, lz, 0.1, "#8d8168", -Math.PI/2, 0);
+            Terrain.groundAt(-630+lx,-68+lz)-m.y+0.05, lz, 0.1, "#8d8168", -Math.PI/2, 0);
       }
     }
     // the plot: a low kerb of rubble and a gate that stopped closing
@@ -1388,7 +1388,7 @@
      Nothing at the foot of it has been switched on since the cabinets were
      stripped: the light runs off the solar panel on the hut roof. */
   (function mast(){
-    const mx=250, mz=520, gy=Terrain.heightAt(mx,mz);
+    const mx=250, mz=520, gy=Terrain.groundAt(mx,mz);
     const H=72, BAYS=16, SB=3.40, ST=1.50;        // base and top face widths
     const RC=s2=>s2/Math.sqrt(3);                 // circumradius of the triangle
     const LEGA=[Math.PI/2, Math.PI*7/6, Math.PI*11/6];
@@ -1425,7 +1425,7 @@
         // on ITS OWN ground, not the mast's. Thirty-four metres out on a
         // tabletop with a metre and a half of noise in it, six anchor
         // blocks placed at the mast's own height hang in the air.
-        const bg=Terrain.heightAt(mx+Math.cos(ang)*34, mz+Math.sin(ang)*34);
+        const bg=Terrain.groundAt(mx+Math.cos(ang)*34, mz+Math.sin(ang)*34);
         const b=[mx+Math.cos(ang)*34, bg+0.6, mz+Math.sin(ang)*34];
         strut("metal", a, b, 0.055, "#6e757a", 4);
         if(lv<0.5){                                // the anchor block it lands on
@@ -1491,7 +1491,7 @@
   (function firelookout(){
     const LK=Terrain.LOOK;
     const P=Terrain.trailPath(), TOP=P[P.length-1];
-    const lx=-302, lz=374, gy=Terrain.heightAt(lx,lz);
+    const lx=-302, lz=374, gy=Terrain.groundAt(lx,lz);
     const FLR=5.40, CAB=4.40, HC=CAB/2, WALK=1.05, CHh=2.32;
     const TIM="#6f5a3e", TIMD="#54432e", GALV2="#9aa1a6", GALVD="#767d82";
     const F=gy+FLR;                                // the catwalk / cab floor
@@ -1503,14 +1503,14 @@
        rather than dropped. */
     for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]]){
       const px=lx+a[0]*HC, pz=lz+a[1]*HC;
-      const g2=Terrain.heightAt(px,pz);
+      const g2=Terrain.groundAt(px,pz);
       bx("concrete", 0.62,0.50,0.62, px, g2+0.10, pz, 0.4, 0, "#a49b88");
       bx("oak", 0.22, F-g2+0.3, 0.22, px, (g2+F)/2, pz, 0.5, 0, TIM);
     }
     for(let k=0;k<4;k++){                          // and the braces up each face
       const s2=[[-1,-1,1,-1],[1,-1,1,1],[1,1,-1,1],[-1,1,-1,-1]][k];
       const ax=lx+s2[0]*HC, az=lz+s2[1]*HC, bx2=lx+s2[2]*HC, bz=lz+s2[3]*HC;
-      const g1=Terrain.heightAt(ax,az), g2=Terrain.heightAt(bx2,bz);
+      const g1=Terrain.groundAt(ax,az), g2=Terrain.groundAt(bx2,bz);
       for(let t=0;t<3;t++){                        // three bays, X-braced
         const y0b=Math.min(g1,g2)+0.5+t*((F-Math.min(g1,g2)-0.7)/3);
         const y1b=Math.min(g1,g2)+0.5+(t+1)*((F-Math.min(g1,g2)-0.7)/3);
@@ -1524,8 +1524,10 @@
         bx("oak", (k%2)?0.10:CAB+0.2, 0.10, (k%2)?CAB+0.2:0.10,
            (ax+bx2)/2, y1b, (az+bz)/2, 0.4, 0, TIM);
       }
-      addCol(Math.min(ax,bx2)-0.14, Math.max(ax,bx2)+0.14,
-             Math.min(az,bz)-0.14, Math.max(az,bz)+0.14, gy-1, F-0.3);
+      // only the legs collide, not the whole face. A collider per face walls
+      // the space under the tower into a sealed box you cannot walk through
+      for(const c2 of [[ax,az],[bx2,bz]])
+        addCol(c2[0]-0.16, c2[0]+0.16, c2[1]-0.16, c2[1]+0.16, gy-1, F-0.3);
     }
 
     /* the deck and the catwalk round it. One plate, and the cab sits in the
@@ -1559,8 +1561,14 @@
       bx("oak", OUT*2, 0.14, 0.05, lx, F+0.09, lz+sg*OUT, 0.4, 0, TIMD);
       bx("oak", 0.05, 0.14, OUT*2, lx+sg*OUT, F+0.09, lz, 0.4, 0, TIMD);
     }
+    /* The rail's collider has to have the same gap in it the rail does. The
+       geometry was split either side of the stair head and the collider was
+       not, so you climbed thirty-one treads and hit an invisible rail
+       across the top of them. That — with the footing below — is why the
+       stair could not be climbed. */
     addCol(lx-OUT-0.1, lx+OUT+0.1, lz+OUT-0.06, lz+OUT+0.1, F, F+1.05);
-    addCol(lx-OUT-0.1, lx+OUT+0.1, lz-OUT-0.1, lz-OUT+0.06, F, F+1.05);
+    addCol(lx-OUT-0.1, lx-0.78, lz-OUT-0.1, lz-OUT+0.06, F, F+1.05);
+    addCol(lx+0.78,   lx+OUT+0.1, lz-OUT-0.1, lz-OUT+0.06, F, F+1.05);
     addCol(lx+OUT-0.06, lx+OUT+0.1, lz-OUT-0.1, lz+OUT+0.1, F, F+1.05);
     addCol(lx-OUT-0.1, lx-OUT+0.06, lz-OUT-0.1, lz+OUT+0.1, F, F+1.05);
 
@@ -1577,18 +1585,25 @@
        The flight sizes itself: the drop from the deck to the ground it is
        actually landing on decides the number of treads, rather than a
        number picked in advance and hoped over. */
-    const SW=1.06, GO=0.27;
-    const gLand=Terrain.heightAt(lx, lz-OUT-5.6);
+    const SW=1.24, GO=0.27;           // wide enough to walk up without hunting
+    const gLand=Terrain.groundAt(lx, lz-OUT-5.6);
     const NT=Math.max(20, Math.round((F-gLand)/0.2261));
     const RIS=(F-gLand)/NT;
-    const tz=i=>lz-OUT-0.16-i*GO;                  // tread i, counting down from the deck
+    /* tread i counts down from the deck, and tread 1 has to TOUCH the deck.
+       It was set back 0.16 m and then stepped a further 0.27, which left a
+       43 cm hole between the top of the flight and the catwalk — so you
+       climbed thirty-one treads, walked off the end of the last one and
+       fell seven metres to the dirt. Every plate overlaps its neighbour,
+       and the top one overlaps the catwalk. */
+    const tz=i=>lz-OUT-i*GO;                       // tread i, counting down from the deck
     for(let i=1;i<=NT;i++){
       const ty=F-i*RIS, pz=tz(i);
-      bx("oak", SW, 0.075, GO+0.04, lx, ty-0.038, pz, 0.4, 0, TIM);
-      addFlat(lx-SW/2, lx+SW/2, pz-GO/2-0.02, pz+GO/2+0.02, ty);
+      bx("oak", SW, 0.075, GO+0.06, lx, ty-0.038, pz, 0.4, 0, TIM);
+      addFlat(lx-SW/2, lx+SW/2, pz-GO/2-0.04,
+              i===1 ? lz-OUT+0.06 : pz+GO/2+0.04, ty);   // the top one laps the deck
       if(i%4===0){                                 // posted down to the real ground
         for(const q of [-1,1]){
-          const g3=Terrain.heightAt(lx+q*SW/2, pz);
+          const g3=Terrain.groundAt(lx+q*SW/2, pz);
           if(ty-g3<0.25) continue;
           cyl("oak", 0.065,0.075, ty-g3, 6, lx+q*SW/2, (g3+ty)/2, pz, TIMD);
         }
@@ -1610,7 +1625,11 @@
       for(let i=2;i<NT;i+=4)
         cyl("metal", 0.024,0.024,1.02,6, a[0], F-i*RIS+0.31, tz(i), GALVD);
     }
-    addCol(lx-SW/2-0.14, lx+SW/2+0.14, tz(NT)-0.3, lz-OUT, gLand-0.5, gLand+0.2);
+    /* and NOTHING across the foot of it. There was a footing collider here
+       0.7 m tall and the full length of the flight, which is a wall at
+       shin height over every tread on the bottom third of the stair. The
+       treads are their own walkable plates; the stair needs no collider of
+       its own at all. */
 
     /* the cab. Waist-high boarding, then glass the whole way round, which
        is what a lookout is for — you have to be able to see every bearing
@@ -1761,21 +1780,30 @@
     push("fabric", boxGeo(0.05,0.62,0.38,0.6), lx+HC-0.10, F+1.36, lz-0.06, 0, "#5e6a52");
 
     /* --- and what is round the foot of it -------------------------------- */
-    cyl("metal", 0.44,0.44,0.90,14, lx-OUT-0.9, gy+0.45, lz+0.6, "#7d7466");    // water butt
-    cyl("metal", 0.46,0.46,0.05,14, lx-OUT-0.9, gy+0.92, lz+0.6, "#6b6357");
-    addCol(lx-OUT-1.4, lx-OUT-0.4, lz+0.1, lz+1.1, gy, gy+0.95);
-    for(let i=0;i<11;i++)                                                        // the woodpile
-      cyl("oak", 0.055,0.050,0.80,6, lx-OUT-0.4+((i%4))*0.12, gy+0.06+((i/4)|0)*0.10,
+    /* EACH ON ITS OWN GROUND. These were all set off `gy`, the height under
+       the middle of the tower, and this is a mesa top with a metre and a
+       half of roll in it — so the butt sank, the woodpile sank and the
+       weather screen stood a metre clear of the dirt on stilts. Anything
+       outside the footprint of a building gets the ground at its own x,z. */
+    const wbx=lx-OUT-0.9, wbz=lz+0.6, wbg=Terrain.groundAt(wbx,wbz);
+    cyl("metal", 0.44,0.44,0.90,14, wbx, wbg+0.45, wbz, "#7d7466");             // water butt
+    cyl("metal", 0.46,0.46,0.05,14, wbx, wbg+0.92, wbz, "#6b6357");
+    addCol(wbx-0.5, wbx+0.5, wbz-0.5, wbz+0.5, wbg, wbg+0.95);
+    for(let i=0;i<11;i++){                                                       // the woodpile
+      const px=lx-OUT-0.4+((i%4))*0.12;
+      cyl("oak", 0.055,0.050,0.80,6, px, Terrain.groundAt(px, lz-1.5)+0.06+((i/4)|0)*0.10,
           lz-1.5, "#6a5436", 0, Math.PI/2, 0);
+    }
     // a Stevenson screen on legs, because a lookout also reported the weather
-    bx("paint", 0.52, 0.44, 0.44, lx+OUT+1.5, gy+1.24, lz-1.2, 0.5, 0, "#e2ddcc");
-    push("roofG", boxGeo(0.62,0.05,0.54,0.4), lx+OUT+1.5, gy+1.48, lz-1.2, 0, "#cfc7b2");
+    const ssx=lx+OUT+1.5, ssz=lz-1.2, ssg=Terrain.groundAt(ssx,ssz);
+    bx("paint", 0.52, 0.44, 0.44, ssx, ssg+1.24, ssz, 0.5, 0, "#e2ddcc");
+    push("roofG", boxGeo(0.62,0.05,0.54,0.4), ssx, ssg+1.48, ssz, 0, "#cfc7b2");
     for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]])
-      cyl("oak", 0.035,0.035,1.02,6, lx+OUT+1.5+a[0]*0.20, gy+0.51, lz-1.2+a[1]*0.16, TIMD);
-    addCol(lx+OUT+1.2, lx+OUT+1.8, lz-1.5, lz-0.9, gy, gy+1.5);
+      cyl("oak", 0.035,0.035,1.02,6, ssx+a[0]*0.20, ssg+0.51, ssz+a[1]*0.16, TIMD);
+    addCol(ssx-0.3, ssx+0.3, ssz-0.3, ssz+0.3, ssg, ssg+1.5);
     // the outhouse, a decent distance off and downwind
     {
-      const ox=lx+7.4, oz=lz+5.2, og=Terrain.heightAt(ox,oz);
+      const ox=lx+7.4, oz=lz+5.2, og=Terrain.groundAt(ox,oz);
       bx("plank", 1.10, 2.05, 1.20, ox, og+1.02, oz, 0.7, 0, "#8a7654");
       push("roofG", boxGeo(1.36,0.08,1.44,0.4), ox, og+2.12, oz, 0, "#6b6f62", -0.14);
       bx("plank", 0.06, 1.70, 0.62, ox-0.55, og+0.90, oz, 0.6, 0, "#7d6a4a");
@@ -1787,7 +1815,7 @@
     {
       const T0=P[0], T1=P[3];
       const ang=Math.atan2(T1.z-T0.z, T1.x-T0.x);
-      const gx=T0.x, gz=T0.z, gg=Terrain.heightAt(gx,gz);
+      const gx=T0.x, gz=T0.z, gg=Terrain.groundAt(gx,gz);
       for(const q of [-1,1])
         cyl("metal", 0.075,0.075,1.50,8, gx-Math.sin(ang)*q*3.4, gg+0.75,
             gz+Math.cos(ang)*q*3.4, GALVD);
@@ -1828,15 +1856,41 @@
       const dyy=b2.y-a.y, Ln=Math.hypot(L, dyy);
       const g3=Math.asin(dyy/Ln);
       const bear=Math.atan2(-dxx/L, -dzz/L);
-      push("sand", planeGeo(5.5, Ln*1.30, 1.6), mx2, my+0.05, mz2, bear,
-           (i%3)?"#6a5c45":"#62543d", -Math.PI/2+g3, 0);
+      /* THE COLOUR OF THE HILL IT IS CUT THROUGH. At #6a5c45 on the pale
+         sand bucket this came out a cold grey-brown lying across red rock,
+         which reads as something poured rather than something graded. An
+         old desert road is the mesa's own colour with the saturation
+         knocked out of it by forty years of traffic and dust — same hue,
+         a little paler, a lot flatter. And the width breathes a few
+         centimetres segment to segment, because nothing out here has a
+         constant edge. */
+      /* THE GRAVEL BUCKET, not the sand one. A vertex colour can only ever
+         darken the texture under it, so a road drawn in a pale bucket can
+         be made dark but never made RED — and in sand it came out a cream
+         ribbon laid over red rock however far the colour was pulled down.
+         TEX.gravel is built on #8a5f45, which is the mesa's own hue, so the
+         road is now the hill with the saturation walked out of it. It also
+         reads brighter than the slope either side whatever colour it is,
+         because a graded bench faces straight up into the sun and a
+         forty-degree flank does not — which is true of a real one. */
+      const wd=5.3+((i*7)%5)*0.16;
+      push("gravel", planeGeo(wd, Ln*1.16, 1.6), mx2, my+0.05, mz2, bear,
+           ["#efe6d6","#e2d8c6","#f4ece0"][i%3], -Math.PI/2+g3, 0);
       for(const q of [-1,1])                       // the ruts worn down it
-        push("soot", planeGeo(0.56, Ln*1.24, 0), mx2-Math.sin(-ry)*q*0.90,
-             my+0.064, mz2-Math.cos(-ry)*q*0.90, bear, "#6a6052", -Math.PI/2+g3, 0);
+        push("gravel", planeGeo(0.58, Ln*1.12, 1.1), mx2-Math.sin(-ry)*q*0.92,
+             my+0.064, mz2-Math.cos(-ry)*q*0.92, bear, "#a99484", -Math.PI/2+g3, 0);
+      if(i%2)                                      // and the crown between them
+        push("gravel", planeGeo(1.05, Ln*1.12, 1.2), mx2, my+0.058, mz2, bear,
+             "#d6c8b4", -Math.PI/2+g3, 0);
+      if(i%5===0)                                  // dust drifted over the edges
+        for(const q of [-1,1])
+          push("gravel", planeGeo(1.30, Ln*1.10, 1.4), mx2-Math.sin(-ry)*q*2.1,
+               my+0.046, mz2-Math.cos(-ry)*q*2.1, bear,
+               q>0?"#c6b6a2":"#d2c4b0", -Math.PI/2+g3, 0);
       if(i%7===0){                                 // spoil over the outside edge
         const ox2=(mx2-LK.x), oz2=(mz2-LK.z), on=Math.hypot(ox2,oz2)||1;
         const g3=new T.SphereGeometry(1.5+((i*5)%3)*0.5, 10, 6); g3.scale(1, 0.22, 1);
-        push("sand", g3, mx2+ox2/on*3.5, my-0.55, mz2+oz2/on*3.5, i*0.7, "#7a6a50");
+        push("gravel", g3, mx2+ox2/on*3.5, my-0.55, mz2+oz2/on*3.5, i*0.7, "#bfae98");
       }
       if(i%11===0){                                // and a marker post on the outside
         const ox2=(mx2-LK.x), oz2=(mz2-LK.z), on=Math.hypot(ox2,oz2)||1;
@@ -1849,7 +1903,7 @@
     for(let i=1;i<5;i++){
       const q=P[i*30];
       if(!q) continue;
-      const cg=Terrain.heightAt(q.x+2.6, q.z+2.6);
+      const cg=Terrain.groundAt(q.x+2.6, q.z+2.6);
       for(let k=0;k<4;k++)
         push("rock", rockGeo(0.24-k*0.04, i*7+k), q.x+2.6, cg+0.12+k*0.17, q.z+2.6,
              k*1.2, k%2?"#8a7a62":"#7d6e57", 0, 0);
@@ -1857,7 +1911,7 @@
   })();
 
   (function watertower(){
-    const wx=-168, wz=88, gy=Terrain.heightAt(wx,wz);
+    const wx=-168, wz=88, gy=Terrain.groundAt(wx,wz);
     for(const l of [[-2.6,-2.6],[2.6,-2.6],[-2.6,2.6],[2.6,2.6]])
       cyl("metal", 0.20,0.26,17,8, wx+l[0], gy+8.5, wz+l[1], GALV);
     for(const yy of [5,10,14]){

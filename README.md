@@ -656,6 +656,9 @@ headless Chromium and asks the scene about itself rather than looking at it:
   triangle count and whether it carries a map. It found 70% of the world's
   triangles on materials with none — foliage alone is 45% of the world and was
   flat colour — which is now 12%;
+- a climb probe, which carries its height along a route the way the player
+  does rather than walking a line at a fixed one, and names the first step
+  that will not take. A stair cannot be tested any other way;
 - a doorway-clearance probe, which walks every triangle of every baked bucket
   against a prism drawn through an opening and names whatever is standing in
   it. The doorway probe above walks *colliders*, and the things that block a
@@ -698,6 +701,13 @@ A few pieces are specific to this scene:
   the ground floor and the balcony independently. Walkable surfaces are flat
   plates and ramps; the player takes the highest one within step-up reach, which
   is all an outdoor stair needs.
+- **You stand on what is drawn.** The height field is continuous; the ground
+  is drawn by sampling it on a lattice and joining the samples with flat
+  triangles, and on a mesa flank those two can be seven metres apart. So the
+  player's feet, and everything placed on the desert, take their height from
+  the triangle that is actually drawn rather than from the field it came
+  from. Without it the hills are hollow: you walk up one and drop through the
+  surface you were looking at.
 - **A hole in the ground, and not one in the sky.** The terrain is built as a
   hand-rolled grid rather than a `PlaneGeometry` so cells can be dropped — the
   pool tank is a real void, and five rings (0.5 m at the adit, 2 m over the

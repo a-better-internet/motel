@@ -561,7 +561,7 @@ function updateTraffic(dt, dark){
     // wrap well past the fog, so nothing is ever seen appearing or vanishing
     if(v.x> 1500) v.x=-1500;
     if(v.x<-1500) v.x= 1500;
-    const gy=Terrain.heightAt(v.x, v.z)+0.02;
+    const gy=Terrain.groundAt(v.x, v.z)+0.02;
     v.g.position.set(v.x, gy, v.z);
     // the shell's world box, for carHits — nose leads, whichever way it runs
     const c=v.col;

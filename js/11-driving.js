@@ -365,9 +365,17 @@ function exitCar(){
   const left=new T.Vector3(-1,0,0).applyQuaternion(b.quaternion);
   const gy0=b.position.y-CAR_RIDE;
   const gx=b.position.x+left.x*1.9, gz=b.position.z+left.z*1.9;
-  const sp=nearestFree(gx, gz, gy0, 7) || nearestFree(b.position.x, b.position.z, gy0, 9);
+  /* Tight first, loose only if that finds nothing. Your eye height is a
+     fixed distance over whatever you are standing on, so the only way to
+     step out of a car and end up lower is to be PUT somewhere lower — and
+     at the old blanket 1.3 m tolerance the first free spot it found beside
+     a kerb or off the edge of the lot was often exactly that. */
+  const sp=nearestFree(gx, gz, gy0, 4, 0.45)
+        || nearestFree(b.position.x, b.position.z, gy0, 6, 0.45)
+        || nearestFree(gx, gz, gy0, 7);
   if(sp){ player.pos.set(sp[0], 0, sp[1]); player.feetY=sp[2]; }
   else  { player.pos.set(gx, 0, gz);       player.feetY=surfaceY(gx, gz, gy0+0.5); }
+  player.sit=0; player.bob=0;        // whatever you got in with, you get out standing
   const yaw=carYaw(b.quaternion);
   const hx=Math.abs(Math.cos(yaw))*1.03+Math.abs(Math.sin(yaw))*2.28;
   const hz=Math.abs(Math.sin(yaw))*1.03+Math.abs(Math.cos(yaw))*2.28;

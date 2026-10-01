@@ -182,7 +182,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     const a=rnd()*Math.PI*2, r=70+rnd()*430;
     const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
     if(inLot(x,z)||onRoad(z)||built(x,z)) continue;
-    const y=Terrain.heightAt(x,z);
+    const y=Terrain.groundAt(x,z);
     if(y>26) continue;
     const green=pick(["#4f6b3a","#57713f","#465f34"]);
     if(rnd()<0.72){
@@ -387,14 +387,14 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     const a=rnd()*Math.PI*2, r=near();
     const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
     if(inLot(x,z)||onRoad(z)||built(x,z)) continue;
-    const y=Terrain.heightAt(x,z); if(y>32) continue;
+    const y=Terrain.groundAt(x,z); if(y>32) continue;
     sagebush(x,y,z, 0.85+rnd()*0.55);
   }
   for(let i=0;i<820;i++){                                 // the other five
     const a=rnd()*Math.PI*2, r=near();
     const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
     if(inLot(x,z)||onRoad(z)||built(x,z)) continue;
-    const y=Terrain.heightAt(x,z); if(y>30) continue;
+    const y=Terrain.groundAt(x,z); if(y>30) continue;
     const q=rnd();
     if(q<0.12)      mesquite(x,y,z, 0.9+rnd()*0.6);
     else if(q<0.34) cholla(x,y,z, 0.85+rnd()*0.55);
@@ -415,7 +415,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     const a=rnd()*Math.PI*2, r=64+rnd()*430;
     const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
     if(inLot(x,z)||onRoad(z)||built(x,z)) continue;
-    const y=Terrain.heightAt(x,z);
+    const y=Terrain.groundAt(x,z);
     const s=0.5+rnd()*2.6;
     push("rock", rockGeo(s, i*13+5), x, y+s*0.22, z, rnd()*6,
       pick(["#d8c6ac","#c6b298","#e2d0b6","#b9a68e"]), rnd()*0.4-0.2, rnd()*0.4-0.2);
@@ -428,7 +428,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
     if(inLot(x,z)||onRoad(z)||built(x,z)) continue;
     const s=0.13+rnd()*0.26;
-    push("rock", rockGeo(s, i*29+11), x, Terrain.heightAt(x,z)+s*0.30, z, rnd()*6,
+    push("rock", rockGeo(s, i*29+11), x, Terrain.groundAt(x,z)+s*0.30, z, rnd()*6,
       pick(["#d8c6ac","#c6b298","#b9a68e"]), rnd()*0.6-0.3, rnd()*0.6-0.3);
   }
   /* ---- and the same again, sparser, out to a mile and a half ---------
@@ -440,7 +440,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     const a=rnd()*Math.PI*2, r=470+rnd()*980;
     const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
     if(onRoad(z)||built(x,z)) continue;
-    const y=Terrain.heightAt(x,z); if(y>30) continue;
+    const y=Terrain.groundAt(x,z); if(y>30) continue;
     const green=pick(["#4f6b3a","#57713f","#465f34"]);
     if(rnd()<0.74){
       const h=2.6+rnd()*2.6, rt=0.30+rnd()*0.06;
@@ -461,7 +461,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     const a=rnd()*Math.PI*2, r=450+rnd()*1050;
     const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
     if(onRoad(z)||built(x,z)) continue;
-    const y=Terrain.heightAt(x,z); if(y>36) continue;
+    const y=Terrain.groundAt(x,z); if(y>36) continue;
     const col=pick(["#6a6a3c","#75754a","#5e6036","#7d7a4d"]);
     const rad=0.34+rnd()*0.40;
     push("foliage", blobGeo(rad), x, y+rad*0.68, z, rnd()*6, col);
@@ -476,7 +476,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
     const x=Math.cos(a)*r, z=Math.sin(a)*r+10;
     if(onRoad(z)||built(x,z)) continue;
     const sc=0.7+rnd()*3.2;
-    const fy=Terrain.heightAt(x,z);
+    const fy=Terrain.groundAt(x,z);
     push("rock", rockGeo(sc, i*17+3), x, fy+sc*0.22, z, rnd()*6,
       pick(["#d8c6ac","#c6b298","#e2d0b6","#b9a68e"]), rnd()*0.4-0.2, rnd()*0.4-0.2);
     addCol(x-sc*0.95, x+sc*0.95, z-sc*0.95, z+sc*0.95, fy, fy+sc*1.1);
@@ -491,7 +491,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   const POLE_Z=ROADZ-7.4, POLE_X0=-704, POLE_DX=44, LANE=1.05;
   const tops=[];
   for(let x=POLE_X0;x<=1144;x+=POLE_DX){   // past the diner, not short of it
-    const y=Terrain.heightAt(x,POLE_Z);
+    const y=Terrain.groundAt(x,POLE_Z);
     cyl("oak", 0.17,0.21,8.2,8, x, y+4.1, POLE_Z, "#5b4632");
     addCol(x-0.26, x+0.26, POLE_Z-0.26, POLE_Z+0.26, y, y+8.2);
     bx("oak", 0.16,0.16,2.4, x, y+7.5, POLE_Z, 0.4, 0, "#5b4632");
@@ -525,7 +525,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
 (function(){
   // Sit on whatever is actually underfoot: out here that is the terrain, but a
   // few of these land on the graded slab or a kerb, which is higher.
-  const TG=(x,z)=>{ const t=Terrain.heightAt(x,z);
+  const TG=(x,z)=>{ const t=Terrain.groundAt(x,z);
                     const f=surfaceY(x, z, t+0.8);
                     return (f>t && f<t+0.8) ? f : t; };
   // Junk blows off the road, not into the lot or through somebody's wall, so

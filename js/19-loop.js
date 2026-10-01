@@ -122,6 +122,10 @@ function updateSand(dt, dark){
       x=px+(((x-px+half)%SAND.m)+SAND.m)%SAND.m-half;   // wrap around the player
       z=pz+(((z-pz+half)%SAND.m)+SAND.m)%SAND.m-half;
       pos[i*3]=x; pos[i*3+2]=z;
+      // heightAt here, not groundAt: this is thirteen hundred particles a
+      // frame and groundAt costs four field samples each. A grain of blown
+      // sand half a metre to thirteen metres up does not need to agree with
+      // the drawn triangle to the millimetre; a foot standing on it does.
       pos[i*3+1]=Terrain.heightAt(x,z)+off[i]*(0.45+0.55*g);
     }
     L.p.geometry.attributes.position.needsUpdate=true;
@@ -136,7 +140,7 @@ function updateWeeds(dt){
     w.spin+=dt*sp/w.R;
     // a lopsided ball does not roll smoothly — it bounces off its own knuckles
     const hop=Math.max(0, Math.sin(w.spin*1.7+w.hop))*w.R*0.34;
-    w.pos.y=Terrain.heightAt(w.pos.x,w.pos.z)+w.R*0.94+hop;
+    w.pos.y=Terrain.groundAt(w.pos.x,w.pos.z)+w.R*0.94+hop;
     w.m.position.copy(w.pos);
     w.m.quaternion.setFromAxisAngle(w.axis, w.spin);
     // They roll with nothing to stop them, so they were rolling through walls
@@ -178,7 +182,7 @@ const GECKOS=[];
                [-166.6,-41.0],[75.5,244.0],[-516.0,-224.5],[-15.0,-63.0]];
   for(let i=0;i<SPOTS.length;i++){
     const sp=SPOTS[i], g=mk(["#7a7a52","#6b6b46","#8a7a56","#5f6b4a"][i%4]);
-    g.position.set(sp[0], Terrain.heightAt(sp[0],sp[1])+0.012, sp[1]);
+    g.position.set(sp[0], Terrain.groundAt(sp[0],sp[1])+0.012, sp[1]);
     g.rotation.y=rnd()*6.28;
     scene.add(g);
     GECKOS.push({m:g, hx:sp[0], hz:sp[1], t:0, run:0, dir:rnd()*6.28, wait:rr(0,4)});
@@ -192,7 +196,7 @@ function updateGeckos(dt){
       const sp=3.4*Math.min(1, k.run*3);
       k.m.position.x += Math.sin(k.dir)*sp*dt;
       k.m.position.z += Math.cos(k.dir)*sp*dt;
-      k.m.position.y  = Terrain.heightAt(k.m.position.x, k.m.position.z)+0.012;
+      k.m.position.y  = Terrain.groundAt(k.m.position.x, k.m.position.z)+0.012;
       k.m.rotation.y  = k.dir + Math.sin(k.run*38)*0.22;      // the tail whips
     }else if(d<4.0 && d>0.2){
       k.dir=Math.atan2(k.m.position.x-player.pos.x, k.m.position.z-player.pos.z)
@@ -205,7 +209,7 @@ function updateGeckos(dt){
         k.dir=k.m.rotation.y+(rnd()-0.5)*2.2;
         k.m.rotation.y=k.dir;
       }
-      if(d>70){ k.m.position.set(k.hx, Terrain.heightAt(k.hx,k.hz)+0.012, k.hz); }
+      if(d>70){ k.m.position.set(k.hx, Terrain.groundAt(k.hx,k.hz)+0.012, k.hz); }
     }
   }
 }
@@ -272,7 +276,7 @@ function updateFlyers(dt){
     const z=f.from.z + WIND.z*d + WIND_L.z*Math.sin(f.t*0.7+f.ph)*2.4;
     // it skitters along the ground, lifts, stalls, drops back
     const climb=Math.max(0, Math.sin(f.t*0.62+f.ph))*f.lift;
-    f.m.position.set(x, Terrain.heightAt(x,z)+0.10+climb, z);
+    f.m.position.set(x, Terrain.groundAt(x,z)+0.10+climb, z);
     f.m.rotation.set(f.t*f.spin.x, f.t*f.spin.y, f.t*f.spin.z);
   }
 }

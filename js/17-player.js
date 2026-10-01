@@ -102,14 +102,21 @@ let seated=null, nearestSeat=null, sitGuard=false, sitDrop=0.66;
    from wherever you are: the first unblocked spot at a height you could have
    got to wins. Nothing in the world needs to guarantee an exit any more,
    because this always finds one.                                          */
-function nearestFree(x, z, base, maxR){
+/* `tol` is how far the spot may be above or below the height you asked
+   for. It defaulted to 1.3 m for everything, which is fine for standing up
+   out of a chair and wrong for getting out of a car: step out beside a kerb
+   or on the shoulder of the lot and it would happily drop you a metre and a
+   quarter, so you came back from a drive standing noticeably lower than you
+   got in. The car passes a much tighter one. */
+function nearestFree(x, z, base, maxR, tol){
+  const T=tol||1.3;
   for(let r=0.45; r<=(maxR||4.2); r+=0.35){
     const n=Math.max(8, Math.round(r*14));
     for(let k=0;k<n;k++){
       const a=(k/n)*Math.PI*2 + r;                 // rotate each ring a little
       const nx=x+Math.cos(a)*r, nz=z+Math.sin(a)*r;
       const fy=surfaceY(nx, nz, base+0.45);
-      if(Math.abs(fy-base)<1.3 && !blocked(nx, nz, fy)) return [nx, nz, fy];
+      if(Math.abs(fy-base)<T && !blocked(nx, nz, fy)) return [nx, nz, fy];
     }
   }
   return null;
@@ -227,6 +234,12 @@ function fixedUpdate(dt){
     const b=driving.veh.body;
     player.pos.set(b.position.x, 0, b.position.z);
     player.feetY=b.position.y-CAR_RIDE;
+    /* and the body keeps settling while you drive. eyeY is feetY + EYE +
+       bob - sit*sitDrop, so a sit or a bob left part way through when you
+       got in stays there for the whole journey and you climb out of the
+       car lower than you got in. They decay here as they would on foot. */
+    player.sit += (0-player.sit)*Math.min(1,dt*6);
+    player.bob += (0-player.bob)*Math.min(1,dt*6);
     return;
   }
   const f=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);

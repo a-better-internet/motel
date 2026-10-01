@@ -70,6 +70,49 @@ not see past. `band()` takes a `gap` flag now and splits the road-face run
 either side of the door, and the fluting that crosses the head is split the
 same way. If you add a course to a wall with a door in it, split it.
 
+**You stand on the triangles that are drawn, not on the field they came
+from.** `Terrain.heightAt` is a continuous analytic function; the terrain is
+drawn by sampling it on a lattice of 0.5, 2, 3, 6 or 12 m and joining the
+samples with flat triangles. On the flat those differ by millimetres. On the
+flank of a mesa, where the field climbs most of a metre per metre, a 6 m
+cell cuts the top off a spur or bridges a gully — a probe measured the two
+**7.2 m apart**. So a player walking at `heightAt` sinks into the hillside
+they can see or strides out into the air above it, which is what "the mesas
+feel hollow and you fall through them" was. `Terrain.groundAt` finds the
+finest ring that actually draws a triangle at that point, works out which of
+the cell's two halves the point is in, and interpolates it. `groundY` uses
+it, and so does everything that puts an object on the desert — a rock placed
+at `heightAt` hangs over the slope it is meant to be lying on for the same
+reason. Inside this one file, `grid()` samples the analytic field, because
+that is what `groundAt` is interpolating; everywhere else wants `groundAt`.
+
+**A doorway probe tests the hole. It does not test whether you can get to
+the hole.** The door to the manager's apartment passed `clear36` and
+`doors18` and was unusable in play, because the route to it ran through a
+20 cm slot between the end of the front desk and the soda machine. You bump
+along the furniture and never find it. The test for this is `reach33` run
+over the WHOLE floor from the building's own front door — not over the room
+the new door opens into. Run it every time a door goes into a room that
+already has furniture in it.
+
+**A stair is not a line at one height, so `why33` cannot test one.** It
+walks a fixed y and asks whether each point is blocked, which on a flight
+either passes under it or through it. `climb37` carries the height along the
+way the player does — `surfaceY` from where you just were, then `blocked()`
+at the height that gives — and names the first step that will not take. It
+found the lookout's top tread stopping 43 cm short of the catwalk, so you
+climbed thirty-one treads and walked off the end of the last one.
+
+**Two surfaces on one plane flicker; interpenetration is free.** The glitch
+down both sides of the diner's kitchen doorway was a jamb 0.06 thick offset
+0.03, so its outer face landed exactly where the bulkhead's run ended. The
+fix is to make it 0.11 and let it overlap — you never see the inside of a
+solid. `coplanar.js` over a building finds these; it found 141 pairs in the
+diner, the worst of them sixteen square metres of quarry tile laid one
+millimetre over the hex floor underneath it. Scattered decals are the other
+big source: twenty stains all pushed to the same depth is twenty overlapping
+pairs, so give each one its own millimetre.
+
 **Nothing carries a collider, so check the geometry.** This is the same bug
 three rounds running and it is always the same shape: something is drawn
 across an opening, none of it collides, and `doors18.js` — which walks

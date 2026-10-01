@@ -10,7 +10,7 @@
    three minutes on foot — and each one names itself on the HUD when you get
    there, so finding it registers as having found something.
    ---------------------------------------------------------------------- */
-  const G=(x,z)=>Terrain.heightAt(x,z);
+  const G=(x,z)=>Terrain.groundAt(x,z);
   // world-space helpers with the ground baked in
   /* The same, turned through 180 degrees and with the ground height given
      rather than taken from the origin — for anything cut INTO a slope, where
@@ -710,7 +710,7 @@
   (function(){
     const m=mk(74, 246);
     for(let i=-14;i<=14;i++){
-      const px=i*3.1, lean=((i*13)%7-3)*0.05, py=Terrain.heightAt(74+px,246)-m.y;
+      const px=i*3.1, lean=((i*13)%7-3)*0.05, py=Terrain.groundAt(74+px,246)-m.y;
       if(i>7 && (i%2)) continue;                                       // posts missing
       m.C("oak", 0.07,0.09,1.45,6, px,py+0.68,0, "#5b4632", 0,0,lean);
       if(i<14) for(const wy of [0.55,0.95,1.28])
@@ -733,7 +733,7 @@
       const g=new T.PlaneGeometry(w, seg), a=g.attributes.uv;
       for(let k=0;k<a.count;k++) a.setXY(k, a.getX(k), a.getY(k)*seg/3.2);
       a.needsUpdate=true;
-      push("track", g, x, Terrain.heightAt(x,z)+0.04, z, yaw, "#ffffff", -Math.PI/2, 0);
+      push("track", g, x, Terrain.groundAt(x,z)+0.04, z, yaw, "#ffffff", -Math.PI/2, 0);
     }
   }
   const TRK=-56;                                     // just off the highway shoulder

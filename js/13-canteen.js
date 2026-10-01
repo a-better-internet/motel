@@ -502,7 +502,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   // on this road has and this one did not. Both sit on whatever the lot is
   // doing underneath them rather than on the building's own floor level.
   (function(){
-    const LY=(x,z)=>{ const t=Terrain.heightAt(x,z), f=surfaceY(x,z,t+0.9);
+    const LY=(x,z)=>{ const t=Terrain.groundAt(x,z), f=surfaceY(x,z,t+0.9);
                       return (f>t && f<t+0.9) ? f : t; };
     {                                                   // the bench
       const bx2=X0+3.30, bz2=Z0-0.92, by=LY(bx2,bz2);

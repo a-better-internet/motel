@@ -104,7 +104,11 @@ function groundY(x,z){
     return poolFloorY(x,z);
   }
   if(x>PAVED.x0 && x<PAVED.x1 && z>PAVED.z0 && z<PAVED.z1) return 0;   // asphalt apron
-  return Terrain.heightAt(x,z);
+  /* groundAt, not heightAt: you stand on the triangles that are drawn, not
+     on the field they were sampled from. On a mesa flank those differ by
+     metres, which is why the hills felt hollow — you could walk up one and
+     drop through the surface you were looking at. */
+  return Terrain.groundAt(x,z);
 }
 const STEP_UP=0.62;
 /* A tunnel goes INTO a hill, and the rock over your head is the terrain.

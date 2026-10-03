@@ -1841,7 +1841,6 @@
       const dxx=b2.x-a.x, dzz=b2.z-a.z, L=Math.hypot(dxx,dzz);
       if(L<0.2) continue;
       const mx2=(a.x+b2.x)/2, mz2=(a.z+b2.z)/2, my=(a.y+b2.y)/2;
-      const ry=Math.atan2(-dzz, dxx);
       /* LAID ON THE GRADE, not flat. These were horizontal planes dropped on
          a bench that climbs at one in eight, so each one's far end was 36 cm
          off the ground — buried at one end, floating at the other — and the
@@ -1861,9 +1860,7 @@
          which reads as something poured rather than something graded. An
          old desert road is the mesa's own colour with the saturation
          knocked out of it by forty years of traffic and dust — same hue,
-         a little paler, a lot flatter. And the width breathes a few
-         centimetres segment to segment, because nothing out here has a
-         constant edge. */
+         a little paler, a lot flatter. */
       /* THE GRAVEL BUCKET, not the sand one. A vertex colour can only ever
          darken the texture under it, so a road drawn in a pale bucket can
          be made dark but never made RED — and in sand it came out a cream
@@ -1873,26 +1870,22 @@
          reads brighter than the slope either side whatever colour it is,
          because a graded bench faces straight up into the sun and a
          forty-degree flank does not — which is true of a real one. */
-      const wd=5.3+((i*7)%5)*0.16;
-      push("gravel", planeGeo(wd, Ln*1.16, 1.6), mx2, my+0.05, mz2, bear,
-           ["#efe6d6","#e2d8c6","#f4ece0"][i%3], -Math.PI/2+g3, 0);
-      for(const q of [-1,1])                       // the ruts worn down it
-        push("gravel", planeGeo(0.58, Ln*1.12, 1.1), mx2-Math.sin(-ry)*q*0.92,
-             my+0.064, mz2-Math.cos(-ry)*q*0.92, bear, "#a99484", -Math.PI/2+g3, 0);
-      if(i%2)                                      // and the crown between them
-        push("gravel", planeGeo(1.05, Ln*1.12, 1.2), mx2, my+0.058, mz2, bear,
-             "#d6c8b4", -Math.PI/2+g3, 0);
-      if(i%5===0)                                  // dust drifted over the edges
-        for(const q of [-1,1])
-          push("gravel", planeGeo(1.30, Ln*1.10, 1.4), mx2-Math.sin(-ry)*q*2.1,
-               my+0.046, mz2-Math.cos(-ry)*q*2.1, bear,
-               q>0?"#c6b6a2":"#d2c4b0", -Math.PI/2+g3, 0);
-      if(i%7===0){                                 // spoil over the outside edge
-        const ox2=(mx2-LK.x), oz2=(mz2-LK.z), on=Math.hypot(ox2,oz2)||1;
-        const g3=new T.SphereGeometry(1.5+((i*5)%3)*0.5, 10, 6); g3.scale(1, 0.22, 1);
-        push("gravel", g3, mx2+ox2/on*3.5, my-0.55, mz2+oz2/on*3.5, i*0.7, "#bfae98");
-      }
-      if(i%11===0){                                // and a marker post on the outside
+      /* ONE COURSE, AND THAT IS ALL IT NEEDS.
+         This had five layers on it — the running surface, two ruts, a
+         crown between them, drifted dust along both edges and a spoil
+         mound every seventh segment — and from the valley floor, which is
+         where you actually look at this hill, all of that stacks into a
+         bright busy scribble climbing the flank. The butte is meant to be
+         the view; the road is meant to be the thing you notice second.
+         So: a single strip of the pale-on-red gravel bucket, one colour,
+         one width, and nothing laid on top of it. Up close it still reads
+         as graded ground, and from a mile off it reads as a line.
+         The rule, for the next time: a surface that will be seen from a
+         long way away gets ONE layer. Detail you cannot resolve at that
+         distance does not disappear, it averages — into noise. */
+      push("gravel", planeGeo(4.9, Ln*1.16, 1.6), mx2, my+0.05, mz2, bear,
+           "#c9bca8", -Math.PI/2+g3, 0);
+      if(i%19===0){                                // and a marker post on the outside
         const ox2=(mx2-LK.x), oz2=(mz2-LK.z), on=Math.hypot(ox2,oz2)||1;
         const px2=mx2+ox2/on*2.6, pz2=mz2+oz2/on*2.6;
         cyl("oak", 0.055,0.055,1.05,5, px2, my+0.42, pz2, "#7a6a4a", 0.06, 0, 0.05);

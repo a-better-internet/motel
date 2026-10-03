@@ -59,10 +59,16 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
   addCol(O.x0, APT_DX-APT_DW/2, O.z1-0.22, O.z1, y0, y0+h);
   addCol(APT_DX+APT_DW/2, O.x1, O.z1-0.22, O.z1, y0, y0+h);
   addCol(APT_DX-APT_DW/2, APT_DX+APT_DW/2, O.z1-0.22, O.z1, y0+APT_DH, y0+h);
-  makeDoor(XF(APT_DX-APT_DW/2+0.02, O.z1-0.02, 0), 0, y0+0.02, 0, "PRIVATE", true, 0.55);
-  // and the card that says so, screwed to the office side of it
-  bx("paint", 0.28, 0.10, 0.02, APT_DX+0.06, y0+1.62, O.z1-0.23, 0.4, 0, "#2b3a44");
-  push("paint", planeGeo(0.24, 0.07, 0), APT_DX+0.06, y0+1.62, O.z1-0.242, Math.PI,
+  /* It hangs CLOSED. This is somebody's home behind the front desk, and a
+     private door standing permanently ajar reads as a cupboard. It swings
+     on approach like every other door here and falls shut behind you. */
+  makeDoor(XF(APT_DX-APT_DW/2+0.02, O.z1-0.02, 0), 0, y0+0.02, 0, "PRIVATE", true, 0);
+  /* and the card that says so — screwed to the WALL beside the door, not to
+     the door's own centre-line, where the last one sat squarely in the
+     opening. Nothing but the leaf belongs between the two jambs. */
+  const CZ=O.z1-0.345, CDX=APT_DX+APT_DW/2+0.46;
+  bx("paint", 0.28, 0.10, 0.02, CDX, y0+1.62, CZ, 0.4, 0, "#2b3a44");
+  push("paint", planeGeo(0.24, 0.07, 0), CDX, y0+1.62, CZ-0.012, Math.PI,
        "#d8d4c8", 0, 0);
   bx("stucco", 0.22, h, d, O.x0+0.11, y0+h/2, cz, 0.3, 0, SLATE);
   addCol(O.x0, O.x0+0.22, O.z0,O.z1, y0, y0+h);
@@ -309,13 +315,30 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
   cyl("gravel", 0.13,0.13,0.05,12, O.x1-0.62, y0+0.68, cz+1.5, "#8a7a5e");
   addCol(O.x1-0.82,O.x1-0.42, cz+1.3, cz+1.7, y0, y0+0.7);
   bx("ceil", w-0.4, 0.10, d-0.4, cx, y0+h-0.16, cz, 0.42, 0, "#e8dfc8");     // ceiling
-  for(const wl of [[cx,O.z1-0.30,w-0.5,0.06],
+  /* THE WALL LINING, AND THE LESSON THAT KEEPS COSTING A ROUND.
+     The dado below was carefully split round the apartment doorway. This
+     course — the plaster above it — was not, and it ran the full width of
+     the office straight across the opening at 1.29 to 3.39, eight
+     centimetres proud of the wall. From inside the lobby it looked exactly
+     like a wall where the door should be, which is what it was.
+     A doorway is a hole in EVERY course. Not the one with the frame in it.
+     The reason this one survived two rounds of probing is that the test
+     prism only reached through the wall slab itself (z -1.22..-0.90); the
+     lining stands clear of the wall on the room side, so the probe missed
+     it. A clearance prism has to run a good metre into the room on BOTH
+     sides of the opening, or it only ever proves the hole is a hole. */
+  const LN=APT_DX-APT_DW/2-0.13, RN=APT_DX+APT_DW/2+0.13;
+  for(const wl of [[(O.x0+0.25+LN)/2, O.z1-0.30, LN-O.x0-0.25, 0.06],
+                   [(RN+O.x1-0.25)/2, O.z1-0.30, O.x1-0.25-RN, 0.06],
                    [(O.x0+glazeX0)/2, O.z0+0.30, glazeX0-O.x0-0.25, 0.06],
                    [(glazeX1+O.x1)/2, O.z0+0.30, O.x1-glazeX1-0.25, 0.06],
                    [O.x0+0.30,cz,0.06,d-0.5],
                    [O.x1-0.30,(O.z0+doorZ0)/2,0.06,doorZ0-O.z0-0.25],
                    [O.x1-0.30,(doorZ1+O.z1)/2,0.06,O.z1-doorZ1-0.25]])
     bx("roomwall", wl[2], h-1.35, wl[3], wl[0], y0+1.14+(h-1.35)/2, wl[1], 0.45, 0, "#ded3b6");
+  // and the same course carried over the apartment head, clear of the opening
+  { const hy0=y0+APT_DH+0.14, hy1=y0+1.14+(h-1.35);
+    bx("roomwall", RN-LN, hy1-hy0, 0.06, (LN+RN)/2, (hy0+hy1)/2, O.z1-0.30, 0.45, 0, "#ded3b6"); }
   // header liner over the door, so the reveal reads as a doorway
   bx("roomwall", 0.06, h-2.34, doorZ1-doorZ0, O.x1-0.30, y0+2.20+(h-2.34)/2, cz, 0.45, 0, "#ded3b6");
   bx("oak", 0.30, 0.10, doorZ1-doorZ0+0.30, O.x1-0.16, y0+2.16, cz, 0.6, 0, "#5c4029");
@@ -330,7 +353,7 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
      run went straight across it at 1.18, which is precisely the chrome-bar
      -across-the-diner-door mistake in a different room. clear36.js caught
      it before it shipped, which is the whole reason that probe exists. */
-  const NL=APT_DX-APT_DW/2-0.13, NR=APT_DX+APT_DW/2+0.13;
+  const NL=LN, NR=RN;
   const dadoRuns=[[(O.x0+0.25+NL)/2, O.z1-0.24, NL-O.x0-0.25, 0.10],
                   [(NR+O.x1-0.25)/2, O.z1-0.24, O.x1-0.25-NR, 0.10],
                   [(O.x0+glazeX0)/2, O.z0+0.24, glazeX0-O.x0-0.25, 0.10],   // split around
@@ -1052,6 +1075,10 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
       push("bedding", g, cx2+q[0], y0+0.655+q[1]*0.2, BEDZ[1]-0.34, q[2], q[3]);
     }
     addCol(BEDX[0]-0.06, BEDX[1]+0.06, BEDZ[0]-0.04, BEDZ[1]+0.10, y0, y0+0.62);
+    /* And you can get into it. The head is at +z, so lying down you are
+       looking back down the room at the door — which is the whole point of
+       lying on a bed in a place like this. */
+    addSeat(cx2, cz2+0.10, y0+0.63, 0, "THE MANAGER'S BED", true);
     // and what is on the table beside it
     const nx=BEDX[1]+0.46, nz=BEDZ[1]-0.30;
     bx("oak", 0.48, 0.56, 0.44, nx, y0+0.28, nz, 0.6, 0, WOOD);
@@ -1274,5 +1301,340 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
     LAMPS.push({x:lcx, y:y0+CH-0.45, z:lcz, color:0xffe2b0, intensity:0.30, dist:6.4,
                 decay:2.0, indoor:true, vol:[A.x0,A.x1, IZ0-0.3, A.z1, y0-0.5, y0+CH+0.3]});
     void LANE;    // the plan's clear strip; asserted by clear36.js, not by code
+  }
+
+  /* ====================================================================
+     AND THE REST OF SOMEBODY'S LIFE
+     --------------------------------------------------------------------
+     The first cut of this room had a bed, a TV, a kitchen run and a table,
+     which is a floor plan rather than a home. What was missing is all the
+     things a person accretes in a room they have lived in for nineteen
+     years and never expected to: the chair he actually sits in, which is
+     not at the table; the stock for the motel kept in here because there
+     is nowhere else; the boots by the door; the cooler on the roof that
+     has run every summer since 1968.
+
+     Everything below is still hung off the plan's named anchors, and
+     everything stays out of LANE. The chair faces the television, which
+     means it faces north-east across the room — placed by the line
+     between the two, not by "against the nearest wall", which is the
+     mistake that put the bed and the fridge inside each other.
+     ==================================================================== */
+  {
+    const WOOD="#7a5636", WOODD="#5c4029", STEEL="#a7ada6", STEELD="#7f857f";
+    const R2=n=>((Math.sin(n*78.233+12.9898)*43758.5)%1+1)%1;
+
+    /* --- the chair he actually sits in, in the south-west corner ------ */
+    const ACX=-42.42, ACZ=1.08;
+    {
+      // aimed at the television, which is diagonally across the room
+      const ry=Math.PI+Math.atan2(TVX-ACX, TVZ-ACZ);
+      const S=(dx2,dz2)=>[ACX+dx2*Math.cos(ry)-dz2*Math.sin(ry),
+                          ACZ+dx2*Math.sin(ry)+dz2*Math.cos(ry)];
+      // a low sprung chair that has given up: seat dished, back leaning
+      bx("fabric", 0.86, 0.34, 0.80, ACX, y0+0.22, ACZ, 0.55, ry, "#4f4636");
+      push("fabric", boxGeo(0.72, 0.16, 0.66, 0.55), ACX, y0+0.41, ACZ, ry, "#5e5542", 0, 0);
+      {                                     // the cushion, sat into a hollow
+        const g=new T.SphereGeometry(0.34,14,9); g.scale(1.06,0.26,0.98);
+        push("fabric", g, ACX, y0+0.44, ACZ, ry, "#6a6049", -0.03, 0);
+      }
+      {
+        const b2=S(0,-0.40);
+        push("fabric", boxGeo(0.84, 0.72, 0.22, 0.55), b2[0], y0+0.70, b2[1], ry, "#4f4636", -0.17, 0);
+        const c2=S(0,-0.31);
+        push("fabric", boxGeo(0.70, 0.56, 0.14, 0.55), c2[0], y0+0.72, c2[1], ry, "#5e5542", -0.19, 0);
+      }
+      for(const q of [-1,1]){               // arms, worn pale where the hands go
+        const a2=S(q*0.41, -0.02);
+        push("fabric", boxGeo(0.14, 0.26, 0.74, 0.55), a2[0], y0+0.52, a2[1], ry, "#4f4636", 0, 0);
+        push("fabric", boxGeo(0.16, 0.08, 0.40, 0.55), a2[0], y0+0.66, a2[1], ry, "#7d7257", 0, 0);
+      }
+      for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]]){
+        const q=S(a[0]*0.34, a[1]*0.32);
+        cyl("oak", 0.026,0.020,0.10,8, q[0], y0+0.05, q[1], WOODD);
+      }
+      // a blanket thrown over the back, because the nights get cold out here
+      {
+        const b2=S(0.10,-0.44);
+        push("spread", boxGeo(0.46, 0.62, 0.10, 0.5), b2[0], y0+0.74, b2[1], ry+0.06, "#8a6a50", -0.14, 0);
+        const c2=S(0.10,-0.30);
+        push("spread", boxGeo(0.42, 0.14, 0.26, 0.5), c2[0], y0+1.02, c2[1], ry+0.06, "#8a6a50", 0.5, 0);
+      }
+      addCol(ACX-0.52, ACX+0.52, ACZ-0.52, ACZ+0.52, y0, y0+0.56);
+      addSeat(ACX, ACZ+0.04, y0+0.46, ry, "THE CHAIR");
+    }
+
+    /* --- what is within reach of it ----------------------------------- */
+    {
+      const SX=-43.26, SZ=0.52;             // a little table at his left hand
+      bx("oak", 0.44, 0.04, 0.44, SX, y0+0.54, SZ, 0.6, 0, WOOD);
+      for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]])
+        cyl("oak", 0.018,0.014,0.52,8, SX+a[0]*0.17, y0+0.27, SZ+a[1]*0.17, WOODD);
+      bx("oak", 0.38, 0.03, 0.38, SX, y0+0.22, SZ, 0.5, 0, "#6b4a2c");
+      addCol(SX-0.25, SX+0.25, SZ-0.25, SZ+0.25, y0, y0+0.56);
+      // a glass with an inch left in it, an ashtray, and the evening's reading
+      cyl("glass", 0.034,0.027,0.105,12, SX+0.09, y0+0.61, SZ-0.09, "#8a9a94");
+      cyl("glass", 0.030,0.030,0.030,12, SX+0.09, y0+0.575, SZ-0.09, "#6d5a38");
+      cyl("metal", 0.064,0.064,0.028,14, SX-0.10, y0+0.57, SZ+0.09, "#8e9a94");
+      for(let i=0;i<4;i++)
+        cyl("paper", 0.008,0.008,0.048,6, SX-0.10+R2(i)*0.05-0.025, y0+0.59,
+            SZ+0.09+R2(i+6)*0.05-0.025, "#d8d2c0", 0.4, i*1.21, 0.3);
+      push("soot", planeGeo(0.09,0.09,0), SX-0.10, y0+0.563, SZ+0.09, 0.3, "#7a7263", -Math.PI/2, 0);
+      for(let i=0;i<3;i++)                  // paperbacks, spines out, read soft
+        push("paper", boxGeo(0.11,0.028,0.17,0.5), SX+0.11+i*0.004, y0+0.575+i*0.030,
+             SZ+0.13+i*0.012, 0.12+i*0.09, ["#9a6a3a","#6b7a8a","#8a5a4a"][i], 0, 0);
+      // the transistor radio, on all evening, tuned to whatever comes in
+      bx("paint", 0.21, 0.13, 0.07, SX-0.02, y0+0.625, SZ-0.16, 0.4, 0, "#8a7a56");
+      bx("metal", 0.13, 0.09, 0.012, SX-0.05, y0+0.625, SZ-0.20, 0.4, 0, "#6e6a5c");
+      cyl("paint", 0.021,0.021,0.014,12, SX+0.06, y0+0.625, SZ-0.20, "#c8b47e", Math.PI/2);
+      cyl("metal", 0.005,0.003,0.40,5, SX+0.08, y0+0.78, SZ-0.14, STEEL, 0.42, 0.9, 0);
+      // and the standard lamp behind his shoulder, the only light he puts on
+      const LX=-43.42, LZ=-0.18;
+      cyl("metal", 0.13,0.13,0.025,14, LX, y0+0.02, LZ, STEELD);
+      cyl("metal", 0.016,0.016,1.42,8, LX, y0+0.73, LZ, STEELD);
+      push("lampshade", new T.CylinderGeometry(0.15,0.21,0.26,16), LX, y0+1.56, LZ, 0, "#ddc9a2");
+      cyl("metal", 0.030,0.030,0.05,10, LX, y0+1.42, LZ, "#b8a67e");
+      LAMPS.push({x:LX, y:y0+1.48, z:LZ, color:0xffd6a2, intensity:0.30, dist:5.2,
+                  decay:2.0, indoor:true, vol:[A.x0,A.x1, IZ0-0.3, A.z1, y0-0.5, y0+CH+0.3]});
+      addCol(LX-0.16, LX+0.16, LZ-0.16, LZ+0.16, y0, y0+1.70);
+    }
+
+    /* --- a chest of drawers on the south wall, west of the door ------- */
+    {
+      const CX=-42.74, CZ=IZ0+0.30, CW=1.12, CD=0.52, CHh=0.84;
+      bx("oak", CW, CHh, CD, CX, y0+CHh/2, CZ, 0.55, 0, WOOD);
+      bx("oak", CW+0.06, 0.04, CD+0.05, CX, y0+CHh+0.02, CZ, 0.55, 0, "#6b4a2c");
+      for(let i=0;i<3;i++){
+        const dy=y0+0.17+i*0.23;
+        bx("oak", CW-0.08, 0.19, 0.03, CX, dy, CZ-CD/2-0.015, 0.5, 0, "#6b4a2c");
+        for(const q of [-1,1])
+          cyl("metal", 0.020,0.020,0.030,10, CX+q*0.26, dy, CZ-CD/2-0.035, "#b8a67e", Math.PI/2);
+      }
+      for(const q of [-1,1])
+        bx("oak", 0.07, 0.10, CD-0.06, CX+q*(CW/2-0.04), y0+0.05, CZ, 0.4, 0, WOODD);
+      addCol(CX-CW/2-0.03, CX+CW/2+0.03, CZ-CD/2-0.05, CZ+CD/2, y0, y0+CHh+0.05);
+      // what lives on top of it
+      const TY=y0+CHh+0.04;
+      bx("fabric", 0.34, 0.012, 0.30, CX-0.34, TY+0.006, CZ-0.02, 0.5, 0.2, "#b6ab90");
+      for(let i=0;i<3;i++)                  // folded towels off the laundry cart
+        bx("bath", 0.30, 0.055, 0.24, CX-0.34, TY+0.04+i*0.055, CZ-0.02, 0.5,
+           0.2+i*0.04, ["#c2bda8","#b4b9ae","#c8c0a6"][i]);
+      cyl("plaster", 0.052,0.046,0.11,14, CX+0.42, TY+0.055, CZ+0.02, "#c6bda6");  // a tin
+      cyl("metal", 0.053,0.053,0.012,14, CX+0.42, TY+0.116, CZ+0.02, "#9aa1a6");
+      bx("oak", 0.17, 0.21, 0.025, CX+0.12, TY+0.105, CZ+0.08, 0.4, -0.22, WOODD);  // a photo
+      push("art", planeGeo(0.13,0.17,0), CX+0.12, TY+0.105, CZ+0.065, -0.22, "#9c8e70", 0, 0);
+      bx("oak", 0.04, 0.12, 0.04, CX+0.12, TY+0.015, CZ+0.12, 0.4, -0.22, WOODD);
+      for(let i=0;i<4;i++)                  // loose change and a key, swept there
+        cyl("metal", 0.009,0.009,0.003,10, CX-0.02+R2(i)*0.10, TY+0.004,
+            CZ-0.14+R2(i+3)*0.10, i%2?"#b8a67e":"#9aa1a6");
+      bx("metal", 0.020, 0.004, 0.058, CX+0.02, TY+0.004, CZ-0.17, 0.4, 0.6, "#c8b47e");
+    }
+
+    /* --- the door end: boots, hooks, and the office's second bell ----- */
+    {
+      // the mat is the only thing allowed in LANE, and it is 2 cm thick
+      push("fabric", boxGeo(0.86, 0.022, 0.52, 0.8), APT_DX+0.02, y0+0.032, IZ0+0.38,
+           0.03, "#5a5346", 0, 0);
+      push("soot", planeGeo(0.78, 0.44, 0), APT_DX+0.02, y0+0.046, IZ0+0.38, 0.03,
+           "#6e6558", -Math.PI/2, 0);
+      // boots, east of the lane, one fallen over
+      for(const q of [[-40.44, -0.62, 0.0],[-40.28, -0.54, 0.22]]){
+        push("oak", boxGeo(0.11, 0.13, 0.27, 0.5), q[0], y0+0.07, q[1], q[2], "#4e3a24", 0, 0);
+        push("oak", boxGeo(0.105, 0.20, 0.13, 0.5), q[0], y0+0.17, q[1]-0.06, q[2], "#44321f", 0, 0);
+      }
+      // a rail of hooks on the south wall, with the working coat on one
+      const HX=-40.00;
+      bx("oak", 0.86, 0.09, 0.035, HX, y0+1.74, IZ0+0.025, 0.4, 0, WOODD);
+      for(let i=0;i<3;i++){
+        const hx2=HX-0.30+i*0.30;
+        cyl("metal", 0.009,0.009,0.075,6, hx2, y0+1.72, IZ0+0.06, "#b8b4a8", Math.PI/2);
+        push("metal", new T.SphereGeometry(0.015,8,6), hx2, y0+1.72, IZ0+0.096, 0, "#b8b4a8");
+      }
+      /* A COAT IS NOT A SLAB. The first one was a single 44 by 84 box on
+         the wall and read as a locker door. Clothing hangs: narrow
+         shoulders, a body that falls, and two sleeves down the sides. */
+      const CTY=y0+1.62;                                     // where it hangs from
+      push("fabric", boxGeo(0.38, 0.13, 0.11, 0.6), HX-0.30, CTY, IZ0+0.115, 0.04, "#454c3e", 0, 0);
+      push("fabric", boxGeo(0.30, 0.56, 0.10, 0.6), HX-0.30, CTY-0.37, IZ0+0.110, 0.04, "#4e5548", 0, 0);
+      push("fabric", boxGeo(0.26, 0.22, 0.09, 0.6), HX-0.30, CTY-0.73, IZ0+0.105, 0.04, "#454c3e", 0, 0);
+      for(const q of [-1,1])                                 // the sleeves
+        push("fabric", boxGeo(0.10, 0.50, 0.09, 0.6), HX-0.30+q*0.19, CTY-0.30,
+             IZ0+0.105, 0.04, "#4e5548", 0, q*0.07);
+      push("fabric", new T.CylinderGeometry(0.035,0.035,0.09,8), HX-0.30, CTY+0.08,
+           IZ0+0.10, 0, "#454c3e", Math.PI/2, 0);            // the collar roll
+      // and the hat on the next hook: a brim with a crown in it
+      push("fabric", new T.CylinderGeometry(0.175,0.175,0.014,16), HX+0.30, y0+1.66,
+           IZ0+0.15, 0, "#8a7a56", Math.PI/2-0.22, 0);
+      push("fabric", new T.CylinderGeometry(0.105,0.115,0.13,14), HX+0.30, y0+1.655,
+           IZ0+0.215, 0, "#7d6e4c", Math.PI/2-0.22, 0);
+      push("fabric", new T.CylinderGeometry(0.119,0.119,0.035,14), HX+0.30, y0+1.657,
+           IZ0+0.185, 0, "#5f5438", Math.PI/2-0.22, 0);
+      /* The office telephone rings in here too. A manager who lives behind
+         the desk does not get to stop answering it at six o'clock, and the
+         extension bell on his own wall is the detail that says so. */
+      const PX=-39.10;
+      bx("oak", 0.17, 0.22, 0.09, PX, y0+1.58, IZ0+0.06, 0.4, 0, WOODD);
+      for(const q of [-1,1])
+        push("metal", new T.SphereGeometry(0.052,12,9), PX+q*0.05, y0+1.70, IZ0+0.085,
+             0, "#9a8a5e");
+      cyl("metal", 0.012,0.012,0.09,8, PX, y0+1.70, IZ0+0.10, "#6e6a5c", Math.PI/2);
+      push("paper", planeGeo(0.13,0.09,0), PX, y0+1.49, IZ0+0.056, 0, "#cfc6ae", 0, 0.05);
+    }
+
+    /* --- the motel's stock, kept in here because there is nowhere else - */
+    {
+      const bxs=[[-41.26, IZ1-0.52, 0.00, 0.52, 0.40, 0.38],
+                 [-41.26, IZ1-0.50, 0.40, 0.46, 0.32, 0.34],
+                 [-42.08, IZ1-0.46, 0.00, 0.58, 0.44, 0.40]];
+      for(const q of bxs){
+        bx("bin", q[3], q[4], q[5], q[0], y0+q[2]+q[4]/2, q[1], 0.5, (q[2]?0.22:0.05), "#8a7a5e");
+        bx("bin", q[3]-0.05, 0.012, q[5]-0.05, q[0], y0+q[2]+q[4]-0.004, q[1], 0.5,
+           (q[2]?0.22:0.05), "#7a6a50");
+        push("paper", planeGeo(q[3]*0.5, 0.07, 0), q[0], y0+q[2]+q[4]*0.62, q[1]-q[5]/2-0.004,
+             q[2]?0.22:0.05, "#cfc6ae", 0, 0);
+      }
+      addCol(-42.42, -40.96, IZ1-0.78, IZ1, y0, y0+0.90);
+      // and what came out of the top one: soap, bulbs, a stack of folded cards
+      for(let i=0;i<5;i++)
+        bx("paper", 0.05, 0.022, 0.035, -40.84+((i%3)*0.07), y0+0.012,
+           IZ1-0.86-((i/3)|0)*0.06, 0.4, R2(i)*0.9, "#e2ddcc");
+      push("plaster", new T.SphereGeometry(0.030,10,8), -40.70, y0+0.034, IZ1-0.98, 0, "#ddd6c4");
+      // a broom and a dustpan in the corner where the two runs meet
+      cyl("oak", 0.014,0.014,1.34, 8, -42.86, y0+0.70, IZ1-0.16, "#9a8356", 0.12, 0, 0.06);
+      bx("fabric", 0.18, 0.22, 0.07, -42.94, y0+0.11, IZ1-0.24, 0.5, 0.06, "#8a7a4e");
+      bx("metal", 0.26, 0.05, 0.22, -42.52, y0+0.03, IZ1-0.16, 0.4, 0.3, "#8e8274");
+      bx("metal", 0.26, 0.17, 0.03, -42.52, y0+0.10, IZ1-0.05, 0.4, 0.3, "#8e8274");
+    }
+
+    /* --- a trunk at the foot of the bed, and a fan pointed at it ------ */
+    {
+      const TKX=(BEDX[0]+BEDX[1])/2, TKZ=BEDZ[0]-0.42;
+      bx("oak", 1.18, 0.40, 0.46, TKX, y0+0.20, TKZ, 0.55, 0.02, "#5e4428");
+      bx("oak", 1.22, 0.06, 0.50, TKX, y0+0.42, TKZ, 0.55, 0.02, "#4c3620");
+      for(const q of [-1,1])
+        bx("metal", 0.04, 0.44, 0.50, TKX+q*0.46, y0+0.21, TKZ, 0.4, 0.02, "#8e8274");
+      bx("metal", 0.12, 0.09, 0.03, TKX, y0+0.30, TKZ-0.24, 0.4, 0.02, "#b8a67e");
+      addCol(TKX-0.62, TKX+0.62, TKZ-0.27, TKZ+0.27, y0, y0+0.46);
+      push("spread", boxGeo(0.72,0.10,0.34,0.5), TKX-0.14, y0+0.49, TKZ+0.04, 0.09, "#7d6a4e", 0.05, 0);
+      // the pedestal fan, which is the only air conditioning in here
+      const FX=-41.58, FZ=3.46;
+      cyl("metal", 0.17,0.19,0.03,16, FX, y0+0.02, FZ, STEELD);
+      cyl("metal", 0.020,0.020,1.00,8, FX, y0+0.52, FZ, STEEL);
+      push("metal", new T.CylinderGeometry(0.058,0.062,0.14,14), FX, y0+1.10, FZ+0.08,
+           0, "#9aa1a6", Math.PI/2, 0);
+      for(let i=0;i<4;i++)                 // blades, in front of the motor can
+        push("metal", boxGeo(0.112,0.016,0.052,0), FX, y0+1.10, FZ+0.02, 0,
+             "#b2b8b0", 0, 0.42+i*1.571);
+      for(let i=0;i<5;i++)
+        push("metal", new T.TorusGeometry(0.045+i*0.027, 0.004, 5, 20), FX, y0+1.10, FZ+0.015,
+             0.5, "#c0c4bc", 0, 0);
+      addCol(FX-0.20, FX+0.20, FZ-0.20, FZ+0.20, y0, y0+1.20);
+    }
+
+    /* --- the walls, up where you look when you cannot sleep ----------- */
+    {
+      // a damp bloom on the ceiling, where the cooler has leaked for years
+      push("soot", planeGeo(1.30, 1.00, 0), -41.10, y0+CH-0.105, IZ0+4.30, 0.3,
+           "#9a9284", Math.PI/2, 0);
+      push("soot", planeGeo(0.70, 0.56, 0), -41.26, y0+CH-0.107, IZ0+4.42, 0.9,
+           "#8a8274", Math.PI/2, 0);
+      // flypaper, hung off the rose and black since July
+      cyl("paper", 0.016,0.016,0.52,6, -40.20, y0+CH-0.30, IZ0+2.10, "#b39a5e", 0, 0, 0.05);
+      for(let i=0;i<7;i++)
+        push("paint", boxGeo(0.012,0.012,0.012,0), -40.20+R2(i)*0.022-0.011,
+             y0+CH-0.14-R2(i+5)*0.44, IZ0+2.10+R2(i+2)*0.022-0.011, 0, "#2b2722", 0, 0);
+      // a pinboard on the east wall by the table: rotas, a card, a clipping
+      const PBZ=IZ0+2.05;
+      bx("oak", 0.03, 0.46, 0.62, IX1-0.015, y0+1.66, PBZ, 0.4, 0, "#6b4a2c");
+      push("fabric", planeGeo(0.40, 0.56, 0), IX1-0.032, y0+1.66, PBZ, -Math.PI/2, "#8a7a5e", 0, 0);
+      for(const q of [[0.12,-0.18,"#cfc6ae",0.11,0.15],[-0.06,0.14,"#dfd7bd",0.13,0.09],
+                      [0.14,0.16,"#c8bda0",0.09,0.12],[-0.14,-0.08,"#d4ccb4",0.10,0.08]]){
+        push("paper", planeGeo(q[3], q[4], 0), IX1-0.040, y0+1.66+q[0], PBZ+q[1],
+             -Math.PI/2, q[2], 0, R2(q[3]*31)*0.3-0.15);
+        push("metal", new T.SphereGeometry(0.008,6,5), IX1-0.046, y0+1.72+q[0], PBZ+q[1], 0, "#b03a2a");
+      }
+      // a wall clock over the television, stopped or not you cannot tell
+      cyl("paint", 0.115,0.115,0.045,18, IX1-0.04, y0+2.04, IZ1-1.58, "#3f4a44", 0,0,Math.PI/2);
+      cyl("clockface", 0.098,0.098,0.012,18, IX1-0.066, y0+2.04, IZ1-1.58, "#e8e2cf", 0,0,Math.PI/2);
+      // a framed desert print on the north wall, hung low and crooked
+      bx("oak", 0.40, 0.30, 0.03, A.x0+1.26, y0+1.78, IZ1-0.02, 0.4, 0, WOODD);
+      push("art", planeGeo(0.34, 0.24, 0), A.x0+1.26, y0+1.78, IZ1-0.040, Math.PI, "#a8936c", 0, 0.035);
+    }
+
+    /* --- over the sink, and over the stove ---------------------------- */
+    {
+      const KX=IX0+0.32, CT=0.90, sz2=(WINW[0]+WINW[1])/2;
+      /* UNDER THE CUPBOARD MEANS UNDER THE CUPBOARD. The strip light was
+         put at "the sink window minus 30 cm", which is nowhere near the
+         cupboard — it hung in front of the glass. It is hung off the
+         cupboard's own centre-line now, which is where it cannot drift. */
+      const CUZ2=(KZ0+WINW[0])/2;
+      bx("metal", 0.26, 0.055, 0.78, IX0+0.19, y0+1.52, CUZ2, 0.4, 0, "#b2b8b0");
+      push("lampshade", planeGeo(0.20, 0.74, 0), IX0+0.19, y0+1.492, CUZ2,
+           0, "#efe6cc", -Math.PI/2, 0);
+      LAMPS.push({x:IX0+0.44, y:y0+1.44, z:CUZ2, color:0xfff0cc, intensity:0.26,
+                  dist:3.8, decay:2.0, indoor:true,
+                  vol:[A.x0,A.x1, IZ0-0.3, A.z1, y0-0.5, y0+CH+0.3]});
+      /* The sink window had no sill, so the first cut of the cactus and the
+         soap stood on air three centimetres under the glass. The north
+         window has one; this one now does too, and everything on it is
+         placed off the sill's top rather than off the glass. */
+      bx("lino", 0.18, 0.05, WINW[1]-WINW[0]+0.16, IX0+0.07, y0+1.00, sz2,
+         0.5, 0, "#b3a88e");
+      const SILL=y0+1.025;                  // the top of it, which things sit on
+      cyl("metal", 0.055,0.050,0.105,14, IX0+0.10, SILL+0.053, sz2-0.34, "#9a7a4e");
+      push("paper", planeGeo(0.10, 0.07, 0), IX0+0.156, SILL+0.053, sz2-0.34, Math.PI/2, "#c8bda0", 0, 0);
+      for(let i=0;i<3;i++)
+        cyl("foliage", 0.028,0.034,0.17+i*0.05, 7, IX0+0.10+(i-1)*0.028,
+            SILL+0.13+i*0.025, sz2-0.34+(i%2?0.02:-0.02), "#6b7a52",
+            (i-1)*0.16, 0, (i-1)*0.10);
+      bx("plaster", 0.07, 0.030, 0.045, IX0+0.10, SILL+0.015, sz2+0.10, 0.4, 0.3, "#ddd6c4");
+      bx("fabric", 0.08, 0.030, 0.06, IX0+0.10, SILL+0.015, sz2+0.26, 0.4, -0.2, "#7a8a6e");
+      // a tea towel over the oven door handle, and the bin beside the run
+      push("fabric", boxGeo(0.03, 0.30, 0.22, 0.6), KX+0.34, y0+0.52, KZ0+1.72, 0.0, "#9fa8a0", 0, 0.04);
+      /* THE WALL IS AT IZ1, NOT AT THE END OF THE COUNTER. The kitchen run
+         stops at KZ0+6.60 and the north wall is 38 cm further on, so the
+         bin and the chair, placed "just past the end of the counter", went
+         straight through it into the yard. Anything placed off one piece of
+         furniture still has to be checked against the room. */
+      const BNX=KX+0.52, BNZ=KZ1-0.20;
+      cyl("bin", 0.14,0.12,0.42,14, BNX, y0+0.21, BNZ, "#6b7068");
+      cyl("bin", 0.145,0.145,0.025,14, BNX, y0+0.435, BNZ, "#5a605a");
+      push("paper", boxGeo(0.10,0.07,0.09,0), BNX+0.04, y0+0.47, BNZ-0.03, 0.6, "#cfc6ae", 0.3, 0);
+      addCol(BNX-0.17, BNX+0.17, BNZ-0.17, BNZ+0.17, y0, y0+0.46);
+      // a kitchen chair nobody sits on, standing out in the room with the
+      // laundry on it, because there is nowhere else to put either
+      const CCX=IX0+1.23, CCZ=IZ0+3.55;
+      bx("oak", 0.40, 0.04, 0.40, CCX, y0+0.44, CCZ, 0.5, -0.5, WOOD);
+      for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]])
+        cyl("metal", 0.015,0.015,0.44,8, CCX+a[0]*0.16, y0+0.22, CCZ+a[1]*0.16, STEEL);
+      bx("oak", 0.38, 0.30, 0.04, CCX+0.09, y0+0.70, CCZ+0.17, 0.5, -0.5, WOOD);
+      for(let i=0;i<4;i++)
+        bx("bath", 0.32, 0.055, 0.26, CCX, y0+0.48+i*0.055, CCZ-0.02, 0.5,
+           -0.5+R2(i)*0.14, ["#c2bda8","#b4b9ae","#c8c0a6","#bfb8a2"][i]);
+      addCol(CCX-0.26, CCX+0.26, CCZ-0.26, CCZ+0.26, y0, y0+0.74);
+    }
+
+    /* --- outside: the swamp cooler that has run every summer since 68 - */
+    {
+      const CX=(A.x0+A.x1)/2+1.10, CZ=(IZ0+A.z1)/2+0.70, RY=y0+CH+0.40;
+      for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]])
+        bx("metal", 0.07, 0.16, 0.07, CX+a[0]*0.40, RY+0.08, CZ+a[1]*0.40, 0.4, 0, "#6e6a5c");
+      bx("metal", 0.96, 0.84, 0.96, CX, RY+0.58, CZ, 0.5, 0, "#9aa1a6");
+      for(const q of [-1,1]){               // the pads in their louvred frames
+        bx("metal", 0.03, 0.62, 0.82, CX+q*0.49, RY+0.56, CZ, 0.4, 0, "#7f857f");
+        for(let i=0;i<7;i++)
+          push("metal", boxGeo(0.05,0.035,0.80,0), CX+q*0.51, RY+0.30+i*0.085, CZ,
+               0, "#8e9a94", 0, -0.42);
+      }
+      bx("metal", 0.84, 0.03, 0.84, CX, RY+1.01, CZ, 0.5, 0, "#8e9a94");
+      cyl("metal", 0.085,0.085,0.10,12, CX, RY+1.06, CZ, "#7f857f");
+      push("rust", planeGeo(0.52, 0.70, 0), CX+0.505, RY+0.52, CZ+0.18, Math.PI/2, "#7a6246", 0, 0);
+      push("rust", planeGeo(0.60, 0.46, 0), CX, RY+0.16, CZ-0.485, Math.PI, "#7a6246", 0, 0);
+      // the duct down into the ceiling, and the drip line that stains the wall
+      bx("metal", 0.46, 0.44, 0.46, CX, RY-0.10, CZ, 0.4, 0, "#9aa1a6");
+      cyl("metal", 0.010,0.010,1.20,6, CX+0.46, RY-0.42, CZ+0.40, "#8e8274", 0.1, 0, 0.06);
+      push("rust", planeGeo(0.26, 1.60, 0), A.x1+0.004, y0+1.50, CZ+0.30, Math.PI/2, "#6b5a45", 0, 0);
+    }
   }
 })();

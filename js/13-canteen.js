@@ -29,9 +29,15 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
   const L={x0:-96.5, x1:-52.0, z0:-39.6, z1:26.0};
   bx("asphalt", L.x1-L.x0, 0.30, L.z1-L.z0, (L.x0+L.x1)/2, -0.16, (L.z0+L.z1)/2, 0.62);
   lotTop(L.x0, L.x1, L.z0, L.z1);
-  addFlat(L.x0,L.x1,L.z0,L.z1, 0);
+  /* a hair proud on every side: the motel's lot starts at exactly x = -52
+     and this one ends there, and surfaceY's bounds test is strict, so a
+     line one sample wide between them belonged to neither and dropped you
+     25 cm to the sub-base. Two flats that meet have to overlap. */
+  addFlat(L.x0-0.08, L.x1+0.08, L.z0-0.08, L.z1+0.08, 0);
   addZone(L.x0,L.x1,L.z0,L.z1, -1, 2.4, "THE RUSTY CANTEEN — LOT");
   bx("asphalt", L.x1-L.x0+6, 0.20, 3.2, (L.x0+L.x1)/2, -0.14, L.z0-1.6, 0.42);   // sand shoulder
+  // ...which you drive across to get off the road, so it is a surface too
+  addFlat(L.x0-3, L.x1+3, L.z0-3.2, L.z0, -0.04);
   for(let i=0;i<9;i++){                                  // stalls facing the road
     bx("paint", 0.11, 0.02, 5.0, L.x0+3.0+i*2.9, 0.008, L.z0+3.1, 0, 0, "#6a5b2e");
   }
@@ -303,8 +309,49 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       bx("siding", SW, SH, ST, sx, SF+SH/2, SZ1-ST/2, 0.55, 0, "#9aa8a2");
       for(const q of [-1,1])
         bx("siding", ST, SH, SD-ST*2, sx+q*(SW/2-ST/2), SF+SH/2, sz, 0.55, 0, "#8c9a94");
-      push("siding", boxGeo(SW+0.5, 0.10, SD+0.7, 0.5), sx, SF+SH+0.30, sz, 0,
-           "#7f8d88", 0.13, 0);                                   // a roof with a fall on it
+      /* THE ROOF, AND THE HOLE THAT WAS UNDER IT.
+         A single slab 30 cm clear of the wall heads, tilted 0.13 rad so it
+         sheds to the back. Tilt a plate over square-topped walls and the
+         two do not meet: the fall is 52 cm over the depth, so where the
+         back edge sat down on the wall head the FRONT edge stood half a
+         metre proud of it — an open slot right across the front of the
+         shed and tapering down both sides, which from the yard is a shed
+         with daylight between its walls and its roof.
+         A pitched roof needs the walls built up to meet it. So: an upstand
+         over the front wall, a closer over the back, and a raking infill
+         up each side laid at the SAME tilt as the roof and hung off the
+         roof's own frame rather than measured by eye — if the roof moves,
+         they move with it. Everything below the old wall head is inside
+         the existing siding and never shows. */
+      const RTY=SF+SH+0.30, RTH=0.10, FALL=0.13;
+      const cf=Math.cos(FALL), sf2=Math.sin(FALL);
+      // the underside of the roof, as a function of distance back from sz
+      const soffit=d=>RTY-(RTH/2)*cf-d*sf2;
+      push("siding", boxGeo(SW+0.5, RTH, SD+0.7, 0.5), sx, RTY, sz, 0,
+           "#7f8d88", FALL, 0);                                   // a roof with a fall on it
+      {
+        const WT=SF+SH;                                           // the old wall head
+        // the raking infill up each side, laid on the roof's own plane
+        const IH=0.74, off=RTH/2+IH/2;
+        for(const q of [-1,1])
+          push("siding", boxGeo(ST, IH, SD+0.12, 0.55), sx+q*(SW/2-ST/2),
+               RTY-off*cf, sz-off*sf2, 0, "#8c9a94", FALL, 0);
+        // the upstand over the front wall, where the slot was widest
+        const FY=soffit(SZ0+ST/2-sz);
+        bx("siding", SW, FY+0.07-(WT-0.06), ST, sx, (WT-0.06+FY+0.07)/2, SZ0+ST/2,
+           0.55, 0, "#9aa8a2");
+        // and a closer over the back, where it was only ever a hairline
+        const BY=soffit(SZ1-ST/2-sz);
+        bx("siding", SW, Math.max(0.10, BY+0.07-(WT-0.06)), ST, sx,
+           (WT-0.06+BY+0.07)/2, SZ1-ST/2, 0.55, 0, "#9aa8a2");
+        // a fascia on the low edge and a bargeboard up each rake, so the
+        // roof reads as built rather than balanced
+        push("plank", boxGeo(SW+0.5, 0.16, 0.035, 0.6), sx, soffit(SD/2+0.33)-0.05,
+             sz+SD/2+0.35, 0, "#6f7a74", FALL, 0);
+        for(const q of [-1,1])
+          push("plank", boxGeo(0.035, 0.14, SD+0.7, 0.6), sx+q*(SW/2+0.24),
+               RTY-(RTH/2+0.07)*cf, sz-(RTH/2+0.07)*sf2, 0, "#6f7a74", FALL, 0);
+      }
       bx("plaster", QX1-QX0, 0.06, QZ1-QZ0, sx, SF+SH-0.03, sz, 0.4, 0, "#8e897e");
       bx("concrete", QX1-QX0, 0.05, QZ1-QZ0, sx, SF-0.015, sz, 0.5, 0, "#8d877c");
       for(const g of runs(SX0,SX1,[SDOOR])) addCol(g[0], g[1], SZ0, SZ0+ST, 0, SF+SH);

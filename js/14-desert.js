@@ -723,24 +723,43 @@
     m.zone(16, "A FENCE LINE");
   })();
 
-  /* --- two-track roads, so the desert has a grain to it ---------------- */
-  function dirtTrack(x0,z0,x1,z1,w){
-    const dx=x1-x0, dz=z1-z0, L=Math.hypot(dx,dz), n=Math.max(2,Math.round(L/5));
-    const ux=dx/L, uz=dz/L, px=-uz, pz=ux, yaw=Math.atan2(-ux,-uz), seg=L/n+1.0;
+  /* --- two-track roads, so the desert has a grain to it ----------------
+     REACH, and why most of these now stop in the middle of nowhere.
+     Every landmark out here used to sit on the end of its own graded line
+     running back to the highway, and from the air that turns the desert
+     into a map with the answers printed on it: the graves, the camp, the
+     trailer, the mast — each one had an arrow pointing at it from four
+     hundred metres away, so nothing was ever found, only followed.
+     A track now gets a `reach`: the fraction of the run that was ever
+     maintained. Past three quarters of that it narrows away to a pair of
+     wheel marks and then to nothing, which is what a ranch road does when
+     whoever needed it stopped needing it. The two places that were
+     businesses on this road — the filling station and the drive-in — keep
+     a way in all the way to the door, because a business has to be
+     reachable. Everything else you have to go and look for.             */
+  function dirtTrack(x0,z0,x1,z1,w,reach){
+    const R=(reach===undefined)?1:reach;
+    const dx=x1-x0, dz=z1-z0, L0=Math.hypot(dx,dz), L=L0*R;
+    const n=Math.max(2,Math.round(L/5));
+    const ux=dx/L0, uz=dz/L0, px=-uz, pz=ux, yaw=Math.atan2(-ux,-uz), seg=L/n+1.0;
     for(let i=0;i<n;i++){
       const t=(i+0.5)/n, wob=Math.sin(t*8.1+x0*0.013)*w*0.9+Math.sin(t*19.7)*w*0.3;
-      const x=x0+dx*t+px*wob, z=z0+dz*t+pz*wob;
-      const g=new T.PlaneGeometry(w, seg), a=g.attributes.uv;
+      const x=x0+dx*t*R+px*wob, z=z0+dz*t*R+pz*wob;
+      const tw=w*(t<0.74 ? 1 : Math.max(0.10, 1-(t-0.74)/0.26*0.94));
+      const g=new T.PlaneGeometry(tw, seg), a=g.attributes.uv;
       for(let k=0;k<a.count;k++) a.setXY(k, a.getX(k), a.getY(k)*seg/3.2);
       a.needsUpdate=true;
       push("track", g, x, Terrain.groundAt(x,z)+0.04, z, yaw, "#ffffff", -Math.PI/2, 0);
     }
   }
   const TRK=-56;                                     // just off the highway shoulder
-  dirtTrack(-118,TRK, -145,-359, 3.1);
-  dirtTrack(  42,TRK,  176,-433, 3.0);
-  dirtTrack(  12,TRK,    0,-528, 2.6);
-  dirtTrack(-378,TRK, -517,-222, 2.6);
-  dirtTrack( -58,TRK,  -70,-129, 2.4);
-  dirtTrack(-173,-74, -173,-182, 4.2);              // the long run in to the drive-in
-  dirtTrack(-232,TRK, -356,-246, 2.8);               // out to the trailer
+  dirtTrack(-118,TRK, -145,-359, 3.1);               // in to the filling station
+  dirtTrack(-173,-74, -173,-182, 4.2);               // the long run in to the drive-in
+  // and these go out into the country and give up partway, which is the
+  // only honest reason for a road in a place where nobody lives
+  dirtTrack(  42,TRK,  176,-433, 3.0, 0.46);
+  dirtTrack(  12,TRK,    0,-528, 2.6, 0.38);
+  dirtTrack(-378,TRK, -517,-222, 2.6, 0.30);
+  dirtTrack(-232,TRK, -356,-246, 2.8, 0.34);
+  dirtTrack( 232,TRK,  298,-212, 2.4, 0.55);         // to nothing whatsoever
+  dirtTrack(-452,TRK, -470,-320, 2.2, 0.42);         // nor this one

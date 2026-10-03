@@ -664,13 +664,24 @@ headless Chromium and asks the scene about itself rather than looking at it:
   it. The doorway probe above walks *colliders*, and the things that block a
   door are usually decorative — three courses of shell wall, a chrome cap
   rail, a handrail, a chair rail, a board of keys — so it kept reporting
-  lanes clear that you could not see through;
+  lanes clear that you could not see through. The prism has to run a metre
+  into the room at *both* ends, not just through the thickness of the wall:
+  the apartment door passed three rounds of this and was still a wall,
+  because the plaster lining that crossed it stood eight centimetres clear
+  of the wall on the room side and the prism stopped at the render;
 - a seam probe, which hides each terrain ring in turn and measures how far
   apart two rings are along the border they share — the only way to tell a
   hole in the world from a hole in one mesh;
 - a reach probe, which floods a building's floor from its front door and says
   which rooms you can actually get to, and a blocker probe that walks a line
   and names whatever is standing in it;
+- a sink probe, which raycasts straight down onto the drawn world at a grid
+  of points and compares the first thing it hits with `surfaceY` — the
+  function the player's feet and the car's wheels are both given. It found
+  the whole of Route 66 standing 25 cm above the surface anything drives on,
+  because the highway slab was never registered with `addFlat`, and an
+  eleven-centimetre strip at the painted kerb that belonged to no flat at
+  all and dropped you 55 cm into it;
 - a fixed-step movement probe (`MOTEL.sim`) for anything about speed or keys.
 
 ## How it is built

@@ -76,16 +76,62 @@ let waterGeo=null, waterMesh=null;
     bx("plaster", w, 0.30, POOL_STEPS.z1-POOL_STEPS.z0, P.x0-0.05+w/2, -0.37-i*0.29,
        (POOL_STEPS.z0+POOL_STEPS.z1)/2, 0.6, 0, "#e2f2f5");
   }
-  // deep-end ladder
-  for(const zz of [(P.z0+P.z1)/2-0.28, (P.z0+P.z1)/2+0.28]){
-    cyl("metal", 0.035,0.035,2.20,10, P.x1-0.24, dy-0.95, zz, "#cfd6d8");
-    cyl("metal", 0.035,0.035,0.70,10, P.x1-0.10, dy+0.62, zz, "#cfd6d8", 0,0,0.5);
+  /* --- the deep-end ladder ---------------------------------------------
+     WHAT WAS WRONG WITH IT. Three sticks that did not touch each other.
+     The stiles ran from 35 cm above the tank floor to 4 cm above the
+     coping, so the ladder floated in the water and stopped at your ankles
+     instead of giving you anything to hold. The hand grips were two more
+     loose bars hanging 20 cm clear of the coping and 14 cm out of line
+     with the stiles, joined to nothing. And three rungs covered the top
+     85 cm of a 2.5 m climb, so the bottom of the ladder had none at all.
+
+     A pool ladder is ONE bent tube per side: up from the tank floor, over
+     the coping in a quarter bend, across, and back down to a flange bolted
+     to the deck. Built that way it cannot come apart, because every piece
+     starts where the last one ended. The numbers below are chained — each
+     is derived from the one before it rather than eyeballed — which is the
+     only reason this now closes.                                        */
+  {
+    const LZ=(P.z0+P.z1)/2, HALF=0.28;      // the two stiles, 56 cm apart
+    const LX=P.x1-0.26;                     // standing 26 cm off the wall
+    const TOP=dy+0.11;                      // the top of the coping cap
+    const BOT=deep;                         // the tank floor at the deep end
+    const RISE=0.84, BR=0.20, HL=0.14;      // rail height, bend radius, the span
+    const TUBE=0.035, CHR="#cfd6d8";
+    const SY=TOP+RISE-BR;                   // where the stile stops and bends
+    for(const q of [-1,1]){
+      const zz=LZ+q*HALF;
+      cyl("metal", TUBE,TUBE, SY-BOT, 10, LX, (BOT+SY)/2, zz, CHR);        // the stile
+      cyl("metal", 0.055,0.055,0.03,12, LX, BOT+0.015, zz, CHR);           // its foot
+      // over the coping: bend, span, bend, and down onto the deck flange
+      push("metal", new T.TorusGeometry(BR, TUBE, 7, 12, Math.PI/2),
+           LX+BR, SY, zz, 0, CHR, 0, Math.PI/2);
+      cyl("metal", TUBE,TUBE, HL, 10, LX+BR+HL/2, TOP+RISE, zz, CHR, 0,0,Math.PI/2);
+      push("metal", new T.TorusGeometry(BR, TUBE, 7, 12, Math.PI/2),
+           LX+BR+HL, SY, zz, 0, CHR, 0, 0);
+      cyl("metal", TUBE,TUBE, RISE-BR, 10, LX+BR+HL+BR, TOP+(RISE-BR)/2, zz, CHR);
+      cyl("metal", 0.075,0.075,0.025,12, LX+BR+HL+BR, TOP+0.012, zz, "#b6bcbc");
+      for(const b of [-1,1])                                               // its bolts
+        cyl("metal", 0.010,0.010,0.012,8, LX+BR+HL+BR, TOP+0.022, zz+b*0.048, "#9aa1a6");
+    }
+    /* SEVEN RUNGS, not three, and spaced off the climb rather than off a
+       round number: the top one sits just under the waterline where your
+       hand finds it, the bottom one a hand's width off the floor. */
+    const R0=BOT+0.30, R1=P.water-0.10, NR=7;
+    for(let i=0;i<NR;i++)
+      cyl("metal", 0.030,0.030, HALF*2, 8, LX, R0+(R1-R0)*i/(NR-1), LZ, CHR, Math.PI/2);
   }
-  for(let i=0;i<3;i++) cyl("metal", 0.03,0.03,0.56,8, P.x1-0.24, dy-0.45-i*0.42, (P.z0+P.z1)/2, "#cfd6d8", Math.PI/2);
-  // chrome grab rails at the steps and the deep end
+  /* --- chrome grab rails at the shallow steps --------------------------
+     Same disease, milder: an upright and a cross piece that passed each
+     other with 6 cm of air at the corner. They turn now. */
   for(const z of [POOL_STEPS.z0+0.25, POOL_STEPS.z1-0.25]){
-    cyl("metal", 0.035,0.035,1.30,10, P.x0-0.18, dy+0.55, z, "#cfd6d8");
-    cyl("metal", 0.035,0.035,0.55,10, P.x0+0.10, dy+1.16, z, "#cfd6d8", 0,0,Math.PI/2);
+    const GX=P.x0-0.18, GY=dy+0.11, GR=0.18, GH=1.08, GL=0.34;
+    cyl("metal", 0.035,0.035, GH-GR, 10, GX, GY+(GH-GR)/2, z, "#cfd6d8");
+    push("metal", new T.TorusGeometry(GR, 0.035, 7, 12, Math.PI/2),
+         GX+GR, GY+GH-GR, z, 0, "#cfd6d8", 0, Math.PI/2);
+    cyl("metal", 0.035,0.035, GL, 10, GX+GR+GL/2, GY+GH, z, "#cfd6d8", 0,0,Math.PI/2);
+    push("metal", new T.SphereGeometry(0.038,10,8), GX+GR+GL, GY+GH, z, 0, "#cfd6d8");
+    cyl("metal", 0.075,0.075,0.025,12, GX, GY+0.012, z, "#b6bcbc");
   }
 
   /* --- the water ---------------------------------------------------------

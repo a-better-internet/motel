@@ -58,11 +58,30 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   // gravel shoulders either side, so the asphalt does not end in a knife edge
   bx("gravel", ROAD_L, 0.26, 2.6, 0, -0.13, ROADZ-roadW/2-1.3, 0.42, 0, "#9b8a70");
   bx("gravel", ROAD_L, 0.26, 1.2, 0, -0.13, ROADZ+roadW/2+0.6, 0.42, 0, "#9b8a70");
+  /* THE ROAD YOU DRIVE ON IS NOT THE ROAD YOU SEE — OR IT WASN'T.
+     The highway slab is 30 cm deep with its top at y = 0, laid on a corridor
+     the terrain grades to y = -0.25. Every surface in this scene has to be
+     registered with addFlat or surfaceY() falls through to the dirt under
+     it, and this one never was. So the car drove a quarter of a metre down
+     inside its own asphalt, wheels buried to the hub, the whole length of
+     Route 66. Nothing looked wrong standing still; it showed as the car
+     sinking as it came off the lot and onto the road.
+     The flat covers the shoulders too, because the gravel tops out at the
+     same y and a wheel that drops off the edge of the registered surface
+     is the same bug in a narrower strip. */
+  addFlat(-ROAD_L/2, ROAD_L/2, ROADZ-roadW/2-2.6, ROADZ+roadW/2+1.2, 0.0);
   // shoulder + sidewalk + painted curb between highway and lot
   const WALK_W=2.55;                            // it was 3.2 and read as a runway
   bx("walk", ROAD_L, 0.30, WALK_W, 0, 0.11, ROADZ+roadW/2+WALK_W/2, 0.62);
-  addFlat(-340,340, ROADZ+roadW/2, ROADZ+roadW/2+WALK_W, 0.26);
+  // ...and it ran -340..340 while the walk itself runs the full 3400
+  addFlat(-ROAD_L/2, ROAD_L/2, ROADZ+roadW/2-0.03, ROADZ+roadW/2+WALK_W, 0.26);
   bx("paint", ROAD_L, 0.30, 0.42, 0, 0.15, ROADZ+roadW/2+WALK_W+0.10, 0, 0, "#d6c07a");
+  /* The kerb. Its top is at 0.30 and it is 42 cm deep, and between where the
+     sidewalk flat stopped (walk edge) and where the lot flat starts there
+     was an eleven-centimetre strip registered to nothing at all — so you
+     dropped 55 cm into the kerb, the length of the frontage, every time you
+     crossed it. A kerb is a surface you stand on, not a decoration. */
+  addFlat(-ROAD_L/2, ROAD_L/2, ROADZ+roadW/2+WALK_W-0.12, ROADZ+roadW/2+WALK_W+0.32, 0.30);
 
   // ---- parking lot -----------------------------------------------------
   const L={x0:LOT.x0, x1:LOT.x1, z0:ROADZ+roadW/2+WALK_W+0.30, z1:LOT.z1}, D=POOL.deck;
@@ -93,20 +112,31 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
       if(!on(x,z)) continue;
       laid++;
       const q=r2();
+      /* Each stain stood 0.6 mm above the last so they would not flicker
+         against each other, which over 120 of them put the top one 8.4 cm
+         above the asphalt — a tyre mark you could trip over, and the other
+         half of "the car sinks into the road". Dropping the step to a
+         twentieth of that would have traded one bug for z-fighting, so the
+         ladder WRAPS instead: eighteen rungs of half a millimetre, reused.
+         Overlapping stains are still separated unless their indices happen
+         to differ by a multiple of eighteen, and the stack never leaves
+         the ground. A count and a step are one decision — and when the
+         count has to stay, the ladder is the thing that gives. */
+      const LY=0.012+(laid%18)*0.0005;
       if(q<0.30){                                   // a bay cut out and made good
-        push("soot", planeGeo(2.2+r2()*3.6, 2.0+r2()*3.0, 0), x, 0.012+laid*0.0006, z,
+        push("soot", planeGeo(2.2+r2()*3.6, 2.0+r2()*3.0, 0), x, LY, z,
              r2()*6, "#2a2722", -Math.PI/2, 0);
       }else if(q<0.55){                             // bleached where the sun gets it
-        push("soot", planeGeo(2.6+r2()*4.4, 2.2+r2()*3.4, 0), x, 0.012+laid*0.0006, z,
+        push("soot", planeGeo(2.6+r2()*4.4, 2.2+r2()*3.4, 0), x, LY, z,
              r2()*6, "#b8ae98", -Math.PI/2, 0);
       }else if(q<0.80){                             // whatever leaked out of whatever parked
-        push("soot", planeGeo(0.9+r2()*1.3, 1.5+r2()*1.6, 0), x, 0.012+laid*0.0006, z,
+        push("soot", planeGeo(0.9+r2()*1.3, 1.5+r2()*1.6, 0), x, LY, z,
              r2()*6, "#211e1a", -Math.PI/2, 0);
       }else{                                        // a scuff where they swing in
         const a=r2()*Math.PI*2;
         for(let k=0;k<5;k++)
           push("soot", planeGeo(0.24, 1.5+r2()*0.8, 0), x+Math.cos(a)*k*0.9,
-               0.012+laid*0.0006+k*0.0001, z+Math.sin(a)*k*0.9, a+k*0.13,
+               LY+k*0.00008, z+Math.sin(a)*k*0.9, a+k*0.13,
                "#1d1b18", -Math.PI/2, 0);
       }
     }

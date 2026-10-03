@@ -208,6 +208,63 @@ piece, it goes after `14c` and relies on the same three — `14d-diner.js` is
 exactly that, and was written as a new file rather than an edit to an old
 one, which is what the split was for.
 
+**A doorway is a hole in every course — and the probe has to look on both
+sides of the wall, not through it.** The door into the manager's apartment
+was cleared three rounds running and was still a wall in play. The stucco
+had its opening, the frame and reveal were right, the dado was split round
+it — and the plaster lining ABOVE the dado ran the full width of the office
+straight across the hole, eight centimetres proud of the wall. It survived
+every check because the clearance prism was the thickness of the wall slab,
+and a lining stands clear of the wall on the room side. **Run the prism a
+good metre into the room at each end.** The same prism then catches the
+other half of it: a PRIVATE card screwed to the door's own centre-line.
+Nothing but the leaf goes between two jambs — not a sign, not a hook, not a
+key board.
+
+**A surface you can see is not a surface you can stand on.** The highway
+slab is 30 cm deep with its top at y = 0, laid on a corridor the terrain
+grades to -0.25, and nobody ever called `addFlat` on it — so every car on
+Route 66 drove a quarter of a metre down inside its own asphalt. The painted
+kerb was worse: eleven centimetres between where the sidewalk's flat stopped
+and where the lot's began, registered to nothing, so you fell 55 cm into the
+kerb along the whole frontage. **Every slab you draw needs a matching
+`addFlat`, two flats that meet have to overlap** (the bounds test is strict,
+so the motel lot ending at x = -52 and the bar's lot starting at x = -52
+left a line one sample wide belonging to neither), **and `sink38.js` is the
+probe: it raycasts down onto the baked scene and compares the first hit with
+`surfaceY`.**
+
+**A thing seen from a mile away gets ONE layer.** The fire road up the
+lookout butte had a running surface, two ruts, a crown, drifted dust along
+both edges and a spoil mound every seventh segment. Up close that is a
+road; from the valley floor, which is where you look at that hill, it is a
+bright scribble up the flank — detail you cannot resolve does not vanish,
+it averages into noise. One strip, one colour, one width.
+
+**A path to every landmark is a map with the answers printed on it.** Every
+find in the desert used to sit on the end of its own graded track running
+back to the highway, so from the air nothing was ever found, only followed.
+Tracks now carry a `reach`: the fraction that was ever maintained, after
+which they narrow away to nothing in open ground. Only the two places that
+were businesses on this road — the filling station and the drive-in — keep
+a way in all the way to the door.
+
+**Three sticks that nearly touch is not a ladder.** The pool ladder's stiles
+floated 35 cm off the tank floor and stopped 4 cm above the coping; its hand
+grips hung 20 cm clear of them, joined to nothing; three rungs covered the
+top third of the climb. A ladder, a grab rail, a bent handrail — anything
+made of tube — is built by **chaining** the numbers: each piece starts where
+the last one ended, with a quarter torus at every change of direction. Built
+that way it cannot come apart.
+
+**Tilt a roof over square-topped walls and you have built a clerestory.**
+The shed behind the canteen shed 52 cm over its depth, so where the back
+edge met the wall head the front edge stood half a metre above it — an open
+slot across the front and tapering down both sides. A pitched roof needs the
+walls built up to meet it: an upstand at the high end, a closer at the low
+one, and a raking infill up each side laid at the roof's own angle and hung
+off the roof's own frame, so if the roof moves they move with it.
+
 ## Checking it still works
 
 The harness in the scratchpad drives a headless build: `sync.sh` mirrors
@@ -220,4 +277,6 @@ names whatever is standing in it, and `drive29.js` / `jump30.js` /
 `jitter31.js` exercise the car. `seam35.js` hides each terrain ring in turn
 and measures how far apart the rings are along their shared border, which is
 the only way to tell a hole in the world from a hole in one mesh, and
-`clear36.js` walks the geometry of a doorway rather than its colliders.
+`clear36.js` walks the geometry of a doorway rather than its colliders,
+and `sink38.js` raycasts down onto the drawn world and reports everywhere
+it stands above the surface the player and the car are given to walk on.

@@ -293,10 +293,23 @@ function updateCars(dt){
     tv.struck=true;
     const heavy=(tv.kind===2?1.9:1.0);
     const off=b.position.z-(c.z0+c.z1)/2;
+    const hit=Math.min(1.4, b.velocity.length()/24);   // how hard, before any of this
     b.velocity.x += tv.dir*tv.speed*0.30*heavy;
     b.velocity.z += (off>=0?1:-1)*(3.2+2.6*heavy);
     b.velocity.y += 1.1;
     b.angularVel.y += (off>=0?1:-1)*tv.dir*1.5;
+    /* AND IT GOES BOTH WAYS. A hit that only moves one of the two cars is
+       a wall with a paint job. The struck vehicle is pushed off the white
+       line away from whichever side of it you came in on, and loses a
+       little speed; 05-sky.js springs it back into its lane and points it
+       down its own velocity while it recovers, so it slews, corrects and
+       fishtails once before it is straight again.
+       Weight decides how much: a loaded truck barely twitches where a
+       sedan is shoved most of a lane across. Nothing is added while the
+       boxes are still overlapping — `struck` gates this to one impulse per
+       collision, the same way the player's own shove is gated. */
+    tv.swayV += (off>=0 ? -1 : 1)*(5.2*hit)/heavy;
+    tv.slow   = Math.max(0.46, tv.slow - 0.30*hit/heavy);
     const sp=b.velocity.length();
     if(sp>44) b.velocity.multiplyScalar(44/sp);
     /* And put it clear of the box in the same breath. Velocity alone does

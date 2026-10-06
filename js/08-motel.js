@@ -60,13 +60,18 @@ function lzone(xf, lx0,lx1,lz0,lz1, y0,y1, name, indoor){
 // a brass kick plate and a push bar, or the drive-in booth's louvred grey one
 // with a hasp on it.
 function makeDoor(xf, lx, ly, lz, roomNo, opensIn, ajar, style){
-  const ent=[], leafH=2.02, leafT=0.055;
-  const leafW = style ? 0.98 : 0.92;
+  /* A gate is taller and thinner than a door and a vault door is thicker
+     than either, so the leaf's own dimensions come off the style rather
+     than being one size with three skins on it. */
+  const SZ={gate:[1.42,1.94,0.045], deco:[1.06,2.16,0.085], steel:[0.96,2.04,0.065]}[style];
+  const ent=[], leafH=SZ?SZ[1]:2.02, leafT=SZ?SZ[2]:0.055;
+  const leafW = SZ ? SZ[0] : (style ? 0.98 : 0.92);
   const m4=(x,y,z)=>new T.Matrix4().makeTranslation(x,y,z);
   const rot=(x,y,z,rx,ry,rz)=>new T.Matrix4().compose(new T.Vector3(x,y,z),
     new T.Quaternion().setFromEuler(new T.Euler(rx||0,ry||0,rz||0)), new T.Vector3(1,1,1));
   const cream=new T.Color(0xd9d3c1), tealc=new T.Color(0x2f8b83), brass=new T.Color(0xcaa23c);
   const steel=new T.Color(0x8e968c), dark=new T.Color(0x3a332e);
+  const chrome2=new T.Color(0xb8bcbc);
   if(style==="bar"){
     const ox=new T.Color(0x5e2a24), edge=new T.Color(0x7a3a30), gl=new T.Color(0x17201f);
     ent.push({geo:boxGeo(leafW,leafH,leafT,0.5), matrix:m4(leafW/2, leafH/2, 0), color:ox});
@@ -120,6 +125,88 @@ function makeDoor(xf, lx, ly, lz, roomNo, opensIn, ajar, style){
                 matrix:m4(leafW/2, 0.17, sd*(leafT/2+0.008)), color:steel});
       ent.push({geo:boxGeo(leafW-0.04,0.022,0.016,0.5),
                 matrix:m4(leafW/2, 0.31, sd*(leafT/2+0.010)), color:dark});
+    }
+  }else if(style==="gate"){
+    /* The compound gate: a galvanised tube frame with chain-link stretched
+       in it, a diagonal brace, and three strands of barbed wire canted out
+       over the top on an extension arm. The mesh is drawn as the wire it
+       is — two sets of slanted strands — rather than as a grey panel,
+       because a flat panel on a fence post reads as a hoarding. */
+    const galv=new T.Color(0x9aa1a6), wire=new T.Color(0xb9c0c2), dk=new T.Color(0x6e7478);
+    for(const q of [0,1])                               // stiles
+      ent.push({geo:boxGeo(0.055,leafH,0.055,0.5),
+                matrix:m4(0.03+q*(leafW-0.06), leafH/2, 0), color:galv});
+    for(const yy of [0.03, leafH-0.03, leafH*0.52])     // rails
+      ent.push({geo:boxGeo(leafW,0.052,0.052,0.5), matrix:m4(leafW/2, yy, 0), color:galv});
+    ent.push({geo:boxGeo(Math.hypot(leafW,leafH*0.49)-0.08,0.038,0.038,0.5),
+              matrix:rot(leafW/2, leafH*0.27, 0, 0, 0, Math.atan2(leafH*0.49, leafW)),
+              color:dk});                                // the brace
+    for(let d=0;d<2;d++)                                 // the link mesh itself
+      for(let i=-9;i<=14;i++){
+        const a2=(d?-1:1)*Math.PI/4, L=leafH*1.34;
+        ent.push({geo:boxGeo(L,0.013,0.013,0.5),
+                  matrix:rot(0.10+i*0.115, leafH/2, (d?0.009:-0.009), 0, 0, a2), color:wire});
+      }
+    for(let i=0;i<3;i++)                                 // barbed wire, canted out
+      ent.push({geo:boxGeo(leafW,0.016,0.016,0.5),
+                matrix:m4(leafW/2, leafH+0.12+i*0.14, -0.08-i*0.08), color:dk});
+    for(const q of [0.06, leafW-0.06])
+      ent.push({geo:boxGeo(0.034,0.50,0.034,0.5),
+                matrix:rot(q, leafH+0.24, -0.16, -0.5, 0, 0), color:galv});
+    ent.push({geo:boxGeo(0.10,0.17,0.05,0.5),            // the hasp and padlock
+              matrix:m4(leafW-0.02, leafH*0.52+0.10, 0.045), color:dk});
+    ent.push({geo:new T.TorusGeometry(0.038,0.011,5,10),
+              matrix:rot(leafW-0.02, leafH*0.52+0.21, 0.045, 0, 0, 0), color:chrome2});
+  }else if(style==="steel"){
+    /* The equipment shelter's door: a flush steel slab, a galvanised frame,
+       a louvre at the foot and the kind of warning plate that makes you not
+       want to look any closer. Nothing about it is interesting, which is
+       the entire idea. */
+    const grey=new T.Color(0x8d9490), gd=new T.Color(0x6a7170), dk=new T.Color(0x4a4f4c);
+    ent.push({geo:boxGeo(leafW,leafH,leafT,0.5), matrix:m4(leafW/2, leafH/2, 0), color:grey});
+    for(const sd of [1,-1]){
+      ent.push({geo:boxGeo(leafW-0.06,leafH-0.06,0.012,0.5),
+                matrix:m4(leafW/2, leafH/2, sd*(leafT/2+0.004)), color:gd});
+      for(let i=0;i<5;i++)                              // the louvre
+        ent.push({geo:boxGeo(0.44,0.028,0.022,0.5),
+                  matrix:rot(leafW/2, 0.30+i*0.055, sd*(leafT/2+0.012), -0.42*sd), color:dk});
+      ent.push({geo:boxGeo(0.21,0.14,0.008,0.5),        // the warning plate
+                matrix:m4(leafW/2, 1.46, sd*(leafT/2+0.008)), color:new T.Color(0xc8a93a)});
+      ent.push({geo:boxGeo(0.055,0.19,0.03,0.5),        // lever handle and escutcheon
+                matrix:m4(leafW-0.13, 1.02, sd*(leafT/2+0.014)), color:dk});
+      ent.push({geo:boxGeo(0.16,0.034,0.034,0.5),
+                matrix:m4(leafW-0.20, 0.98, sd*(leafT/2+0.030)), color:chrome2});
+    }
+  }else if(style==="deco"){
+    /* AND THEN THIS. Sixty metres of concrete tunnel ends at a door with
+       more care in it than the whole motel: black lacquer, brass fluting,
+       a fan over the head and a speakeasy grille at eye level with a brass
+       scroll over it. It is the only thing down here that was chosen. */
+    const lac=new T.Color(0x241c1e), br=new T.Color(0xc9a24a), brd=new T.Color(0x8e6f2e);
+    const gl=new T.Color(0x2a3230);
+    ent.push({geo:boxGeo(leafW,leafH,leafT,0.5), matrix:m4(leafW/2, leafH/2, 0), color:lac});
+    for(const sd of [1,-1]){
+      const f=sd*(leafT/2+0.006);
+      for(let i=0;i<7;i++)                              // brass flutes, fanning
+        ent.push({geo:boxGeo(0.030,0.84,0.016,0.5),
+                  matrix:rot(leafW/2+(i-3)*0.115, 0.70, f, 0, 0, (i-3)*0.055), color:br});
+      ent.push({geo:boxGeo(leafW-0.12,0.045,0.018,0.5), matrix:m4(leafW/2, 1.20, f), color:br});
+      ent.push({geo:boxGeo(leafW-0.12,0.030,0.014,0.5), matrix:m4(leafW/2, 0.19, f), color:br});
+      for(let i=0;i<9;i++){                             // the sunburst over the head
+        const a2=Math.PI*(i/8), rr=0.40;
+        ent.push({geo:boxGeo(0.022,rr,0.014,0.5),
+                  matrix:rot(leafW/2+Math.cos(a2)*rr*0.5, 1.52+Math.sin(a2)*rr*0.5, f,
+                             0, 0, a2-Math.PI/2), color:i%2?br:brd});
+      }
+      ent.push({geo:boxGeo(0.30,0.22,0.020,0.5), matrix:m4(leafW/2, 1.52, f), color:br});
+      ent.push({geo:boxGeo(0.24,0.16,0.016,0.5), matrix:m4(leafW/2, 1.52, f+0.006), color:gl});
+      for(let i=0;i<4;i++)                              // the grille over it
+        ent.push({geo:boxGeo(0.016,0.17,0.010,0.5),
+                  matrix:m4(leafW/2-0.09+i*0.06, 1.52, f+0.014), color:br});
+      ent.push({geo:new T.CylinderGeometry(0.020,0.020,0.10,10),   // the lever
+                matrix:rot(leafW-0.15, 1.02, f+0.05, Math.PI/2, 0, 0), color:br});
+      ent.push({geo:boxGeo(0.14,0.030,0.030,0.5), matrix:m4(leafW-0.22, 1.02, f+0.055), color:br});
+      ent.push({geo:boxGeo(0.07,0.17,0.014,0.5), matrix:m4(leafW-0.15, 1.02, f), color:brd});
     }
   }else{
     // pivot sits at the hinge edge; leaf extends +x from it

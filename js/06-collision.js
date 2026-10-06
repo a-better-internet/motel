@@ -85,6 +85,25 @@ function indoorsAt(x,z,y){
   }
   return false;
 }
+/* BURIED is stronger than indoor. Indoors there is still a sky overhead and
+   a lit desert outside the window, and the hemisphere light is right to go
+   on standing in for both. Under four metres of ground there is neither, and
+   leaving the hemisphere up gave the tunnel a soft blue daylight coming from
+   nowhere at noon — a corridor lit by a sky it cannot see. Anything inside
+   one of these volumes has the sky and the bounce taken away from it and is
+   lit by its own fixtures and nothing else. The loop fades it over a third
+   of a second so walking down the stair is a transition rather than a cut. */
+const BURIED=[];
+function addBuried(x0,x1,z0,z1,y0,y1){
+  BURIED.push({x0:x0,x1:x1,z0:z0,z1:z1,y0:y0,y1:y1});
+}
+function buriedAt(x,z,y){
+  for(let i=0;i<BURIED.length;i++){
+    const q=BURIED[i];
+    if(x>q.x0&&x<q.x1&&z>q.z0&&z<q.z1&&y>=q.y0&&y<q.y1) return true;
+  }
+  return false;
+}
 
 const PAVED={x0:LOT.x0, x1:LOT.x1, z0:ROADZ+4.5, z1:LOT.z1};
 // pool basin profile — the ground itself dips inside the tank

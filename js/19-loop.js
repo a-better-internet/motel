@@ -282,6 +282,9 @@ function updateFlyers(dt){
 }
 
 let acc=0, last=performance.now()/1000, lastGifPush=0;
+let buriedMix=0;          // 0 under the sky, 1 under the ground; see below
+const BURIED_SKY=new T.Color(0xffd2a0), BURIED_GND=new T.Color(0x3a2418);
+const BURIED_AMB=new T.Color(0xffdcb4), AMB_BASE=new T.Color(0xfff0dc);
 function frame(){
   requestAnimationFrame(frame);
   const now=performance.now()/1000;
@@ -419,6 +422,32 @@ function frame(){
   hemi.color.copy(DayNight.P.dayHemi).lerp(DayNight.P.nightHemi, dn.nightAmount);
   hemi.groundColor.copy(DayNight.P.dayGround).lerp(DayNight.P.nightGround, dn.nightAmount);
   amb.intensity=0.15+dn.nightAmount*0.06;
+  /* UNDER THE GROUND THERE IS NO SKY.
+     The hemisphere light is the sky and the ground bouncing into everything,
+     and the key is the sun; neither is available forty feet down. Left on,
+     the tunnel came out as a corridor lit from above by nothing at all, and
+     at noon the speakeasy read like a conference room. Inside a BURIED
+     volume both are pulled almost all the way out and the fixtures down
+     there do the whole job — which is also what makes carrying the torch
+     down the stair worth doing. Faded over about a third of a second so the
+     stair is a transition and not a cut. */
+  const wantBuried = buriedAt(camera.position.x, camera.position.z, camera.position.y) ? 1 : 0;
+  buriedMix += (wantBuried-buriedMix)*Math.min(1, delta*3.4);
+  if(buriedMix>0.002){
+    /* What replaces them is not nothing. Killing the sky outright gave a
+       room lit by seven point lights and a black hole where the bounce used
+       to be — correct, and unreadable. A lamplit room four metres under the
+       ground still has light coming off its own floor and walls, and it is
+       warm, so the hemisphere keeps about a seventh of its strength with
+       its colours pulled to lamplight and the ambient is recoloured and
+       raised. The sun is the only thing taken away outright. */
+    hemi.intensity *= 1-buriedMix*0.86;
+    hemi.color.lerp(BURIED_SKY, buriedMix);
+    hemi.groundColor.lerp(BURIED_GND, buriedMix);
+    key.intensity  *= 1-buriedMix;
+    amb.color.copy(AMB_BASE).lerp(BURIED_AMB, buriedMix);
+    amb.intensity   = amb.intensity*(1-buriedMix) + 0.30*buriedMix;
+  }else if(amb.color.getHex()!==AMB_BASE.getHex()) amb.color.copy(AMB_BASE);
   // At night the haze must sit DARKER than the sky, or the mountains wash out
   // into it; by day it matches the horizon so distance reads as heat and dust.
   scene.fog.color.copy(skyImg.hz).lerp(NIGHT_HAZE, dn.nightAmount*0.72);
@@ -448,7 +477,10 @@ function frame(){
       g.m.opacity=a;
       continue;
     }
-    const k=g.kind==="pool" ? 0.30+dark*2.0 : 0.10+dark*3.0;
+    // "buried" is not on the clock: see the note over its buckets in 15-bake
+    const k=g.kind==="buried" ? 2.35
+          : g.kind==="pool"   ? 0.30+dark*2.0
+          : 0.10+dark*3.0;
     if(g.base) g.m.emissive.copy(g.base);
     g.m.emissiveIntensity=g.baseInt*k;
   }

@@ -103,6 +103,26 @@ bucketOf("floorglow",()=>{ const m=new T.MeshBasicMaterial({color:0xffffff, map:
                           GLOW.push({m:m, kind:"warm", basic:true, max:0.34}); return m; });
 bucketOf("zapper",  ()=>glowMat({color:0xffffff, emissive:0x8f5cff, emissiveIntensity:0.7}, "cool"));
 
+/* --- the ones that live underground -----------------------------------
+   Everything else that glows is wired to the clock: it comes up as the sun
+   goes down, because that is what a sign on a highway does. Nothing down
+   the shaft behind the equipment shelter has ever known what time it is.
+   The "buried" kind holds a fixed emissive whatever the hour, which is the
+   only honest way to light a room with four metres of ground on top of it —
+   and it is what makes walking in out of the noon glare feel like walking
+   into evening.                                                          */
+bucketOf("bulkhead",()=>glowMat({color:0xffffff, emissive:0xffe0a6, emissiveIntensity:0.95}, "buried"));
+bucketOf("sconce",  ()=>glowMat({color:0xffffff, emissive:0xffb24a, emissiveIntensity:1.05}, "buried"));
+bucketOf("flame",   ()=>glowMat({color:0xffffff, emissive:0xff9a38, emissiveIntensity:1.70}, "buried"));
+// deep buttoned hide, and the nap on a velvet that has had forty years of
+// shoulders against it
+bucketOf("leather", ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.spread,
+                          roughness:0.44, metalness:0.06}));
+bucketOf("velvet",  ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.carpet,
+                          roughness:0.97}));
+bucketOf("brass",   ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.galv,
+                          roughness:0.27, metalness:0.80}));
+
 /* --- picture slots: one bucket, one image, one draw call each ---------
    The canvas art below is the fallback. Name a URL in IMAGES (top of file)
    against the same key and it replaces the art at the same aspect ratio. */

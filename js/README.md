@@ -1,6 +1,6 @@
 # How the world is put together
 
-`index.html` is the page: the markup, the CSS, the HUD, and twenty-three
+`index.html` is the page: the markup, the CSS, the HUD, and twenty-four
 `<script src="js/…">` tags. Everything else lives here, one file per part of
 the world, loaded **in order** as classic scripts sharing one global scope.
 
@@ -28,6 +28,7 @@ scheduled. The numbering is the load order; nothing re-orders itself.
 | `14b-desert.js` | part two: the filling station, the mast, the tracking station |
 | `14c-desert.js` | part three: the graves, the adit, the trailer, site ambience |
 | `14d-diner.js` | Roxie's Diner, the car out east — inside and out |
+| `14e-speakeasy.js` | the equipment shelter, the shaft, the tunnel, The Dry Well |
 | `15-bake.js` | glow materials, then merge and bake every bucket |
 | `16-lighting.js` | the pool of real lights that follows the player |
 | `17-player.js` | movement, collision response, doors, seats |
@@ -48,7 +49,7 @@ is called, every script has run.
 
 **No modules, no bundler, no build step.** ES modules will not load from a
 `file://` page, and this is meant to open by double-clicking it. Classic
-scripts share one global lexical scope, which is what lets these twenty-three files
+scripts share one global lexical scope, which is what lets these twenty-four files
 behave exactly like the single file they came from.
 
 **A wall you can stand inside has to be a ring, not a slab.** A course of
@@ -204,7 +205,8 @@ lattice at all four edges.
 inside one `desertFinds` IIFE three thousand lines long; the blocks inside it
 were already self-contained IIFEs, so lifting the wrapper off and promoting
 those three was enough to let it be read in pieces. If you add a fourth
-piece, it goes after `14c` and relies on the same three — `14d-diner.js` is
+piece, it goes after `14c` and relies on the same three — `14d-diner.js` and
+`14e-speakeasy.js` are
 exactly that, and was written as a new file rather than an edit to an old
 one, which is what the split was for.
 
@@ -264,6 +266,57 @@ slot across the front and tapering down both sides. A pitched roof needs the
 walls built up to meet it: an upstand at the high end, a closer at the low
 one, and a raking infill up each side laid at the roof's own angle and hung
 off the roof's own frame, so if the roof moves they move with it.
+
+**Two voids that meet have to overlap, and it is worse than two flats.**
+The route into The Dry Well is five volumes end to end — shaft, tunnel leg,
+tunnel leg, anteroom, room — and `voidAt`'s bounds test is strict, so the
+one sample that landed exactly on the seam between two of them belonged to
+neither. With flats that costs you a step; with voids it is unrecoverable,
+because `surfaceY` asks `voidAt` about the height you are ALREADY at: the
+moment the seam hands you the desert four metres overhead, you are standing
+on the roof and every later query agrees with it. Every void here runs 40 cm
+long into its neighbour.
+
+**A collider's floor is a real number, not a round one.** The compound fence
+was given `y0 = -2` the way every fence in this world is, and the tunnel
+leaves the compound under its south run — so for the forty metres that
+followed, a chain-link fence four metres underground stood across a concrete
+tunnel. The same bug in a second costume: the hut's south wall ran from a
+metre below its slab, and the flight passes beneath that wall two and a half
+metres down, so an invisible lintel stopped you dead on the thirteenth
+tread. **Anything you will later dig under needs to be asked how deep it
+actually goes**, and a wall over a stair is a lintel, not a wall.
+
+**A plane's normal is +z, and `ry` turns it.** A wall lining faces
+`(sin ry, 0, cos ry)`, and the direction it must face is into the room — so
+the speakeasy's north wall takes `ry = 0` and the manager's apartment's
+north wall takes `π`, because the room is on the other side of it. They were
+written the same and were opposite. Anything standing proud of a lining — a
+cap rail, a frame, a sconce — is offset ALONG that same normal rather than
+by a hand-written sign, so the two can never disagree again.
+
+**One owner per surface.** The hut's floor was laid twice: once as a ring of
+apron flats with the stairwell left out, and once as a single rectangle over
+the whole footprint — and `surfaceY` takes the highest surface it can reach,
+so the rectangle won and you walked out over the hole on air. Anything with
+a hole in it has to be registered with the hole in it, by whichever piece of
+code owns it, once.
+
+**Traffic you cannot move is scenery with a paint job.** Putting a car into
+the side of a moving truck at fifty and watching the truck carry on down the
+white line was the single thing that most gave this highway away. A struck
+vehicle now carries a sideways velocity and a lost-speed term, and its
+heading is not animated at all — it is made to point down its own velocity
+with one `atan2`, so the slew, the correction and the fishtail all come out
+of the same number and cannot disagree with the path it takes.
+
+**Under the ground there is no sky.** The hemisphere light stands in for the
+sky and the ground bouncing light about, and the key is the sun; forty feet
+down there is neither, and leaving them up lit the tunnel from above with
+nothing at noon. `addBuried` registers a volume, and the loop fades both out
+over about a third of a second while the camera is inside one — which is
+what makes the stair a transition rather than a cut, and what makes the
+"buried" glow kind (fixed emissive, not on the clock) do the whole job.
 
 ## Checking it still works
 

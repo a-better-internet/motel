@@ -1571,7 +1571,7 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
       const CUZ2=(KZ0+WINW[0])/2;
       bx("metal", 0.26, 0.055, 0.78, IX0+0.19, y0+1.52, CUZ2, 0.4, 0, "#b2b8b0");
       push("lampshade", planeGeo(0.20, 0.74, 0), IX0+0.19, y0+1.492, CUZ2,
-           0, "#efe6cc", -Math.PI/2, 0);
+           0, "#efe6cc", Math.PI/2, 0);      // faces DOWN at the counter
       LAMPS.push({x:IX0+0.44, y:y0+1.44, z:CUZ2, color:0xfff0cc, intensity:0.26,
                   dist:3.8, decay:2.0, indoor:true,
                   vol:[A.x0,A.x1, IZ0-0.3, A.z1, y0-0.5, y0+CH+0.3]});

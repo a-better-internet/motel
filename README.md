@@ -484,6 +484,43 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   table, dish sink, wire shelving and a reach-in with the glass gone. By
   day it is lit through the window band and the door somebody left open; after
   dark it is as black as the desert and you go in with the torch.
+- **An equipment shelter, a shaft, seventy metres of tunnel, and The Dry
+  Well.** A hundred and forty metres south of the phone booth, further out
+  than anything else on this map, there is a chain-link compound with
+  barbed wire canted over the top of it and one flat-roofed concrete hut
+  inside. There is no sign on it. There is a number stencilled on the door,
+  a vent hood, a meter, a whip aerial, and a gate you can open. The hut is
+  three and a half metres by five and the door is in line with what is
+  inside it, which is nothing: the floor is a hole, with a pipe rail round
+  it and a flight of twenty-four going down into the ground. At the bottom
+  a service tunnel two metres wide and 2.34 to the soffit runs thirty-four
+  metres south, turns, and runs twenty-eight more west — caged bulkheads
+  every eight and a half, cable tray down one wall, water marks down the
+  other, a drum, a crate, a mop and a bucket, and a puddle at the low point
+  that something is still dripping into. It ends in a square anteroom with
+  a chequerboard floor, a hat shelf, an umbrella stand and a hide bench.
+  And a door: black lacquer, brass flutes fanning out of a brass base
+  rail, a sunburst over the head and a speakeasy grille at eye level. It
+  is the only thing down there that anybody chose.
+
+  Through it is a room nineteen metres by thirteen, oak to the sill and
+  warm plaster above, with the joists and the ductwork left showing and
+  painted dark red. You arrive on a platform with a brass balustrade and go
+  down three steps into it. A ten-metre bar runs the whole south side with
+  a back bar of ninety-odd bottles, a mirror the length of it, a brass foot
+  rail and nine buttoned hide stools; a run of buttoned velvet runs the
+  north with low mesquite tables and stump stools in front of it; there are
+  velvet armchairs round two more tables out in the floor, an upright
+  piano with the lid up and a glass left on the top, and in the north-west
+  corner, up two steps and behind a glazed screen, a snug done in oxblood
+  hide with a herringbone floor and a wall of gold-framed photographs.
+  Every light in it is at head height or below — sconces, picture lights,
+  a candle on every table — so the floor and the faces are lit and the
+  ceiling stays as dark as the desert on top of it. Nothing in the room is
+  on the clock: four metres down there is no sky to take it off, and
+  `addBuried` takes the hemisphere light and the sun away from you on the
+  stair, which is what makes walking in out of the noon glare feel like
+  walking into evening.
 - **A fire lookout on the mesa rim, and a fire road up to it.** Five hundred
   metres north-west and a hundred metres up, on the tabletop of a butte you
   can see from the walkway. You get there on foot: a graded bench eight
@@ -682,11 +719,20 @@ headless Chromium and asks the scene about itself rather than looking at it:
   because the highway slab was never registered with `addFlat`, and an
   eleven-centimetre strip at the painted kerb that belonged to no flat at
   all and dropped you 55 cm into it;
+- a route walk, which carries the player's height along a POLYLINE rather
+  than a straight line — a gate, a door, a flight of twenty-four, seventy
+  metres of tunnel, a corner and a second door cannot be tested any other
+  way — and a blocker probe that names, by their own numbers, every collider
+  standing in a given spot. Between them they found a chain-link fence
+  standing across a tunnel four metres underground, a hut's south wall
+  stopping you on the thirteenth tread, a bench parked in the tunnel mouth,
+  a door a metre out of line with the stair it opens onto, and a seam
+  between two underground volumes that put you on the roof of the world;
 - a fixed-step movement probe (`MOTEL.sim`) for anything about speed or keys.
 
 ## How it is built
 
-`index.html` plus twenty-three scripts in `js/` are the whole game — classic
+`index.html` plus twenty-four scripts in `js/` are the whole game — classic
 scripts in one shared scope, three.js r128 from cdnjs, no bundler and no image
 assets. It follows two references:
 
@@ -778,7 +824,7 @@ A few pieces are specific to this scene:
   86 mph, the headlights come on after dark, and the compass and the speed
   readout follow the bonnet.
 - **Twenty-three files, one scope.** The world used to be one 12,000-line
-  `index.html`. It is now `index.html` plus twenty-three scripts in `js/`,
+  `index.html`. It is now `index.html` plus twenty-four scripts in `js/`,
   loaded in order and sharing one global scope — `js/README.md` has the map.
   No modules and no build step, deliberately: ES modules will not load from a
   `file://` page and this is meant to open by double-clicking it. The one

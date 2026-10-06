@@ -548,7 +548,12 @@ const GLOW_TEX=(function(){
     const kind=[0,1,0,2,1,0][i%6];
     const v=vehicle(kind, BODY[(i*3+((i/4)|0))%BODY.length]);
     const ln=lanes[i%2];
-    v.dir=ln[1]; v.z=ln[0];
+    /* lane is where it belongs; z is where it actually is. sway/swayV are
+       how far it has been knocked out of its lane and how fast it is going
+       sideways, and slow is the speed it lost in the hit, recovering.
+       Nothing but a collision ever moves them off zero and one. */
+    v.dir=ln[1]; v.lane=ln[0]; v.z=ln[0];
+    v.sway=0; v.swayV=0; v.slow=1;
     v.x=-1500+(i/16)*3000+Math.random()*140;
     v.speed=(kind===2?19:26)+Math.random()*6;
     v.g.rotation.y = v.dir>0 ? Math.PI/2 : -Math.PI/2;
@@ -557,12 +562,36 @@ const GLOW_TEX=(function(){
 })();
 function updateTraffic(dt, dark){
   for(const v of TRAFFIC){
-    v.x += v.speed*v.dir*dt;
+    /* BEING HIT MOVES THE OTHER CAR TOO.
+       Until now the traffic was a line of boxes on rails: you could put a
+       Fairlane into the side of a moving truck at fifty and the truck would
+       carry on down the white line as though nothing had happened, which is
+       the single thing that most gave away that it was scenery. A struck
+       vehicle now carries a sideways velocity and runs wide, and a spring
+       walks it back into its lane over a second and a bit — overshooting
+       once on the way, which is the fishtail. Its heading is not animated
+       separately: it is simply made to point where it is actually going,
+       with atan2 of the two velocity components, so the slew, the
+       correction and the overshoot all come out of the one number and
+       cannot disagree with the path. */
+    if(v.swayV || v.sway!==0){
+      v.swayV += (-v.sway*6.4 - v.swayV*2.3)*dt;
+      v.sway  += v.swayV*dt;
+      if(v.sway> 3.2){ v.sway= 3.2; if(v.swayV>0) v.swayV=0; }
+      if(v.sway<-3.2){ v.sway=-3.2; if(v.swayV<0) v.swayV=0; }
+      if(Math.abs(v.sway)<0.004 && Math.abs(v.swayV)<0.02){ v.sway=0; v.swayV=0; }
+    }
+    if(v.slow<1) v.slow=Math.min(1, v.slow+dt*0.42);     // and it gets going again
+    const spd=v.speed*v.slow;
+    v.x += spd*v.dir*dt;
+    v.z = v.lane + v.sway;
     // wrap well past the fog, so nothing is ever seen appearing or vanishing
-    if(v.x> 1500) v.x=-1500;
-    if(v.x<-1500) v.x= 1500;
+    if(v.x> 1500){ v.x=-1500; v.sway=0; v.swayV=0; v.slow=1; }
+    if(v.x<-1500){ v.x= 1500; v.sway=0; v.swayV=0; v.slow=1; }
     const gy=Terrain.groundAt(v.x, v.z)+0.02;
     v.g.position.set(v.x, gy, v.z);
+    // point it down its own velocity: at rest this is exactly +-pi/2 again
+    v.g.rotation.y = Math.atan2(v.dir*Math.max(spd, 4), v.swayV);
     // the shell's world box, for carHits — nose leads, whichever way it runs
     const c=v.col;
     c.x0=v.x+(v.dir>0 ? v.tail : -v.nose);

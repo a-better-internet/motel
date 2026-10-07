@@ -547,6 +547,16 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   under the rock the whole way. `prof41.js` measured it. Nothing says what
   the hall was for, who built it or what was last performed in it. The
   house lights are on.
+- **The door at the side of the stage.** In the wall of the front
+  cross-aisle, three metres downstage of the first row, with an EXIT box
+  over it. Behind it is the part of the building that was not built: bare
+  render, a concrete floor with a worn line down the middle, four bulkheads
+  in twenty-eight metres and two of them dead, a row of doors that do not
+  open and one of them boarded over, a dressing mirror with its bulbs out
+  at the turn, a stack of chairs, a coil of cable, a mop. It turns once, so
+  you cannot see the end from the start, and the end is a small room with
+  one chair in it facing the corner, a bulb on a flex and one coat on a
+  rail. Nothing happens in it.
 - **A fire lookout on the mesa rim, and a fire road up to it.** Five hundred
   metres north-west and a hundred metres up, on the tabletop of a butte you
   can see from the walkway. You get there on foot: a graded bench eight

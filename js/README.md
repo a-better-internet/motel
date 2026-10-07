@@ -403,6 +403,15 @@ pool of nine that follows the camera and they are all spoken for. An
 additive disc on the table under each flame costs one transparent quad and
 is what makes the room read as candlelit.
 
+**A hole has a sill, a head and two jambs — and the piece under the sill
+stops AT the sill.** The auditorium's entrance was built to the top of the
+doorway instead of to the floor, so the mass below the opening filled the
+opening. The collider was correct, the walk probe went straight through,
+and the corridor ended in a blank wall. Geometry and collision disagreeing
+is the signature of this class of bug: when a probe says a way is open and
+a screenshot says it is shut, the probe is testing the wrong thing, not
+lying.
+
 **A HOLE GOES THROUGH EVERY COURSE, INCLUDING THE ONES YOU CANNOT SEE.**
 The shelter's stairwell was reported blocked three times. The floor above
 it was correctly built in three pieces round the opening both times it was
@@ -458,6 +467,32 @@ else. With the right map the silhouette does the work, and the silhouette
 is the four things a chair has — legs you can see daylight under, arms
 standing clear of the seat, a back taller than the arms with a roll on it,
 and a cushion with a front edge.
+
+**Upholstery is not made of boxes.** Three goes at the speakeasy's
+armchairs were built out of rectangular prisms with correct dimensions on
+them, and all three read as flat-pack — because a box has eight hard
+corners and stuffing has none, and at this fidelity the corner is all the
+eye has to go on. The banquette in the same room always read correctly, and
+it is built the other way: a squashed sphere over a frame, with a piped
+roll and buttons. So the rule is that the two or three pieces you actually
+sit on are squashed spheres, the arms are capsules — a cylinder with a ball
+on each end — and the only boxes left are the frame underneath, which
+nobody sees. Three measurements matter more than any modelling: an arm 7 cm
+above the cushion is a rail and an arm 25 cm above it is an arm; a back
+taller than the arms; and a seat that tucks UNDER the arms rather than
+butting them, because two faces that merely meet are a seam you can see
+across a room. And check the map the bucket carries: `velvet` was laid at
+0.5 repeats per metre, which stretches a fine nap into ten-centimetre
+stripes — that was the corduroy.
+
+**A round piece has an axis, and it is usually pointing the wrong way.** A
+`CylinderGeometry`'s axis is +y; a `TorusGeometry`'s is +z. Under the
+`"YXZ"` order those need *different* rotations to end up facing the same
+way, so a scroll face and the welt around it — drawn with the same rx —
+came out as a wheel and a hoop stuck on the front of each arm. The
+proscenium's tie-backs had the mirror of the same fault and read as two
+gold slivers. When a round thing looks wrong, check which axis the
+primitive was born with before touching anything else.
 
 **Dig where the hill is thick.** `prof41.js` prints the ground profile in a
 local frame, which is how the auditorium's ceiling was set: it climbs in six

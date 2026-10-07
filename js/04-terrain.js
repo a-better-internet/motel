@@ -28,7 +28,7 @@
    several times the crack between two levels of detail and nowhere near
    anything's roof. ANYTHING EXCAVATED UNDER THIS TERRAIN GOES IN THIS LIST. */
 const SKIRT_GAPS=[{x0:-141, x1:-106, z0:370, z1:398, drop:1.2},
-                  {x0:-196, x1:-130, z0:368, z1:402, drop:1.2},
+                  {x0:-196, x1:-130, z0:344, z1:402, drop:1.2},
                   // the shelter patch, whose rims cross the tunnel below
                   {x0: -86, x1: -70, z0:336, z1:358, drop:1.2},
                   // and the stairwell itself, where even 1.2 m of apron

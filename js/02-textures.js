@@ -385,6 +385,31 @@ TEX.soot=(function(){                         // soft stain halo for soffits and
    is a piece of wall rather than a stamp, and the four margins are erased
    so no crop can end on a cut. Pair it with streakGeo: planeGeo would put
    the whole field on every patch and we would be back where we started. */
+/* THE TWO DECAL MAPS ARE GRIDS, AND EVERY CELL CLOSES ITSELF.
+   Both of these are sampled one whole cell at a time by cellGeo, so the
+   only rule that matters is that each cell's content must fall to zero
+   alpha before its own boundary. Where that is not true you get a hard
+   straight edge across the middle of a wall, which is what every stain in
+   this building had: a soft margin round the OUTSIDE of a map does nothing
+   for a crop taken out of the middle of it. `seal` is run on each cell at
+   the end and is not optional. */
+function _sealCell(x, cx, cy, cw, ch, feather){
+  const f=feather===undefined ? Math.min(cw,ch)*0.17 : feather;
+  x.save();
+  x.globalCompositeOperation="destination-out";
+  const g=(x0,y0,x1,y1,w,h)=>{
+    const gr=x.createLinearGradient(x0,y0,x1,y1);
+    gr.addColorStop(0,"rgba(0,0,0,1)"); gr.addColorStop(0.65,"rgba(0,0,0,0.35)");
+    gr.addColorStop(1,"rgba(0,0,0,0)");
+    x.fillStyle=gr; x.fillRect(Math.min(x0,x1), Math.min(y0,y1), w, h);
+  };
+  g(cx, cy, cx+f, cy, f, ch);                       // left
+  g(cx+cw, cy, cx+cw-f, cy, f, ch);                 // right
+  g(cx, cy, cx, cy+f, cw, f);                       // top
+  g(cx, cy+ch, cx, cy+ch-f, cw, f);                 // bottom
+  x.restore();
+}
+
 /* VELVET. The buckets called `velvet` were carrying TEX.carpet — a coarse
    loop pile, which at carpet scale is right and on a 90 cm armchair is
    camouflage. It is the single biggest reason the seating read as "randomly
@@ -395,13 +420,11 @@ TEX.velvet=(function(){
   const W=96, H=96, c=cvs(W,H), x=c.getContext("2d");
   let sd=410732; const r=()=>{ sd=(sd*1103515245+12345)&0x7fffffff; return sd/0x7fffffff; };
   x.fillStyle="#ffffff"; x.fillRect(0,0,W,H);
-  // the nap: fine vertical threads, a few per cent either way
   for(let i=0;i<W*3;i++){
     const px=r()*W, w=0.5+r()*1.4, d=r()<0.5;
     x.fillStyle=(d?"rgba(0,0,0,":"rgba(255,255,255,")+(0.03+r()*0.07).toFixed(3)+")";
     x.fillRect(px, 0, w, H);
   }
-  // the sheen: two broad soft bands, so a flat panel is not a flat colour
   for(const q of [[0.28,0.30,0.055],[0.74,0.26,0.040]]){
     const g=x.createLinearGradient(0,H*(q[0]-q[1]),0,H*(q[0]+q[1]));
     g.addColorStop(0,"rgba(255,255,255,0)");
@@ -409,7 +432,6 @@ TEX.velvet=(function(){
     g.addColorStop(1,"rgba(255,255,255,0)");
     x.fillStyle=g; x.fillRect(0,0,W,H);
   }
-  // and the faintest crush, so it is not a gradient either
   for(let i=0;i<900;i++){
     x.fillStyle="rgba(0,0,0,"+(r()*0.035).toFixed(3)+")";
     x.fillRect(r()*W, r()*H, 1+r()*3, 1+r()*2);
@@ -419,19 +441,20 @@ TEX.velvet=(function(){
   return t;
 })();
 
+/* DAMP ON PLASTER — four blooms, one per cell, each sealed inside its own
+   quarter of the map so no instance of it can end on a straight edge. */
 TEX.stain=(function(){
-  const N=320, c=cvs(N,N), x=c.getContext("2d");
+  const N=320, C=N/2, c=cvs(N,N), x=c.getContext("2d");
   let sd=20251007;
   const r=()=>{ sd=(sd*1103515245+12345)&0x7fffffff; return sd/0x7fffffff; };
   x.clearRect(0,0,N,N);
-  // irregular blooms: a lumpy outline of soft circles, so no patch is round
   const bloom=(cx,cy,rad,a)=>{
     const lobes=5+Math.floor(r()*4);
-    for(let i=0;i<34;i++){
-      const th=(i/34)*Math.PI*2;
+    for(let i=0;i<30;i++){
+      const th=(i/30)*Math.PI*2;
       const k=0.52+0.48*(0.5+0.5*Math.sin(th*lobes+r()*0.4));
-      const d=rad*k*(0.42+r()*0.46);
-      const px=cx+Math.cos(th)*d, py=cy+Math.sin(th)*d, rr=rad*(0.30+r()*0.34);
+      const d=rad*k*(0.40+r()*0.44);
+      const px=cx+Math.cos(th)*d, py=cy+Math.sin(th)*d, rr=rad*(0.28+r()*0.32);
       const g=x.createRadialGradient(px,py,0,px,py,rr);
       g.addColorStop(0,"rgba(255,255,255,"+(a*0.55).toFixed(3)+")");
       g.addColorStop(0.55,"rgba(255,255,255,"+(a*0.20).toFixed(3)+")");
@@ -439,92 +462,79 @@ TEX.stain=(function(){
       x.fillStyle=g; x.beginPath(); x.arc(px,py,rr,0,Math.PI*2); x.fill();
     }
   };
-  for(let i=0;i<13;i++) bloom(r()*N, r()*N, 22+r()*52, 0.40+r()*0.50);
-  // damp running down out of the heavier ones
-  for(let i=0;i<22;i++){
-    const px=r()*N, py=r()*N*0.70, len=26+r()*96, w=1.2+r()*3.4;
-    const g=x.createLinearGradient(0,py,0,py+len);
-    g.addColorStop(0,"rgba(255,255,255,"+(0.14+r()*0.20).toFixed(3)+")");
-    g.addColorStop(1,"rgba(255,255,255,0)");
-    x.fillStyle=g;
-    let q=px;
-    for(let k=0;k<len;k+=2){ q+=(r()-0.5)*0.7; x.fillRect(q, py+k, w, 2.4); }
+  for(let ci=0;ci<2;ci++) for(let ri=0;ri<2;ri++){
+    const ox=ci*C, oy=ri*C;
+    // one or two overlapping blooms, well inside the cell
+    const n=1+Math.floor(r()*2);
+    for(let k=0;k<n;k++)
+      bloom(ox+C*(0.36+r()*0.28), oy+C*(0.34+r()*0.26), C*(0.19+r()*0.12), 0.46+r()*0.46);
+    // damp running down out of them, stopping short of the cell's foot
+    for(let i=0;i<5;i++){
+      const px=ox+C*(0.26+r()*0.48), py=oy+C*(0.34+r()*0.18);
+      const len=C*(0.16+r()*0.26), w=1.1+r()*3.0;
+      const g=x.createLinearGradient(0,py,0,py+len);
+      g.addColorStop(0,"rgba(255,255,255,"+(0.13+r()*0.18).toFixed(3)+")");
+      g.addColorStop(1,"rgba(255,255,255,0)");
+      x.fillStyle=g;
+      let q=px;
+      for(let t=0;t<len;t+=2){ q+=(r()-0.5)*0.7; x.fillRect(q, py+t, w, 2.4); }
+    }
   }
-  // the mineral edge a drying stain leaves, and fine mottle over the lot
+  // the mineral grain, then seal every cell
   x.globalCompositeOperation="source-atop";
-  for(let i=0;i<2600;i++){
-    x.fillStyle="rgba(255,255,255,"+(r()*0.30).toFixed(2)+")";
+  for(let i=0;i<2400;i++){
+    x.fillStyle="rgba(255,255,255,"+(r()*0.28).toFixed(2)+")";
     x.fillRect(r()*N, r()*N, 1+r()*2, 1+r()*2);
   }
-  for(let i=0;i<120;i++){
-    x.strokeStyle="rgba(255,255,255,"+(0.05+r()*0.12).toFixed(3)+")";
-    x.lineWidth=0.7+r()*1.3;
-    x.beginPath();
-    let px=r()*N, py=r()*N; x.moveTo(px,py);
-    for(let k=0;k<7;k++){ px+=(r()-0.5)*26; py+=(r()-0.5)*26; x.lineTo(px,py); }
-    x.stroke();
-  }
-  // erase the margins so a crop can never land on a cut edge
-  x.globalCompositeOperation="destination-out";
-  const F=40, fade=(gx0,gy0,gx1,gy1,w,h)=>{
-    const g=x.createLinearGradient(gx0,gy0,gx1,gy1);
-    g.addColorStop(0,"rgba(0,0,0,1)"); g.addColorStop(1,"rgba(0,0,0,0)");
-    x.fillStyle=g; x.fillRect(Math.min(gx0,gx1), Math.min(gy0,gy1), w, h);
-  };
-  fade(0,0,F,0,F,N); fade(N,0,N-F,0,F,N);
-  fade(0,0,0,F,N,F); fade(0,N,0,N-F,N,F);
   x.globalCompositeOperation="source-over";
+  for(let ci=0;ci<2;ci++) for(let ri=0;ri<2;ri++) _sealCell(x, ci*C, ri*C, C, C);
   return setSRGB(new T.CanvasTexture(c));
 })();
 
-TEX.streak=(function(){                       // rust bleeding down from a fitting
-  /* THE TOP EDGE WAS THE PROBLEM. Every streak began at full alpha on row
-     zero, so a plane carrying this map ended in a hard horizontal line
-     across the wall — and since every instance used the same 0..1 UVs, it
-     was the SAME hard line, forty times over, in the same pattern. The map
-     is bigger and softer now, the streaks start at staggered heights and
-     fade in as well as out, and a margin is taken out of all four edges, so
-     a crop of it never ends on a cut. streakGeo in 01-helpers.js takes that
-     crop: between the two, no two stains in this world are the same stain. */
-  const W2=128, H2=256;
-  const c=cvs(W2,H2), x=c.getContext("2d");
-  x.clearRect(0,0,W2,H2);
-  for(let i=0;i<54;i++){
-    const px=4+Math.random()*(W2-10), w2=1+Math.random()*7;
-    const y0=Math.random()*H2*0.30, h2=H2*0.25+Math.random()*H2*0.70;
-    const g=x.createLinearGradient(0,y0,0,y0+h2);
-    g.addColorStop(0,   "rgba(255,255,255,0)");
-    g.addColorStop(0.10,"rgba(255,255,255,"+(0.45+Math.random()*0.45).toFixed(2)+")");
-    g.addColorStop(0.55,"rgba(255,255,255,0.40)");
-    g.addColorStop(1,   "rgba(255,255,255,0)");
-    x.fillStyle=g; x.fillRect(px,y0,w2,h2);
+/* RUST BLEEDING OUT OF A FITTING — four clusters, one per cell, each one
+   starting soft, running down and dying out before the cell's edges. The
+   top fade is the one that matters: a streak at full strength on its first
+   row draws a ruled line across whatever it is stuck to. */
+TEX.streak=(function(){
+  const N=256, C=N/2, c=cvs(N,N), x=c.getContext("2d");
+  let sd=778201;
+  const r=()=>{ sd=(sd*1103515245+12345)&0x7fffffff; return sd/0x7fffffff; };
+  x.clearRect(0,0,N,N);
+  for(let ci=0;ci<2;ci++) for(let ri=0;ri<2;ri++){
+    const ox=ci*C, oy=ri*C;
+    // the wet patch the run comes out of
+    for(let k=0;k<3;k++){
+      const px=ox+C*(0.34+r()*0.32), py=oy+C*(0.24+r()*0.12), rr=C*(0.09+r()*0.09);
+      const g=x.createRadialGradient(px,py,0,px,py,rr);
+      g.addColorStop(0,"rgba(255,255,255,"+(0.42+r()*0.30).toFixed(3)+")");
+      g.addColorStop(1,"rgba(255,255,255,0)");
+      x.fillStyle=g; x.beginPath(); x.arc(px,py,rr,0,Math.PI*2); x.fill();
+    }
+    // and the runs themselves, each fading in at the top and out at the foot
+    for(let i=0;i<9;i++){
+      const px=ox+C*(0.26+r()*0.48), top=oy+C*(0.20+r()*0.16);
+      const len=C*(0.34+r()*0.34), w=0.9+r()*2.6;
+      const g=x.createLinearGradient(0,top,0,top+len);
+      g.addColorStop(0,"rgba(255,255,255,0)");
+      g.addColorStop(0.18,"rgba(255,255,255,"+(0.34+r()*0.34).toFixed(3)+")");
+      g.addColorStop(0.72,"rgba(255,255,255,"+(0.16+r()*0.18).toFixed(3)+")");
+      g.addColorStop(1,"rgba(255,255,255,0)");
+      x.fillStyle=g;
+      let q=px;
+      for(let t=0;t<len;t+=2){ q+=(r()-0.5)*0.8; x.fillRect(q, top+t, w, 2.4); }
+    }
   }
-  for(let i=0;i<22;i++){                      // and the broader bloom behind them
-    const px=Math.random()*W2, py=Math.random()*H2*0.8, r=14+Math.random()*44;
-    const g=x.createRadialGradient(px,py,0,px,py,r);
-    g.addColorStop(0,"rgba(255,255,255,0.18)"); g.addColorStop(1,"rgba(255,255,255,0)");
-    x.fillStyle=g; x.beginPath(); x.arc(px,py,r,0,7); x.fill();
+  x.globalCompositeOperation="source-atop";
+  for(let i=0;i<2000;i++){
+    x.fillStyle="rgba(255,255,255,"+(r()*0.26).toFixed(2)+")";
+    x.fillRect(r()*N, r()*N, 1+r()*2, 1+r()*2);
   }
-  // a soft margin all the way round, so a crop can never land on an edge
-  x.globalCompositeOperation="destination-out";
-  const edge=(gx0,gy0,gx1,gy1,w3,h3)=>{
-    const g=x.createLinearGradient(gx0,gy0,gx1,gy1);
-    g.addColorStop(0,"rgba(0,0,0,1)"); g.addColorStop(1,"rgba(0,0,0,0)");
-    x.fillStyle=g; x.fillRect(Math.min(gx0,gx1), Math.min(gy0,gy1), w3, h3);
-  };
-  edge(0,0,0,18, W2,18); edge(0,H2,0,H2-22, W2,22);
-  edge(0,0,10,0, 10,H2);  edge(W2,0,W2-10,0, 10,H2);
   x.globalCompositeOperation="source-over";
+  for(let ci=0;ci<2;ci++) for(let ri=0;ri<2;ri++) _sealCell(x, ci*C, ri*C, C, C);
   return setSRGB(new T.CanvasTexture(c));
 })();
 
-/* --- the seven maps that were missing -----------------------------------
-   A survey of the built scene found 70% of its triangles on materials with no
-   map at all — foliage alone is 45% of the world and was flat colour. These
-   all multiply a vertex colour, so every one of them averages close to white:
-   they add grain, not tint. And because most pushes leave uvScale at 0, a map
-   here stretches 0..1 over whatever face it lands on, so none of them has a
-   direction or a feature you could measure against.                        */
+
 TEX.leafskin=(function(){                     // every plant in the desert
   const c=cvs(128,128), x=c.getContext("2d");
   x.fillStyle="#ffffff"; x.fillRect(0,0,128,128);

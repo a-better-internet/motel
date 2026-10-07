@@ -337,26 +337,39 @@ const lotTop=(x0,x1,z0,z1)=>{
 /* A STAIN IS NEVER THE SAME STAIN TWICE.
    planeGeo hands every instance the same 0..1 UVs, so one streak map used
    forty times down a wall is forty identical rectangles — which is exactly
-   what it looked like. This takes a different WINDOW out of the map each
-   time: a random offset, a random scale under one, and a random flip in u.
-   The map has a soft margin all four sides (see TEX.streak), so a crop can
-   never land on a hard edge. Pass a seed to pin one; leave it out and a
-   counter gives each push its own, which is deterministic because the build
-   order is. */
-let _streakN=0;
-function streakGeo(w,h,seed){
+   what it looked like.
+
+   THE FIRST FIX WAS WRONG AND IT TOOK TWO ROUNDS TO SEE WHY. It took an
+   arbitrary WINDOW out of the map, and the map was given a soft margin on
+   all four sides so "a crop can never land on a cut". But a soft margin
+   only protects a crop that INCLUDES the map's edge. Nine crops in ten come
+   out of the middle, where the content is at full strength, and there the
+   crop boundary IS the cut — which is the hard horizontal line across the
+   top of every stain in the building.
+
+   A crop can only be safe if the thing inside it already fades to nothing
+   before the boundary. So the maps are now GRIDS OF CELLS, each cell one
+   complete blob or streak cluster that falls to zero alpha well inside its
+   own cell, and this picks ONE WHOLE CELL — never a free-floating window.
+   Four cells and a mirror give eight variants, and the size, the aspect
+   and the vertex colour of each instance do the rest. The 0.4% inset keeps
+   bilinear filtering from reaching into the neighbouring cell. */
+let _cellN=0;
+function cellGeo(w,h,cols,rows,seed){
   const g=new T.PlaneGeometry(w,h), a=g.attributes.uv;
-  let sd=((seed===undefined||seed===0) ? (++_streakN)*2654435761 : seed*9781)&0x7fffffff;
+  let sd=((seed===undefined||seed===0) ? (++_cellN)*2654435761 : seed*9781)&0x7fffffff;
   const r=()=>{ sd=(sd*1103515245+12345)&0x7fffffff; return sd/0x7fffffff; };
-  const su=0.38+r()*0.46, sv=0.42+r()*0.46;
-  const ou=r()*(1-su), ov=r()*(1-sv), flip=r()<0.5;
+  const ci=Math.min(cols-1, Math.floor(r()*cols)), ri=Math.min(rows-1, Math.floor(r()*rows));
+  const su=1/cols, sv=1/rows, ins=0.004, flip=r()<0.5;
   for(let i=0;i<a.count;i++){
     let u=a.getX(i); if(flip) u=1-u;
-    a.setXY(i, ou+u*su, ov+a.getY(i)*sv);
+    a.setXY(i, (ci+ins)*su+u*su*(1-ins*2), (ri+ins)*sv+a.getY(i)*sv*(1-ins*2));
   }
   a.needsUpdate=true;
   return g;
 }
+// every decal in the world goes through this; both maps behind it are 2x2 grids
+function streakGeo(w,h,seed){ return cellGeo(w,h,2,2,seed); }
 
 // flat panel with world-scaled UVs, for alpha-cut things like chain-link
 function planeGeo(w,h,uvScale){

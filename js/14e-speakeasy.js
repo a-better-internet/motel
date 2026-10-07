@@ -410,7 +410,7 @@
       m.P("concrete", boxGeo(SW1-SW0+SWW*2, 0.34, L, 0.45), (SW0+SW1)/2,
           (ya+yb)/2, (za+zb)/2, 0, "#8d877c", pitch, 0);
       // and the skirt that closes the slot under the hut's south wall
-      m.B("concrete", SW1-SW0+0.1, 0.60, WT+0.06, (SW0+SW1)/2, F-0.30, HZ1-WT/2,
+      m.B("concrete", SW1-SW0+0.1, 0.60, WT+0.06, (SW0+SW1)/2, F-0.37, HZ1-WT/2,
           0.45, 0, CONCD);
     }
     m.B("concrete", SW1-SW0+SWW*2, 0.34, 1.6, (SW0+SW1)/2, TD+TH+0.17, SEND+0.6,
@@ -840,8 +840,13 @@
     m.flat(PLX, RX1, RZ0, RZ1, TD);
     for(let i=1;i<=3;i++){
       const tx=PLX-i*0.32, ty=TD-i*0.2167;
-      m.B("oak", 0.34, 0.06, SB1-SB0, tx+0.17-0.17, ty-0.03, (SB0+SB1)/2, 0.6, 0, OAKM);
-      m.B("oak", 0.05, 0.22, SB1-SB0, tx+0.325, ty-0.11, (SB0+SB1)/2, 0.5, 0, OAKD);
+      /* The bottom step has no tread of its own: at i = 3 its top lands on
+         RD exactly, which is where the room's floor slab tops out, and the
+         floor IS that tread. */
+      if(i<3) m.B("oak", 0.34, 0.06, SB1-SB0, tx, ty-0.03, (SB0+SB1)/2, 0.6, 0, OAKM);
+      // ty-0.14, because the third step's riser otherwise tops out at RD
+      // exactly, which is where the room's floor slab tops out
+      m.B("oak", 0.05, 0.22, SB1-SB0, tx+0.325, ty-0.14, (SB0+SB1)/2, 0.5, 0, OAKD);
       m.flat(tx-0.02, tx+0.34, SB0+0.03, SB1-0.03, ty);
     }
     m.B("oak", 0.06, 0.70, RZ1-RZ0, PLX-0.03, TD-0.35, (RZ0+RZ1)/2, 0.5, 0, OAKD);
@@ -1018,7 +1023,10 @@
        brightest surface in the world — a sheet of white behind the bottles
        rather than a mirror in a dark bar. Darkening the diffuse leaves the
        emissive doing what it is for: a dull sheen the bottles stand out of. */
-    m.P("mirrorw", planeGeo(L-0.3, 1.70, 0), CX, RD+1.95, RZ1-0.035, Math.PI, "#6a5844", 0, 0);
+    /* 0.09 off the wall, not 0.035. The lining's damp patches stand up to
+       25 mm proud and the mirror was at 35, so nine square metres of
+       mirror and stain were within two millimetres of each other. */
+    m.P("mirrorw", planeGeo(L-0.3, 1.70, 0), CX, RD+1.95, RZ1-0.125, Math.PI, "#6a5844", 0, 0);
     for(const q of [RD+1.08, RD+2.82])
       m.B("oak", L-0.2, 0.08, 0.10, CX, q, RZ1-0.09, 0.5, 0, OAKD);
     for(let sh=0;sh<3;sh++){
@@ -1106,7 +1114,7 @@
        into one piece of furniture with a front to it. */
     m.P("velvet", new T.CylinderGeometry(0.075,0.075,L,12), CX, SEATY+0.04, BQZ+0.94,
         0, "#49120f", 0, Math.PI/2);
-    m.B("oak", L, 0.26, 0.10, CX, SEATY-0.17, BQZ+0.92, 0.5, 0, OAKD);
+    m.B("oak", L, 0.26, 0.10, CX, SEATY-0.17, BQZ+0.86, 0.5, 0, OAKD);
     // the back: three courses of buttoned pads up to the cap rail
     for(let r=0;r<3;r++)
       for(let i=0;i<Math.round(L/0.52);i++){
@@ -1285,60 +1293,104 @@
       const P=(g,dx,y,dz,rx,rz,b,c)=>{ const q=S(dx,dz);
         m.P(b, g, q[0], RD+y, q[1], ry, c, rx||0, rz||0); };
       const D=dark||"#2e1a14", L=light||col, UV=2.2;
-      /* UPHOLSTERY IS NOT MADE OF BOXES.
-         Two goes at this chair were built out of rectangular prisms with
-         the right dimensions on them, and both read as flat-pack, because
-         a box has eight hard corners and stuffing has none. The banquette
-         in this same room has always read correctly and it is built the
-         other way: a squashed sphere over a frame, with a piped roll and
-         buttons. So the chair is built that way too — the cushion and the
-         back pad are squashed spheres, the arms are capsules (a cylinder
-         with a ball on each end), and the only boxes left are the frame
-         underneath, which you cannot see. */
-      const SPH=(rx2,ry2,rz2)=>{ const g=new T.SphereGeometry(0.34,16,12);
-                                 g.scale(rx2,ry2,rz2); return g; };
-      const AX=0.345, AROLL=0.105, ARMY=0.68, BTOP=1.02, DEEP=0.80;
-      for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]]){     // feet, on castors
-        const q=S(a[0]*0.34, a[1]*0.33);
-        m.C("oak", 0.030,0.044,0.14,10, q[0], RD+0.070, q[1], OAKD);
-        m.C("brass", 0.026,0.026,0.022,10, q[0], RD+0.009, q[1], BRD);
+      /* A WING-BACK, OFF A PHOTOGRAPH OF ONE.
+         Four attempts at a club chair all read as a pile of shapes, and a
+         club chair was the wrong target: it is a box with two smaller boxes
+         on it, and at this fidelity a box with boxes on it is what it looks
+         like. A WING chair has a silhouette nothing else has — a back twice
+         the height of the arms, with two wings coming forward off the top
+         of it to meet them. You can recognise that shape in a dark room at
+         six metres, which is the only test that matters here.
+
+         Measured off the reference: overall 840 wide and 840 deep, seat at
+         460, arm at 700, wings from 740 to 1140, back crown at 1195. The
+         back is 410 above the arms and the wings bridge the two. Deep
+         buttoning on the inner back and a line of brass studs down each arm
+         front, because those are the two things the eye uses to tell
+         upholstery from a crate.
+
+         EVERY ROTATION HERE IS DERIVED, NOT GUESSED. push() builds
+         Euler(rx, ry, rz, "YXZ"), so a cylinder's +y axis goes to local Z
+         under rx = pi/2 and to local X under rz = pi/2. The arm rolls run
+         front to back (rx); the crown and the cushion's front edge run side
+         to side (rz); the wings' front edges stay upright (neither). */
+      const HW=0.42, HD=0.42;                       // half width, half depth
+      const AX=0.35, AW=0.14, ATOP=0.70, AR=0.085;  // arms
+      const BZ=-0.32, BD=0.20, BTOP=1.10, BR=0.095; // back
+      const WTOP=1.15, WR=0.07, WZ0=-0.30, WZ1=-0.03;// wings
+      const SEATT=0.58, SX=0.31, SZ=0.32;           // the cushion
+      // legs: turned, splayed a little at the front, as in the photograph
+      for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]]){
+        const q=S(a[0]*0.33, a[1]*0.33);
+        m.C("oak", 0.030,0.050,0.19,10, q[0], RD+0.095, q[1], "#2e1d14",
+            a[1]>0?0.06:0, 0, a[0]>0?-0.06:0.06);
       }
-      // the frame, which is a box because it is under everything
-      P(boxGeo(0.78, 0.24, DEEP-0.04, UV), 0, 0.26, 0, 0, 0, "velvet", D);
-      // the arms: a capsule each side, carried on a filled flank
+      // the seat box, and the back rising the whole height out of it
+      P(boxGeo(HW*2-0.04, 0.28, HD*2-0.04, UV), 0, 0.31, 0, 0, 0, "velvet", col);
+      P(boxGeo(HW*2, BTOP-0.17, BD, UV), 0, (BTOP+0.17)/2, BZ, 0, 0, "velvet", col);
+      P(new T.CylinderGeometry(BR, BR, HW*2, 16), 0, BTOP, BZ, 0, Math.PI/2, "velvet", col);
+      // the arms: a panel, a roll along the top of it, a scroll at the front
       for(const q of [-1,1]){
-        P(boxGeo(0.17, ARMY-0.16, DEEP-0.06, UV), q*AX, (ARMY+0.16)/2, 0,
+        P(boxGeo(AW, ATOP-0.36, HD*2-0.02, UV), q*AX, (ATOP+0.36)/2, 0.01,
           0, 0, "velvet", col);
-        P(new T.CylinderGeometry(AROLL, AROLL, DEEP-0.06, 14), q*AX, ARMY, 0,
+        P(new T.CylinderGeometry(AR, AR, HD*2-0.02, 16), q*AX, ATOP, 0.01,
           Math.PI/2, 0, "velvet", col);
-        for(const e of [-1,1])
-          P(new T.SphereGeometry(AROLL,12,10), q*AX, ARMY, e*(DEEP-0.06)/2,
-            0, 0, "velvet", col);
-        P(new T.CylinderGeometry(0.020,0.020,DEEP-0.06,8), q*AX+q*AROLL*0.72,
-          ARMY+AROLL*0.60, 0, Math.PI/2, 0, "velvet", D);      // the welt over it
+        /* The scroll face is the ARM's colour, not the cushion's. In the
+           lighter tone it stood out as a pale coin stuck on the front of
+           each arm — a scroll is read from its shape, and giving it its
+           own colour makes it a separate object instead of an end. */
+        P(new T.CylinderGeometry(AR+0.004, AR+0.004, 0.035, 16), q*AX, ATOP, HD-0.012,
+          Math.PI/2, 0, "velvet", col);
+        /* ONE CONTINUOUS LINE OF STUDS up the front of the arm and over the
+           scroll, as in the photograph. Seven of them in a ring round the
+           scroll on its own, at this scale, is a face. */
+        for(let i=0;i<6;i++){
+          const u=S(q*AX, HD+0.012);
+          m.P("brass", new T.SphereGeometry(0.010,6,5), u[0], RD+0.40+i*0.050, u[1],
+              0, BRD);
+        }
+        for(let i=0;i<4;i++){
+          const a=-0.35+i*0.62, u=S(q*AX+Math.cos(a)*(AR+0.006), HD+0.010);
+          m.P("brass", new T.SphereGeometry(0.010,6,5), u[0],
+              RD+ATOP+Math.sin(a)*(AR+0.006), u[1], 0, BRD);
+        }
       }
-      // the back: a filled flank with a roll over it, same as the arms
-      P(boxGeo(AX*2+0.17, BTOP-0.20, 0.20, UV), 0, (BTOP+0.20)/2, -DEEP/2+0.09,
-        0, 0, "velvet", col);
-      P(new T.CylinderGeometry(0.115,0.115,AX*2+0.17,16), 0, BTOP, -DEEP/2+0.09,
-        Math.PI/2, 0, "velvet", col);
-      for(const e of [-1,1])
-        P(new T.SphereGeometry(0.115,12,10), e*(AX+0.085), BTOP, -DEEP/2+0.09,
+      /* THE WINGS. This is the whole chair. They come forward off the top
+         of the back, flush with the outside of the arms, and stop just
+         above where the arm roll passes under them. */
+      for(const q of [-1,1]){
+        P(boxGeo(AW, WTOP-0.74, WZ1-WZ0, UV), q*AX, (WTOP+0.74)/2, (WZ0+WZ1)/2,
           0, 0, "velvet", col);
-      /* THE TWO SOFT PIECES. Everything above is the chair; these two are
-         what you sit on, and they are the only parts that catch the light
-         like a pillow rather than like a table. */
-      P(SPH(1.10, 0.30, 1.02), 0, 0.455, 0.02, 0, 0, "velvet", L);
-      P(SPH(1.16, 0.86, 0.34), 0, 0.76, -DEEP/2+0.235, -0.10, 0, "velvet", L);
-      P(new T.CylinderGeometry(0.030,0.030,0.60,8), 0, 0.515, 0.345,
-        Math.PI/2, 0, "velvet", D);                       // piping on the seat front
-      for(let r2=0;r2<3;r2++) for(let i=0;i<(r2%2?2:3);i++){
-        const dx=(r2%2? -0.14+i*0.28 : -0.28+i*0.28), y=0.60+r2*0.16;
-        const q=S(dx, -DEEP/2+0.33-(y-0.76)*0.10);
-        m.P("brass", new T.SphereGeometry(0.018,8,6), q[0], RD+y, q[1], 0, BRD);
+        P(new T.CylinderGeometry(WR, WR, WZ1-WZ0, 14), q*AX, WTOP, (WZ0+WZ1)/2,
+          Math.PI/2, 0, "velvet", col);                      // rounded along the top
+        P(new T.CylinderGeometry(WR, WR, WTOP-0.74, 14), q*AX, (WTOP+0.74)/2, WZ1,
+          0, 0, "velvet", col);                              // and round the front
       }
-      m.col(cx-0.50, cx+0.50, cz-0.48, cz+0.48, RD, RD+0.54);
-      addSeat(W(cx), Z(cz+0.04), GY+RD+0.58, ry, "AN ARMCHAIR");
+      /* THE BUTTONED PANEL fills the whole span between the wings and runs
+         from the cushion to the crown, so from the front the chair is a
+         tufted field framed by two wings and two arms — which is the one
+         view of a wing chair everybody has seen. */
+      P(boxGeo(AX*2-AW+0.06, BTOP-SEATT+0.06, 0.15, UV), 0, (BTOP+SEATT)/2+0.02,
+        BZ+BD/2, 0, 0, "velvet", L);
+      for(let r2=0;r2<6;r2++){
+        const n=r2%2?3:4, y=SEATT+0.09+r2*0.088;
+        for(let i=0;i<n;i++){
+          const dx=(n===4? -0.21+i*0.14 : -0.14+i*0.14);
+          const u=S(dx, BZ+BD/2+0.070);
+          m.P("brass", new T.SphereGeometry(0.016,8,6), u[0], RD+y, u[1], 0, BRD);
+        }
+      }
+      // the loose cushion, with a rolled front edge
+      P(boxGeo(SX*2, 0.15, SZ*2, UV), 0, SEATT-0.075, 0.01, 0, 0, "velvet", L);
+      P(new T.CylinderGeometry(0.075,0.075,SX*2,14), 0, SEATT-0.075, SZ+0.01,
+        0, Math.PI/2, "velvet", L);
+      // studs along the front of the seat box, as in the photograph
+      for(let i=0;i<9;i++){
+        const u=S(-0.32+i*0.08, HD-0.015);
+        m.P("brass", new T.SphereGeometry(0.012,6,5), u[0], RD+0.21, u[1], 0, BRD);
+      }
+      m.col(cx-0.48, cx+0.48, cz-0.48, cz+0.48, RD, RD+0.56);
+      addSeat(W(cx), Z(cz+0.04), GY+RD+SEATT+0.06, ry, "AN ARMCHAIR");
     };
     const lowTable=(tx,tz)=>{
       m.B("oak", 1.16, 0.07, 0.74, tx, RD+0.42, tz, 0.7, 0, "#7a4a28");
@@ -1358,11 +1410,11 @@
       m.P("carpet", boxGeo(2.64, 0.012, 1.96, 0.55), q[0], RD+0.034, q[1], 0.1, "#8a5a46", 0, 0);
     }
     lowTable(-44.6, 43.9);
-    chair(-45.9, 43.3, -1.05, "#5e1e1c", "#38100e", "#742824");
-    chair(-43.4, 44.6,  2.05, "#4e3814", "#2a1d08", "#5e4418");
+    chair(-45.9, 43.3, -1.05, "#3c2a1e", "#20160f", "#4a3626");
+    chair(-43.4, 44.6,  2.05, "#33241b", "#19110c", "#40301f");
     lowTable(-40.4, 44.9);
-    chair(-41.7, 44.3, -1.20, "#4e3814", "#2a1d08", "#5e4418");
-    chair(-39.2, 45.6,  1.95, "#5e1e1c", "#38100e", "#742824");
+    chair(-41.7, 44.3, -1.20, "#33241b", "#19110c", "#40301f");
+    chair(-39.2, 45.6,  1.95, "#3c2a1e", "#20160f", "#4a3626");
     /* The piano. An upright against the west wall with the lid up, a stool
        pushed in, and a glass left on the top — which is the detail that
        says somebody played it tonight rather than that one is kept here. */

@@ -141,7 +141,7 @@
           0.42, 0, "#8d877c");
       m.col(CX0, VX0, q[0], q[1], RD-1, RD+VH+0.5);
     }
-    m.B("concrete", VX0-CX0, 0.45, CZ1-CZ0+WT*2, (CX0+VX0)/2, RD+VH+0.225,
+    m.B("concrete", VX0-CX0+0.12, 0.45, CZ1-CZ0+WT*2, (CX0+VX0)/2-0.06, RD+VH+0.225,
         (CZ0+CZ1)/2, 0.5, 0, "#6e5a4a");
     // dado and plaster, both sides of the corridor and round the vestibule
     /* Same convention as the speakeasy's line(): ry 0 or pi means the run
@@ -280,7 +280,7 @@
       const sd=q===CZ0?1:-1;
       m.B("plaster", WT+0.10, 2.34, 0.10, AX1+WT/2, RD+1.17, q+sd*0.005, 0.5, 0, "#6e5234");
     }
-    m.B("plaster", WT+0.10, 0.10, CZ1-CZ0+0.18, AX1+WT/2, RD+2.31, (CZ0+CZ1)/2,
+    m.B("plaster", WT+0.18, 0.10, CZ1-CZ0+0.18, AX1+WT/2, RD+2.31, (CZ0+CZ1)/2,
         0.5, 0, "#6e5234");
     m.B("brass", 0.06, 0.06, CZ1-CZ0+0.24, AX1-0.03, RD+2.39, (CZ0+CZ1)/2, 0.4, 0, GILT);
     // colliders: four walls, from well below the pit to above the fly tower
@@ -353,10 +353,11 @@
         for(let i=0;i<Math.round(L/1.25);i++){
           const u=b[0]+L*((i+0.5)/Math.round(L/1.25));
           if(cut && u>SDX0-0.6 && u<SDX1+0.6) continue;   // not across the door
-          m.B("oak", 0.96, 1.26, 0.06, u, base+1.02,
+          // 0.035/0.05 put both panels' BACK faces on the lining plane
+          m.B("oak", 0.96, 1.26, 0.05, u, base+1.02,
               q[0]+(q[1]===0?0.035:-0.035), 0.6, 0, "#5e3f26");
-          m.B("oak", 0.80, 1.10, 0.09, u, base+1.02,
-              q[0]+(q[1]===0?0.05:-0.05), 0.6, 0, OAKM);
+          m.B("oak", 0.80, 1.10, 0.08, u, base+1.02,
+              q[0]+(q[1]===0?0.062:-0.062), 0.6, 0, OAKM);
         }
       }
       for(let i=0;i<9;i++)
@@ -392,13 +393,16 @@
        is a dark panelled apron from the pit floor to the lip, with a gilt
        moulding along the top of it, and it is one of the two or three
        things in a theatre you look at most. */
-    m.B("oak", 0.26, 0.26, AZ1-AZ0, STGX-0.13, STGY-0.13, (AZ0+AZ1)/2, 0.5, 0, OAKD);
-    m.B("brass", 0.32, 0.09, AZ1-AZ0, STGX-0.16, STGY-0.30, (AZ0+AZ1)/2, 0.4, 0, GILT);
-    m.B("oak", 0.20, STGY-0.34-PITY, AZ1-AZ0, STGX-0.10, (STGY-0.34+PITY)/2,
+    /* Each of these is shifted 2 cm west so that none of their east faces
+       lands on x = STGX, which is where the stage's own mass ends. Eleven
+       square metres of the stage front was fighting its own slab. */
+    m.B("oak", 0.26, 0.26, AZ1-AZ0-0.24, STGX-0.15, STGY-0.13, (AZ0+AZ1)/2, 0.5, 0, OAKD);
+    m.B("brass", 0.32, 0.09, AZ1-AZ0-0.24, STGX-0.18, STGY-0.30, (AZ0+AZ1)/2, 0.4, 0, GILT);
+    m.B("oak", 0.20, STGY-0.34-PITY, AZ1-AZ0-0.24, STGX-0.12, (STGY-0.34+PITY)/2,
         (AZ0+AZ1)/2, 0.5, 0, "#3a2418");
     for(let i=0;i<Math.round((AZ1-AZ0)/1.3);i++){      // the panelling in it
       const z=AZ0+0.65+i*1.3;
-      m.B("oak", 0.07, STGY-0.60-PITY-0.2, 1.06, STGX-0.03, (STGY-0.60+PITY+0.2)/2,
+      m.B("oak", 0.07, STGY-0.60-PITY-0.2, 0.98, STGX-0.03, (STGY-0.60+PITY+0.2)/2,
           z, 0.5, 0, "#4a3020");
       m.B("brass", 0.04, 0.04, 1.16, STGX-0.015, STGY-0.52, z, 0.4, 0, GILT);
     }
@@ -420,7 +424,7 @@
     for(const q of [[AZ0+7.5, AZ0+7.62],[AZ1-7.62, AZ1-7.5]])
       m.B("oak", 1.80, STLY-PITY, q[1]-q[0], STGX+0.90, (STLY+PITY)/2,
           (q[0]+q[1])/2, 0.5, 0, "#3a2418");
-    m.B("oak", 0.14, STLY-PITY, AZ1-AZ0-15.0, STGX+1.87, (STLY+PITY)/2,
+    m.B("oak", 0.14, STLY-PITY, AZ1-AZ0-15.0, STGX+1.90, (STLY+PITY)/2,
         (AZ0+AZ1)/2, 0.5, 0, "#3a2418");
     /* AND THE RAIL ITSELF IS SOLID. Without it you walk off the front
        cross-aisle straight into the orchestra pit, which is a metre and a
@@ -486,7 +490,7 @@
        measured from the body, not from the foot. */
     m.col(BALX+0.45, AX1+WT, AZ0, AZ1, FLOORB, BALY-0.05);
     // a gilt soffit band under the front edge, lit from behind
-    m.B("brass", 0.30, 0.30, AZ1-AZ0, BALX-0.15, BALY-0.44, (AZ0+AZ1)/2, 0.4, 0, GILT);
+    m.B("brass", 0.30, 0.30, AZ1-AZ0, BALX-0.18, BALY-0.44, (AZ0+AZ1)/2, 0.4, 0, GILT);
     m.P("sconce", planeGeo(AZ1-AZ0-0.3, 0.22, 0), BALX-0.32, BALY-0.70, (AZ0+AZ1)/2,
         -Math.PI/2, "#ffb05a", 0, 0);
 
@@ -528,8 +532,10 @@
       m.P("carpet", boxGeo(GO-0.06, 0.012, CA1-CA0-0.46, 0.5), x0+GO/2, ty+0.048,
           (CA0+CA1)/2, 0, CARP, 0, 0);
       m.flat(x0-0.04, x1+0.04, CA0-0.10, CA1+0.10, ty);
-      m.B("concrete", GO+0.06, 0.40, CA1-CA0+0.30, x0+GO/2, ty-0.26, (CA0+CA1)/2,
-          0.5, 0, "#8a847a");                       // the stringer under it
+      // exactly GO wide, so consecutive stringers BUTT instead of overlapping:
+      // at GO+0.06 every neighbouring pair shared its two side faces
+      m.B("concrete", GO, 0.40, CA1-CA0+0.30, x0+GO/2, ty-0.26, (CA0+CA1)/2,
+          0.5, 0, "#8a847a");
     }
     // the two cheeks, with a brass rail running down each on raking standards
     for(const sd of [-1,1]){
@@ -557,7 +563,11 @@
     const HEAD=STGY+9.20;
     // the piers
     for(const q of [[AZ0, PZ_0],[PZ_1, AZ1]]){
-      m.B("plaster", 1.40, HEAD-STLY, q[1]-q[0], STGX+0.70, (HEAD+STLY)/2,
+      /* The pier stops 8 cm under the gilt cap that crowns it, and the
+         entablature's underside drops 10 cm into both. All three used to
+         top out on exactly HEAD — twenty-seven square metres of coplanar
+         horizontal faces stacked three deep over the proscenium. */
+      m.B("plaster", 1.40, HEAD-0.08-STLY, q[1]-q[0], STGX+0.70, (HEAD-0.08+STLY)/2,
           (q[0]+q[1])/2, 0.5, 0, "#6e5234");
       m.col(STGX, STGX+1.40, q[0], q[1], PITY-1, HEAD);
       // fluting
@@ -568,11 +578,11 @@
           (q[0]+q[1])/2, 0.4, 0, GILT);
     }
     // the entablature over the opening, and the tympanum above it
-    m.B("plaster", 1.40, 1.30, PW+0.6, STGX+0.70, HEAD+0.65, (AZ0+AZ1)/2, 0.5, 0, "#6e5234");
+    m.B("plaster", 1.40, 1.30, PW+0.6, STGX+0.70, HEAD+0.55, (AZ0+AZ1)/2, 0.5, 0, "#6e5234");
     m.B("brass", 1.70, 0.30, PW+0.9, STGX+0.70, HEAD+0.15, (AZ0+AZ1)/2, 0.4, 0, GILT);
     m.B("brass", 1.70, 0.26, PW+0.9, STGX+0.70, HEAD+1.32, (AZ0+AZ1)/2, 0.4, 0, GILT);
-    m.B("plaster", 1.20, 12.00-(HEAD+1.30), PW+0.6, STGX+0.60,
-        (HEAD+1.30+12.00)/2, (AZ0+AZ1)/2, 0.5, 0, "#6e5234");
+    m.B("plaster", 1.20, 12.00-(HEAD+1.14), PW+0.6, STGX+0.60,
+        (HEAD+1.14+12.00)/2, (AZ0+AZ1)/2, 0.5, 0, "#6e5234");
     m.col(STGX, STGX+1.40, PZ_0, PZ_1, HEAD, 13.0);
     /* A SUNBURST over the arch, which is the one piece of ornament in the
        building that is trying. Forty gilt rays off a boss, lit from behind:
@@ -718,7 +728,7 @@
       const bx0=STGX+4.2+k*6.4, bz=sd>0?AZ0+0.02:AZ1-0.02, inw=sd>0?1:-1;
       const by=STLY+4.6;
       m.B("plaster", 4.0, 0.34, 2.2, bx0, by, bz+inw*1.1, 0.5, 0, "#6e5234");
-      m.B("velvet", 4.0, 0.92, 0.24, bx0, by+0.63, bz+inw*2.2, 2.2, 0, OX);
+      m.B("velvet", 4.24, 0.98, 0.24, bx0, by+0.61, bz+inw*2.2, 2.2, 0, OX);
       for(const q of [-1,1])
         m.B("velvet", 0.24, 0.92, 2.2, bx0+q*1.88, by+0.63, bz+inw*1.1, 2.2, 0, OX);
       m.B("brass", 4.2, 0.12, 2.4, bx0, by+1.12, bz+inw*1.1, 0.4, 0, GILT);
@@ -890,44 +900,68 @@
     m.P("sconce", planeGeo(0.40, 0.15, 0), (SDX0+SDX1)/2, FY+SDH+0.34, AZ0-0.01,
         Math.PI, "#8cff9e", 0, 0);
 
-    /* ---- the shell: two legs and a room, all the same bare box -------- */
-    const box=(x0,x1,z0,z1,h)=>{
-      m.B("concrete", x1-x0+WT2*2, 0.50, z1-z0+WT2*2, (x0+x1)/2, FY-0.25,
-          (z0+z1)/2, 0.5, 0, "#7a746a");
+    /* ---- the shell --------------------------------------------------
+       THE SLABS DO NOT OVERLAP AND THE WALLS GO ALL THE WAY ROUND. Both
+       halves of that were wrong on the first build. Each leg drew its own
+       floor and ceiling with a half-metre of overhang, so at the corner two
+       floors and two ceilings sat on the same plane and fought; and leg
+       two's north side was built from the wrong pair of x values, so nine
+       metres of it was simply missing and you could see out of the
+       building. Three rectangles that BUTT, and every side of every leg
+       listed once. -------------------------------------------------- */
+    const SL=(x0,x1,z0,z1,h)=>{                       // one floor and one ceiling
+      m.B("concrete", x1-x0, 0.50, z1-z0, (x0+x1)/2, FY-0.25, (z0+z1)/2, 0.5, 0, "#7a746a");
       m.P("concrete", planeGeo(x1-x0, z1-z0, 0.5), (x0+x1)/2, FY+0.006, (z0+z1)/2,
           0, FLR, -Math.PI/2, 0);
+      m.B("concrete", x1-x0, 0.50, z1-z0, (x0+x1)/2, FY+h+0.25, (z0+z1)/2, 0.5, 0, "#4a443c");
       m.flat(x0-0.3, x1+0.3, z0-0.3, z1+0.3, FY);
-      m.B("concrete", x1-x0+WT2*2, 0.50, z1-z0+WT2*2, (x0+x1)/2, FY+h+0.25,
-          (z0+z1)/2, 0.5, 0, "#4a443c");
       m.voidAt(x0-0.6, x1+0.6, z0-0.6, z1+0.6, FY-1.0, FY+h+0.4, FY);
     };
+    /* EVERY OUTER EDGE OVERSAILS THE WALL BY 8 CM. Flush with it, the
+       slab's edge face and the wall's outer face are the same plane and
+       fight — twenty-two square metres of that, which is most of the
+       flicker in here. The edges where two slabs MEET stay exact, because
+       butting is free: those two faces point opposite ways and one is
+       culled. Oversail the outside, butt the inside. */
+    const OS=0.08;
+    SL(L1X0-WT2-OS, L1X1+WT2+OS, L2Z1,         L1Z1+WT2+OS, CH);
+    SL(L2X0-WT2,    L1X1+WT2+OS, L2Z0-WT2-OS,  L2Z1,        CH);
+    SL(EX0-WT2-OS,  L2X0-WT2,    EZ0-WT2-OS,   EZ1+WT2+OS,  EH);
     const wall=(x0,x1,z0,z1,h)=>{
       m.B("concrete", x1-x0, h+0.5, z1-z0, (x0+x1)/2, FY+(h+0.5)/2-0.1,
           (z0+z1)/2, 0.5, 0, "#7a746a");
       m.col(x0, x1, z0, z1, FY-1, FY+h+0.6);
     };
-    box(L1X0, L1X1, L1Z0, L1Z1, CH);
-    box(L2X0, L2X1, L2Z0, L2Z1, CH);
-    box(EX0, EX1, EZ0, EZ1, EH);
-    // leg one's two sides, with the hall's wall as its head
-    wall(L1X0-WT2, L1X0, L1Z0, L1Z1+WT2, CH);
-    wall(L1X1, L1X1+WT2, L2Z1, L1Z1+WT2, CH);
-    // leg two: the far side, and the stub that makes the corner a corner
-    wall(L2X0-WT2, L2X1+WT2, L2Z0-WT2, L2Z0, CH);
-    wall(L1X1, L2X1+WT2, L2Z1, L2Z1+WT2, CH);
-    /* NO WALL AT THE WEST END OF LEG TWO. There was one, and it stood
-       across the only way into the room at the end — the corridor's far
-       wall and the room's near wall are the same wall, and the room's own
-       east pieces already build it with the doorway left out of them. */
-    // the end room
+    // LEG ONE: west side, east side. Its head is the hall's own wall.
+    /* Leg one's side walls start 12 cm BEFORE the corner, so their end
+       faces are buried in leg two rather than landing on the plane where
+       the two ceiling slabs meet. */
+    wall(L1X0-WT2, L1X0, L2Z1-0.12, L1Z1+WT2, CH);
+    wall(L1X1, L1X1+WT2, L2Z1-0.12, L1Z1+WT2, CH);
+    // LEG TWO: south side the whole way, north side up to leg one's west
+    // wall, and the east end, which was open to nothing at all.
+    // reaching 10 cm PAST the slab edge at L2X0-WT2, so its own west face
+    // is hidden under the end room's ceiling instead of sharing that plane
+    wall(L2X0-WT2-0.10, L1X1, L2Z0-WT2, L2Z0, CH);
+    /* AT EVERY L-CORNER ONE WALL OWNS IT AND THE OTHER STOPS SHORT. Run
+       both to the corner and they overlap, and two overlapping walls share
+       their outer faces — 1.55 m2 per corner, four corners back here. */
+    wall(L2X0-WT2, L1X0-WT2, L2Z1, L2Z1+WT2, CH);
+    // stopping where leg one's side walls now start, so the two butt
+    wall(L1X1, L1X1+WT2, L2Z0-WT2, L2Z1-0.12, CH);
+    // THE END ROOM: three sides, and the fourth with the doorway in it
     wall(EX0-WT2, EX0, EZ0-WT2, EZ1+WT2, EH);
-    wall(EX0-WT2, EX1+WT2, EZ0-WT2, EZ0, EH);
-    wall(EX0-WT2, EX1+WT2, EZ1, EZ1+WT2, EH);
-    wall(EX1, EX1+WT2, EZ0, L2Z0, EH);
-    wall(EX1, EX1+WT2, L2Z1, EZ1, EH);
-    // the ceiling step where the room is taller than the corridor
-    m.B("concrete", 0.50, EH-CH+0.5, L2Z1-L2Z0, EX1+0.25, FY+CH+(EH-CH+0.5)/2,
-        (L2Z0+L2Z1)/2, 0.5, 0, "#4a443c");
+    wall(EX0, EX1+WT2, EZ0-WT2, EZ0, EH);      // the west wall owns both of
+    wall(EX0, EX1+WT2, EZ1, EZ1+WT2, EH);      // this room's west corners
+    wall(EX1, EX1+WT2, EZ0, L2Z0-WT2, EH);      // leg two's own walls own
+    wall(EX1, EX1+WT2, L2Z1+WT2, EZ1, EH);      // the two corners at the door
+    // the step in the ceiling where the room is taller than the corridor
+    /* The step between the two ceiling heights, OVERSAILING the joint it
+       closes on all four sides — flush with it, its west face and the end
+       room's ceiling slab's edge were the same plane, and its north face
+       and leg two's slab edge likewise. */
+    m.B("concrete", WT2+0.18, EH-CH+0.5, L2Z1-L2Z0+0.20, EX1-0.28,
+        FY+CH+(EH-CH+0.5)/2, (L2Z0+L2Z1)/2, 0.5, 0, "#4a443c");
 
     /* ---- render, and forty years of damp on it ----------------------- */
     const face=(ry,px,pz,a0,a1,h)=>{
@@ -993,7 +1027,9 @@
     /* ---- the doors that do not open ----------------------------------- */
     for(let i=0;i<5;i++){
       const z=L1Z1-2.0-i*2.6;
-      m.B("concrete", 0.10, 2.06, 0.94, L1X1-0.05, FY+1.03, z, 0.5, 0, "#625c54");
+      // 0.14 deep, so the recess's own back face clears the skirting that
+      // runs past it 4 cm off the wall
+      m.B("concrete", 0.14, 2.06, 0.94, L1X1-0.07, FY+1.03, z, 0.5, 0, "#625c54");
       m.B("oak", 0.06, 1.98, 0.86, L1X1-0.12, FY+0.99, z, 0.6, 0, "#4e4238");
       m.B("oak", 0.04, 0.78, 0.70, L1X1-0.155, FY+1.42, z, 0.6, 0, "#584a3e");
       m.B("oak", 0.04, 0.60, 0.70, L1X1-0.155, FY+0.52, z, 0.6, 0, "#584a3e");

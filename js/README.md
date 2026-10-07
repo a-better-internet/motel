@@ -468,6 +468,25 @@ is the four things a chair has — legs you can see daylight under, arms
 standing clear of the seat, a back taller than the arms with a roll on it,
 and a cushion with a front edge.
 
+**Model the thing that has a silhouette.** Four attempts at an armchair for
+the speakeasy were all reported as "a pile of random shapes", and the
+fourth was a correctly proportioned club chair. A club chair is a box with
+two smaller boxes on it: at this fidelity that is what it looks like,
+however right the dimensions are. The fifth was a WING chair, off a
+photograph, and it read immediately — because a back twice the height of
+the arms with two wings coming forward off it to meet them is a shape
+nothing else in the world has. **When a model will not read, the answer is
+usually a different object, not a better version of the same one.**
+
+Two things were also wrong in the code the whole time and neither was
+visible in a candlelit room at three metres: the back's roll was given `rx`
+instead of `rz`, so it ran front-to-back as a 74 cm log driven through the
+chair at shoulder height, and the arm's scroll face was in the cushion's
+lighter tone, so it read as a pale coin stuck on each arm. Both were
+obvious within seconds of rendering the chair LIT and CLOSE. `free.js`
+takes a `lit` flag now and it should be the first thing used on any new
+object, not the last.
+
 **Upholstery is not made of boxes.** Three goes at the speakeasy's
 armchairs were built out of rectangular prisms with correct dimensions on
 them, and all three read as flat-pack — because a box has eight hard
@@ -494,6 +513,18 @@ proscenium's tie-backs had the mirror of the same fault and read as two
 gold slivers. When a round thing looks wrong, check which axis the
 primitive was born with before touching anything else.
 
+And work out WHICH rotation, every time, for every piece: within one
+object the answer differs per piece. The armchair's arm rolls run front to
+back, so their axis goes to local Z and `rx = pi/2` is right; its back roll
+runs side to side, so its axis goes to local X, which is `rz = pi/2`. The
+back roll was given `rx` for four rounds and came out as a 74 cm log driven
+through the middle of the chair from front to back, sticking out at
+shoulder height either side. Every attempt to fix the chair reproportioned
+everything around that log. **When a model keeps reading as "a pile of
+random shapes" after the proportions are right, one of the pieces is not
+where the code says it is** — render it alone and large before changing
+anything else.
+
 **Dig where the hill is thick.** `prof41.js` prints the ground profile in a
 local frame, which is how the auditorium's ceiling was set: it climbs in six
 steps from 2.6 m under the datum at the door to 12 m over the stage, and
@@ -502,6 +533,38 @@ and sixty centimetres of slab. The hall is twenty-two metres tall at the
 proscenium and never comes within two metres of the surface, and the reason
 it can be is that it runs into the flank of a mesa. A big room underground
 is a surveying problem before it is a modelling one.
+
+## The checks that are not optional
+
+Asked for, in round 43, after four rounds of the same three faults being
+reported from screenshots instead of being caught here. **Anything added to
+this world is not finished until all four of these have been run over it**,
+and "it is only a corridor" is exactly the kind of addition that fails them.
+
+1. **`coplanar.js` over the new region's box.** Every time. The pairs that
+   matter have `dp` at 0.0000 and at least one opaque bucket; pairs between
+   two `depthWrite:false` decal buckets are noise. One omission in round 42
+   left twenty-two square metres of flicker in a corridor nobody had
+   scanned.
+2. **`doors18.js`, and a `walk39.js` polyline through the new space and
+   back out.** Collision and geometry disagree constantly — a probe walking
+   clean through a wall is the signature.
+3. **Name every wall of every room out loud, in order, and check the list
+   against the code.** Leg two of the backstage corridor was missing nine
+   metres of its north side and the whole of its east end, because the
+   wall-drawing calls were written by eye rather than off a list. Four
+   sides per rectangle, and a rectangle with a doorway in it is two pieces
+   plus a head.
+4. **A free-camera shot of it, pitched, from inside — and for anything
+   object-sized, a close one with `free.js`'s `lit` flag on.** Judging a
+   model in the lighting it will finally be seen in is how a chair with a
+   log through it survived four rounds. The ray
+   probes cannot see a wrong colour, a stretched map or a cylinder pointing
+   the wrong way, and all three of those have shipped.
+
+And two faults that have now each cost three rounds, so they get their own
+line: a decal must never be a free crop of a map (see cellGeo), and a
+primitive's axis must be worked out rather than guessed (see below).
 
 ## Checking it still works
 

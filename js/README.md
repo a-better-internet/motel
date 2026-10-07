@@ -626,6 +626,29 @@ A new emissive bucket goes through `emitMat()` in `15-bake.js`, which gives
 it a near-black diffuse: an emissive surface that also takes room light adds
 the two together and clips.
 
+### What `float.js` calls floating, and what it means
+
+Two thirds of its output is not a fault, and knowing which two thirds saves
+a round. It unions primitives whose boxes touch and then reports a cluster
+with nothing beneath it — but it **skips oversized slabs from the index**
+(anything spanning more than 600 grid cells), and the highway, the car
+park and the terrain rings are all oversized slabs. So:
+
+* anything standing on the road or the lot — the payphone, the speed signs,
+  the bus bench — reads as floating by half a metre. It is not.
+* anything bolted to a wall — a poster, a shelf, a sconce, the whole
+  contents of the projection room — reads as floating. It is not.
+* a plant in the far desert reads as floating by ~0.5 m, because the only
+  thing under it is a terrain ring. Check it against
+  `Terrain.groundAt(x,z)`, not against the report: scatter is placed on the
+  drawn surface, and in the far field that sits up to a metre above the
+  analytic `heightAt`.
+
+What is a real find is a cluster with a *neighbour* it should be touching
+and is not — the six laundry sheets hanging 15 cm below the wire they were
+pegged to, which is exactly the shape of fault it exists to catch. Use
+`at44.js` to read the cluster back as real boxes before believing it.
+
 ### A shadow camera does not update its own projection
 
 `OrthographicCamera` builds its projection matrix in its constructor and

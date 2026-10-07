@@ -22,7 +22,13 @@
    ground there is flat to within a few centimetres, so a metre still
    covers the crack several times over, and nothing reaches the ceiling of
    anything. Anything excavated under this terrain has to be listed here.*/
-const SKIRT_GAPS=[{x0:-141, x1:-106, z0:370, z1:398, drop:1.2}];
+/* Two boxes now: the speakeasy, and the hall west of it. The hall's ceiling
+   climbs with the mesa it is cut into, so the cap has to hold all the way
+   out to x = -194 — the apron is 1.2 m there as everywhere else, which is
+   several times the crack between two levels of detail and nowhere near
+   anything's roof. ANYTHING EXCAVATED UNDER THIS TERRAIN GOES IN THIS LIST. */
+const SKIRT_GAPS=[{x0:-141, x1:-106, z0:370, z1:398, drop:1.2},
+                  {x0:-196, x1:-130, z0:368, z1:402, drop:1.2}];
 function skirtDrop(x,z,drop){
   for(let i=0;i<SKIRT_GAPS.length;i++){
     const g=SKIRT_GAPS[i];

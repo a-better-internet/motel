@@ -403,6 +403,56 @@ pool of nine that follows the camera and they are all spoken for. An
 additive disc on the table under each flame costs one transparent quad and
 is what makes the room read as candlelit.
 
+**A HOLE GOES THROUGH EVERY COURSE, INCLUDING THE ONES YOU CANNOT SEE.**
+The shelter's stairwell was reported blocked three times. The floor above
+it was correctly built in three pieces round the opening both times it was
+"fixed" — and the 80 cm mass of concrete *underneath* that floor was poured
+as one box across the whole footprint, burying the first four treads and
+leaving a continuous surface where the stair should be. Nothing in the file
+reads as a wall across a stair, which is why reading it never found it: a
+ray probe put 64% of the frame on that slab and hit no tread at all. So the
+rule is not "cut the opening in the floor" but **every layer that spans the
+footprint — the flats, the finish, the mass, the fill under a balcony — is
+built with the hole in it**, and the way to be sure is to cast rays rather
+than to read.
+
+**A stair's riser closes the face ABOVE its own tread.** The shelter's
+risers sat at `ty - RISE/2`: the gap between a tread and the NEXT one down,
+which is behind the tread and can never be seen. The flight therefore had
+no risers at all and from above read as a ramp. One step out in either
+direction and a stair stops being a stair.
+
+**Clear width is the structural opening MINUS what you line it with.** A
+reveal that straddles its jamb stands proud into the opening on both sides;
+a 1.10 structural opening with 4.5 cm of reveal each side gives 1.01 of
+clear width, which does not pass a 1.06 leaf. That is a doorway blocked by
+arithmetic rather than by a wall, and it is the subtler half of the reason
+doors here keep coming out shut.
+
+**A setback is measured from the body, not from the foot.** `PLAYER_R` is
+34 cm, so a collider 2 cm behind the edge of a floor still catches someone
+standing on that edge. The auditorium's balcony fill had to come back 45 cm
+before you could take the first step down the stair in front of it.
+
+**The map a bucket carries decides whether a shape has edges.** The
+speakeasy's armchairs were in a `velvet` bucket whose map was `TEX.carpet`
+— a coarse loop pile, which at carpet scale is right and on a 90 cm chair
+is camouflage. They read as lumps however they were modelled. Velvet is
+almost uniform: a fine vertical nap and a broad soft sheen, and nothing
+else. With the right map the silhouette does the work, and the silhouette
+is the four things a chair has — legs you can see daylight under, arms
+standing clear of the seat, a back taller than the arms with a roll on it,
+and a cushion with a front edge.
+
+**Dig where the hill is thick.** `prof41.js` prints the ground profile in a
+local frame, which is how the auditorium's ceiling was set: it climbs in six
+steps from 2.6 m under the datum at the door to 12 m over the stage, and
+every one of those numbers is the measured ground minus two metres of rock
+and sixty centimetres of slab. The hall is twenty-two metres tall at the
+proscenium and never comes within two metres of the surface, and the reason
+it can be is that it runs into the flank of a mesa. A big room underground
+is a surveying problem before it is a modelling one.
+
 ## Checking it still works
 
 The harness in the scratchpad drives a headless build: `sync.sh` mirrors
@@ -419,6 +469,9 @@ the only way to tell a hole in the world from a hole in one mesh, and
 `sink38.js` raycasts down onto the drawn world and reports everywhere
 it stands above the surface the player and the car are given to walk on,
 `walk39.js` walks a polyline and prints the surface height and the zone at
-the end of every leg, and `whatis40.js` casts a grid of rays from a camera
+the end of every leg, `whatis40.js` casts a grid of rays from a camera
 and names what fills the frame by bucket *and* by the triangle's own plane —
-the only thing that finds a wall no source file draws.
+the only thing that finds a wall no source file draws — `free.js` puts the
+camera anywhere and points it anywhere, which `look22.js` cannot do for a
+walking shot, and `prof41.js` and `ground41.js` measure how much rock there
+is over a place you want to dig.

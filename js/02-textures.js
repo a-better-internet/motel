@@ -385,6 +385,40 @@ TEX.soot=(function(){                         // soft stain halo for soffits and
    is a piece of wall rather than a stamp, and the four margins are erased
    so no crop can end on a cut. Pair it with streakGeo: planeGeo would put
    the whole field on every patch and we would be back where we started. */
+/* VELVET. The buckets called `velvet` were carrying TEX.carpet — a coarse
+   loop pile, which at carpet scale is right and on a 90 cm armchair is
+   camouflage. It is the single biggest reason the seating read as "randomly
+   placed blocks": a shape you cannot see the edges of has no shape. Velvet
+   is almost uniform. What it has is nap — a very fine vertical grain — and
+   a broad soft sheen that moves with the light, and that is all this is. */
+TEX.velvet=(function(){
+  const W=96, H=96, c=cvs(W,H), x=c.getContext("2d");
+  let sd=410732; const r=()=>{ sd=(sd*1103515245+12345)&0x7fffffff; return sd/0x7fffffff; };
+  x.fillStyle="#ffffff"; x.fillRect(0,0,W,H);
+  // the nap: fine vertical threads, a few per cent either way
+  for(let i=0;i<W*3;i++){
+    const px=r()*W, w=0.5+r()*1.4, d=r()<0.5;
+    x.fillStyle=(d?"rgba(0,0,0,":"rgba(255,255,255,")+(0.03+r()*0.07).toFixed(3)+")";
+    x.fillRect(px, 0, w, H);
+  }
+  // the sheen: two broad soft bands, so a flat panel is not a flat colour
+  for(const q of [[0.28,0.30,0.055],[0.74,0.26,0.040]]){
+    const g=x.createLinearGradient(0,H*(q[0]-q[1]),0,H*(q[0]+q[1]));
+    g.addColorStop(0,"rgba(255,255,255,0)");
+    g.addColorStop(0.5,"rgba(255,255,255,"+q[2]+")");
+    g.addColorStop(1,"rgba(255,255,255,0)");
+    x.fillStyle=g; x.fillRect(0,0,W,H);
+  }
+  // and the faintest crush, so it is not a gradient either
+  for(let i=0;i<900;i++){
+    x.fillStyle="rgba(0,0,0,"+(r()*0.035).toFixed(3)+")";
+    x.fillRect(r()*W, r()*H, 1+r()*3, 1+r()*2);
+  }
+  const t=setSRGB(new T.CanvasTexture(c));
+  t.wrapS=t.wrapT=T.RepeatWrapping;
+  return t;
+})();
+
 TEX.stain=(function(){
   const N=320, c=cvs(N,N), x=c.getContext("2d");
   let sd=20251007;

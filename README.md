@@ -521,6 +521,32 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   `addBuried` takes the hemisphere light and the sun away from you on the
   stair, which is what makes walking in out of the noon glare feel like
   walking into evening.
+- **The Long Room.** Beside the piano in The Dry Well there is a second
+  door, and behind it a vestibule, and off the vestibule a corridor
+  seventeen metres long with nothing in it but carpet, a dado and a sconce
+  every four metres. The corridor matters more than what it leads to: it is
+  low, straight and dull, and by the end of it you have stopped expecting
+  anything. Then the ceiling leaves.
+
+  You come out onto a balcony at the back of a hall thirty-six metres long
+  and twenty-six wide, with a balustrade of oxblood velvet in front of you
+  and three metres of soffit over your head. The floor drops six metres and
+  the ceiling climbs fifteen, in six coffered steps each one further away,
+  so the room is three metres tall where you are standing and twenty-two
+  at the far end. Eleven raked rows of tip-up seats in two blocks, a grand
+  stair of sixteen straight down the centre of them, four boxes hung on the
+  side walls, three chandeliers stepping away and upward, an orchestra pit
+  with a music stand still in it, and a proscenium twelve metres wide with
+  a swagged red curtain half out, footlights lit and a gilt sunburst eleven
+  metres up over the arch. On the stage there is a chair, a music stand and
+  something under a sheet.
+
+  It fits because the desert west of the shelter is the flank of a mesa:
+  the ground is 1.4 m above the speakeasy's datum at the balcony and 27 m
+  above it over the stage, and the ceiling follows that line up, two metres
+  under the rock the whole way. `prof41.js` measured it. Nothing says what
+  the hall was for, who built it or what was last performed in it. The
+  house lights are on.
 - **A fire lookout on the mesa rim, and a fire road up to it.** Five hundred
   metres north-west and a hundred metres up, on the tabletop of a butte you
   can see from the walkway. You get there on foot: a graded bench eight

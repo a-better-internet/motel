@@ -56,6 +56,7 @@
      anteroom is built BEFORE the room, so it would still be in its
      temporal dead zone and the whole page throws on load. */
   const WT3= 0.34;
+  const SWW= 0.26;        // the shaft's own walls; the hut's slab needs it too
   const CX0 =-9.5, CX1=9.5, CZ0=-8.5, CZ1=9.5;         // the compound fence
   const GT0 =-0.75, GT1=0.75;                          // the gate opening, north run
   const HX0 = 1.20, HX1=4.80, HZ0=0.40, HZ1=5.20;      // the hut, outside faces
@@ -174,14 +175,26 @@
      on it is explained.
      ==================================================================== */
   (function hut(){
-    // slab, with a skirt deep enough that no edge of it floats on the slope
-    /* The mass stops 6 cm below the finished floor and the apron ring that
-       surrounds the hut is a real 5 cm slab rather than a bare collision
-       flat, so the surface you walk on is one layer and the thing under it
-       is another. The mass used to top out at F, which is where the floor
-       slabs top out, and 8 m2 of the two were the same plane. */
-    m.B("concrete", HX1-HX0+1.1, 0.80, HZ1-HZ0+1.1, (HX0+HX1)/2, F-0.46, (HZ0+HZ1)/2,
-        0.45, 0, "#9b948a");
+    /* THE SLAB HAS THE HOLE IN IT. This is the third time the stairwell has
+       been reported blocked and the first time the right thing was looked
+       at: the floor above it was correctly built in three pieces round the
+       opening, and then the 80 cm mass underneath was poured as ONE box
+       across the whole footprint. It filled the shaft from 6 cm under the
+       floor down to 86, which buries the first four treads and leaves you
+       looking at a continuous surface where the stair should be. A ray
+       probe put 64% of the frame on it and did not hit a single tread.
+       ANYTHING WITH A HOLE IN IT HAS TO BE BUILT WITH THE HOLE IN IT — the
+       flats, the finish AND the mass. The three pieces butt, so none of
+       their faces fight, and the shaft's own walls close the two sides of
+       the gap they leave.
+       The mass also stops 6 cm below the finished floor rather than level
+       with it, so the surface you walk on is one layer and the thing under
+       it is another. */
+    for(const q of [[HX0-0.55, HX1+0.55, HZ0-0.55, STOP-0.15],
+                    [HX0-0.55, SW0-SWW, STOP-0.15, HZ1+0.55],
+                    [SW1+SWW, HX1+0.55, STOP-0.15, HZ1+0.55]])
+      m.B("concrete", q[1]-q[0], 0.80, q[3]-q[2], (q[0]+q[1])/2, F-0.46,
+          (q[2]+q[3])/2, 0.45, 0, "#9b948a");
     /* THE APRON IS A RING, NOT A RECTANGLE, and the floor inside is three
        pieces rather than one. A flat laid across the whole footprint is a
        flat across the stairwell as well, and surfaceY takes the highest
@@ -321,7 +334,6 @@
      still leave standing headroom. climb37.js walks it.
      ==================================================================== */
   (function shaft(){
-    const SWW=0.26;                                     // the shaft's own walls
     // (the landing and the two strips of floor either side of the hole are
     //  laid with the hut's own slab, above — one owner per surface)
     /* THE WALLS START WHERE THE HUT ENDS.
@@ -363,12 +375,15 @@
       const ty=F-i*RISE, z0=STOP+(i-1)*GO;
       m.B("stairs", SW1-SW0, 0.055, GO+0.03, (SW0+SW1)/2, ty-0.027, z0+GO/2, 0.7, 0,
           i%2 ? "#b4ac9c" : "#b8b0a0");
-      /* The riser is dropped 3 cm so that both its top and its bottom end
-         up INSIDE a tread rather than half a millimetre under one. At
-         ty-RISE/2 the two were coplanar within the depth buffer's noise and
-         every step in the flight flickered as you came down it. */
-      m.B("concrete", SW1-SW0, RISE, 0.05, (SW0+SW1)/2, ty-0.03-RISE/2, z0+0.025,
-          0.5, 0, CONCD);
+      /* THE RISER CLOSES THE FACE ABOVE ITS OWN TREAD, not below it. It was
+         at ty-RISE/2 — the gap between this tread and the NEXT one down,
+         which is behind the tread and can never be seen — so the flight had
+         no risers at all and read from above as a ramp. It goes from this
+         tread's top to the one above's, at the back of the tread, with both
+         ends buried a couple of centimetres inside the treads they meet so
+         nothing is coplanar with anything. */
+      m.B("concrete", SW1-SW0, RISE+0.01, 0.05, (SW0+SW1)/2, ty+RISE/2-0.025,
+          z0-0.015, 0.5, 0, CONCD);
       // wider than the hole it is in, so there is no sliver of nothing
       // down either side of the flight to drop through
       m.flat(SW0-0.10, SW1+0.10, z0-0.03, z0+GO+0.03, ty);
@@ -415,15 +430,22 @@
         m.C("metal", 0.030,0.030,1.04,8, q, F+0.50, z2, GALV);
       m.col(q-0.07, q+0.07, STOP+0.10, HZ1, F+0.04, F+1.05);
     }
-    // a steel handrail down the wall side, on brackets
-    for(let i=0;i<=STEPS;i+=3){
-      const ty=F-i*RISE, z0=STOP+i*GO;
-      m.C("metal", 0.016,0.016,0.22,6, SW0+0.10, ty+0.78, z0, GALVD, 0, 0, Math.PI/2);
-    }
-    {
+    /* A HANDRAIL ON BOTH WALLS. There was one, on the west side, and the
+       east wall carried the conduit instead at 2.08 m above the nosing —
+       so from the stairhead one side had a rail at hand height and the
+       other had a pipe up by the ceiling, which reads as a railing in the
+       wrong place rather than as a service run. Both sides get the same
+       rail at the same height now, and the conduit moved into the corner
+       where the soffit meets the wall, which is where it would be. */
+    for(const sd of [1,-1]){
+      const wx=sd>0 ? SW0+0.10 : SW1-0.10, rx=sd>0 ? SW0+0.21 : SW1-0.21;
+      for(let i=0;i<=STEPS;i+=3){
+        const ty=F-i*RISE, z0=STOP+i*GO;
+        m.C("metal", 0.016,0.016,0.22,6, wx, ty+0.78, z0, GALVD, 0, 0, Math.PI/2);
+      }
       const pitch=Math.atan2(RISE, GO);
       const L=Math.hypot(SEND-STOP, STEPS*RISE);
-      m.P("metal", new T.CylinderGeometry(0.024,0.024,L,8), SW0+0.21,
+      m.P("metal", new T.CylinderGeometry(0.024,0.024,L,8), rx,
           F-(STEPS*RISE)/2+0.86, (STOP+SEND)/2, 0, "#b0b6b4", Math.PI/2+pitch, 0);
     }
     // colliders: the shaft is a slot you cannot step out of sideways
@@ -466,8 +488,15 @@
     {
       const pitch=Math.atan2(RISE, GO);
       const L=Math.hypot(SEND-STOP, STEPS*RISE);
-      m.P("metal", new T.CylinderGeometry(0.030,0.030,L,6), SW1-0.06,
-          F-(STEPS*RISE)/2+2.08, (STOP+SEND)/2, 0, "#8e8274", Math.PI/2+pitch, 0);
+      // 2.30, tight under the soffit line at 2.42, and thinner: at 2.08 it
+      // sat out in the middle of the wall at exactly the height a pipe is
+      // not, and read as a handrail hung near the ceiling.
+      m.P("metal", new T.CylinderGeometry(0.022,0.022,L,6), SW1-0.05,
+          F-(STEPS*RISE)/2+2.30, (STOP+SEND)/2, 0, "#8e8274", Math.PI/2+pitch, 0);
+      for(let i=2;i<=STEPS;i+=5){                      // on saddles, like a pipe
+        const ty=F-i*RISE, z0=STOP+i*GO;
+        m.C("metal", 0.012,0.012,0.09,6, SW1-0.02, ty+2.30, z0, GALVD, 0, 0, Math.PI/2);
+      }
     }
     push("art", planeGeo(0.40,0.12,0), W(SW0+0.012), GY+TD+1.55, Z(SEND+0.6),
          Math.PI/2, "#6e6a5c", 0, 0);
@@ -757,6 +786,20 @@
      it reads as a different room without being one.
      ==================================================================== */
   const RD=TD-0.65, RH=3.18;
+  /* THE SECOND DOOR, in the west wall beside the piano. What is behind it
+     is built in 14f; all that belongs here is the hole, and the hole has to
+     be cut through every course the wall is made of — the mass, the
+     collider, the oak lining and the plaster above it. Every time one of
+     those has been forgotten the door has been "blocked", so they are all
+     listed together here rather than each near its own course. */
+  /* 1.20 STRUCTURAL FOR A 1.06 LEAF. The reveals straddle the jambs and so
+     stand 4.5 cm proud into the opening on each side; a 1.10 structural
+     opening would have left 1.00 of clear width for a 1.06 door, which is
+     the arithmetic that blocks a doorway without anybody drawing a wall
+     across it. Clear width is the structural opening MINUS what you line
+     it with. */
+  const PZ0=44.75, PZ1=45.95;                       // the opening, in z
+  const PHD=2.24;                                   // and how high it goes
   const PLX=RX1-2.90;                               // the entry platform's edge
   const SB0=42.70, SB1=45.30;                       // the stair bay, in z
   const BARX0=-48.6, BARX1=-38.6, BARZ=48.45;       // the counter
@@ -819,14 +862,19 @@
     };
     wallRun(RX0-WT3, RX1+WT3, RZ0-WT3, RZ0);
     wallRun(RX0-WT3, RX1+WT3, RZ1, RZ1+WT3);
-    wallRun(RX0-WT3, RX0, RZ0, RZ1);
+    wallRun(RX0-WT3, RX0, RZ0, PZ0);
+    wallRun(RX0-WT3, RX0, PZ1, RZ1);
+    m.B("concrete", WT3, RH+0.65-PHD, PZ1-PZ0, RX0-WT3/2, RD+PHD+(RH+0.65-PHD)/2,
+        (PZ0+PZ1)/2, 0.42, 0, "#8d877c");
     wallRun(RX1, RX1+WT3, RZ0, DZ0);
     wallRun(RX1, RX1+WT3, DZ1, RZ1);
     m.B("concrete", WT3, RH+0.65-2.22-0.65, DZ1-DZ0, RX1+WT3/2, TD+2.22+(RH-2.22)/2,
         (DZ0+DZ1)/2, 0.42, 0, "#8d877c");
     m.col(RX0-WT3, RX1+WT3, RZ0-WT3, RZ0, RD-1, RD+RH+0.6);
     m.col(RX0-WT3, RX1+WT3, RZ1, RZ1+WT3, RD-1, RD+RH+0.6);
-    m.col(RX0-WT3, RX0, RZ0, RZ1, RD-1, RD+RH+0.6);
+    m.col(RX0-WT3, RX0, RZ0, PZ0, RD-1, RD+RH+0.6);
+    m.col(RX0-WT3, RX0, PZ1, RZ1, RD-1, RD+RH+0.6);
+    m.col(RX0-WT3, RX0, PZ0, PZ1, RD+PHD, RD+RH+0.6);
     m.col(RX1, RX1+WT3, RZ0, DZ0, RD-1, RD+RH+0.6);
     m.col(RX1, RX1+WT3, DZ1, RZ1, RD-1, RD+RH+0.6);
     m.col(RX1, RX1+WT3, DZ0, DZ1, TD+2.22, RD+RH+0.6);
@@ -892,7 +940,30 @@
     };
     line(0, 0, RZ0+0.02, RX0+0.05, RX1-0.05, RD);                          // north
     line(Math.PI, 0, RZ1-0.02, RX0+0.05, RX1-0.05, RD);                    // south
-    line(Math.PI/2, RX0+0.02, 0, RZ0+0.05, RZ1-0.05, RD);                  // west
+    for(const g of [[RZ0+0.05, PZ0-0.12],[PZ1+0.12, RZ1-0.05]])            // west,
+      line(Math.PI/2, RX0+0.02, 0, g[0], g[1], RD);                        // round the door
+    m.P("oak", planeGeo(PZ1-PZ0+0.24, RH-PHD, 1.9), RX0+0.02, RD+PHD+(RH-PHD)/2,
+        (PZ0+PZ1)/2, Math.PI/2, OAKM, 0, 0);
+    /* The reveal STRADDLES each jamb — 9 cm of lining across a line, not 8
+       butted up against it. Flush, its back face and the wall's cut face
+       are one plane and the frame flickers; this is the rule the shelter
+       door had to learn in round 40 and it applies to every opening. */
+    for(const q of [PZ0, PZ1]){
+      const sd=q===PZ0?1:-1;
+      m.B("oak", WT3+0.10, 2.32, 0.09, RX0-WT3/2, RD+1.16, q+sd*0.005, 0.5, 0, "#4a3426");
+    }
+    m.B("oak", WT3+0.10, 0.09, PZ1-PZ0+0.16, RX0-WT3/2, RD+PHD+0.02, (PZ0+PZ1)/2,
+        0.5, 0, "#4a3426");
+    m.B("brass", 0.05, 0.05, PZ1-PZ0+0.22, RX0-0.04, RD+PHD+0.09, (PZ0+PZ1)/2,
+        0.4, 0, "#c9a24a");
+    makeDoor(XF(W(RX0-0.12), Z(PZ1-0.07), Math.PI/2), 0, GY+RD+0.02, 0,
+             "THE AUDITORIUM", false, 0, "deco");
+    // the lamp over it, so the second door reads as a way out rather than a panel
+    m.B("brass", 0.26, 0.10, 0.34, RX0-0.14, RD+PHD+0.30, (PZ0+PZ1)/2, 0.4, 0, "#b08f3e");
+    m.P("sconce", planeGeo(0.22, 0.30, 0), RX0-0.145, RD+PHD+0.24, (PZ0+PZ1)/2,
+        -Math.PI/2, "#ffd9a0", 0.5, 0);
+    m.lamp(RX0-0.42, RD+PHD+0.18, (PZ0+PZ1)/2,
+           {color:0xffcf8a, intensity:0.80, dist:8.0, decay:1.5, indoor:true, vol:RVOL});
     for(const g of [[RZ0+0.05, DZ0-0.12],[DZ1+0.12, RZ1-0.05]])            // east, round the door
       line(-Math.PI/2, RX1-0.02, 0, g[0], g[1], TD);
     m.P("oak", planeGeo(DZ1-DZ0+0.24, RH-2.30, 1.9), RX1-0.02, TD+2.30+(RH-2.30)/2,
@@ -1026,16 +1097,22 @@
     // the buttoned cushion, as a row of pads with a dimple between each
     for(let i=0;i<Math.round(L/0.62);i++){
       const px=BQX0+0.31+i*0.62;
-      m.P("velvet", boxGeo(0.58, 0.17, 0.74, 0.5), px, SEATY, BQZ+0.58, 0, "#796238", 0, 0);
+      m.P("velvet", boxGeo(0.58, 0.17, 0.74, 0.5), px, SEATY, BQZ+0.58, 0, "#6a2420", 0, 0);
       const g=new T.SphereGeometry(0.30,12,8); g.scale(0.96,0.22,1.18);
-      m.P("velvet", g, px, SEATY+0.035, BQZ+0.58, 0, "#8a7142", 0, 0);
+      m.P("velvet", g, px, SEATY+0.035, BQZ+0.58, 0, "#7c2c26", 0, 0);
     }
+    /* A PIPED FRONT EDGE down the whole run. Without it the bays read as a
+       row of cushions floating over a shadow; the roll is what turns them
+       into one piece of furniture with a front to it. */
+    m.P("velvet", new T.CylinderGeometry(0.075,0.075,L,12), CX, SEATY+0.04, BQZ+0.94,
+        0, "#49120f", 0, Math.PI/2);
+    m.B("oak", L, 0.26, 0.10, CX, SEATY-0.17, BQZ+0.92, 0.5, 0, OAKD);
     // the back: three courses of buttoned pads up to the cap rail
     for(let r=0;r<3;r++)
       for(let i=0;i<Math.round(L/0.52);i++){
         const px=BQX0+0.26+i*0.52;
         m.P("velvet", boxGeo(0.48, 0.30, 0.16, 0.5), px, SEATY+0.24+r*0.30, BQZ+0.30,
-            0, r%2?"#796238":"#6e5a3a", 0, 0);
+            0, r%2?"#6a2420":"#5e1c18", 0, 0);
         m.P("brass", new T.SphereGeometry(0.018,8,6), px, SEATY+0.24+r*0.30, BQZ+0.21,
             0, BRD);
       }
@@ -1183,28 +1260,55 @@
        are turned a few degrees off square on purpose: four chairs set
        parallel to the walls is a waiting room, and the one thing this room
        must not read as is a waiting room. */
-    const chair=(cx,cz,ry,col)=>{
+    /* THE ARMCHAIR, REBUILT. The old one was a 84x46 cm slab with a short
+       panel leaning on the back of it, in a bucket whose map was TEX.carpet
+       — a coarse loop pile, which on a chair is camouflage. From across the
+       room it was a lump. A chair is read from its SILHOUETTE: legs you can
+       see daylight under, arms that stand clear of the seat, a back that is
+       taller than the arms and rolls over at the top, and a cushion with a
+       front edge. Everything here is one of those four things. */
+    const chair=(cx,cz,ry,col,dark)=>{
       const S=(dx,dz)=>[cx+dx*Math.cos(ry)-dz*Math.sin(ry), cz+dx*Math.sin(ry)+dz*Math.cos(ry)];
-      m.B("velvet", 0.84, 0.30, 0.80, cx, RD+0.19, cz, 0.5, ry, col);
-      m.P("velvet", boxGeo(0.72, 0.16, 0.68, 0.5), cx, RD+0.40, cz, ry, col, 0, 0);
-      { const g=new T.SphereGeometry(0.33,12,8); g.scale(1.04,0.24,0.98);
-        m.P("velvet", g, cx, RD+0.44, cz, ry, col, -0.02, 0); }
-      { const b=S(0,-0.38);
-        m.P("velvet", boxGeo(0.82, 0.70, 0.22, 0.5), b[0], RD+0.66, b[1], ry, col, -0.16, 0);
-        for(let i=0;i<3;i++) for(let r=0;r<2;r++){
-          const c2=S(-0.24+i*0.24, -0.30);
-          m.P("brass", new T.SphereGeometry(0.014,8,6), c2[0], RD+0.56+r*0.24, c2[1], 0, BRD);
-        } }
-      for(const q of [-1,1]){
-        const a=S(q*0.40, 0);
-        m.P("velvet", boxGeo(0.14, 0.26, 0.74, 0.5), a[0], RD+0.49, a[1], ry, col, 0, 0);
-      }
+      const P=(g,dx,y,dz,rx,rz,b,c)=>{ const q=S(dx,dz);
+        m.P(b, g, q[0], RD+y, q[1], ry, c, rx||0, rz||0); };
+      const D=dark||"#2e1a14";
+      // four turned legs, so there is daylight under it
       for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]]){
-        const q=S(a[0]*0.33, a[1]*0.31);
-        m.C("oak", 0.028,0.022,0.09,8, q[0], RD+0.045, q[1], OAKD);
+        const q=S(a[0]*0.36, a[1]*0.34);
+        m.C("oak", 0.030,0.042,0.17,10, q[0], RD+0.085, q[1], OAKD);
+        m.C("brass", 0.026,0.026,0.022,10, q[0], RD+0.008, q[1], BRD);   // castors
+      }
+      // the frame rail the upholstery sits in, and the seat box above it
+      P(boxGeo(0.86, 0.08, 0.84, 0.5), 0, 0.205, 0, 0, 0, "oak", OAKD);
+      P(boxGeo(0.80, 0.16, 0.78, 0.5), 0, 0.325, 0, 0, 0, "velvet", col);
+      // the loose cushion: proud at the front, with a piped edge
+      P(boxGeo(0.76, 0.17, 0.74, 0.5), 0, 0.485, 0.02, 0, 0, "velvet", col);
+      P(new T.CylinderGeometry(0.055,0.055,0.76,10), 0, 0.485, 0.40, 0, Math.PI/2, "velvet", D);
+      // arms: a panel each side, standing well clear of the cushion, with a
+      // rolled top — the roll is what stops them reading as two more boxes
+      for(const q of [-1,1]){
+        P(boxGeo(0.15, 0.44, 0.82, 0.5), q*0.385, 0.42, -0.01, 0, 0, "velvet", col);
+        P(new T.CylinderGeometry(0.064,0.064,0.86,12), q*0.385, 0.652, -0.01,
+          Math.PI/2, 0, "velvet", col);
+        // the piping that runs over the roll and down the scroll front
+        P(new T.CylinderGeometry(0.020,0.020,0.86,8), q*0.385, 0.706, -0.01,
+          Math.PI/2, 0, "velvet", D);
+        P(boxGeo(0.13, 0.10, 0.14, 0.4), q*0.385, 0.265, 0.41, 0, 0, "oak", OAKD);
+      }
+      // the back: taller than the arms, raked, rolled over at the top
+      P(boxGeo(0.80, 0.70, 0.17, 0.5), 0, 0.76, -0.355, -0.13, 0, "velvet", col);
+      P(new T.CylinderGeometry(0.090,0.090,0.80,12), 0, 1.095, -0.425,
+        Math.PI/2, 0, "velvet", col);
+      P(boxGeo(0.84, 0.06, 0.07, 0.4), 0, 0.395, -0.40, 0, 0, "oak", OAKD);
+      // buttons, on the diamond they are always on
+      for(let r2=0;r2<3;r2++) for(let i=0;i<(r2%2?2:3);i++){
+        const dx=(r2%2? -0.14+i*0.28 : -0.28+i*0.28), y=0.56+r2*0.17;
+        // the back is raked by -0.13, so its front face moves BACK as it rises
+        const q=S(dx, -0.270-(y-0.76)*0.13);
+        m.P("brass", new T.SphereGeometry(0.017,8,6), q[0], RD+y, q[1], 0, BRD);
       }
       m.col(cx-0.50, cx+0.50, cz-0.50, cz+0.50, RD, RD+0.52);
-      addSeat(W(cx), Z(cz+0.04), GY+RD+0.46, ry, "AN ARMCHAIR");
+      addSeat(W(cx), Z(cz+0.04), GY+RD+0.56, ry, "AN ARMCHAIR");
     };
     const lowTable=(tx,tz)=>{
       m.B("oak", 1.16, 0.07, 0.74, tx, RD+0.42, tz, 0.7, 0, "#7a4a28");
@@ -1224,11 +1328,11 @@
       m.P("carpet", boxGeo(2.64, 0.012, 1.96, 0.55), q[0], RD+0.034, q[1], 0.1, "#8a5a46", 0, 0);
     }
     lowTable(-44.6, 43.9);
-    chair(-45.9, 43.3, -1.05, "#5e4a2e");
-    chair(-43.4, 44.6,  2.05, "#6e5a3a");
+    chair(-45.9, 43.3, -1.05, "#6a2420", "#3a1210");
+    chair(-43.4, 44.6,  2.05, "#7a5c24", "#3e2c0e");
     lowTable(-40.4, 44.9);
-    chair(-41.7, 44.3, -1.20, "#6e5a3a");
-    chair(-39.2, 45.6,  1.95, "#5e4a2e");
+    chair(-41.7, 44.3, -1.20, "#7a5c24", "#3e2c0e");
+    chair(-39.2, 45.6,  1.95, "#6a2420", "#3a1210");
     /* The piano. An upright against the west wall with the lid up, a stool
        pushed in, and a glass left on the top — which is the detail that
        says somebody played it tonight rather than that one is kept here. */

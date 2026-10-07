@@ -134,7 +134,7 @@ bucketOf("flame",   ()=>glowMat({color:0xffffff, emissive:0xff9a38, emissiveInte
 // shoulders against it
 bucketOf("leather", ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.spread,
                           roughness:0.44, metalness:0.06}));
-bucketOf("velvet",  ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.carpet,
+bucketOf("velvet",  ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.velvet,
                           roughness:0.97}));
 bucketOf("brass",   ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.galv,
                           roughness:0.27, metalness:0.80}));

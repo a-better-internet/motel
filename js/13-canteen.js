@@ -1060,7 +1060,12 @@ i===1?"#6a5a3c":"#7a6746");
   /* ---- the rest of the room -------------------------------------------- */
   // the screen they used to show fights on, hung off the west wall
   bx("oak", 0.09, 1.66, 2.70, IX0+0.10, FY+2.72, -24.6, 0.45, 0, "#3a3028");
-  bx("plaster", 0.04, 1.50, 2.54, IX0+0.17, FY+2.72, -24.6, 0.4, 0, "#cfcabb");
+  /* A FORTY-YEAR-OLD ROLLER SCREEN IS NOT WHITE. At #cfcabb this read as a
+     blank blown-out panel hanging on the back wall — the brightest thing in
+     a bar lit by forty-watt tungsten. Dirty canvas, and a stain line where
+     it has hung rolled. */
+  bx("plaster", 0.04, 1.50, 2.54, IX0+0.17, FY+2.72, -24.6, 0.55, 0, "#8d8878");
+  bx("plaster", 0.04, 0.26, 2.48, IX0+0.178, FY+3.38, -24.6, 0.6, 0, "#7d7868");
   bx("oak", 0.09, 0.09, 2.70, IX0+0.13, FY+3.58, -24.6, 0, 0, "#2e261f");
   // bar-top furniture: napkins, caddies, a tip jar, ashtrays
   for(let i=0;i<7;i++){
@@ -1613,7 +1618,7 @@ i===1?"#6a5a3c":"#7a6746");
 
   /* ---- and the things that make it feel like nobody is coming --------- */
   // one tube over the pool table has been going for weeks
-  LAMPS.push({x:-83.2, y:TOPY-1.62, z:-25.4, color:0xcfe0d8, intensity:0.42, dist:8,
+  LAMPS.push({x:-83.2, y:TOPY-1.62, z:-25.4, color:0xe6dcbc, intensity:0.42, dist:8,
               decay:1.7, indoor:true, flicker:true});
   // a payphone by the restrooms with the receiver off the hook
   (function(){

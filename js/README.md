@@ -1,6 +1,6 @@
 # How the world is put together
 
-`index.html` is the page: the markup, the CSS, the HUD, and twenty-four
+`index.html` is the page: the markup, the CSS, the HUD, and twenty-five
 `<script src="js/…">` tags. Everything else lives here, one file per part of
 the world, loaded **in order** as classic scripts sharing one global scope.
 
@@ -29,6 +29,7 @@ scheduled. The numbering is the load order; nothing re-orders itself.
 | `14c-desert.js` | part three: the graves, the adit, the trailer, site ambience |
 | `14d-diner.js` | Roxie's Diner, the car out east — inside and out |
 | `14e-speakeasy.js` | the equipment shelter, the shaft, the tunnel, The Dry Well |
+| `14f-auditorium.js` | The Long Room, its stage and the backstage corridor |
 | `15-bake.js` | glow materials, then merge and bake every bucket |
 | `16-lighting.js` | the pool of real lights that follows the player |
 | `17-player.js` | movement, collision response, doors, seats |
@@ -49,7 +50,7 @@ is called, every script has run.
 
 **No modules, no bundler, no build step.** ES modules will not load from a
 `file://` page, and this is meant to open by double-clicking it. Classic
-scripts share one global lexical scope, which is what lets these twenty-four files
+scripts share one global lexical scope, which is what lets these twenty-five files
 behave exactly like the single file they came from.
 
 **A wall you can stand inside has to be a ring, not a slab.** A course of
@@ -566,6 +567,76 @@ And two faults that have now each cost three rounds, so they get their own
 line: a decal must never be a free crop of a map (see cellGeo), and a
 primitive's axis must be worked out rather than guessed (see below).
 
+5. **Anything object-sized goes on the turntable before it is believed.**
+   `turntable.js` renders one thing from four sides at a fixed radius and
+   height, lit, and `strip.py` stitches the four into one picture. This is
+   step 4 taken seriously: a walkthrough screenshot shows an object from
+   whatever angle you happened to be standing at, and one angle cannot
+   tell a wrong shape from a wrong *transform*.
+
+### The handedness of a local offset
+
+This cost five rebuilds of the same armchair, so it is written down.
+
+`push()` orients a piece with `rotation.y = ry`. three.js builds that from
+`makeRotationY`, which is
+
+    [  cos t   0   sin t ]
+    [    0     1     0   ]
+    [ -sin t   0   cos t ]
+
+so a local offset `(dx, dz)` lands at
+
+    ( dx·cos t + dz·sin t ,  −dx·sin t + dz·cos t )
+
+If the helper that places the pieces computes `(dx·c − dz·s, dx·s + dz·c)`
+instead — which is what you get by writing the 2-D rotation matrix out of
+habit — then every piece is **oriented by +t and positioned by −t**. At
+`ry = 0` the two agree, so it passes every test you are likely to run; at
+any other angle the object comes apart into a pile of correctly-shaped
+blocks in the wrong places, which looks exactly like bad modelling and is
+not. The same wrong-handed helper was found in `10-office.js` twice.
+
+Write the offset helper once, as
+
+    const S=(dx,dz)=>[cx + dx*Math.cos(ry) + dz*Math.sin(ry),
+                      cz - dx*Math.sin(ry) + dz*Math.cos(ry)];
+
+and build the object from a table of extents (min/max per axis), not from
+centres and sizes: extents are what you can check against a drawing.
+
+### Nothing in this world may clip to white
+
+Painted colours are vertex colours and the renderer is on `NoToneMapping`,
+so a hex above about `#c0` under a sunlit irradiance of ~2.0 leaves the
+shader past 1.0 and hard-clips. Every face of it comes out 255,255,255:
+no shading, no edges, no form — "blown out with harsh white light". Two
+things stop that now and both are central, so nothing has to be repainted:
+
+* `03-scene.js` installs a **CustomToneMapping shoulder**. Below 0.76 it is
+  the identity, so painted colours stay literal, which was the whole reason
+  for `NoToneMapping`; above it each channel rolls off exponentially and
+  approaches 1.0 without reaching it. Per channel, so a warm highlight
+  stays warm instead of being pulled grey.
+* `19-loop.js` puts the same soft knee on the GLOW emissives, whose `k`
+  factor runs to 2.35 underground and would otherwise take all three
+  channels of a bulkhead past one.
+
+A new emissive bucket goes through `emitMat()` in `15-bake.js`, which gives
+it a near-black diffuse: an emissive surface that also takes room light adds
+the two together and clips.
+
+### A shadow camera does not update its own projection
+
+`OrthographicCamera` builds its projection matrix in its constructor and
+never again on its own, and three.js's shadow pass only recomputes the
+*view* matrix each frame. So `key.shadow.camera.left = …` and friends do
+nothing at all until `key.shadow.camera.updateProjectionMatrix()` is called.
+Until round 44 the whole world was lit through the stock
+`DirectionalLightShadow` frustum — a ten-metre box — which is why the motel
+cast no shadow on its own car park. **Any change to `ksc` is followed by
+that call.**
+
 ## Checking it still works
 
 The harness in the scratchpad drives a headless build: `sync.sh` mirrors
@@ -582,7 +653,10 @@ the only way to tell a hole in the world from a hole in one mesh, and
 `sink38.js` raycasts down onto the drawn world and reports everywhere
 it stands above the surface the player and the car are given to walk on,
 `walk39.js` walks a polyline and prints the surface height and the zone at
-the end of every leg, `whatis40.js` casts a grid of rays from a camera
+the end of every leg, `turntable.js` plus `strip.py` show one object from
+four sides at once, `at44.js` lists every primitive AABB inside a query box
+so a cluster `float.js` names by its centre can be read back as real boxes,
+`whatis40.js` casts a grid of rays from a camera
 and names what fills the frame by bucket *and* by the triangle's own plane —
 the only thing that finds a wall no source file draws — `free.js` puts the
 camera anywhere and points it anywhere, which `look22.js` cannot do for a

@@ -407,12 +407,19 @@ function exitCar(){
    dim thing, not a large bright thing. So the lamp itself is now a lens the
    size of a lamp, and all the size is in the beam. */
 const carBeams=[0,1].map(()=>{
-  const L=new T.SpotLight(0xffe6a8, 0, 90, Math.PI/6, 0.5, 1.4);
+  // tungsten, not daylight: a sealed-beam lamp on a car of this age is
+  // around 2800K, and 2.2 of it on asphalt two metres away blew the road
+  // out to white every night
+  const L=new T.SpotLight(0xffd68c, 0, 90, Math.PI/6, 0.55, 1.5);
   L.castShadow=false; L.target=new T.Object3D();
   scene.add(L); scene.add(L.target);
   return L;
 });
-const LENS_MAT=new T.MeshBasicMaterial({color:0xfff0c8, transparent:true, opacity:0,
+/* The lens itself is amber and never fully opaque. At 0xfff0c8 and 0.92 it
+   was a solid near-white rectangle — an unlit basic material with tone
+   mapping off cannot go above white, so the only way to keep a headlamp
+   warm is to not ask it to be brighter than one. */
+const LENS_MAT=new T.MeshBasicMaterial({color:0xffcf82, transparent:true, opacity:0,
   depthWrite:false, fog:false, toneMapped:false});
 const TAIL_MAT=new T.MeshBasicMaterial({color:0xff2a12, transparent:true, opacity:0,
   depthWrite:false, fog:false, toneMapped:false});
@@ -427,11 +434,11 @@ function updateCarLights(dark, delta){
   const on=!!driving && dark>0.12;
   const k=on ? Math.min(1,(dark-0.12)*3) : 0;
   for(let i=0;i<2;i++){
-    carBeams[i].intensity=2.2*k;
+    carBeams[i].intensity=1.65*k;
     carLamps[i].visible=on; carTails[i].visible=on;
   }
-  LENS_MAT.opacity=0.92*k;
-  TAIL_MAT.opacity=0.88*k;
+  LENS_MAT.opacity=0.80*k;
+  TAIL_MAT.opacity=0.78*k;
   if(!on) return;
   const b=driving.veh.body;
   const f=b.forward(), r=b.right(), u=b.up();

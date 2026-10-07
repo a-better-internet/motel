@@ -446,7 +446,7 @@ function frame(){
     hemi.groundColor.lerp(BURIED_GND, buriedMix);
     key.intensity  *= 1-buriedMix;
     amb.color.copy(AMB_BASE).lerp(BURIED_AMB, buriedMix);
-    amb.intensity   = amb.intensity*(1-buriedMix) + 0.37*buriedMix;
+    amb.intensity   = amb.intensity*(1-buriedMix) + 0.44*buriedMix;
   }else if(amb.color.getHex()!==AMB_BASE.getHex()) amb.color.copy(AMB_BASE);
   // At night the haze must sit DARKER than the sky, or the mountains wash out
   // into it; by day it matches the horizon so distance reads as heat and dust.
@@ -482,7 +482,23 @@ function frame(){
           : g.kind==="pool"   ? 0.30+dark*2.0
           : 0.10+dark*3.0;
     if(g.base) g.m.emissive.copy(g.base);
-    g.m.emissiveIntensity=g.baseInt*k;
+    /* NOTHING CLIPS TO WHITE.
+       An emissive channel over 1.0 is pure white in that channel, and the
+       renderer has no tone mapping, so every warm lamp in this world was
+       being pushed straight past that: a bulkhead at 0.95 times the buried
+       factor of 2.35 is 2.23, which takes all three channels over one and
+       turns an amber lamp into a white hole. Same for the sconces at 2.47
+       and the candle flames at 4.0. That is the "blown out" look, and no
+       amount of choosing warmer hues could fix it, because the hue is
+       exactly what clipping destroys.
+       So the intensity goes through a soft knee: linear up to 0.55 of the
+       brightest channel, then rolling off towards 0.92 and never reaching
+       it. Brighter things stay brighter than dimmer ones, and an amber lamp
+       stays amber however hard it is driven. */
+    const want=g.baseInt*k;
+    const pk=Math.max(g.base?g.base.r:1, g.base?g.base.g:1, g.base?g.base.b:1)*want;
+    const cap=pk<=0.55 ? pk : 0.55+0.37*(1-Math.exp(-(pk-0.55)/0.42));
+    g.m.emissiveIntensity = pk>1e-5 ? want*(cap/pk) : want;
   }
   // A lit sign is a box with lamps in it. By day the sun is brighter than
   // the lamps and the face reads as paint; after dark the face is the only

@@ -262,7 +262,7 @@
     m.B("teal", 10.2,0.34,0.18, 4.0,F+4.10,IZ+3.12, 0,0, TRIMG);
     for(const px of [1.6, 4.0, 6.4]){                      // the lights under it
       m.B("ceilfix", 0.90,0.10,0.34, px, F+4.24, IZ, 0, 0, "#e8e2cf");
-      LAMPS.push({x:-145+px, y:m.y+F+4.10, z:-359+IZ, color:0xdfe8ee, intensity:0.30,
+      LAMPS.push({x:-145+px, y:m.y+F+4.10, z:-359+IZ, color:0xf0e2c0, intensity:0.30,
                   dist:11, decay:1.5, mothy:true});
     }
     // Streaks off the canopy fascia, where the water has come over the edge
@@ -848,7 +848,7 @@
             X0+0.5+((i*1.93)%(W2-1.0)), F2+0.012+i*0.0012, Z0+0.5+((i*1.31)%(DP-1.0)),
             i*1.3, "#d8d2be", -Math.PI/2, 0);
       m.C("plaster", 0.045,0.040,0.09,12, CX-0.8, F2+0.94, Z0+1.12, "#dcd6c4");
-      LAMPS.push({x:D.x+OX, y:m.y+F2+2.70, z:D.z+OZ, color:0xdfe8ee, intensity:0.22,
+      LAMPS.push({x:D.x+OX, y:m.y+F2+2.70, z:D.z+OZ, color:0xeadfc4, intensity:0.22,
                   dist:7.5, decay:1.8, indoor:true, flicker:true});
       // a batten, not a bollard — a fat 8-sided cylinder on end reads as a
       // lump hanging out of the ceiling whatever it is meant to be

@@ -13,7 +13,42 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=T.PCFSoftShadowMap;
 try{ renderer.outputColorSpace=T.SRGBColorSpace; }catch(e){ renderer.outputEncoding=T.sRGBEncoding; }
-renderer.toneMapping=T.NoToneMapping;          // painted colours stay literal
+/* ----------------------------------------------------------------------
+   A SHOULDER, NOT A CURVE.
+
+   Every colour in this world is a painted hex, and with NoToneMapping it
+   arrives on screen exactly as painted — which is the whole point, and
+   which worked right up until something was lit by more than one unit of
+   light. A white-painted lounger in the sun carries an albedo of about
+   0.89 and sits under sun 1.12 plus hemisphere 0.72 plus ambient 0.15, so
+   it leaves the shader at 1.8 and hard-clips. Every face of it clips to
+   exactly 255,255,255: no shading, no edges, no form. The same thing was
+   happening to the coping, the office fluorescents, the roller screen in
+   the bar and any lamp you stood close to — "blown out with harsh white
+   light", precisely.
+
+   Rather than repaint a thousand hexes or dim the sun until the desert
+   looks overcast, this adds a shoulder to the top of the range and leaves
+   the rest alone. Below 0.76 the output is the input to the last bit: the
+   painted colours stay literal, which was the reason for NoToneMapping in
+   the first place. Above it each channel rolls off exponentially and
+   approaches 1.0 without ever reaching it, so a bright surface keeps its
+   gradients and a lamp keeps its colour instead of going to paper white.
+   Per channel, not per luminance, so a warm highlight stays warm rather
+   than being pulled towards grey the way a filmic curve would pull it.
+   ---------------------------------------------------------------------- */
+T.ShaderChunk.tonemapping_pars_fragment =
+  T.ShaderChunk.tonemapping_pars_fragment.replace(
+    "vec3 CustomToneMapping( vec3 color ) { return color; }",
+    [ "vec3 CustomToneMapping( vec3 color ) {",
+      "  color *= toneMappingExposure;",
+      "  const float K = 0.76;",                 // where the shoulder starts
+      "  vec3 lo = min( color, vec3( K ) );",
+      "  vec3 hi = max( color - vec3( K ), vec3( 0.0 ) );",
+      "  return lo + ( 1.0 - K ) * ( vec3( 1.0 ) - exp( -hi / ( 1.0 - K ) ) );",
+      "}" ].join("\n"));
+renderer.toneMapping=T.CustomToneMapping;      // painted colours stay literal
+renderer.toneMappingExposure=1.0;              // below 0.76 this is a no-op
 app.appendChild(renderer.domElement);
 const MAXANISO=Math.min(8, renderer.capabilities.getMaxAnisotropy());
 for(const k in TEX){ if(TEX[k] && TEX[k].isTexture) TEX[k].anisotropy=MAXANISO; }
@@ -53,12 +88,25 @@ key.position.set(70,110,50); key.castShadow=true;
 key.shadow.mapSize.set(3072,3072);
 const ksc=key.shadow.camera;
 // The frustum follows the player, so it only has to cover what is near enough
-// to read: 64 m across 3072 texels is 2 cm a texel, against 5.5 cm before.
-// That matters because the scene is full of 10 cm features — the waterline
-// tile band, the coping, the walkway joints — and a normalBias wide enough to
-// stop banding on the big slabs was wider than the features themselves, which
-// is what broke the pool rim into blocks.
-ksc.near=1; ksc.far=260; ksc.left=-32; ksc.right=32; ksc.top=32; ksc.bottom=-32;
-key.shadow.bias=-0.00022; key.shadow.normalBias=0.032;
+// to read. 3072 texels across it is 2 cm a texel at 64 m and 3 cm at 92 —
+// either is finer than the 10 cm features the scene is full of (the
+// waterline tile band, the coping, the walkway joints), and 64 was not
+// enough world: standing at the far side of the car park, the motel was
+// forty metres off and cast nothing at all onto its own forecourt. 92 m
+// holds the whole court from anywhere you can stand in it.
+ksc.near=1; ksc.far=520; ksc.left=-46; ksc.right=46; ksc.top=46; ksc.bottom=-46;
+/* AND THEN TELL IT. An OrthographicCamera builds its projection matrix in its
+   constructor and never again on its own; three.js's shadow pass only
+   recomputes the VIEW matrix each frame. So every one of the six numbers
+   above was being written into a camera that went on projecting the default
+   DirectionalLightShadow frustum — a ten-metre box, near 0.5, far 500 —
+   which is why the motel cast no shadow on its own car park at nine in the
+   morning and the only shadows in the world were the ones within five
+   metres of your feet. The far plane is 520 because the key sits up to
+   280 m from its target when the sun is high, and anything past far is
+   simply not drawn into the map.
+   Any later change to ksc has to be followed by this call. */
+ksc.updateProjectionMatrix();
+key.shadow.bias=-0.00022; key.shadow.normalBias=0.046;   // one and a half texels
 const SHADOW_SNAP=(ksc.right-ksc.left)/key.shadow.mapSize.x*2;   // kills the crawl
 scene.add(key); scene.add(key.target);

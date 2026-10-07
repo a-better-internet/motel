@@ -17,6 +17,17 @@ function glowMat(opts, kind){
   GLOW.push({m:m, base:m.emissive?m.emissive.clone():new T.Color(0), kind:kind, baseInt:m.emissiveIntensity||1});
   return m;
 }
+/* A SURFACE THAT IS A LAMP, not a surface with a lamp on it. Its diffuse is
+   nearly black, so the point lights standing six inches from it cannot add
+   their own contribution on top of the emissive and push the whole thing
+   past white — which is half of why the sconces and the bulkheads in the
+   speakeasy read as cut-out rectangles of paper. A lamp lens is dark glass
+   when it is off; all of its brightness should come from the emissive, and
+   the emissive goes through the soft knee in 19-loop. */
+function emitMat(emissive, intensity, kind){
+  return glowMat({color:0x241f1a, emissive:emissive, emissiveIntensity:intensity,
+                  roughness:0.9, metalness:0.0}, kind);
+}
 function basicGlowMat(color, kind, blend){
   const m=new T.MeshBasicMaterial({color:color, transparent:true, opacity:0.0, toneMapped:false,
     depthWrite:false, blending:blend||T.NormalBlending});
@@ -42,10 +53,10 @@ bucketOf("tvwin",   ()=>{ TVWIN_MAT=new T.MeshBasicMaterial({color:0x000000, ton
                           return TVWIN_MAT; });
 bucketOf("iceglow", ()=>glowMat({color:0xffffff, emissive:0x6fd2ff, emissiveIntensity:0.25}, "cool"));
 bucketOf("vendglow",()=>glowMat({color:0xffffff, emissive:0xffc46a, emissiveIntensity:0.25}, "warm"));
-bucketOf("niche",   ()=>glowMat({color:0xffffff, emissive:0x9fe8ff, emissiveIntensity:0.6}, "pool"));
+bucketOf("niche",   ()=>emitMat(0x9fe8ff, 0.6, "pool"));
 bucketOf("bedding", ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.98}));
-bucketOf("clockled",()=>glowMat({color:0xffffff, emissive:0xff5a2a, emissiveIntensity:0.9}, "warm"));
-bucketOf("neonbox", ()=>glowMat({color:0xffffff, emissive:0xff3a2a, emissiveIntensity:0.5}, "warm"));
+bucketOf("clockled",()=>emitMat(0xff6a34, 0.9, "warm"));
+bucketOf("neonbox", ()=>emitMat(0xff4a32, 0.5, "warm"));
 bucketOf("fabric",  ()=>new T.MeshStandardMaterial({map:TEX.weave,  roughness:0.96}));
 // Boulders were flat-shaded dodecahedra in the foliage bucket — twelve faces
 // and one colour. They get their own stone map, and enough facets to read as
@@ -104,7 +115,7 @@ bucketOf("mirrorw", ()=>new T.MeshStandardMaterial({color:0xffffff, metalness:0.
                           roughness:0.10, emissive:0x3a2a16, emissiveIntensity:0.40}));
 bucketOf("rust",    ()=>new T.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.30,
                           map:TEX.streak, depthWrite:false, side:T.DoubleSide}));
-bucketOf("ember",   ()=>glowMat({color:0xffffff, emissive:0xff4a12, emissiveIntensity:1.6}, "warm"));
+bucketOf("ember",   ()=>emitMat(0xff5518, 1.6, "warm"));
 // dust hanging in a shaft of daylight: bright at noon, gone after dark
 bucketOf("haze",    ()=>{ const m=new T.MeshBasicMaterial({color:0xfff0d2, map:TEX.haze,
                           transparent:true, opacity:0, depthWrite:false, side:T.DoubleSide,
@@ -117,7 +128,7 @@ bucketOf("floorglow",()=>{ const m=new T.MeshBasicMaterial({color:0xffffff, map:
                           transparent:true, opacity:0, depthWrite:false, side:T.DoubleSide,
                           blending:T.AdditiveBlending, toneMapped:false});
                           GLOW.push({m:m, kind:"warm", basic:true, max:0.34}); return m; });
-bucketOf("zapper",  ()=>glowMat({color:0xffffff, emissive:0x8f5cff, emissiveIntensity:0.7}, "cool"));
+bucketOf("zapper",  ()=>emitMat(0x8f5cff, 0.7, "cool"));
 
 /* --- the ones that live underground -----------------------------------
    Everything else that glows is wired to the clock: it comes up as the sun
@@ -127,9 +138,9 @@ bucketOf("zapper",  ()=>glowMat({color:0xffffff, emissive:0x8f5cff, emissiveInte
    only honest way to light a room with four metres of ground on top of it —
    and it is what makes walking in out of the noon glare feel like walking
    into evening.                                                          */
-bucketOf("bulkhead",()=>glowMat({color:0xffffff, emissive:0xffe0a6, emissiveIntensity:0.95}, "buried"));
-bucketOf("sconce",  ()=>glowMat({color:0xffffff, emissive:0xffb24a, emissiveIntensity:1.05}, "buried"));
-bucketOf("flame",   ()=>glowMat({color:0xffffff, emissive:0xff9a38, emissiveIntensity:1.70}, "buried"));
+bucketOf("bulkhead",()=>emitMat(0xffd49a, 0.95, "buried"));
+bucketOf("sconce",  ()=>emitMat(0xffa63e, 1.05, "buried"));
+bucketOf("flame",   ()=>emitMat(0xff8a28, 1.70, "buried"));
 // deep buttoned hide, and the nap on a velvet that has had forty years of
 // shoulders against it
 bucketOf("leather", ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.spread,

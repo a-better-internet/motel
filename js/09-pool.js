@@ -310,8 +310,14 @@ let waterGeo=null, waterMesh=null;
     push("niche", boxGeo(0.34,0.24,0.06,0), nx, -0.72, P.z0+0.06, 0, "#a8ecff");
     push("niche", boxGeo(0.34,0.24,0.06,0), nx, -0.72, P.z1-0.06, 0, "#a8ecff");
   }
+  /* Nineteen metres of reach was the whole courtyard. After dark these three
+     were the brightest thing on the property and they are cyan, so both
+     wings, the walkway soffits, the stair and everyone's warm little room
+     lamps came out the colour of a swimming pool. Eleven metres keeps the
+     glow on the water and the deck where it belongs, and lets the sodium
+     and tungsten up on the balconies read warm again. */
   for(const p of [[P.x0+2.4,-0.75],[ (P.x0+P.x1)/2,-1.05],[P.x1-2.4,-1.30]]){
-    const L=new T.PointLight(0x63d8ff, 0, 19, 2.1);
+    const L=new T.PointLight(0x6fd6f0, 0, 11, 2.1);
     L.position.set(p[0], p[1], (P.z0+P.z1)/2);
     scene.add(L); POOL_LIGHTS.push(L);
   }

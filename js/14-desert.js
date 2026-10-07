@@ -444,7 +444,7 @@
     m.P("ceilfix", new T.SphereGeometry(0.075,12,8), 0, 0.12+TOP-0.07, 0, 0, "#f4ecd2");
     m.lamp(0, 0.12+TOP-0.12, 0, {color:0xffeec8, intensity:0.46, dist:7.0, decay:1.5,
                                  mothy:true, flicker:true});
-    m.lamp(0, 0.12+TOP+0.17, -HW-0.3, {color:0x9fd0ff, intensity:0.30, dist:9.0, decay:1.5});
+    m.lamp(0, 0.12+TOP+0.17, -HW-0.3, {color:0xdfd8bc, intensity:0.30, dist:9.0, decay:1.5});
     /* AND FORTY YEARS OF NOBODY MINDING IT. One light out of the east face,
        its frame still there; the glass crazed where somebody put a boot
        through the kick panel; scratched initials; a drift of sand in the

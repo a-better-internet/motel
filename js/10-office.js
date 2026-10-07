@@ -1212,7 +1212,11 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
     for(const q of [-1,1]) bx("metal", 0.02, 0.02, 0.94, TBX+q*0.33, y0+0.16, TBZ, 0.4, 0, STEELD);
     addCol(TBX-0.42, TBX+0.42, TBZ-0.56, TBZ+0.56, y0, y0+0.76);
     const chair=(cx2,cz2,ry)=>{
-      const S=(dx2,dz2)=>[cx2+dx2*Math.cos(ry)-dz2*Math.sin(ry), cz2+dx2*Math.sin(ry)+dz2*Math.cos(ry)];
+      // the same wrong-handed offset as the speakeasy's chairs had: three.js
+      // rotation.y maps (dx,dz) to (dx*c + dz*s, -dx*s + dz*c), not the other
+      // way. It only shows on a piece whose ry is not zero.
+      const S=(dx2,dz2)=>[cx2+dx2*Math.cos(ry)+dz2*Math.sin(ry),
+                          cz2-dx2*Math.sin(ry)+dz2*Math.cos(ry)];
       bx("oak", 0.42, 0.04, 0.42, cx2, y0+0.40, cz2, 0.5, ry, WOOD);
       bx("spread", 0.40, 0.06, 0.40, cx2, y0+0.44, cz2, 0.4, ry, "#7d6a4e");
       for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]]){
@@ -1329,8 +1333,8 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
     {
       // aimed at the television, which is diagonally across the room
       const ry=Math.PI+Math.atan2(TVX-ACX, TVZ-ACZ);
-      const S=(dx2,dz2)=>[ACX+dx2*Math.cos(ry)-dz2*Math.sin(ry),
-                          ACZ+dx2*Math.sin(ry)+dz2*Math.cos(ry)];
+      const S=(dx2,dz2)=>[ACX+dx2*Math.cos(ry)+dz2*Math.sin(ry),
+                          ACZ-dx2*Math.sin(ry)+dz2*Math.cos(ry)];
       // a low sprung chair that has given up: seat dished, back leaning
       bx("fabric", 0.86, 0.34, 0.80, ACX, y0+0.22, ACZ, 0.55, ry, "#4f4636");
       push("fabric", boxGeo(0.72, 0.16, 0.66, 0.55), ACX, y0+0.41, ACZ, ry, "#5e5542", 0, 0);

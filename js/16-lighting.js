@@ -8,11 +8,13 @@
    everything else glows through emissive materials.
    ---------------------------------------------------------------------- */
 const LIGHT_POOL=[];
-/* Nine, not seven. Seven was comfortable while the biggest lit room in the
-   world was a motel bay; The Dry Well is nineteen metres by thirteen with a
-   dozen fixtures in it and no daylight at all, and at seven the far half of
-   the room simply had no lamp assigned to it. */
-for(let i=0;i<9;i++){
+/* Twelve, not nine, and nine was not seven. Each raise has the same cause:
+   the biggest lit room in the world got bigger. The Dry Well has fourteen
+   fixtures in nineteen metres by thirteen and no daylight at all, so at
+   nine the four armchairs by the north wall sat in whatever spilled past
+   the bar — a dark brown chair on a dark brown floor, which is no shape at
+   all. Twelve point lights is still one short shader loop. */
+for(let i=0;i<12;i++){
   const L=new T.PointLight(0xffe9c4, 0, 10, 1.4); L.castShadow=false;
   scene.add(L); LIGHT_POOL.push(L);
 }
@@ -49,5 +51,5 @@ function updateLights(dark, camPos){
     L.userData.mothy=!!e.l.mothy;        // only some outdoor fixtures draw insects
     if(e.l.flicker) L.intensity *= FLICKER.v;
   }
-  for(const L of POOL_LIGHTS) L.intensity=0.16+dark*1.00;
+  for(const L of POOL_LIGHTS) L.intensity=0.14+dark*0.86;
 }

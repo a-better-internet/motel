@@ -1232,7 +1232,9 @@
   for(let i=0;i<6;i++){                                                      // condensers on the back wall
     const cx=-24+i*9.5;
     bx("metal", 1.05,0.95,0.85, cx, 0.62, 21.6, 0.4, 0, GALV);
-    for(let k=0;k<5;k++) bx("metal", 0.95,0.04,0.03, cx, 0.36+k*0.13, 21.19, 0, 0, "#5f676b");
+    // 21.165, not 21.19: at 21.19 the louvre's own back face landed exactly on
+    // the condenser's front face at 21.175 and the two fought all down the wall
+    for(let k=0;k<5;k++) bx("metal", 0.95,0.04,0.03, cx, 0.36+k*0.13, 21.165, 0, 0, "#5f676b");
     addCol(cx-0.6, cx+0.6, 21.1, 22.1, 0, 1.1);
   }
   cyl("metal", 0.30,0.30,0.22,12, -9.0, 0.90, 21.5, RUSTC, 0,0,Math.PI/2);  // hose reel
@@ -1252,10 +1254,19 @@
     addCol(q[0]-0.08,q[0]+0.08, q[1]-0.08,q[1]+0.08, 0, 2.3);
   }
   push("metal", boxGeo(8.0,0.014,0.014,0), -3.6, 2.22, 22.2, 0, GALV, 0, 0);  // and one line
-  for(let i=0;i<6;i++) bx("fabric", 0.70,0.90,0.03, -6.6+i*0.9, 1.62, 22.2, 0, 0,   // laundry line
-                          ["#e6e2d6","#dfe6e4","#e8dcc0"][i%3]);
-  cyl("metal", 0.06,0.06,2.60,8, -7.6, 1.30, 22.2, GALV);
-  cyl("metal", 0.06,0.06,2.60,8, -0.6, 1.30, 22.2, GALV);
+  /* HUNG OFF THE LINE, NOT FLOATING UNDER IT. The sheets were centred at
+     1.62 with a 0.90 drop, so every one of them ended 15 cm short of the
+     wire it was supposedly pegged to — six rectangles hovering in a row.
+     And there were two more posts here on top of the two above: a second
+     2.60 one buried inside the west post, and a lone one at -0.6 that
+     matched nothing, a metre in from the end of the line. Both gone. */
+  for(let i=0;i<6;i++){
+    const sx=-6.6+i*0.9;
+    bx("fabric", 0.70,0.90,0.03, sx, 2.22-0.45, 22.2, 0, 0,
+       ["#e6e2d6","#dfe6e4","#e8dcc0"][i%3]);
+    for(const pg of [-0.28, 0.28])                                   // two pegs each
+      cyl("paint", 0.010,0.010,0.07,6, sx+pg, 2.235, 22.2, "#9a6a42");
+  }
   bx("paint", 1.60,1.10,0.10, 30.0, 0.60, 24.4, 0, 0, "#8a5a3a");            // leaning old sign
   bx("metal", 0.90,0.60,0.06, 32.4, 0.32, 23.6, 0, 0, "#7a6a5c");
 

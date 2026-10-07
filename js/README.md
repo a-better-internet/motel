@@ -416,6 +416,21 @@ footprint — the flats, the finish, the mass, the fill under a balcony — is
 built with the hole in it**, and the way to be sure is to cast rays rather
 than to read.
 
+**A shaft that breaks the surface has to be cut out of the surface too.**
+The stairwell's third report was not the concrete at all. With the slab
+opened, what you were looking at was the desert: the terrain mesh runs
+straight across the bore sixteen centimetres under the hut's floor, and no
+amount of boxes will hide a horizontal plane you are looking down at. The
+fix is a hole in the ground — `SHELTER_SITE`, a half-metre ring dropped
+into the 6 m one (the coarse ring can only skip whole 6 m cells, which
+would have taken the compound with it), with the bore as a hole in that.
+Three things have to go with it: the fine ring's patch must reach past
+anything buried that crosses its own rim (the mid ring hangs a 55 m apron
+there, and leg A of the tunnel runs underneath), and both that rim and the
+bore need `SKIRT_GAPS` entries — 1.2 m for the patch, 10 cm for the bore,
+because even a short apron hung round the stairwell is a curtain across the
+flight.
+
 **A stair's riser closes the face ABOVE its own tread.** The shelter's
 risers sat at `ty - RISE/2`: the gap between a tread and the NEXT one down,
 which is behind the tread and can never be seen. The flight therefore had

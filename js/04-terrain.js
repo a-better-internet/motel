@@ -28,7 +28,12 @@
    several times the crack between two levels of detail and nowhere near
    anything's roof. ANYTHING EXCAVATED UNDER THIS TERRAIN GOES IN THIS LIST. */
 const SKIRT_GAPS=[{x0:-141, x1:-106, z0:370, z1:398, drop:1.2},
-                  {x0:-196, x1:-130, z0:368, z1:402, drop:1.2}];
+                  {x0:-196, x1:-130, z0:368, z1:402, drop:1.2},
+                  // the shelter patch, whose rims cross the tunnel below
+                  {x0: -86, x1: -70, z0:336, z1:358, drop:1.2},
+                  // and the stairwell itself, where even 1.2 m of apron
+                  // would hang across the flight. 10 cm, behind the kerb.
+                  {x0: -79, x1: -75, z0:339.5, z1:346, drop:0.10}];
 function skirtDrop(x,z,drop){
   for(let i=0;i<SKIRT_GAPS.length;i++){
     const g=SKIRT_GAPS[i];
@@ -407,6 +412,19 @@ const TERRAIN_RINGS=[];
   // on the 6 m lattice exactly (MID.x0 + 6k, MID.z0 + 6k) so the coarse grid
   // drops precisely those cells and the two meshes meet without a seam.
   const ADIT_SITE={x0:-588, x1:-546, z0:14, z1:56};
+  /* THE SHELTER NEEDS A HOLE IN THE GROUND, not just a hole in its floor.
+     The stairwell was reported blocked three times. Twice it was the
+     concrete; the third time the concrete was open and what you were
+     looking at was THE DESERT — the terrain mesh runs straight across the
+     bore sixteen centimetres under the hut's floor, so with the slab cut
+     away you saw sand where the first four treads are. A shaft that breaks
+     the surface has to be cut out of the surface. Half-metre cells here so
+     a 2 x 4.5 m hole can be drawn at all (the 6 m ring can only drop whole
+     6 m cells, which would take the compound with it), and the patch runs
+     out to z = 356 so the mid ring's own rim never lands on the tunnel
+     running south underneath it. */
+  const SHELTER_SITE={x0:-84, x1:-72, z0:338, z1:356};
+  const SHELTER_BORE={x0:-78, x1:-76, z0:340.5, z1:345.0};
   /* A hole is only punched for a cell that falls ENTIRELY inside it, so a
      hole whose edge lands mid-cell leaves the coarse grid covering up to a
      whole cell of ground the fine grid also covers. NEAR_SITE's edges were
@@ -454,13 +472,16 @@ const TERRAIN_RINGS=[];
      and the two meshes agree exactly there. What is left between them is
      one triangle's worth of bow, and the skirts swallow that. */
   grid(-1800,1800,-1738,1862, 12, [MID], "desert-far", 40);
-  grid(MID.x0, MID.x1, MID.z0, MID.z1, 6, [NEAR_G, ADIT_SITE, LOOK_G], "desert-mid", 55);
+  grid(MID.x0, MID.x1, MID.z0, MID.z1, 6, [NEAR_G, ADIT_SITE, LOOK_G, SHELTER_SITE],
+       "desert-mid", 55);
   grid(LOOK_G.x0, LOOK_G.x1, LOOK_G.z0, LOOK_G.z1, 3, [], "desert-look", 22);
   // Half-metre cells here, not two. The cut's back wall is a 4.5 m step and
   // the grid triangle that carries it has to land inside the thickness of the
   // rock face: at 2 m that triangle ramps out of the floor and up through the
   // doorway, which is the sand that was covering the entrance.
   grid(ADIT_SITE.x0, ADIT_SITE.x1, ADIT_SITE.z0, ADIT_SITE.z1, 0.5, [], "desert-adit", 6);
+  grid(SHELTER_SITE.x0, SHELTER_SITE.x1, SHELTER_SITE.z0, SHELTER_SITE.z1, 0.5,
+       [SHELTER_BORE], "desert-shelter", 3);
   grid(NEAR_G.x0, NEAR_G.x1, NEAR_G.z0, NEAR_G.z1, 2, [POOL.deck], "desert-near", 6);
   TERRAIN_RINGS.sort((a,b)=>a.cell-b.cell);          // finest ring wins
 })();

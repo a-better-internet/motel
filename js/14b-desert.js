@@ -111,7 +111,7 @@
     for(const q of BAYO) m.B("metal", 0.10, 2.92, 0.12, q, F+1.46, Z0g+0.10, 0, 0, GALV2);
 
     for(let i=0;i<5;i++)                                   // rust running down the shutter
-      m.P("rust", planeGeo(0.13, 0.80, 0), BAYO[0]+0.5+i*0.65, F+2.35, Z0g-0.01,
+      m.P("rust", streakGeo(0.13, 0.80, 0), BAYO[0]+0.5+i*0.65, F+2.35, Z0g-0.01,
           0, "#6a3a20", 0, 0);
 
     // ---- inside the shop -----------------------------------------------
@@ -270,12 +270,12 @@
     for(let i=0;i<22;i++){
       const sx=-0.6+((i*2.17)%11.2), w=0.10+((i*5)%4)*0.09;
       for(const sd of [-1,1])
-        m.P("rust", planeGeo(w, 0.34+((i*7)%4)*0.13, 0), 4.0-5.0+sx, F+4.30,
+        m.P("rust", streakGeo(w, 0.34+((i*7)%4)*0.13, 0), 4.0-5.0+sx, F+4.30,
             IZ+sd*3.21, sd>0?0:Math.PI, "#6a4a2c", 0, 0);
     }
     for(let i=0;i<9;i++)                               // and down the posts
       for(const px of [0.8, 7.2])
-        m.P("rust", planeGeo(0.13, 0.70+((i*5)%3)*0.4, 0), px+((i*7)%3-1)*0.11,
+        m.P("rust", streakGeo(0.13, 0.70+((i*5)%3)*0.4, 0), px+((i*7)%3-1)*0.11,
             F+0.9+((i*3)%4)*0.85, IZ-0.16, 0, "#6a4a2c", 0, 0);
     for(let i=0;i<14;i++)                              // bird mess on the soffit edge
       m.P("soot", planeGeo(0.16+((i*5)%3)*0.10, 0.20+((i*7)%3)*0.12, 0),
@@ -565,12 +565,12 @@
     }
     for(let i=0;i<14;i++){                         // rust weeping down the legs
       const c=[[-1,-1],[1,-1],[-1,1],[1,1]][i%4], t=(i%4===0?0.2:0.1)+((i*7)%5)*0.16;
-      m.P("rust", planeGeo(0.17+((i*5)%3)*0.07, 0.9+((i*3)%4)*0.7, 0),
+      m.P("rust", streakGeo(0.17+((i*5)%3)*0.07, 0.9+((i*3)%4)*0.7, 0),
           c[0]*(2.05-t*0.65)+c[0]*0.12, PY+1.30+t*TH+0.6, c[1]*(2.05-t*0.65),
           (i%2)?0:Math.PI/2, "#7c4526", 0, 0);
     }
     for(let i=0;i<5;i++)                           // and staining the plinth
-      m.P("rust", planeGeo(0.9+((i*5)%3)*0.4, 0.8, 0), Math.cos(i*1.31)*4.66, PY+0.70,
+      m.P("rust", streakGeo(0.9+((i*5)%3)*0.4, 0.8, 0), Math.cos(i*1.31)*4.66, PY+0.70,
           Math.sin(i*1.31)*4.66, Math.atan2(Math.cos(i*1.31), Math.sin(i*1.31)),
           "#6a3a20", 0, 0);
     {                                              // the counterweight boom
@@ -635,7 +635,7 @@
       // begin with. Both buckets are DoubleSide, so which way they face
       // does not matter; clearing the wall box does — WT/2 is inside it.
       const OFF=WT/2+0.02;
-      const streak=(x,y,z,w,h,ry)=>m.P("rust", planeGeo(w, h, 0), x, y-h/2, z, ry,
+      const streak=(x,y,z,w,h,ry)=>m.P("rust", streakGeo(w, h, 0), x, y-h/2, z, ry,
                                        "#7c4526", 0, 0);
       for(const wl of [[Z0,-OFF],[Z1,OFF]]){
         m.P("soot", planeGeo(W2-0.3, 0.60, 0), OX, F2+0.30, wl[0]+wl[1], 0, "#6d6455", 0, 0);
@@ -864,10 +864,10 @@
     m.B("siding", 4.2, 2.45, 3.4, -13.0, 0.22+1.22, 8.0, 0.45,0, "#a8a294");
     m.B("roof", 4.6, 0.14, 3.8, -13.0, 0.22+2.51, 8.0, 0.35,0, "#8d9490");
     m.B("teal", 1.02, 2.05, 0.10, -13.0, 0.22+1.02, 8.0-1.72, 0,0, "#4e5a56");
-    m.P("rust", planeGeo(1.60, 1.90, 0), -13.0, 0.22+1.10, 8.0-1.76, 0, "#6a3a20");
+    m.P("rust", streakGeo(1.60, 1.90, 0), -13.0, 0.22+1.10, 8.0-1.76, 0, "#6a3a20");
     m.P("soot", planeGeo(4.0, 0.46, 0), -13.0, 0.22+0.23, 8.0-1.78, 0, "#6d6455", 0, 0);
     for(let i=0;i<4;i++)
-      m.P("rust", planeGeo(0.22, 0.80+((i*5)%3)*0.4, 0), -14.4+i*0.95, 0.22+1.95,
+      m.P("rust", streakGeo(0.22, 0.80+((i*5)%3)*0.4, 0), -14.4+i*0.95, 0.22+1.95,
           8.0-1.78, 0, "#7c4526", 0, 0);
     m.col(-15.2,-10.8, 6.2,9.8, 0, 0.22+2.45);
     for(let i=0;i<3;i++)                           // vents in its flank

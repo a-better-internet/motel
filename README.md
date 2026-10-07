@@ -719,6 +719,13 @@ headless Chromium and asks the scene about itself rather than looking at it:
   because the highway slab was never registered with `addFlat`, and an
   eleven-centimetre strip at the painted kerb that belonged to no flat at
   all and dropped you 55 cm into it;
+- a ray probe, which casts a grid of rays from a camera and names what fills
+  the frame — by bucket AND by the triangle's own plane, because every bucket
+  in this world is one merged mesh and "bucket:oak" covers the bar, the
+  tables and the dado at once. It is the only thing that can find a wall that
+  no file draws: the pale wall splitting the speakeasy in half turned out to
+  be the terrain's own LOD apron, hanging fifty metres down from a ring edge
+  that happens to fall at x = -120;
 - a route walk, which carries the player's height along a POLYLINE rather
   than a straight line — a gate, a door, a flight of twenty-four, seventy
   metres of tunnel, a corner and a second door cannot be tested any other

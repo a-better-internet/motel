@@ -86,6 +86,22 @@ bucketOf("track",   ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.trac
                           transparent:true, roughness:1, depthWrite:false}));
 bucketOf("soot",    ()=>new T.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.16,
                           map:TEX.soot, depthWrite:false, side:T.DoubleSide}));
+// damp and tide-marks on plaster. Same job as soot, but the map is a FIELD
+// rather than one blob, so every patch has to be cut out of it with
+// streakGeo — planeGeo on this bucket puts the entire field on one patch.
+// It is LIT, unlike soot. An unlit stain is a constant brightness laid over
+// a wall whose own brightness falls off between the sconces — so in the dim
+// half of the room the "stain" was brighter than the plaster and read as fog
+// on the wall rather than damp in it. Lit by the same lamps as the plaster
+// and given a vertex colour below the plaster's, it can only ever darken.
+bucketOf("stain",   ()=>new T.MeshStandardMaterial({map:TEX.stain, transparent:true,
+                          opacity:0.62, roughness:0.92, depthWrite:false,
+                          side:T.DoubleSide}));
+// A mirror in an amber room reflects an amber room. The shared `mirror`
+// bucket carries a cold blue emissive for the motel's bathrooms, and behind
+// the speakeasy's bottles that read as a sheet of daylight.
+bucketOf("mirrorw", ()=>new T.MeshStandardMaterial({color:0xffffff, metalness:0.50,
+                          roughness:0.10, emissive:0x3a2a16, emissiveIntensity:0.40}));
 bucketOf("rust",    ()=>new T.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.30,
                           map:TEX.streak, depthWrite:false, side:T.DoubleSide}));
 bucketOf("ember",   ()=>glowMat({color:0xffffff, emissive:0xff4a12, emissiveIntensity:1.6}, "warm"));

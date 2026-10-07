@@ -84,7 +84,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
         const [px,pz]=K(q*1.145, 0.55);
         push("paint", boxGeo(0.06, 0.42, 4.30, 0.5), px, 1.62, pz, TA, TRIM2);
         const [rx2,rz2]=K(q*1.21, 0.55);
-        push("rust", planeGeo(1.90, 1.30, 0), rx2, 0.72, rz2,
+        push("rust", streakGeo(1.90, 1.30, 0), rx2, 0.72, rz2,
              TA+(q>0?Math.PI/2:-Math.PI/2), RUST3);
       }
       const [fx2,fz2]=K(0,3.35);                       // the cab
@@ -224,7 +224,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
                    "#4a6b52", 1.05, 0);                // one lid thrown back
         for(const q of [-1,1]) cyl("metal", 0.15,0.15,0.12,12, dx+q*0.82, 0.08, CZ+0.42,
                                    "#3a3632", 0, 0, Math.PI/2);
-        push("rust", planeGeo(1.40,0.90,0), dx, 0.62, CZ-0.40, 0, "#6a3a20");
+        push("rust", streakGeo(1.40,0.90,0), dx, 0.62, CZ-0.40, 0, "#6a3a20");
         addCol(dx-1.05, dx+1.05, CZ-0.62, CZ+0.62, 0, 1.3);
       }
       for(let i=0;i<9;i++)                             // what did not make it in
@@ -362,7 +362,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       bx("glass", 0.62, 0.42, 0.06, sx+1.50, SF+1.70, SZ0+ST/2, 0, 0, "#8e9a94");
       bx("oak", 0.70, 0.05, 0.05, sx+1.50, SF+1.94, SZ0-0.02, 0, 0, "#6b5947");
       for(let i=0;i<4;i++)                                        // rust down the seams
-        push("rust", planeGeo(0.44,1.60,0), SX0+0.5+i*1.35, 1.20, SZ0-0.07, 0, "#6a3a20");
+        push("rust", streakGeo(0.44,1.60,0), SX0+0.5+i*1.35, 1.20, SZ0-0.07, 0, "#6a3a20");
       /* ---- and what is in it ---------------------------------------- */
       for(let k=0;k<2;k++){                                       // chest coolers
         const cx2=QX0+0.78+k*1.62;
@@ -416,7 +416,7 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
            k? "#4a6b52":"#3a5f7c", 1.15, 0);                      // the lid, thrown back
       for(const q of [-1,1]) cyl("metal", 0.17,0.17,0.14,12, dx+q*0.95, 0.09, dz+0.45,
                                  "#3a3632", 0, 0, Math.PI/2);
-      push("rust", planeGeo(1.60,1.00,0), dx, 0.70, dz-0.63, 0, "#6a3a20");
+      push("rust", streakGeo(1.60,1.00,0), dx, 0.70, dz-0.63, 0, "#6a3a20");
       addCol(dx-1.2, dx+1.2, dz-0.7, dz+0.7, 0, 1.5);
       for(let i=0;i<5;i++)                                        // what missed
         push("paper", planeGeo(0.20,0.27,0), dx-1.4+i*0.7, 0.015, dz-1.2-((i*0.37)%1.4),
@@ -580,7 +580,7 @@ i===1?"#6a5a3c":"#7a6746");
              cy+0.16+i*0.21, cz3, 0, "#46523f", Math.PI/2, 0);
       cyl("weathered", 0.33,0.33,0.05,14, cx3, cy+0.885, cz3, "#3d4838");     // the lid
       cyl("bin", 0.17,0.17,0.03,12, cx3, cy+0.915, cz3, "#221f1c");           // and its mouth
-      push("rust", planeGeo(0.36,0.60,0), cx3, cy+0.40, cz3-0.27, 0, "#6a4028");
+      push("rust", streakGeo(0.36,0.60,0), cx3, cy+0.40, cz3-0.27, 0, "#6a4028");
       push("paper", boxGeo(0.14,0.006,0.18,0), cx3+0.36, cy+0.012, cz3-0.22, 0.7,
            "#cfc6ac", 0.05, 0.03);                      // and what missed it
       cyl("metal", 0.033,0.033,0.11,10, cx3-0.40, cy+0.033, cz3+0.16, "#9aa0a2",

@@ -314,38 +314,154 @@
     m.rect(-26,26,-8,54, "THE DRIVE-IN");
   })();
 
-  /* --- one phone booth, miles from anywhere ---------------------------- */
+  /* --- one phone booth, miles from anywhere ----------------------------
+     WHAT MAKES A PHONE BOOTH A PHONE BOOTH, and what the first one of these
+     was missing. It was a blue box with glass in it, and that is a shower
+     cubicle. The things your eye is actually looking for are: the lit
+     header with TELEPHONE across all four faces and the bell on it; the
+     FOLDING door, two narrow leaves on a centre hinge, standing half open
+     because they always are; the solid kick panels under the glazing; the
+     mullions that break each face into lights rather than leaving one slab
+     of glass; the shelf and the directory on its swing arm; and the dome
+     in the ceiling that comes on when the door shuts. Built in that order,
+     every one of them earns its primitives.                             */
   (function(){
     const m=mk(-96, 196);
-    m.B("metal", 0.94,0.06,0.94, 0,0.03,0, 0.4, 0, "#5b5f62");
+    const AL="#b9c2c6", ALD="#8d979c", BLU="#2f6ea8", BLUD="#24547e";
+    const GLS="#cfe0e6", CHR="#c8cfd2", DRK="#2a2a28";
+    const HW=0.49;                                  // half the booth, inside the posts
+    const TOP=2.26, KICK=0.44, GLZ0=0.50, GLZ1=2.14;
+    const R2=n=>((Math.sin(n*53.17+9.3)*43758.5)%1+1)%1;
+    // the pad it stands on, kerbed, with the desert drifted up against it
+    m.B("concrete", 1.44, 0.16, 1.44, 0,0.04,0, 0.45, 0, "#a8a196");
+    m.B("concrete", 1.52, 0.07, 1.52, 0,0.015,0, 0.45, 0, "#968f85");
+    m.flat(-0.76,0.76,-0.76,0.76, 0.12);
+    for(let i=0;i<7;i++)
+      m.P("track", planeGeo(0.5+R2(i)*0.6, 0.4+R2(i+4)*0.5, 0), (R2(i)-0.5)*1.5, 0.125,
+          (R2(i+9)-0.5)*1.5, R2(i+2)*3.1, "#cdbb97", -Math.PI/2, 0);
+    // the frame: four corner posts and the rails that tie them
     for(const q of [[-1,-1],[1,-1],[-1,1],[1,1]])
-      m.B("paint", 0.09,2.20,0.09, q[0]*0.42,1.12,q[1]*0.42, 0, 0, "#4d7cb4");
-    m.B("glass", 0.86,1.95,0.05, 0,1.15,-0.42, 0, 0, "#cfe0e6");
-    m.B("glass", 0.05,1.95,0.86, -0.42,1.15,0, 0, 0, "#cfe0e6");
-    m.B("glass", 0.05,1.95,0.86,  0.42,1.15,0, 0, 0, "#cfe0e6");
-    m.B("glass", 0.86,1.95,0.05, 0.16,1.15,0.42, 0, 0.5, "#cfe0e6");   // door, ajar
-    m.B("paint", 1.02,0.22,1.02, 0,2.30,0, 0.4, 0, "#4d7cb4");
-    m.B("signlit", 0.72,0.15,0.03, 0,2.30,-0.44, 0, 0, "#e8e4d6");
-    m.B("paint", 0.26,0.50,0.18, 0,1.34,0.34, 0, 0, "#2b2b2b");        // the phone
-    m.B("metal", 0.20,0.06,0.04, 0,1.52,0.24, 0, 0, "#b8bcbc");        // the hook
-    m.P("paint", new T.CylinderGeometry(0.035,0.035,0.30,8), -0.17,1.05,0.26, 0, "#1a1a19", 0.5, 0);
-    m.P("paint", new T.CylinderGeometry(0.012,0.012,0.46,6), -0.13,1.20,0.28, 0, "#222", 0.9, 0.3);
-    m.B("metal", 0.12,0.09,0.03, 0.02,1.10,0.26, 0, 0, "#9a9a94");     // coin return
-    m.B("paint", 0.14,0.18,0.02, -0.06,1.55,0.27, 0, 0, "#d8d2bc");    // the number card
-    // a directory on a chain, hanging open at the Bs
-    m.B("oak",  0.22,0.03,0.16, 0.22,1.02,0.22, 0, 0.3, "#c9bfa0");
-    m.B("oak",  0.20,0.10,0.15, 0.22,0.96,0.22, 0, 0.3, "#a89b7c");
-    m.P("metal", new T.CylinderGeometry(0.008,0.008,0.30,6), 0.22,1.17,0.24, 0, "#8f9aa0", 0.2, 0);
-    // one pane has been out for years — the frame is there, the glass is not
-    m.B("paint", 0.05,0.10,0.86, -0.42,2.08,0, 0, 0, "#4d7cb4");
-    for(const g2 of [[-0.30,0.06],[-0.10,-0.22],[0.16,0.18]])
-      m.P("glass", boxGeo(0.02,0.05,0.06,0), -0.44+g2[1]*0.02, 0.08, g2[0], 0, "#cfe0e6",
-          0, g2[1]*3.0);
-    m.P("soot", planeGeo(0.5,0.34,0), -0.40,1.40,0.05, -Math.PI/2, "#6a5a3a", 0, Math.PI/2);
-    m.col(-0.5,0.5,-0.5,0.5, 0,2.4);
+      m.B("metal", 0.075, TOP, 0.075, q[0]*HW, 0.12+TOP/2, q[1]*HW, 0.4, 0, AL);
+    for(const yy of [0.14, KICK, GLZ1+0.10, TOP+0.08])
+      for(const ax of [0,1]) for(const q of [-1,1])
+        m.B("metal", ax?0.065:HW*2+0.075, 0.065, ax?HW*2+0.075:0.065,
+            ax?q*HW:0, 0.12+yy, ax?0:q*HW, 0.4, 0, yy===TOP+0.08?ALD:AL);
+    /* THREE SIDES ARE GLAZED, THE FOURTH IS THE DOOR. Each glazed side is a
+       kick panel, two lights and a transom — the mullions are what stop it
+       reading as one sheet of perspex. */
+    const side=(ry, sx, sz)=>{
+      m.B("paint", ry?0.05:HW*2, KICK-0.16, ry?HW*2:0.05, sx*HW, 0.12+0.14+(KICK-0.16)/2,
+          sz*HW, 0.5, 0, BLU);
+      m.B("metal", ry?0.055:HW*2+0.04, 0.05, ry?HW*2+0.04:0.055, sx*HW, 0.12+KICK-0.02,
+          sz*HW, 0.4, 0, AL);
+      for(const g of [[GLZ0, 1.28],[1.34, GLZ1]])
+        m.B("glass", ry?0.03:HW*2-0.02, g[1]-g[0], ry?HW*2-0.02:0.03, sx*HW,
+            0.12+(g[0]+g[1])/2, sz*HW, 0, 0, GLS);
+      m.B("metal", ry?0.05:HW*2, 0.055, ry?HW*2:0.05, sx*HW, 0.12+1.31, sz*HW, 0.4, 0, AL);
+      for(const q of [-0.33, 0.33])                 // the vertical mullions
+        m.B("metal", ry?0.05:0.045, GLZ1-GLZ0, ry?0.045:0.05,
+            ry?sx*HW:q*HW*2*0.5, 0.12+(GLZ0+GLZ1)/2, ry?q*HW*2*0.5:sz*HW, 0.4, 0, AL);
+    };
+    side(0, 0, 1); side(1, -1, 0); side(1, 1, 0);
+    /* THE FOLDING DOOR, standing a third open. Two leaves: the first hinged
+       on the left post and swung in, the second hinged off the first and
+       folded back on it, which is the shape everybody recognises and the
+       reason you can see into one of these at all. */
+    const leaf=(cx,cz,ry,w2)=>{
+      m.B("metal", w2, GLZ1-0.10, 0.05, cx, 0.12+(KICK+GLZ1)/2-0.05, cz, 0.4, ry, AL);
+      m.B("paint", w2-0.07, KICK-0.18, 0.055, cx, 0.12+0.15+(KICK-0.18)/2, cz, 0.5, ry, BLU);
+      m.B("glass", w2-0.09, GLZ1-KICK-0.14, 0.03, cx, 0.12+(KICK+GLZ1)/2+0.05, cz, 0, ry, GLS);
+      m.B("metal", w2-0.09, 0.04, 0.04, cx, 0.12+1.31, cz, 0.4, ry, AL);
+    };
+    {
+      const a=0.72, b=-1.05;                        // the two leaves' bearings
+      const x1=-HW+Math.cos(a)*0.24, z1=-HW+Math.sin(a)*0.24;
+      leaf(x1, z1, a, 0.48);
+      const hx=-HW+Math.cos(a)*0.48, hz=-HW+Math.sin(a)*0.48;
+      leaf(hx+Math.cos(b)*0.24, hz+Math.sin(b)*0.24, b, 0.48);
+      m.C("metal", 0.016,0.016,0.52,8, hx, 0.12+1.46, hz, CHR);   // the centre pull
+      m.C("metal", 0.016,0.016,0.52,8, -HW+0.06, 0.12+1.46, -HW+0.06, CHR);
+    }
+    /* THE HEADER. Lit, on all four faces, which is the only part of one of
+       these you can read from the road at night. */
+    const telTex=signTex(256,96,(x,W,H)=>{
+      const g=x.createLinearGradient(0,0,0,H);
+      g.addColorStop(0,"#3f84c4"); g.addColorStop(1,"#245f93");
+      x.fillStyle=g; x.fillRect(0,0,W,H);
+      x.fillStyle="#eef3f6"; x.fillRect(5,5,W-10,3); x.fillRect(5,H-8,W-10,3);
+      x.fillStyle="#eef3f6"; fitText(x,"TELEPHONE", W-78, 46, W/2+16, H/2+2);
+      x.save(); x.translate(34,H/2); x.fillStyle="#eef3f6";       // the bell
+      x.beginPath(); x.moveTo(-15,13); x.quadraticCurveTo(-13,-10,0,-13);
+      x.quadraticCurveTo(13,-10,15,13); x.closePath(); x.fill();
+      x.fillRect(-18,13,36,4);
+      x.beginPath(); x.arc(0,21,4.5,0,7); x.fill(); x.restore();
+    });
+    m.B("paint", HW*2+0.20, 0.30, HW*2+0.20, 0, 0.12+TOP+0.17, 0, 0.4, 0, BLUD);
+    for(let k=0;k<4;k++){
+      const ry=k*Math.PI/2, nx=Math.sin(ry), nz=Math.cos(ry);
+      signPanel(0.90, 0.24, telTex, m.wx(nx*(HW+0.106), 0), m.y+0.12+TOP+0.17,
+                m.wz(0, nz*(HW+0.106)), ry, true);
+    }
+    m.B("metal", HW*2+0.34, 0.07, HW*2+0.34, 0, 0.12+TOP+0.35, 0, 0.4, 0, ALD);
+    m.B("metal", HW*2+0.40, 0.035, HW*2+0.40, 0, 0.12+TOP+0.30, 0, 0.4, 0, AL);
+    /* WHAT IS ACTUALLY IN IT. A payphone is a steel case with a chrome
+       faceplate, three coin slots, a return cup, and a handset on a hook
+       with an armoured cord — and under it a shelf with the directory
+       hanging off a swing arm, because that is where you put the phone
+       number you were given. */
+    const BZ=HW-0.06;
+    m.B("paint", 0.30, 0.62, 0.13, 0.02, 0.12+1.28, BZ, 0.4, 0, "#33373a");
+    m.B("metal", 0.26, 0.34, 0.015, 0.02, 0.12+1.44, BZ-0.072, 0.4, 0, CHR);
+    for(let i=0;i<3;i++)                            // the coin slots
+      m.B("paint", 0.018, 0.045, 0.012, -0.05+i*0.05, 0.12+1.58, BZ-0.082, 0.4, 0, DRK);
+    m.C("metal", 0.055,0.055,0.014,16, 0.02, 0.12+1.40, BZ-0.082, ALD);   // the dial
+    for(let i=0;i<10;i++)
+      m.C("paint", 0.009,0.009,0.016,8, 0.02+Math.cos(i*0.63)*0.036, 0.12+1.40,
+          BZ-0.090+Math.sin(i*0.63)*0.0, DRK, Math.PI/2, 0, 0);
+    m.B("metal", 0.13, 0.055, 0.035, 0.02, 0.12+1.07, BZ-0.075, 0.4, 0, CHR);  // return cup
+    m.B("paint", 0.11, 0.03, 0.02, 0.02, 0.12+1.075, BZ-0.088, 0.4, 0, DRK);
+    m.B("paint", 0.15, 0.10, 0.02, -0.02, 0.12+1.76, BZ-0.075, 0.4, 0, "#e4e0d2"); // number card
+    m.B("metal", 0.17, 0.12, 0.012, -0.02, 0.12+1.76, BZ-0.070, 0.4, 0, CHR);
+    // the handset, on its hook, with the cord hanging in a loose coil
+    m.B("metal", 0.05, 0.10, 0.05, -0.17, 0.12+1.46, BZ-0.06, 0.4, 0, CHR);
+    m.P("paint", boxGeo(0.055,0.23,0.055,0), -0.17, 0.12+1.40, BZ-0.095, 0.1, DRK, 0.06, 0);
+    for(const q of [-1,1])
+      m.P("paint", boxGeo(0.075,0.055,0.075,0), -0.17, 0.12+1.40+q*0.125, BZ-0.095,
+          0.1, DRK, 0.06, 0);
+    for(let i=0;i<11;i++)
+      m.P("teal", new T.TorusGeometry(0.035,0.008,5,12), -0.14, 0.12+1.24-i*0.052,
+          BZ-0.055, 0, "#2b2b29", 0.35, 0);
+    // the shelf, the directory on its arm, and a pencil somebody left
+    m.B("metal", 0.52, 0.025, 0.20, 0.02, 0.12+0.98, BZ-0.10, 0.5, 0, ALD);
+    for(const q of [-1,1])
+      m.B("metal", 0.03, 0.10, 0.03, 0.02+q*0.22, 0.12+0.93, BZ-0.05, 0.4, 0, ALD);
+    m.C("metal", 0.012,0.012,0.26,6, 0.24, 0.12+0.86, BZ-0.06, ALD, 0, 0, 0.4);
+    m.P("oak", boxGeo(0.21,0.05,0.16,0.5), 0.30, 0.12+0.74, BZ-0.11, 0.25, "#b8ab8c", 0.12, 0.2);
+    m.P("paper", boxGeo(0.20,0.025,0.15,0.5), 0.30, 0.12+0.77, BZ-0.11, 0.25, "#d8d2bc", 0.12, 0.2);
+    m.C("paint", 0.006,0.006,0.13,5, -0.18, 0.12+0.995, BZ-0.13, "#b8a23a", 0, 0.7, Math.PI/2);
+    // the dome in the ceiling, and the light it throws
+    m.C("metal", 0.085,0.085,0.02,14, 0, 0.12+TOP-0.03, 0, ALD);
+    m.P("ceilfix", new T.SphereGeometry(0.075,12,8), 0, 0.12+TOP-0.07, 0, 0, "#f4ecd2");
+    m.lamp(0, 0.12+TOP-0.12, 0, {color:0xffeec8, intensity:0.46, dist:7.0, decay:1.5,
+                                 mothy:true, flicker:true});
+    m.lamp(0, 0.12+TOP+0.17, -HW-0.3, {color:0x9fd0ff, intensity:0.30, dist:9.0, decay:1.5});
+    /* AND FORTY YEARS OF NOBODY MINDING IT. One light out of the east face,
+       its frame still there; the glass crazed where somebody put a boot
+       through the kick panel; scratched initials; a drift of sand in the
+       corner the wind favours; flyers stapled to the post. */
+    m.P("soot", planeGeo(0.34, 0.26, 0), HW-0.022, 0.12+1.62, 0.16, Math.PI/2,
+        "#8a8272", 0, 0);
+    for(let i=0;i<9;i++)
+      m.P("glass", boxGeo(0.02,0.05,0.07,0), HW-0.02, 0.135, 0.10+R2(i)*0.5-0.25,
+          R2(i+3)*3.1, GLS, 0, R2(i+6)*2.4-1.2);
+    m.P("soot", planeGeo(0.30, 0.42, 0), -HW+0.022, 0.12+1.30, -0.10, -Math.PI/2,
+        "#7d7668", 0, 0);
+    for(let i=0;i<4;i++)
+      m.P("paper", planeGeo(0.11+R2(i)*0.05, 0.15+R2(i+2)*0.06, 0), -HW-0.042,
+          0.12+1.05+i*0.22, -HW+0.02, -Math.PI/2, ["#cfc6ae","#c8bda0","#d4ccb4","#bfb6a0"][i],
+          0, R2(i+5)*0.3-0.15);
+    m.col(-0.62,0.62,-0.62,0.62, 0, 2.6);
     m.zone(8, "A TELEPHONE");
-    LAMPS.push({x:-96, y:m.y+2.24, z:196, color:0xd8e4ff, intensity:0.42, dist:12, decay:1.5,
-                mothy:true});
   })();
 
   /* --- the snack bar, west of the drive-in ------------------------------
@@ -444,7 +560,7 @@
     }
     for(const q of [[-3.7, 3.4],[1.9, 3.0]])                  // rust running down it
       for(let i=0;i<4;i++)
-        m.P("rust", planeGeo(0.10, 0.60, 0), q[0]-q[1]/2+0.4+i*(q[1]-0.8)/3, SF+0.52,
+        m.P("rust", streakGeo(0.10, 0.60, 0), q[0]-q[1]/2+0.4+i*(q[1]-0.8)/3, SF+0.52,
             QZ0+0.785, 0, "#6a3a20");
     // ---- two popcorn poppers, both seized -------------------------------
     for(const px of [-4.4, -2.6]){
@@ -683,7 +799,7 @@
       m.C("metal", 0.030,0.030,0.10,8, X0-0.13, SF+0.96, dz+0.34, "#8d9498", 0,0,Math.PI/2);
       m.B("paint", 0.02, 0.26, 0.20, X0-0.12, SF+1.62, dz, 0, 0, k ? "#7a2a2a" : "#2a3a5a");
       for(let i=0;i<3;i++)                             // rust running out from the hinges
-        m.P("rust", planeGeo(0.09, 0.50, 0), X0-0.115, SF+0.70+i*0.42, dz-0.40,
+        m.P("rust", streakGeo(0.09, 0.50, 0), X0-0.115, SF+0.70+i*0.42, dz-0.40,
             -Math.PI/2, "#6a3a20", 0, 0);
     }
     m.B("concrete", 1.10, 0.20, 3.60, X0-0.62, SF-0.11, -0.10, 0.45, 0, "#a8a094");

@@ -170,12 +170,18 @@ function makeDoor(xf, lx, ly, lz, roomNo, opensIn, ajar, style){
       for(let i=0;i<5;i++)                              // the louvre
         ent.push({geo:boxGeo(0.44,0.028,0.022,0.5),
                   matrix:rot(leafW/2, 0.30+i*0.055, sd*(leafT/2+0.012), -0.42*sd), color:dk});
+      /* EVERY LAYER ON THIS LEAF GETS ITS OWN DEPTH, and each one's back
+         face is buried in the layer beneath rather than level with its
+         front. The skin panel's face is at leafT/2+0.010; the plate used to
+         sit at +0.012 and the escutcheon's underside at +0.011, which is
+         one and two millimetres — a door that shimmers as you walk up to
+         it. The reveal round it was the other half of the same problem. */
       ent.push({geo:boxGeo(0.21,0.14,0.008,0.5),        // the warning plate
-                matrix:m4(leafW/2, 1.46, sd*(leafT/2+0.008)), color:new T.Color(0xc8a93a)});
+                matrix:m4(leafW/2, 1.46, sd*(leafT/2+0.017)), color:new T.Color(0xc8a93a)});
       ent.push({geo:boxGeo(0.055,0.19,0.03,0.5),        // lever handle and escutcheon
-                matrix:m4(leafW-0.13, 1.02, sd*(leafT/2+0.014)), color:dk});
+                matrix:m4(leafW-0.13, 1.02, sd*(leafT/2+0.021)), color:dk});
       ent.push({geo:boxGeo(0.16,0.034,0.034,0.5),
-                matrix:m4(leafW-0.20, 0.98, sd*(leafT/2+0.030)), color:chrome2});
+                matrix:m4(leafW-0.20, 0.98, sd*(leafT/2+0.048)), color:chrome2});
     }
   }else if(style==="deco"){
     /* AND THEN THIS. Sixty metres of concrete tunnel ends at a door with
@@ -487,7 +493,7 @@ function buildBay(xf, level, kind, roomNo, lit){
 
   // through-wall air conditioner under the sill, and the rust streak it has
   // been leaving down the stucco for twenty summers
-  push("rust", planeGeo(0.50,0.60,0), xf.x((winX0+winX1)/2-0.35,-0.005), y0+0.28,
+  push("rust", streakGeo(0.50,0.60,0), xf.x((winX0+winX1)/2-0.35,-0.005), y0+0.28,
        xf.z((winX0+winX1)/2-0.35,-0.005), xf.ry, "#6a4028");
   lbx(xf,"metal", 0.78,0.46,0.54, (winX0+winX1)/2-0.35, y0+0.60, -0.15, 0, "#9aa1a6");
   for(let i=0;i<5;i++)

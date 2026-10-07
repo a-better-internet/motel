@@ -441,12 +441,12 @@ function frame(){
        warm, so the hemisphere keeps about a seventh of its strength with
        its colours pulled to lamplight and the ambient is recoloured and
        raised. The sun is the only thing taken away outright. */
-    hemi.intensity *= 1-buriedMix*0.86;
+    hemi.intensity *= 1-buriedMix*0.82;
     hemi.color.lerp(BURIED_SKY, buriedMix);
     hemi.groundColor.lerp(BURIED_GND, buriedMix);
     key.intensity  *= 1-buriedMix;
     amb.color.copy(AMB_BASE).lerp(BURIED_AMB, buriedMix);
-    amb.intensity   = amb.intensity*(1-buriedMix) + 0.30*buriedMix;
+    amb.intensity   = amb.intensity*(1-buriedMix) + 0.37*buriedMix;
   }else if(amb.color.getHex()!==AMB_BASE.getHex()) amb.color.copy(AMB_BASE);
   // At night the haze must sit DARKER than the sky, or the mountains wash out
   // into it; by day it matches the horizon so distance reads as heat and dust.

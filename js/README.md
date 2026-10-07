@@ -318,6 +318,91 @@ over about a third of a second while the camera is inside one — which is
 what makes the stair a transition rather than a cut, and what makes the
 "buried" glow kind (fixed emissive, not on the clock) do the whole job.
 
+**A terrain apron is a curtain if you ever dig under it.** Every LOD ring
+hangs a skirt off its border and off the inside of each of its holes, forty
+or fifty metres deep, to cover the crack where two levels of detail
+disagree. That is free while the only thing under the desert is more desert.
+The look ring's east edge is at x = -120 **exactly**, and The Dry Well runs
+from -133 to -114 — so that ring's apron and the middle ring's matching hole
+apron both hung straight down through the middle of the bar: a fifty-metre
+sheet of ground, lit like a wall, standing between the banquette and the
+counter. It took a ray probe to name it, because from inside it is simply a
+large pale wall and nothing in 14e-speakeasy.js draws one.
+`SKIRT_GAPS` in `04-terrain.js` drops the apron to 1.2 m over a listed box —
+still several times the crack, nowhere near the ceiling. **Anything
+excavated under this terrain has to be listed there**, and the first thing
+to check when a room has a wall in it that no file draws is the ring edges
+it straddles.
+
+**A stain is never the same stain twice, and a map has edges.** The streak
+map was opaque along its top row, so every plane carrying it ended in a hard
+horizontal line — and since `planeGeo` hands every instance the same 0..1
+UVs, it was the *same* hard line in the *same* pattern, forty times over a
+property. Two halves to the fix: the map now fades in at the top and has a
+soft margin on all four sides, so a crop of it can never land on a cut; and
+`streakGeo(w,h)` takes a different crop each time — a random offset, a
+random scale under one, a random flip — off a counter, so it is
+deterministic without being repetitive. Any decal pushed in a loop wants
+this; `planeGeo` is for things whose UVs mean something.
+
+**A landing is floor nobody asked for.** The flight down from the equipment
+shelter started 58 cm inside the hut, which put a strip of concrete between
+the threshold and the opening — and a strip of concrete is exactly what you
+see when you open the door. It starts at the threshold now, and because a
+door leaf must never swing out over a stairwell, the door opens outward.
+Plant room doors do anyway.
+
+**A reveal is centred on the wall it lines, not on a number of its own.**
+The speakeasy's door reveal was built 0.30 deep off the anteroom's own wall
+thickness while the wall between them is the room's, 0.34 — so the reveal's
+far face landed exactly on the wall's, and two surfaces on one plane flicker
+from the whole length of the tunnel. Lining a hole means standing proud of
+the thing you are lining, on both faces.
+
+**Two faces on one plane fight; two faces that butt do not.** This is the
+whole of the z-fighting rule and it is worth stating once properly. The
+depth buffer cannot separate two surfaces at the same depth, so they
+speckle and swap as you move — *but only if they face the same way*. Where
+two boxes merely meet edge to edge, their shared faces point in opposite
+directions and backface culling throws one away, so butting is free and
+overlapping is the thing to avoid. Which gives the working rules: a slab
+and its finish are never the same height (the entry platform had thirty-
+eight square metres of concrete and boards at TD+0.01); a riser's ends go
+*inside* the treads above and below it, not half a millimetre under them; a
+wall's foot sinks into the slab it stands on rather than resting level with
+its top; anything applied to a surface — a plate on a door, a shade on its
+stem, a worn board, a wall stain — sits at its own depth, and if there are
+twenty-six of them, that is twenty-six depths a fifth of a millimetre
+apart. `coplanar.js` finds all of it; it does not know about
+`depthWrite:false`, so same-plane pairs between two unlit decal buckets are
+noise. The ones that matter have `dp` at 0.0000 and an opaque bucket on at
+least one side.
+
+**Flats overlap; the concrete butts.** `addFlat`'s bounds are strict, so two
+walking surfaces that *meet* exactly leave one line with no surface on it at
+all, and on that line you drop to whatever is underneath. The hut's apron
+and its floor met at the threshold — the one line every visitor crosses —
+and walk39 caught the player 21 cm down in the desert standing in the
+doorway. Grow every flat 10 cm into its neighbours. The exception is an
+edge that faces a hole: a flat laid over a stairwell is the floor across the
+opening, which is the complaint this round started with.
+
+**An unlit decal is a constant brightness.** A `MeshBasicMaterial` stain
+does not care how lit the wall behind it is, so in a room whose brightness
+falls away between the sconces the "stain" ends up brighter than the plaster
+and reads as fog hanging on the wall. Age that has to sit *in* a surface
+rather than *on* it wants the same material class as the surface and a
+vertex colour below it, so it can only ever darken. The same goes for a
+shared bucket's emissive: the `mirror` bucket's cold blue reads as a sheet
+of daylight behind an amber bar, which is why the speakeasy has its own.
+
+**An emissive does not illuminate.** Every low table in The Dry Well had a
+candle on it and none of them was lighting anything: the flame is an
+emissive material, which is bright and casts nothing. The real lights are a
+pool of nine that follows the camera and they are all spoken for. An
+additive disc on the table under each flame costs one transparent quad and
+is what makes the room read as candlelit.
+
 ## Checking it still works
 
 The harness in the scratchpad drives a headless build: `sync.sh` mirrors
@@ -331,5 +416,9 @@ names whatever is standing in it, and `drive29.js` / `jump30.js` /
 and measures how far apart the rings are along their shared border, which is
 the only way to tell a hole in the world from a hole in one mesh, and
 `clear36.js` walks the geometry of a doorway rather than its colliders,
-and `sink38.js` raycasts down onto the drawn world and reports everywhere
-it stands above the surface the player and the car are given to walk on.
+`sink38.js` raycasts down onto the drawn world and reports everywhere
+it stands above the surface the player and the car are given to walk on,
+`walk39.js` walks a polyline and prints the surface height and the zone at
+the end of every leg, and `whatis40.js` casts a grid of rays from a camera
+and names what fills the frame by bucket *and* by the triangle's own plane —
+the only thing that finds a wall no source file draws.

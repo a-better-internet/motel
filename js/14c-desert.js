@@ -845,7 +845,7 @@
       m.C("weathered", 0.30,0.30,0.88,14, d[0],0.44,d[1], d[3], 0,0,d[2]);
     m.P("fabric", boxGeo(1.35,0.22,1.95,0.5), -2.6,0.09,0.9, 0.6, "#8f8878", 0.07, 0.05);
     m.P("fabric", boxGeo(1.16,0.06,1.72,0.5), -2.6,0.20,0.9, 0.6, "#6e6656", 0.07, 0.05);
-    m.P("rust", planeGeo(1.1,1.5,0), -2.5,0.21,1.0, 0.6, "#6a4028", -Math.PI/2, 0);
+    m.P("rust", streakGeo(1.1,1.5,0), -2.5,0.21,1.0, 0.6, "#6a4028", -Math.PI/2, 0);
     for(const t2 of [[1.2,-2.2],[-1.6,-1.4],[3.6,-1.9]])
       m.P("bin", new T.CylinderGeometry(0.05,0.045,0.12,8), t2[0],0.06,t2[1], 0, "#9aa1a6", 1.4, 0);
     m.col(2.0,3.4,-1.2,1.9, 0,0.9);
@@ -927,7 +927,7 @@
     // rust weeping down the skin
     for(let i=0;i<9;i++){
       const zc=(i%2)?ZS+0.06:ZN-0.06;
-      m.P("rust", planeGeo(0.50,1.30,0), rr2(X0+0.5,X1-0.5), FY+1.10, zc,
+      m.P("rust", streakGeo(0.50,1.30,0), rr2(X0+0.5,X1-0.5), FY+1.10, zc,
           (i%2)?0:Math.PI, "#6a3a20", 0, 0);
     }
     // ---- up on blocks, with the tongue still hitched to nothing --------

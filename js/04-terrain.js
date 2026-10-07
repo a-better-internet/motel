@@ -6,6 +6,31 @@
 /* ----------------------------------------------------------------------
    4 · TERRAIN — flat motel pad blended into open desert and a mesa ring
    ---------------------------------------------------------------------- */
+/* AN APRON IS A CURTAIN IF YOU DIG UNDER IT.
+   Every ring hangs a skirt off its border and off the inside of each hole,
+   to cover the crack where two levels of detail disagree. Forty and fifty
+   metres of it, because a mesa's worth of ground can fall away at a seam.
+   That is fine while the only thing under the desert is more desert — and
+   it stopped being fine the moment there was a room down there. The LOOK
+   ring's east edge is at x = -120 exactly, and The Dry Well in
+   14e-speakeasy.js runs from -133 to -114, so BOTH that ring's apron and
+   the middle ring's matching hole apron hung straight down through the
+   middle of the bar: a fifty-metre sheet of desert standing between the
+   banquette and the counter, lit like a wall, which is exactly what it
+   looked like.
+   Where an apron crosses one of these boxes it drops 1.2 m instead. The
+   ground there is flat to within a few centimetres, so a metre still
+   covers the crack several times over, and nothing reaches the ceiling of
+   anything. Anything excavated under this terrain has to be listed here.*/
+const SKIRT_GAPS=[{x0:-141, x1:-106, z0:370, z1:398, drop:1.2}];
+function skirtDrop(x,z,drop){
+  for(let i=0;i<SKIRT_GAPS.length;i++){
+    const g=SKIRT_GAPS[i];
+    if(x>g.x0 && x<g.x1 && z>g.z0 && z<g.z1) return Math.min(drop, g.drop);
+  }
+  return drop;
+}
+
 const Terrain=(function(){
   const fract=x=>x-Math.floor(x);
   const hash=(x,y)=>fract(Math.sin(x*127.1+y*311.7)*43758.5453123);
@@ -322,9 +347,10 @@ const TERRAIN_RINGS=[];
     const hangSkirt=(ring,drop)=>{
       const base=P.length/3;
       for(let pass=0;pass<2;pass++) for(const v of ring){
-        P.push(P[v*3], P[v*3+1]-(pass?drop:0), P[v*3+2]);
+        const d = pass ? skirtDrop(P[v*3], P[v*3+2], drop) : 0;
+        P.push(P[v*3], P[v*3+1]-d, P[v*3+2]);
         C.push(C[v*3]*(pass?0.86:1), C[v*3+1]*(pass?0.86:1), C[v*3+2]*(pass?0.86:1));
-        U.push(U[v*2], U[v*2+1]+(pass?drop*0.045:0));
+        U.push(U[v*2], U[v*2+1]+d*0.045);
       }
       const n=ring.length;
       for(let k=0;k<n-1;k++){

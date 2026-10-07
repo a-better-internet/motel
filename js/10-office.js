@@ -1053,7 +1053,7 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
     bx("paint", 0.14, 0.20, D2+1.5, (A.x0+A.x1)/2+sx*(W/2+0.62), y0+CH+0.20,
        (IZ0+A.z1)/2+0.24, 0, 0, "#e6e2d6");
   cyl("metal", 0.045,0.045,CH+0.2, 6, A.x1+0.60, y0+(CH+0.2)/2, A.z1+0.30, STEELD);
-  push("rust", planeGeo(0.34, 1.90, 0), A.x1+0.63, y0+1.1, A.z1+0.30, Math.PI/2, "#6b5a45", 0, 0);
+  push("rust", streakGeo(0.34, 1.90, 0), A.x1+0.63, y0+1.1, A.z1+0.30, Math.PI/2, "#6b5a45", 0, 0);
 
   /* --- the bed, against the north wall, and nobody made it ------------- */
   {
@@ -1629,12 +1629,12 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
       }
       bx("metal", 0.84, 0.03, 0.84, CX, RY+1.01, CZ, 0.5, 0, "#8e9a94");
       cyl("metal", 0.085,0.085,0.10,12, CX, RY+1.06, CZ, "#7f857f");
-      push("rust", planeGeo(0.52, 0.70, 0), CX+0.505, RY+0.52, CZ+0.18, Math.PI/2, "#7a6246", 0, 0);
-      push("rust", planeGeo(0.60, 0.46, 0), CX, RY+0.16, CZ-0.485, Math.PI, "#7a6246", 0, 0);
+      push("rust", streakGeo(0.52, 0.70, 0), CX+0.505, RY+0.52, CZ+0.18, Math.PI/2, "#7a6246", 0, 0);
+      push("rust", streakGeo(0.60, 0.46, 0), CX, RY+0.16, CZ-0.485, Math.PI, "#7a6246", 0, 0);
       // the duct down into the ceiling, and the drip line that stains the wall
       bx("metal", 0.46, 0.44, 0.46, CX, RY-0.10, CZ, 0.4, 0, "#9aa1a6");
       cyl("metal", 0.010,0.010,1.20,6, CX+0.46, RY-0.42, CZ+0.40, "#8e8274", 0.1, 0, 0.06);
-      push("rust", planeGeo(0.26, 1.60, 0), A.x1+0.004, y0+1.50, CZ+0.30, Math.PI/2, "#6b5a45", 0, 0);
+      push("rust", streakGeo(0.26, 1.60, 0), A.x1+0.004, y0+1.50, CZ+0.30, Math.PI/2, "#6b5a45", 0, 0);
     }
   }
 })();

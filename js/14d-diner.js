@@ -684,7 +684,7 @@
        clear36.js, which walks the geometry rather than the colliders. */
     for(const q of [-1,1]) for(const zz of [Z-0.50, Z-1.42]){
       m.C("metal", 0.034,0.034,0.05,8, DX+q*(SW/2+0.06), 0.545, zz, "#6e746f");
-      m.P("rust", planeGeo(0.06, 0.30, 0), DX+q*(SW/2+0.06)+q*0.112, 0.38, zz,
+      m.P("rust", streakGeo(0.06, 0.30, 0), DX+q*(SW/2+0.06)+q*0.112, 0.38, zz,
           q>0?Math.PI/2:-Math.PI/2, "#6b5a45", 0, 0);
     }
     // a CLOSED card taped inside the glass, and the hours nobody reads
@@ -708,7 +708,7 @@
     const px=-HL+0.8+((i*2.17)%(L-1.6)), sz=(i%2)?1:-1;
     const w=0.20+((i*5)%3)*0.10;
     if(sz<0 && overDoor(px, w/2)) continue;
-    m.P("rust", planeGeo(w, 0.70+((i*7)%4)*0.55, 0),
+    m.P("rust", streakGeo(w, 0.70+((i*7)%4)*0.55, 0),
         px, CH-0.30, sz*(HW+0.095+i*0.0030), sz>0?0:Math.PI, "#7c4526", 0, 0);
   }
   /* Large-scale tone on the stainless. The soot bucket is 16% and the rust
@@ -1130,7 +1130,7 @@
     for(const q of [-1,1])                                      // screwed to the wall
       m.C("metal", 0.008,0.008,0.03,6, BFX+0.01, FY+1.14, BW2+q*0.085, CHRX,
           0, 0, Math.PI/2);
-    m.P("rust", planeGeo(0.09, 0.26, 0), BFX+0.015, FY+0.80, BW2, -Math.PI/2,
+    m.P("rust", streakGeo(0.09, 0.26, 0), BFX+0.015, FY+0.80, BW2, -Math.PI/2,
         "#6b5a45", 0, 0);                                       // and weeping below it
     m.P("paper", planeGeo(0.26, 0.36, 0), BFX+0.02, FY+1.52, PZ1+0.22, -Math.PI/2,
         "#cbc3ac", 0, 0.05);
@@ -1264,7 +1264,7 @@
     m.P("grease", planeGeo(2.4, 1.10, 0), KX+1.7, GY1+0.10, IZ1-0.035, Math.PI,
         "#5a4f3e", 0, 0);
     for(let i=0;i<9;i++)
-      m.P("rust", planeGeo(0.10+r2()*0.08, 0.28+r2()*0.30, 0), KX+0.4+r2()*(w-0.6),
+      m.P("rust", streakGeo(0.10+r2()*0.08, 0.28+r2()*0.30, 0), KX+0.4+r2()*(w-0.6),
           FY+0.70, BBZ0-0.07, Math.PI, "#7c4526", 0, 0);
   }
 
@@ -1281,7 +1281,7 @@
         m.C("metal", 0.020,0.020,0.016,6, px+Math.cos(i*1.571)*0.155, FY+0.048,
             SZ+Math.sin(i*1.571)*0.155, "#4e544e");
       if(state==="gone"){
-        m.P("rust", planeGeo(0.44,0.44,0), px, FY+0.045, SZ, 0, "#7c4526", -Math.PI/2, 0);
+        m.P("rust", streakGeo(0.44,0.44,0), px, FY+0.045, SZ, 0, "#7c4526", -Math.PI/2, 0);
         return;
       }
       if(state==="over"){                        // the whole column on the floor
@@ -1486,7 +1486,7 @@
         m.B("metal", 0.05, 0.92, 0.06, cxm+q*((x1-x0)/2+0.02), GY0+0.34, wz2-0.02,
             0.4, 0, CHRD);
       for(let i=0;i<9;i++)                       // the silvering gone at the edges
-        m.P("rust", planeGeo(0.10+r2()*0.14, 0.10+r2()*0.20, 0), x0+r2()*(x1-x0),
+        m.P("rust", streakGeo(0.10+r2()*0.14, 0.10+r2()*0.20, 0), x0+r2()*(x1-x0),
             GY0-0.06+r2()*0.86, wz2-0.035, Math.PI, "#6b6255", 0, 0);
       m.B("oak", x1-x0, 0.05, 0.14, cxm, GY1+0.28, wz2-0.05, 0.5, 0, "#5c4a30");
       for(let i=0;i<5;i++)                       // hooks under the hat rail
@@ -1679,7 +1679,7 @@
         m.B("metal", 0.64, 0.02, 0.03, rx2, FY+2.06+k*0.045, rz2, 0, 0, "#6b716b");
       m.col(rx2-0.44, rx2+0.44, rz2-0.58, rz2+0.58, 0, FY+1.96);
       for(let i=0;i<9;i++)                          // rust up the foot of it
-        m.P("rust", planeGeo(0.09+r2()*0.09, 0.22+r2()*0.22, 0), rx2+0.44,
+        m.P("rust", streakGeo(0.09+r2()*0.09, 0.22+r2()*0.22, 0), rx2+0.44,
             FY+0.22, rz2-0.44+r2()*0.88, -Math.PI/2, "#7c4526", 0, 0);
     }
     // a mop, a bucket and a crate of empties

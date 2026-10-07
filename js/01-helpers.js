@@ -334,6 +334,30 @@ const lotTop=(x0,x1,z0,z1)=>{
   }
 };
 
+/* A STAIN IS NEVER THE SAME STAIN TWICE.
+   planeGeo hands every instance the same 0..1 UVs, so one streak map used
+   forty times down a wall is forty identical rectangles — which is exactly
+   what it looked like. This takes a different WINDOW out of the map each
+   time: a random offset, a random scale under one, and a random flip in u.
+   The map has a soft margin all four sides (see TEX.streak), so a crop can
+   never land on a hard edge. Pass a seed to pin one; leave it out and a
+   counter gives each push its own, which is deterministic because the build
+   order is. */
+let _streakN=0;
+function streakGeo(w,h,seed){
+  const g=new T.PlaneGeometry(w,h), a=g.attributes.uv;
+  let sd=((seed===undefined||seed===0) ? (++_streakN)*2654435761 : seed*9781)&0x7fffffff;
+  const r=()=>{ sd=(sd*1103515245+12345)&0x7fffffff; return sd/0x7fffffff; };
+  const su=0.38+r()*0.46, sv=0.42+r()*0.46;
+  const ou=r()*(1-su), ov=r()*(1-sv), flip=r()<0.5;
+  for(let i=0;i<a.count;i++){
+    let u=a.getX(i); if(flip) u=1-u;
+    a.setXY(i, ou+u*su, ov+a.getY(i)*sv);
+  }
+  a.needsUpdate=true;
+  return g;
+}
+
 // flat panel with world-scaled UVs, for alpha-cut things like chain-link
 function planeGeo(w,h,uvScale){
   const g=new T.PlaneGeometry(w,h);

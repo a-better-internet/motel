@@ -376,15 +376,111 @@ TEX.soot=(function(){                         // soft stain halo for soffits and
   return setSRGB(new T.CanvasTexture(c));
 })();
 
-TEX.streak=(function(){                       // rust bleeding down from a fitting
-  const c=cvs(64,128), x=c.getContext("2d");
-  x.clearRect(0,0,64,128);
-  for(let i=0;i<26;i++){
-    const px=8+Math.random()*48, w2=1+Math.random()*5, h2=30+Math.random()*96;
-    const g=x.createLinearGradient(0,0,0,h2);
-    g.addColorStop(0,"rgba(255,255,255,0.85)"); g.addColorStop(1,"rgba(255,255,255,0)");
-    x.fillStyle=g; x.fillRect(px,0,w2,h2);
+/* THE STAIN FIELD. The walls of the speakeasy were aged with TEX.soot,
+   which is one centred 64px radial blob — so eleven "different" damp
+   patches on a nineteen-metre wall were eleven copies of the same circle,
+   at the same angle, each ending on the same visible square edge. That
+   reads as a decal sheet, not as damp. This map is a large field of
+   overlapping irregular blooms with runs coming off them, so a crop of it
+   is a piece of wall rather than a stamp, and the four margins are erased
+   so no crop can end on a cut. Pair it with streakGeo: planeGeo would put
+   the whole field on every patch and we would be back where we started. */
+TEX.stain=(function(){
+  const N=320, c=cvs(N,N), x=c.getContext("2d");
+  let sd=20251007;
+  const r=()=>{ sd=(sd*1103515245+12345)&0x7fffffff; return sd/0x7fffffff; };
+  x.clearRect(0,0,N,N);
+  // irregular blooms: a lumpy outline of soft circles, so no patch is round
+  const bloom=(cx,cy,rad,a)=>{
+    const lobes=5+Math.floor(r()*4);
+    for(let i=0;i<34;i++){
+      const th=(i/34)*Math.PI*2;
+      const k=0.52+0.48*(0.5+0.5*Math.sin(th*lobes+r()*0.4));
+      const d=rad*k*(0.42+r()*0.46);
+      const px=cx+Math.cos(th)*d, py=cy+Math.sin(th)*d, rr=rad*(0.30+r()*0.34);
+      const g=x.createRadialGradient(px,py,0,px,py,rr);
+      g.addColorStop(0,"rgba(255,255,255,"+(a*0.55).toFixed(3)+")");
+      g.addColorStop(0.55,"rgba(255,255,255,"+(a*0.20).toFixed(3)+")");
+      g.addColorStop(1,"rgba(255,255,255,0)");
+      x.fillStyle=g; x.beginPath(); x.arc(px,py,rr,0,Math.PI*2); x.fill();
+    }
+  };
+  for(let i=0;i<13;i++) bloom(r()*N, r()*N, 22+r()*52, 0.40+r()*0.50);
+  // damp running down out of the heavier ones
+  for(let i=0;i<22;i++){
+    const px=r()*N, py=r()*N*0.70, len=26+r()*96, w=1.2+r()*3.4;
+    const g=x.createLinearGradient(0,py,0,py+len);
+    g.addColorStop(0,"rgba(255,255,255,"+(0.14+r()*0.20).toFixed(3)+")");
+    g.addColorStop(1,"rgba(255,255,255,0)");
+    x.fillStyle=g;
+    let q=px;
+    for(let k=0;k<len;k+=2){ q+=(r()-0.5)*0.7; x.fillRect(q, py+k, w, 2.4); }
   }
+  // the mineral edge a drying stain leaves, and fine mottle over the lot
+  x.globalCompositeOperation="source-atop";
+  for(let i=0;i<2600;i++){
+    x.fillStyle="rgba(255,255,255,"+(r()*0.30).toFixed(2)+")";
+    x.fillRect(r()*N, r()*N, 1+r()*2, 1+r()*2);
+  }
+  for(let i=0;i<120;i++){
+    x.strokeStyle="rgba(255,255,255,"+(0.05+r()*0.12).toFixed(3)+")";
+    x.lineWidth=0.7+r()*1.3;
+    x.beginPath();
+    let px=r()*N, py=r()*N; x.moveTo(px,py);
+    for(let k=0;k<7;k++){ px+=(r()-0.5)*26; py+=(r()-0.5)*26; x.lineTo(px,py); }
+    x.stroke();
+  }
+  // erase the margins so a crop can never land on a cut edge
+  x.globalCompositeOperation="destination-out";
+  const F=40, fade=(gx0,gy0,gx1,gy1,w,h)=>{
+    const g=x.createLinearGradient(gx0,gy0,gx1,gy1);
+    g.addColorStop(0,"rgba(0,0,0,1)"); g.addColorStop(1,"rgba(0,0,0,0)");
+    x.fillStyle=g; x.fillRect(Math.min(gx0,gx1), Math.min(gy0,gy1), w, h);
+  };
+  fade(0,0,F,0,F,N); fade(N,0,N-F,0,F,N);
+  fade(0,0,0,F,N,F); fade(0,N,0,N-F,N,F);
+  x.globalCompositeOperation="source-over";
+  return setSRGB(new T.CanvasTexture(c));
+})();
+
+TEX.streak=(function(){                       // rust bleeding down from a fitting
+  /* THE TOP EDGE WAS THE PROBLEM. Every streak began at full alpha on row
+     zero, so a plane carrying this map ended in a hard horizontal line
+     across the wall — and since every instance used the same 0..1 UVs, it
+     was the SAME hard line, forty times over, in the same pattern. The map
+     is bigger and softer now, the streaks start at staggered heights and
+     fade in as well as out, and a margin is taken out of all four edges, so
+     a crop of it never ends on a cut. streakGeo in 01-helpers.js takes that
+     crop: between the two, no two stains in this world are the same stain. */
+  const W2=128, H2=256;
+  const c=cvs(W2,H2), x=c.getContext("2d");
+  x.clearRect(0,0,W2,H2);
+  for(let i=0;i<54;i++){
+    const px=4+Math.random()*(W2-10), w2=1+Math.random()*7;
+    const y0=Math.random()*H2*0.30, h2=H2*0.25+Math.random()*H2*0.70;
+    const g=x.createLinearGradient(0,y0,0,y0+h2);
+    g.addColorStop(0,   "rgba(255,255,255,0)");
+    g.addColorStop(0.10,"rgba(255,255,255,"+(0.45+Math.random()*0.45).toFixed(2)+")");
+    g.addColorStop(0.55,"rgba(255,255,255,0.40)");
+    g.addColorStop(1,   "rgba(255,255,255,0)");
+    x.fillStyle=g; x.fillRect(px,y0,w2,h2);
+  }
+  for(let i=0;i<22;i++){                      // and the broader bloom behind them
+    const px=Math.random()*W2, py=Math.random()*H2*0.8, r=14+Math.random()*44;
+    const g=x.createRadialGradient(px,py,0,px,py,r);
+    g.addColorStop(0,"rgba(255,255,255,0.18)"); g.addColorStop(1,"rgba(255,255,255,0)");
+    x.fillStyle=g; x.beginPath(); x.arc(px,py,r,0,7); x.fill();
+  }
+  // a soft margin all the way round, so a crop can never land on an edge
+  x.globalCompositeOperation="destination-out";
+  const edge=(gx0,gy0,gx1,gy1,w3,h3)=>{
+    const g=x.createLinearGradient(gx0,gy0,gx1,gy1);
+    g.addColorStop(0,"rgba(0,0,0,1)"); g.addColorStop(1,"rgba(0,0,0,0)");
+    x.fillStyle=g; x.fillRect(Math.min(gx0,gx1), Math.min(gy0,gy1), w3, h3);
+  };
+  edge(0,0,0,18, W2,18); edge(0,H2,0,H2-22, W2,22);
+  edge(0,0,10,0, 10,H2);  edge(W2,0,W2-10,0, 10,H2);
+  x.globalCompositeOperation="source-over";
   return setSRGB(new T.CanvasTexture(c));
 })();
 

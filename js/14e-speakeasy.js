@@ -48,6 +48,14 @@
   const BCL = 44.00;                          // and in z, for leg B
   const RX0 =-53.0, RX1=-34.34, RZ0=37.2, RZ1=50.4;    // the speakeasy
   const AX0 =-34.0, AX1=-26.0, AZ0=40.6, AZ1=47.4;     // the anteroom before it
+  /* The speakeasy's wall thickness, declared with the plan rather than
+     inside room(), because the ANTEROOM's door reveal is measured off it —
+     the wall between the two rooms belongs to the speakeasy and is built
+     once, so anything lining the hole through it has to know how thick it
+     is. A `const` further down the file is not merely untidy here: the
+     anteroom is built BEFORE the room, so it would still be in its
+     temporal dead zone and the whole page throws on load. */
+  const WT3= 0.34;
   const CX0 =-9.5, CX1=9.5, CZ0=-8.5, CZ1=9.5;         // the compound fence
   const GT0 =-0.75, GT1=0.75;                          // the gate opening, north run
   const HX0 = 1.20, HX1=4.80, HZ0=0.40, HZ1=5.20;      // the hut, outside faces
@@ -62,10 +70,20 @@
      Two metres of lane the whole way as well: at 1.6 m a crate against one
      wall of the tunnel left 40 cm for the player's centre, which is passable
      arithmetic and an unpleasant squeeze to walk. */
-  const DR0 = 2.52, DR1=3.48;                          // the steel door's opening
+  const DR0 = 2.47, DR1=3.53;                          // the steel door's opening
   const SW0 = 2.00, SW1=4.00;                          // the stair shaft, inside faces
   const RISE= 0.2108, GO=0.295, STEPS=24;              // 5.06 m in twenty-four
-  const STOP= 1.20;                                    // where the flight starts
+  /* THE FLIGHT STARTS AT THE THRESHOLD.
+     It used to start 58 cm in, which gave a landing you stood on and a
+     stretch of floor between you and the opening — and from the doorway
+     that floor is what you see. "The floor is blocking what should be a
+     clear opening to the stairs" is a precise description of a landing
+     nobody asked for. There is 18 cm of sill now and then the first tread,
+     so the moment the door swings the ground is gone.
+     Which also means the door has to open OUTWARD: a leaf swinging in over
+     a stairwell is the one thing worse than a landing. Plant room doors
+     open out anyway. */
+  const STOP= 0.80;                                    // where the flight starts
   const SEND= STOP+STEPS*GO;                           // and where it ends
 
   const CONC="#a6a096", CONCD="#8d877c", GALV="#9aa1a6", GALVD="#7f857f";
@@ -157,7 +175,12 @@
      ==================================================================== */
   (function hut(){
     // slab, with a skirt deep enough that no edge of it floats on the slope
-    m.B("concrete", HX1-HX0+1.1, 0.80, HZ1-HZ0+1.1, (HX0+HX1)/2, F-0.40, (HZ0+HZ1)/2,
+    /* The mass stops 6 cm below the finished floor and the apron ring that
+       surrounds the hut is a real 5 cm slab rather than a bare collision
+       flat, so the surface you walk on is one layer and the thing under it
+       is another. The mass used to top out at F, which is where the floor
+       slabs top out, and 8 m2 of the two were the same plane. */
+    m.B("concrete", HX1-HX0+1.1, 0.80, HZ1-HZ0+1.1, (HX0+HX1)/2, F-0.46, (HZ0+HZ1)/2,
         0.45, 0, "#9b948a");
     /* THE APRON IS A RING, NOT A RECTANGLE, and the floor inside is three
        pieces rather than one. A flat laid across the whole footprint is a
@@ -165,22 +188,51 @@
        surface it can reach — so you would have walked out over the hole on
        thin air. Anything with a hole in it has to be registered with the
        hole in it. */
+    /* THE FLATS OVERLAP; THE CONCRETE BUTTS. addFlat's bounds are strict, so
+       two surfaces that merely MEET leave a line with no surface on it, and
+       on that line you fall to whatever is underneath — here, the desert,
+       21 cm down. walk39 caught it standing in the doorway at z = HZ0
+       exactly, which is the one line every visitor crosses. Each flat is
+       grown 10 cm into its neighbours; the only edges left un-grown are the
+       ones that face the stairwell, because a flat laid over the hole is
+       the floor across the opening the user asked us to clear. */
+    const OV=0.10;
+    for(const q of [[HX0-0.55, HX1+0.55, HZ0-0.55, HZ0+OV],
+                    [HX0-0.55, HX1+0.55, HZ1,      HZ1+0.55],
+                    [HX0-0.55, HX0+OV,   HZ0,      HZ1],
+                    [HX1-OV,   HX1+0.55, HZ0,      HZ1]])
+      m.flat(q[0], q[1], q[2], q[3], F);
     for(const q of [[HX0-0.55, HX1+0.55, HZ0-0.55, HZ0],
                     [HX0-0.55, HX1+0.55, HZ1, HZ1+0.55],
                     [HX0-0.55, HX0, HZ0, HZ1],
                     [HX1, HX1+0.55, HZ0, HZ1]])
-      m.flat(q[0], q[1], q[2], q[3], F);
-    for(const q of [[HX0, HX1, HZ0, STOP],
-                    [HX0, SW0, STOP, HZ1],
-                    [SW1, HX1, STOP, HZ1]])
+      m.B("concrete", q[1]-q[0], 0.05, q[3]-q[2], (q[0]+q[1])/2, F-0.025,
+          (q[2]+q[3])/2, 0.5, 0, "#9b948a");
+    for(const q of [[HX0, HX1, HZ0, STOP, HX0-OV, HX1+OV, HZ0-OV, STOP],
+                    [HX0, SW0, STOP, HZ1, HX0-OV, SW0,    STOP-OV, HZ1+OV],
+                    [SW1, HX1, STOP, HZ1, SW1,    HX1+OV, STOP-OV, HZ1+OV]])
       if(q[1]-q[0]>0.05){
-        m.flat(q[0], q[1], q[2], q[3], F);
-        m.B("concrete", q[1]-q[0], 0.05, q[3]-q[2], (q[0]+q[1])/2, F+0.02,
-            (q[2]+q[3])/2, 0.5, 0, "#948d83");
+        m.flat(q[4], q[5], q[6], q[7], F);
+        /* THE FLOOR STOPS 4 CM INSIDE THE HUT'S OUTER LINE, on every edge
+           that IS that line, and its top sits exactly at F rather than 4 cm
+           above it. It used to run out to HX0/HX1/HZ1 and stand proud, so
+           its outer faces and the walls' outer faces were the same planes
+           and flickered as you turned — the probe found it at x = -75.20.
+           Interior edges (the stairwell lip, the sides of the shaft) keep
+           their full extent, because there is no wall face there to share
+           a plane with and a gap there would be a slot in the floor. */
+        const e=0.04;
+        const x0=q[0]===HX0?q[0]+e:q[0], x1=q[1]===HX1?q[1]-e:q[1];
+        const z0=q[2]===HZ0?q[2]+e:q[2], z1=q[3]===HZ1?q[3]-e:q[3];
+        m.B("concrete", x1-x0, 0.05, z1-z0, (x0+x1)/2, F-0.025,
+            (z0+z1)/2, 0.5, 0, "#948d83");
       }
-    // walls: north has the door in it, the other three are blank
-    const wall=(x0,x1,z0,z1,c)=> m.B("concrete", x1-x0, HH, z1-z0, (x0+x1)/2, F+HH/2,
-                                     (z0+z1)/2, 0.42, 0, c||CONC);
+    /* The walls start 12 cm BELOW the slab, not level with its top. A wall
+       whose underside is the same plane as the thing it stands on is two
+       coplanar faces however thick the wall is; sinking its foot into the
+       pad is both how it is actually built and the end of that seam. */
+    const wall=(x0,x1,z0,z1,c)=> m.B("concrete", x1-x0, HH+0.12, z1-z0, (x0+x1)/2,
+                                     F+HH/2-0.06, (z0+z1)/2, 0.42, 0, c||CONC);
     wall(HX0, DR0, HZ0, HZ0+WT);
     wall(DR1, HX1, HZ0, HZ0+WT);
     m.B("concrete", DR1-DR0, HH-2.12, WT, (DR0+DR1)/2, F+2.12+(HH-2.12)/2, HZ0+WT/2,
@@ -201,22 +253,40 @@
     m.col(HX0, HX0+WT, HZ0, HZ1, -1, F+HH);
     m.col(HX1-WT, HX1, HZ0, HZ1, -1, F+HH);
     m.col(DR0, DR1, HZ0, HZ0+WT, F+2.12, F+HH);        // over the head
-    // the reveal, lined on both faces, because a doorway is three surfaces
+    /* THE REVEAL STRADDLES THE JAMB. It used to sit flush against it —
+       0.06 of lining starting exactly at DR0 — so its back face and the
+       wall's cut face were the same plane, and two opposite-facing faces on
+       one plane flicker. That is the "glitching round the door frames".
+       It overlaps the wall by 3 cm now and stands 5 cm proud into the
+       opening, which is what a reveal does in a real building; the
+       structural opening was widened by the same 10 cm so the clear width
+       is unchanged and the leaf still fits it exactly. */
     for(const q of [DR0, DR1]){
       const sd=q===DR0?1:-1;
-      m.B("concrete", 0.06, 2.14, WT+0.06, q+sd*0.03, F+1.07, HZ0+WT/2, 0.5, 0, CONCD);
+      m.B("concrete", 0.08, 2.14, WT+0.08, q+sd*0.01, F+1.07, HZ0+WT/2, 0.5, 0, CONCD);
     }
-    m.B("concrete", DR1-DR0+0.12, 0.06, WT+0.06, (DR0+DR1)/2, F+2.14, HZ0+WT/2, 0.5, 0, CONCD);
-    makeDoor(XF(W(DR0+0.02), Z(HZ0+WT-0.02), 0), 0, GY+F+0.02, 0, "THE SHELTER", true, 0, "steel");
+    m.B("concrete", DR1-DR0-0.08, 0.08, WT+0.08, (DR0+DR1)/2, F+2.13, HZ0+WT/2, 0.5, 0, CONCD);
+    makeDoor(XF(W(DR0+0.05), Z(HZ0+0.02), 0), 0, GY+F+0.02, 0, "THE SHELTER", false, 0, "steel");
     // roof: a slab with a lip, a drip and forty years of weather on it
     m.B("concrete", HX1-HX0+0.44, 0.22, HZ1-HZ0+0.44, (HX0+HX1)/2, F+HH+0.11, (HZ0+HZ1)/2,
         0.45, 0, "#9c958b");
     m.B("concrete", HX1-HX0+0.52, 0.09, HZ1-HZ0+0.52, (HX0+HX1)/2, F+HH+0.26, (HZ0+HZ1)/2,
         0.45, 0, CONCD);
-    for(const q of [[-1,0],[1,0],[0,-1],[0,1]])        // streaks under the drip
-      push("rust", planeGeo(q[0]?1.6:3.0, 1.5, 0),
-           W((HX0+HX1)/2 + q[0]*((HX1-HX0)/2+0.01)), GY+F+HH*0.55,
-           Z((HZ0+HZ1)/2 + q[1]*((HZ1-HZ0)/2+0.01)), q[0]?Math.PI/2:0, "#6b5a45", 0, 0);
+    /* STREAKS UNDER THE DRIP — AND NOT ACROSS THE DOOR. The north run was
+       one 3 m plane 1 cm off the wall, and the closed leaf's outer face sits
+       1.25 cm off that same wall: the streak and the door were the same
+       plane to within two millimetres, which is the flicker on the door
+       itself. The north face gets two narrow runs either side of the opening
+       instead, and every run stands 3.5 cm proud so nothing decal-thin can
+       ever reach it. */
+    const drip=(w,wx,wy,wz,ry)=>push("rust", streakGeo(w, 1.5, 0), wx, wy, wz, ry,
+                                     "#6b5a45", 0, 0);
+    const DY=GY+F+HH*0.55, DO=0.035;
+    for(const q of [-1,1])
+      drip(1.6, W((HX0+HX1)/2 + q*((HX1-HX0)/2+DO)), DY, Z((HZ0+HZ1)/2), q*Math.PI/2);
+    drip(3.0, W((HX0+HX1)/2), DY, Z(HZ1+DO), 0);
+    for(const q of [[HX0+0.52, 1.0],[HX1-0.52, 1.0]])
+      drip(q[1], W(q[0]), DY, Z(HZ0-DO), Math.PI);   // facing out, like the wall
     // a vent hood on the south wall, a meter box, a conduit and the aerial
     m.B("metal", 0.70, 0.48, 0.16, 3.4, F+2.05, HZ1+0.06, 0.4, 0, GALV);
     for(let i=0;i<4;i++)
@@ -272,11 +342,18 @@
       m.B("concrete", q[1]-q[0], F-TD+1.1, SEND+1.6-STOP+0.6, (q[0]+q[1])/2,
           (TD-0.9+F)/2, (STOP-0.4+SEND+1.6)/2, 0.42, 0, CONCD);
     // a kerb round the lip of the hole, which is what you see from the door
+    /* The kerb used to be exactly as tall as the shaft wall it caps, so
+       1.25 m2 of kerb top and wall top were the same plane — right at the
+       stairhead, in the first thing you see when the door opens. It stands
+       4 cm proud of the wall now and its underside is sunk below the slab,
+       so neither of its horizontal faces meets anything. */
     for(const q of [[SW0-SWW, SW0],[SW1, SW1+SWW]])
-      m.B("concrete", q[1]-q[0]+0.06, 0.10, HZ1-STOP+0.4, (q[0]+q[1])/2, F+0.05,
+      m.B("concrete", q[1]-q[0]+0.06, 0.24, HZ1-STOP+0.4, (q[0]+q[1])/2, F+0.02,
           (STOP-0.2+HZ1)/2, 0.5, 0, "#9a948a");
     // the head wall behind the top tread, and the far wall at the bottom
-    m.B("concrete", SW1-SW0+SWW*2, F-TD+1.1, 0.30, (SW0+SW1)/2, (TD-0.9+F)/2, STOP-0.15,
+    // between the shaft's own walls, not across their tops: at SW0-SWW..SW1+SWW
+    // its top face and theirs were one plane, right at the stairhead.
+    m.B("concrete", SW1-SW0, F-TD+1.1, 0.30, (SW0+SW1)/2, (TD-0.9+F)/2, STOP-0.15,
         0.42, 0, CONCD);
     /* THE STAIR. The nosing line is the only thing anything else is
        measured from: the treads hang off it, the soffit is a box laid
@@ -286,7 +363,12 @@
       const ty=F-i*RISE, z0=STOP+(i-1)*GO;
       m.B("stairs", SW1-SW0, 0.055, GO+0.03, (SW0+SW1)/2, ty-0.027, z0+GO/2, 0.7, 0,
           i%2 ? "#b4ac9c" : "#b8b0a0");
-      m.B("concrete", SW1-SW0, RISE, 0.05, (SW0+SW1)/2, ty-RISE/2, z0+0.025, 0.5, 0, CONCD);
+      /* The riser is dropped 3 cm so that both its top and its bottom end
+         up INSIDE a tread rather than half a millimetre under one. At
+         ty-RISE/2 the two were coplanar within the depth buffer's noise and
+         every step in the flight flickered as you came down it. */
+      m.B("concrete", SW1-SW0, RISE, 0.05, (SW0+SW1)/2, ty-0.03-RISE/2, z0+0.025,
+          0.5, 0, CONCD);
       // wider than the hole it is in, so there is no sliver of nothing
       // down either side of the flight to drop through
       m.flat(SW0-0.10, SW1+0.10, z0-0.03, z0+GO+0.03, ty);
@@ -402,7 +484,13 @@
   const TN0=SW0, TN1=SW1;                       // it keeps the shaft's own width
   const TZ0=SEND+1.2, TZ1=BCL+0.80;             // leg A, running south
   const BZ0=BCL-0.80, BZ1=BCL+0.80;             // leg B, running west
-  const BX0=-26.0, BX1=TN0;   // leg B ends at leg A's west wall line
+  /* Leg B starts at the OUTER face of the anteroom's east wall, not at its
+     inner face. At -26 the tunnel's own side walls ran 30 cm back inside
+     the anteroom's, and the two shared their z faces over a third of a
+     square metre — which is a seam that flickers right where you walk out
+     of the tunnel and look at the door. Walls that meet butt; they do not
+     overlap. */
+  const BX0=-25.70, BX1=TN0;  // leg B ends at leg A's west wall line
   (function tunnel(){
     const TWW=0.30;
     /* `axis` is the direction of travel: "z" for the leg that runs south,
@@ -474,7 +562,7 @@
       for(let i=0;i<Math.round(len/0.9);i++){
         const a=a0+0.4+i*0.9, s2=R(seed+i*3);
         if(s2<0.35) continue;
-        push("rust", planeGeo(0.5+s2*0.7, TH*0.8, 0), W(X(a,c0+0.015)), GY+TD+TH*0.44,
+        push("rust", streakGeo(0.5+s2*0.7, TH*0.8, 0), W(X(a,c0+0.015)), GY+TD+TH*0.44,
              Z(ZZ(a,c0+0.015)), axis==="z"?Math.PI/2:0, "#6b5a45", 0, 0);
       }
       // cable tray, on brackets, down the far wall
@@ -597,17 +685,25 @@
     addBuried(W(AX0-0.4), W(AX1+0.4), Z(AZ0-0.4), Z(AZ1+0.4), GY+TD-1, GY+TD+3.4);
     addZone(W(AX0), W(AX1), Z(AZ0), Z(AZ1), GY+TD-1, GY+TD+3.3, "THE ANTEROOM", true);
     // the reveal round the door, lined in oak, and the door itself
+    /* THE REVEAL IS CENTRED ON THE WALL IT LINES, not on a number of its
+       own. The wall between the anteroom and the room is the speakeasy's,
+       0.34 thick from RX1 to RX1+0.34; the reveal was built 0.30 deep off
+       AX0 and its far face landed exactly on the wall's, which is two
+       surfaces on one plane and flickers from the length of the tunnel.
+       Lining a hole means standing PROUD of the thing you are lining, on
+       both faces, every time. */
+    const RVC=RX1+WT3/2, RVD=WT3+0.10;
     for(const q of [DZ0, DZ1]){
-      const sd=q===DZ0?1:-1;
-      m.B("oak", WT2+0.08, 2.24, 0.08, AX0-WT2/2, TD+1.12, q+sd*0.04, 0.5, 0, "#4a3426");
+      const sd=q===DZ0?1:-1;        // straddling the jamb, not flush with it
+      m.B("oak", RVD, 2.24, 0.09, RVC, TD+1.12, q+sd*0.005, 0.5, 0, "#4a3426");
     }
-    m.B("oak", WT2+0.08, 0.09, DZ1-DZ0+0.16, AX0-WT2/2, TD+2.26, (DZ0+DZ1)/2, 0.5, 0, "#4a3426");
-    m.B("brass", 0.05, 0.05, DZ1-DZ0+0.22, AX0-WT2-0.03, TD+2.33, (DZ0+DZ1)/2, 0.4, 0, "#c9a24a");
+    m.B("oak", RVD, 0.09, DZ1-DZ0+0.16, RVC, TD+2.26, (DZ0+DZ1)/2, 0.5, 0, "#4a3426");
+    m.B("brass", 0.05, 0.05, DZ1-DZ0+0.22, RX1-0.04, TD+2.33, (DZ0+DZ1)/2, 0.4, 0, "#c9a24a");
     makeDoor(XF(W(AX0-0.17), Z(DZ0+0.02), -Math.PI/2), 0, GY+TD+0.02, 0,
              "THE DRY WELL", true, 0, "deco");
     // the brass plate beside it, and the lamp over it
     m.B("brass", 0.03, 0.17, 0.30, AX0+0.015, TD+1.52, DZ1+0.34, 0.4, 0, "#c9a24a");
-    push("art", planeGeo(0.24,0.12,0), W(AX0+0.032), GY+TD+1.52, Z(DZ1+0.34),
+    push("art", planeGeo(0.24,0.12,0), W(AX0+0.040), GY+TD+1.52, Z(DZ1+0.34),
          Math.PI/2, "#7a6228", 0, 0);
     m.B("brass", 0.26, 0.10, 0.34, AX0+0.14, TD+2.52, (DZ0+DZ1)/2, 0.4, 0, "#b08f3e");
     m.P("sconce", planeGeo(0.22, 0.30, 0), AX0+0.145, TD+2.46, (DZ0+DZ1)/2,
@@ -637,7 +733,7 @@
     // a runner from the tunnel mouth to the door, worn down the middle
     m.P("carpet", boxGeo(AX1-AX0-1.4, 0.016, 1.30, 0.6), (AX0+AX1)/2-0.1, TD+0.022, BCL,
         0, "#6a3430", 0, 0);
-    m.P("soot", planeGeo(AX1-AX0-2.0, 0.80, 0), (AX0+AX1)/2-0.1, TD+0.034, BCL,
+    m.P("stain", streakGeo(AX1-AX0-2.0, 0.80, 0), (AX0+AX1)/2-0.1, TD+0.034, BCL,
         0, "#6e6558", -Math.PI/2, 0);
   })();
 
@@ -666,25 +762,35 @@
   const BARX0=-48.6, BARX1=-38.6, BARZ=48.45;       // the counter
   const BQX0=-48.6, BQX1=-38.4, BQZ=37.30;          // the banquette run
   const SNX0=RX0, SNX1=-49.20, SNZ0=37.30, SNZ1=44.20, SNR=0.42;   // the snug
-  const OAKD="#4a3426", OAKM="#6b4a2c", PLAS="#8a6a46", CEIL="#4a2420";
+  const OAKD="#4a3426", OAKM="#6b4a2c", PLAS="#7a5c3c", CEIL="#4a2420";
   const OX="#5e2420", OXD="#471a18", VEL="#6e5a3a", BR="#c9a24a", BRD="#8e6f2e";
   const RVOL=[W(RX0-0.6), W(RX1+0.6), Z(RZ0-0.6), Z(RZ1+0.6), GY+RD-1, GY+RD+RH+0.6];
 
   (function room(){
-    const WT3=0.34;
     /* ---- the box ---------------------------------------------------- */
     m.B("concrete", RX1-RX0+WT3*2, 0.40, RZ1-RZ0+WT3*2, (RX0+RX1)/2, RD-0.20,
         (RZ0+RZ1)/2, 0.5, 0, "#948d83");
     // the floor: one plank plane at world scale, with worn boards over it
     m.P("plank", planeGeo(RX1-RX0, RZ1-RZ0, 0.42), (RX0+RX1)/2, RD+0.01, (RZ0+RZ1)/2,
         0, "#9a7a52", -Math.PI/2, 0);
+    /* Each worn board gets its OWN height, a fifth of a millimetre apart.
+       Twenty-six of them at one height meant every pair that happened to
+       cross was exactly coplanar — the same mistake as the wall stains, in
+       the floor. A fifth of a millimetre is fifteen times the depth
+       buffer's resolution at this range and nothing you could measure. */
     for(let i=0;i<26;i++)
       m.P("plank", planeGeo(1.4+R(i)*3.0, 0.19, 0.42), RX0+1.0+R(i+3)*(RX1-RX0-2.0),
-          RD+0.016, RZ0+0.8+R(i+9)*(RZ1-RZ0-1.6), 0, R(i)<0.5?"#7d6241":"#a98a5e",
-          -Math.PI/2, 0);
+          RD+0.014+i*0.00022, RZ0+0.8+R(i+9)*(RZ1-RZ0-1.6), 0,
+          R(i)<0.5?"#7d6241":"#a98a5e", -Math.PI/2, 0);
     m.flat(RX0, RX1, RZ0, RZ1, RD);
     // the platform you arrive on, and the three steps off it
-    m.B("concrete", RX1-PLX, 0.66, RZ1-RZ0, (PLX+RX1)/2, RD+0.33, (RZ0+RZ1)/2,
+    /* THE WORST SEAM IN THE WHOLE PLACE WAS HERE. The platform's concrete
+       mass topped out at TD+0.01 and the boards that cover it were laid at
+       TD+0.01 as well — thirty-eight square metres of two surfaces on one
+       plane, which is the shimmer you see standing at the top of the steps
+       looking into the room. The mass stops 2 cm short; the boards are the
+       floor. A slab and its finish are never the same height. */
+    m.B("concrete", RX1-PLX, 0.64, RZ1-RZ0, (PLX+RX1)/2, RD+0.32, (RZ0+RZ1)/2,
         0.5, 0, "#8d877c");
     m.P("plank", planeGeo(RX1-PLX, RZ1-RZ0, 0.42), (PLX+RX1)/2, TD+0.01, (RZ0+RZ1)/2,
         0, "#8d7049", -Math.PI/2, 0);
@@ -734,13 +840,51 @@
        rail and anything else standing proud of the lining is offset ALONG
        that same normal rather than by a hand-written sign, so the two can
        never disagree again. */
+    let _wr=0;
+    const WR=n=>((Math.sin((n+(_wr+=0.37))*41.7+7.13)*43758.5)%1+1)%1;
     const line=(ry, px, pz, a0, a1, base)=>{
       const L=a1-a0, c=(a0+a1)/2, flat=(ry===0||Math.abs(ry)>3);
       const X2=flat?c:px, Z2=flat?pz:c;
       const nx=Math.sin(ry), nz=Math.cos(ry);
       m.P("oak", planeGeo(L, DADO-0.10, 1.9), X2, base+(DADO-0.10)/2+0.10, Z2, ry, OAKM, 0, 0);
-      m.P("plaster", planeGeo(L, RH-DADO-0.10, 1.2), X2, base+DADO+(RH-DADO-0.10)/2, Z2,
+      /* 0.55, not 1.2. At 1.2 a nineteen-metre wall carried twenty-three
+         repeats of a fine plaster mottle, which reads as patterned
+         wallpaper rather than as a wall. Halving it doubles the feature
+         size; what actually kills the tiling is the tonal work below,
+         which lays irregular soft patches over the whole run so no two
+         metres of it are the same brightness. */
+      m.P("plaster", planeGeo(L, RH-DADO-0.10, 0.55), X2, base+DADO+(RH-DADO-0.10)/2, Z2,
           ry, PLAS, 0, 0);
+      /* AGE ON IT. A repeating map is only obvious while nothing else is
+         happening on the surface. Eleven soft blooms per run at different
+         sizes, a couple of damp streaks off the ceiling line, and the eye
+         stops reading the tile and starts reading the wall. */
+      /* TWO THINGS WERE WRONG WITH THESE PATCHES, and they are the same
+         fault twice. They all carried the whole of TEX.soot, which is one
+         centred blob, so eleven damp patches were eleven copies of one
+         circle ending on one square edge — "the same cut off repeating
+         texture". And they all sat 12 mm off the wall, so wherever two of
+         them overlapped they were EXACTLY coplanar and fought: the probe
+         found 0.23 m2 of it on the east wall alone. So: each patch is a
+         different crop of the stain field, and each sits at its own
+         distance from the plaster, 8 mm out to 25 mm, which is under the
+         cap rail and ends the fighting for good. */
+      for(let i=0;i<11;i++){
+        const t=(i+0.5)/11, u=a0+L*(t+(WR(i)-0.5)*0.12);
+        const w2=0.8+WR(i+3)*2.6, h2=0.5+WR(i+7)*1.3;
+        const yy=base+DADO+0.15+WR(i+5)*(RH-DADO-0.7);
+        const o=0.008+i*0.0016;
+        m.P("stain", streakGeo(w2, h2, 0), flat?u:X2+nx*o, yy, flat?Z2+nz*o:u,
+            ry, WR(i+2)<0.45 ? "#56402a" : "#6b5236", 0, 0);
+      }
+      // damp coming down out of the ceiling line, where it always comes from
+      for(let i=0;i<3;i++){
+        const u=a0+L*((i+0.35+WR(i+13)*0.4)/3);
+        const h3=0.9+WR(i+17)*1.5, w3=0.30+WR(i+19)*0.52;
+        const yy=base+RH-0.16-h3/2, o=0.0268+i*0.0014;
+        m.P("stain", streakGeo(w3, h3, 0), flat?u:X2+nx*o, yy, flat?Z2+nz*o:u,
+            ry, "#4e3a26", 0, 0);
+      }
       m.B("oak", flat?L:0.07, 0.09, flat?0.07:L, X2+nx*0.035, base+DADO+0.045,
           Z2+nz*0.035, 0.4, 0, OAKD);
       m.B("oak", flat?L:0.06, 0.13, flat?0.06:L, X2+nx*0.025, base+0.065,
@@ -803,7 +947,7 @@
        brightest surface in the world — a sheet of white behind the bottles
        rather than a mirror in a dark bar. Darkening the diffuse leaves the
        emissive doing what it is for: a dull sheen the bottles stand out of. */
-    m.P("mirror", planeGeo(L-0.3, 1.70, 0), CX, RD+1.95, RZ1-0.035, Math.PI, "#6e7a80", 0, 0);
+    m.P("mirrorw", planeGeo(L-0.3, 1.70, 0), CX, RD+1.95, RZ1-0.035, Math.PI, "#6a5844", 0, 0);
     for(const q of [RD+1.08, RD+2.82])
       m.B("oak", L-0.2, 0.08, 0.10, CX, q, RZ1-0.09, 0.5, 0, OAKD);
     for(let sh=0;sh<3;sh++){
@@ -857,10 +1001,20 @@
       m.C("brass", 0.21,0.23,0.045,14, px, RD+0.03, BARZ-0.58, BRD);
       m.C("brass", 0.038,0.038,0.66,10, px, RD+0.36, BARZ-0.58, BR);
       m.C("brass", 0.17,0.17,0.028,14, px, RD+0.30, BARZ-0.58, BRD);
-      m.C("leather", 0.19,0.19,0.09,16, px, RD+0.73, BARZ-0.58, OX);
-      m.P("leather", new T.SphereGeometry(0.19,14,8), px, RD+0.76, BARZ-0.58, 0, "#6b2a24");
+      /* A buttoned stool seat is a shallow PAD — a disc with a rolled edge
+         and a slight dish in the middle. A whole sphere on a post is a
+         mushroom, and nine of them down a bar is a row of mushrooms. */
+      m.C("leather", 0.205,0.215,0.085,20, px, RD+0.735, BARZ-0.58, OXD);
+      { const g=new T.SphereGeometry(0.195,18,10); g.scale(1, 0.17, 1);
+        m.P("leather", g, px, RD+0.785, BARZ-0.58, 0, OX); }
+      m.P("brass", new T.TorusGeometry(0.205, 0.013, 6, 20), px, RD+0.735,
+          BARZ-0.58, 0, BRD, Math.PI/2, 0);
+      for(let k=0;k<4;k++)                                   // the buttons in it
+        m.P("brass", new T.SphereGeometry(0.012,8,6), px+Math.cos(k*1.571)*0.085,
+            RD+0.800, BARZ-0.58+Math.sin(k*1.571)*0.085, 0, BRD);
+      m.P("brass", new T.SphereGeometry(0.013,8,6), px, RD+0.805, BARZ-0.58, 0, BRD);
       m.col(px-0.22, px+0.22, BARZ-0.80, BARZ-0.36, RD, RD+0.70);
-      addSeat(W(px), Z(BARZ-0.58), GY+RD+0.78, Math.PI, "THE BAR");
+      addSeat(W(px), Z(BARZ-0.58), GY+RD+0.82, Math.PI, "THE BAR");
     }
   })();
 
@@ -1112,13 +1266,16 @@
       m.B("brass", 0.08, 0.30, 0.09, x, RD+1.92, z, 0.4, ry, BRD);
       m.P("brass", boxGeo(0.05, 0.34, 0.05, 0), x+nx*0.03, RD+2.12, z+nz*0.03, ry, BR, 0, 0);
       // the shade, open top and bottom, which is why it lights the wall
-      m.P("sconce", planeGeo(0.26, 0.30, 0), x+nx*0.055, RD+2.08, z+nz*0.055,
-          ry, "#ffc87a", 0, 0);
+      // 0.075, not 0.055: the brass stem's own front face is at 0.055 and the
+      // shade was laid exactly on it, which made every sconce in the room
+      // shimmer. The shade hangs in FRONT of the stem it hangs off.
+      m.P("sconce", planeGeo(0.26, 0.30, 0), x+nx*0.075, RD+2.08, z+nz*0.075,
+          ry, "#ffab52", 0, 0);
       /* +1.2, not -1.2: a plane's normal is +z and rx of +pi/2 turns it
          DOWN, so the negative sign aimed every open-bottomed shade in this
          room at the ceiling, where nobody can see it. (Floor decals all
          use -pi/2 for exactly the same reason, pointing up.) */
-      m.P("sconce", planeGeo(0.26, 0.10, 0), x+nx*0.09, RD+1.94, z+nz*0.09,
+      m.P("sconce", planeGeo(0.26, 0.10, 0), x+nx*0.105, RD+1.94, z+nz*0.105,
           ry, "#ffb24a", 1.2, 0);
       m.lamp(x+nx*0.30, RD+2.02, z+nz*0.30,
              {color:0xffb86a, intensity:0.78, dist:8.0, decay:1.55, indoor:true, vol:RVOL});
@@ -1163,6 +1320,98 @@
       for(let i=0;i<5;i++)
         m.C("foliage", 0.010,0.014,0.30+R(i)*0.2, 5, cx-0.02+R(i)*0.1-0.05, TD+1.14,
             cz+0.54+R(i+3)*0.1-0.05, "#6b7a52", R(i)*0.5-0.25, i, R(i+1)*0.5-0.25);
+    }
+    /* ---- what the room was still missing ----------------------------
+       The shell and the furniture were right and it still read as a set:
+       a bar with bottles on it rather than a bar somebody works behind.
+       What follows is the second pass — the things that are at eye level,
+       catch the light, and would be the first things you noticed in the
+       room this is drawn from. */
+    // the gantry over the counter, with the stemware hung off it
+    {
+      const GX0=BARX0+1.2, GX1=BARX1-1.2, GCX=(GX0+GX1)/2, GY2=RD+2.26;
+      m.B("brass", GX1-GX0, 0.07, 0.10, GCX, GY2, BARZ+0.34, 0.5, 0, BR);
+      m.B("brass", GX1-GX0, 0.07, 0.10, GCX, GY2, BARZ+0.64, 0.5, 0, BR);
+      for(const q of [GX0, GCX, GX1])
+        m.C("brass", 0.022,0.022,0.80,10, q, GY2+0.40, BARZ+0.49, BRD);
+      for(let i=0;i<Math.round((GX1-GX0)/0.17);i++){
+        const px=GX0+0.09+i*0.17, zz=BARZ+(i%2?0.34:0.64);
+        m.C("glass", 0.038,0.014,0.085,10, px, GY2-0.11, zz, "#aab8b4");
+        m.C("glass", 0.009,0.009,0.075,6, px, GY2-0.035, zz, "#aab8b4");
+        m.C("glass", 0.034,0.034,0.008,10, px, GY2-0.005, zz, "#aab8b4");
+      }
+    }
+    // a vase of ostrich feathers on the end of the counter, which is the
+    // one frankly silly thing in the room and the thing you remember
+    {
+      const vx=BARX1-0.30, vy=RD+1.15, vz=BARZ+0.30;
+      m.C("glass", 0.075,0.055,0.26,14, vx, vy+0.13, vz, "#2a3a46");
+      m.C("brass", 0.078,0.078,0.025,14, vx, vy+0.27, vz, BRD);
+      for(let i=0;i<9;i++){
+        const a2=i*0.698, ln=0.44+R(i)*0.26;
+        m.P("fabric", boxGeo(0.075, ln, 0.022, 0), vx+Math.cos(a2)*0.07,
+            vy+0.28+ln*0.44, vz+Math.sin(a2)*0.07, a2, "#efe6d2",
+            (R(i)-0.5)*0.5, (R(i+3)-0.5)*0.6);
+      }
+    }
+    // two palms in brass planters, which is what every one of these had
+    for(const q of [[-37.6, 39.2],[-37.4, 48.6]]){
+      m.C("brass", 0.28,0.24,0.46,16, q[0], RD+0.23, q[1], BRD);
+      m.C("brass", 0.295,0.295,0.035,16, q[0], RD+0.44, q[1], BR);
+      m.C("gravel", 0.24,0.24,0.06,12, q[0], RD+0.47, q[1], "#6a6054");
+      m.C("oak", 0.035,0.028,0.52,6, q[0], RD+0.72, q[1], "#6a5a34");
+      for(let i=0;i<11;i++){
+        const a2=i*0.571, ln=0.46+R(i+7)*0.34;
+        m.P("foliage", boxGeo(0.12, ln, 0.02, 0), q[0]+Math.cos(a2)*0.10,
+            RD+0.96+ln*0.26, q[1]+Math.sin(a2)*0.10, a2, "#5e7048",
+            -0.55-R(i)*0.5, (R(i+2)-0.5)*0.4);
+      }
+      m.col(q[0]-0.32, q[0]+0.32, q[1]-0.32, q[1]+0.32, RD, RD+0.50);
+    }
+    // a coat stand by the steps, with two things on it
+    {
+      const cx=PLX-1.05, cz=RZ1-1.30;
+      m.C("oak", 0.17,0.19,0.05,14, cx, RD+0.03, cz, OAKD);
+      m.C("oak", 0.035,0.030,1.74,10, cx, RD+0.89, cz, "#6a4524");
+      m.C("oak", 0.075,0.075,0.07,12, cx, RD+1.79, cz, OAKD);
+      for(let i=0;i<4;i++){
+        const a2=i*1.571;
+        m.P("brass", new T.TorusGeometry(0.055,0.012,5,10), cx+Math.cos(a2)*0.07,
+            RD+1.70, cz+Math.sin(a2)*0.07, a2, BRD, 0.9, 0);
+      }
+      m.P("fabric", boxGeo(0.34, 0.78, 0.13, 0.6), cx+0.08, RD+1.28, cz+0.10, 0.3, "#3e4438", 0, 0);
+      m.P("fabric", new T.CylinderGeometry(0.135,0.145,0.11,14), cx-0.10, RD+1.62,
+          cz-0.06, 0, "#5a5042", 0.35, 0.2);
+      m.col(cx-0.26, cx+0.26, cz-0.26, cz+0.26, RD, RD+0.55);
+    }
+    /* A CANDLE THROWS A POOL. Every low table has a flame on it and none of
+       them was lighting anything: the flame is an emissive, and emissives do
+       not illuminate. An additive disc under each one does the work for a
+       hundredth of the cost of a real light, and nine of them are what make
+       the room read as candlelit rather than as lamplit. */
+    for(const q of [[-47.35, 39.12],[-44.80, 39.12],[-42.25, 39.12],[-39.70, 39.12],
+                    [-44.86, 43.90],[-40.66, 44.90],
+                    [BARX0+0.9, BARZ+0.18],[BARX0+3.0, BARZ+0.18],
+                    [BARX0+5.1, BARZ+0.18],[BARX0+7.2, BARZ+0.18],[BARX0+9.3, BARZ+0.18]])
+      // the tables' tops are at RD+0.475 and the bar's at RD+1.12; a pool of
+      // candlelight sits just above the wood, not 2 cm down inside it
+      m.P("floorglow", planeGeo(0.86, 0.86, 0), q[0], RD+(q[1]>46?1.13:0.487), q[1],
+          0, "#ffb75a", -Math.PI/2, 0);
+    // an ice bucket, a bottle in it and two coupes, on the near table
+    {
+      const tx=-44.60, tz=43.90;
+      m.C("brass", 0.115,0.098,0.20,16, tx+0.30, RD+0.56, tz-0.10, BR);
+      m.C("brass", 0.122,0.122,0.022,16, tx+0.30, RD+0.655, tz-0.10, BRD);
+      for(const q of [-1,1])
+        m.P("brass", new T.TorusGeometry(0.030,0.008,5,10), tx+0.30+q*0.115, RD+0.62,
+            tz-0.10, 0, BRD, 0, Math.PI/2);
+      m.C("glass", 0.038,0.042,0.26,10, tx+0.30, RD+0.78, tz-0.10, "#2e4a2a");
+      m.C("glass", 0.014,0.014,0.07,6, tx+0.30, RD+0.945, tz-0.10, "#2e4a2a");
+      for(const q of [[-0.14,0.16],[0.02,0.22]]){
+        m.C("glass", 0.050,0.016,0.045,12, tx+q[0], RD+0.515, tz+q[1], "#a6b4b0");
+        m.C("glass", 0.008,0.008,0.055,6, tx+q[0], RD+0.52, tz+q[1], "#a6b4b0");
+        m.C("glass", 0.030,0.030,0.007,10, tx+q[0], RD+0.495, tz+q[1], "#a6b4b0");
+      }
     }
     // the hatch to the cellar, and the crate of empties beside it
     m.P("oak", boxGeo(0.90, 0.05, 1.20, 0.6), -37.9, RD+0.035, 49.4, 0.08, "#6a4524", 0, 0);

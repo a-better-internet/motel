@@ -58,9 +58,29 @@ const scene=new T.Scene();
 // the buffer had about 19 cm of resolution half a kilometre out, which is why
 // distant signs and panels buzzed; 0.24 brings that to 6 cm. The player can
 // never get closer than the collision radius anyway.
-const camera=new T.PerspectiveCamera(72, innerWidth/innerHeight, 0.24, 4000);
+/* A FIELD OF VIEW THAT DOES NOT STRETCH.
+   three.js takes a VERTICAL angle, and this one was 72°: on a 16:9 screen
+   that is 104° across, a wide-angle lens, and a wide angle stretches
+   whatever is off-centre — a car near the edge of the frame was half again
+   as long as the same car in the middle, so turning your head a few
+   degrees visibly squashed and pulled it. The wheel could take it to 95°
+   (122° across). The angle is now worked out from the screen's shape so the
+   view is about 88° across on any screen, held between 50° and 66°
+   vertically, and the wheel only zooms in from there or opens it a little. */
+const FOV_ACROSS=88, FOV_MIN=50, FOV_MAX=66;
+function baseFov(aspect){
+  const h=FOV_ACROSS*Math.PI/180;
+  const v=2*Math.atan(Math.tan(h/2)/Math.max(aspect,0.2))*180/Math.PI;
+  return Math.max(FOV_MIN, Math.min(FOV_MAX, v));
+}
+let fovZoom=0;                         // the wheel's offset from the base, in degrees
+const camera=new T.PerspectiveCamera(baseFov(innerWidth/innerHeight), innerWidth/innerHeight, 0.24, 4000);
 const ortho=new T.OrthographicCamera(-60,60,45,-45,0.1,600);
-let view="fp", fov=72;
+let view="fp", fov=camera.fov;
+function applyFov(){
+  fov=Math.max(30, Math.min(72, baseFov(camera.aspect)+fovZoom));
+  camera.fov=fov; camera.updateProjectionMatrix();
+}
 
 /* --- Layer 1 · base fill ------------------------------------------------ */
 const hemi=new T.HemisphereLight(0xffe7c4, 0x4a2a18, 0.72); scene.add(hemi);

@@ -81,7 +81,12 @@
     m.B("concrete", x1-x0, y1-y0, z1-z0, (x0+x1)/2, FY+(y0+y1)/2, (z0+z1)/2, 0.35, 0, CONC);
     m.col(x0, x1, z0, z1, FY+y0-0.5, FY+y1);
   };
-  wall(HX0-WT, HX0, HZ0-WT, HZ1+WT, -0.1, HH+0.4);   // west: owns both its corners
+  // west: owns both its corners, and has the fire door in it (POOL_DOOR, in
+  // 14h-pool.js's terms: what is through it is built there)
+  const FD0=AISLE[3]-0.54, FD1=AISLE[3]+0.54, FDH=2.14;
+  wall(HX0-WT, HX0, HZ0-WT, FD0, -0.1, HH+0.4);
+  wall(HX0-WT, HX0, FD1, HZ1+WT, -0.1, HH+0.4);
+  wall(HX0-WT, HX0, FD0, FD1, FDH, HH+0.4);
   wall(HX0, HX1+WT, HZ0-WT, HZ0, -0.1, HH+0.4);      // south
   wall(HX0, HX1+WT, HZ1, HZ1+WT, -0.1, HH+0.4);      // north
   wall(HX1, HX1+WT, HZ0, PZ0, -0.1, HH+0.4);         // east, either side of the passage
@@ -113,7 +118,8 @@
   };
   wallFace("x", HX0, HX1, HZ0, 1);
   wallFace("x", HX0, HX1, HZ1, -1);
-  wallFace("z", HZ0, HZ1, HX0, 1);
+  wallFace("z", HZ0, FD0-0.08, HX0, 1);
+  wallFace("z", FD1+0.08, HZ1, HX0, 1);
   wallFace("z", HZ0, PZ0-0.05, HX1, -1);
   wallFace("z", PZ1+0.05, HZ1, HX1, -1);
 
@@ -531,18 +537,22 @@
           ["#d8d2c0","#e0d8b8","#cfd6d8"][i%3], 0, (R()-0.5)*0.2);
   }
 
-  /* --- the far wall: the fire door, chained ---------------------------- */
+  /* --- the far wall: the fire door, and somebody cut the chain ---------
+     It opens now, onto the passage to the old baths (14h-pool.js). The
+     chain hangs off one side of the frame where it was cut, and the
+     padlock is still locked, on the floor. */
   {
-    const fz=AISLE[3], x=HX0+0.01;
-    m.B("paint", 0.06, 2.20, 1.12, x+0.03, FY+1.10, fz, 0.4, 0, "#6f2a24");
-    m.B("metal", 0.10, 2.30, 0.08, x+0.05, FY+1.15, fz-0.60, 0.4, 0, "#4a4e50");
-    m.B("metal", 0.10, 2.30, 0.08, x+0.05, FY+1.15, fz+0.60, 0.4, 0, "#4a4e50");
-    m.B("metal", 0.10, 0.08, 1.28, x+0.05, FY+2.32, fz, 0.4, 0, "#4a4e50");
-    m.B("metal", 0.06, 0.06, 0.96, x+0.10, FY+1.02, fz, 0, 0, "#b8bcbc");             // the bar
-    for(let i=0;i<11;i++)                                                        // and a chain through it
-      m.P("metal", new T.TorusGeometry(0.035, 0.010, 5, 10), x+0.14, FY+1.02+Math.sin(i*0.6)*0.05,
-          fz-0.52+i*0.104, 0, "#6a6660", 0, (i%2)*Math.PI/2);
-    m.B("brass", 0.05, 0.08, 0.06, x+0.16, FY+0.95, fz+0.06, 0, 0, "#8a7a40");
+    const fz=AISLE[3], xw=HX0-WT/2;
+    for(const z of [FD0+0.05, FD1-0.05])                                       // the frame
+      m.B("metal", WT+0.12, FDH+0.10, 0.10, xw, FY+(FDH+0.10)/2, z, 0.4, 0, "#4a4e50");
+    m.B("metal", WT+0.14, 0.11, FD1-FD0, xw, FY+FDH+0.035, fz, 0.4, 0, "#4a4e50");
+    m.flat(HX0-WT-0.3, HX0+0.3, FD0, FD1, FY);
+    makeDoor(XF(W(xw), Z(FD1-0.10), Math.PI/2), 0, GY+FY+0.02, 0, "THE BATHS", false, 0, "steel");
+    for(let i=0;i<6;i++)                                                       // the cut chain
+      m.P("metal", new T.TorusGeometry(0.035, 0.010, 5, 10), HX0+0.07, FY+1.00-i*0.06,
+          FD0+0.11, 0, "#6a6660", (i%2)*Math.PI/2, 0);
+    m.B("brass", 0.06, 0.07, 0.04, HX0+0.45, FY+0.035, fz+0.30, 0, 0.6, "#8a7a40");   // the padlock
+    m.P("metal", new T.TorusGeometry(0.022, 0.006, 5, 10), HX0+0.45, FY+0.075, fz+0.30, 0.6, "#8a8a84");
   }
 
   /* --- the floor: lines, oil, tyre marks, paper ----------------------- */
@@ -685,12 +695,15 @@
       m.C("metal", 0.008,0.008,0.17,5, bxp, FY+PH-0.07, (PZ0+PZ1)/2, "#3e3a34", 0, k*1.05, Math.PI/2);
     m.lamp(bxp, FY+PH-0.20, (PZ0+PZ1)/2, {color:0xffdcae, intensity:0.42, dist:5.5, decay:1.7,
            indoor:true, vol:[W(HX1-4), W(EX0+3.5), Z(PZ0-3), Z(PZ1+3), GY+FY-1, GY+FY+PH+0.8]});
-    // the strip curtain, hung on the stores' side of the opening: clear PVC
-    // gone milky, a strip missing and one torn off short
+    /* What is left of the strip curtain: two strips at each side and one
+       torn off at head height in the middle. A full curtain of milky PVC
+       across the opening read, from the passage, as a grey wall with the
+       room faintly behind it — and nothing in the way in should be hidden.
+       The middle metre is clear. */
     m.B("metal", 0.06, 0.06, PZ1-PZ0+0.10, HX1-0.03, FY+PH+0.03, (PZ0+PZ1)/2, 0.4, 0, "#5a5f62");
     for(let i=0;i<9;i++){
-      if(i===5) continue;
-      const len=(i===2)?1.30:PH-0.06;
+      if(i>1 && i<7 && i!==4) continue;
+      const len=(i===4)?0.42:PH-0.06;
       m.P("glass", boxGeo(0.004, len, 0.22, 0), HX1-0.036+(i%2)*0.006, FY+PH-len/2, PZ0+0.09+i*0.20,
           0, "#cfdcd8", 0, 0);
     }

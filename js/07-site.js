@@ -72,10 +72,13 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   addFlat(-ROAD_L/2, ROAD_L/2, ROADZ-roadW/2-2.6, ROADZ+roadW/2+1.2, 0.0);
   // shoulder + sidewalk + painted curb between highway and lot
   const WALK_W=2.55;                            // it was 3.2 and read as a runway
-  bx("walk", ROAD_L, 0.30, WALK_W, 0, 0.11, ROADZ+roadW/2+WALK_W/2, 0.62);
+  // brown, both of it: the walk and its kerb take the planter kerbs' colour
+  // (they were grey concrete and a yellow-painted face, the only grey kerb
+  // on the property)
+  bx("walk", ROAD_L, 0.30, WALK_W, 0, 0.11, ROADZ+roadW/2+WALK_W/2, 0.62, 0, "#a4825f");
   // ...and it ran -340..340 while the walk itself runs the full 3400
   addFlat(-ROAD_L/2, ROAD_L/2, ROADZ+roadW/2-0.03, ROADZ+roadW/2+WALK_W, 0.26);
-  bx("paint", ROAD_L, 0.30, 0.42, 0, 0.15, ROADZ+roadW/2+WALK_W+0.10, 0, 0, "#d6c07a");
+  bx("concrete", ROAD_L, 0.30, 0.42, 0, 0.15, ROADZ+roadW/2+WALK_W+0.10, 0.3, 0, "#8a6a4c");
   /* The kerb. Its top is at 0.30 and it is 42 cm deep, and between where the
      sidewalk flat stopped (walk edge) and where the lot flat starts there
      was an eleven-centimetre strip registered to nothing at all — so you

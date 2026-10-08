@@ -285,7 +285,7 @@ let acc=0, last=performance.now()/1000, lastGifPush=0;
 let buriedMix=0;          // 0 under the sky, 1 under the ground; see below
 const _sunDir=new T.Vector3();
 const BURIED_SKY=new T.Color(0xffd2a0), BURIED_GND=new T.Color(0x3a2418);
-const BURIED_AMB=new T.Color(0xffdcb4), AMB_BASE=new T.Color(0xfff0dc);
+const BURIED_AMB=new T.Color(0xffdcb4), AMB_BASE=new T.Color(0xfff0dc), _ambTarget=new T.Color();
 function frame(){
   requestAnimationFrame(frame);
   const now=performance.now()/1000;
@@ -437,7 +437,11 @@ function frame(){
      there do the whole job — which is also what makes carrying the torch
      down the stair worth doing. Faded over about a third of a second so the
      stair is a transition and not a cut. */
-  const wantBuried = buriedAt(camera.position.x, camera.position.z, camera.position.y) ? 1 : 0;
+  const bvol = buriedVolAt(camera.position.x, camera.position.z, camera.position.y);
+  const wantBuried = bvol ? 1 : 0;
+  // each buried volume can carry its own ambient colour; ease between them
+  if(bvol){ _ambTarget.setHex(bvol.amb===undefined ? 0xffdcb4 : bvol.amb);
+            BURIED_AMB.lerp(_ambTarget, Math.min(1, delta*3)); }
   buriedMix += (wantBuried-buriedMix)*Math.min(1, delta*3.4);
   if(buriedMix>0.002){
     /* What replaces them is not nothing. Killing the sky outright gave a
@@ -748,6 +752,6 @@ window.MOTEL={ player:player, rooms:ROOMS, doors:DOORS, dayNight:DayNight, keys:
                surf:(x,z,y)=>surfaceY(x,z,y===undefined?BASE:y) };
 
 addEventListener("resize",()=>{
-  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  camera.aspect=innerWidth/innerHeight; applyFov();
   renderer.setSize(innerWidth,innerHeight);
 });

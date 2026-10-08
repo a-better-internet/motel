@@ -1525,36 +1525,99 @@
       m.lamp(lx, RD+1.52, lz, {color:0xffbe7a, intensity:0.86, dist:7.4,
              decay:1.6, indoor:true, vol:RVOL});
     });
-    /* The piano. An upright against the west wall with the lid up, a stool
-       pushed in, and a glass left on the top — which is the detail that
-       says somebody played it tonight rather than that one is kept here. */
+    /* THE PIANO. An upright, built the way one is: two cheeks and a back,
+       a lid with a rolled edge, an upper door with two fretwork panels and
+       a music desk across it, the fallboard folded back into the case, key
+       cheeks carrying a keybed out in front on two turned legs, a lower
+       door, three pedals, and a plinth. It stands against the west wall —
+       it was 47 cm off it — and the stool, in front of the keys, is the
+       seat, which now looks at the keys (yaw PI/2 looks down -x; it was
+       -PI/2, facing the room with its back to them). Thirty-six ivories,
+       two of them gone yellow and one missing, and the sharps over them in
+       twos and threes. */
     {
-      const px=RX0+0.78, pz=47.3;
-      m.B("oak", 0.62, 1.26, 1.52, px, RD+0.63, pz, 0.6, 0, "#4e3220");
-      m.B("oak", 0.70, 0.07, 1.60, px, RD+1.29, pz, 0.7, 0, "#5e3a24");
-      m.B("oak", 0.30, 0.09, 1.44, px+0.33, RD+0.74, pz, 0.6, 0, "#5e3a24");
-      for(let i=0;i<34;i++)                              // the keys
-        m.B("plaster", 0.20, 0.022, 0.034, px+0.40, RD+0.785, pz-0.70+i*0.042,
-            0.4, 0, "#e8e2d2");
-      for(let i=0;i<24;i++){
-        const k=[0,1,0,1,1,0,1,0,1,0,1,1][i%12];
-        if(!k) continue;
-        m.B("paint", 0.13, 0.026, 0.022, px+0.36, RD+0.80, pz-0.66+i*0.059, 0.4, 0, "#241e1c");
+      const px=RX0+0.36, pz=47.3;                        // the case's centre; back at RX0+0.07
+      const CASE="#3b2417", TRIM="#5a3622", DARKP="#24160e";
+      const K=(bk,w,h,d,u,y,wz,c,rx,rz)=>m.P(bk, boxGeo(w,h,d,0.5), px+u, RD+y, pz+wz, 0, c, rx||0, rz||0);
+      for(const sd of [-1,1]) K("oak", 0.58, 1.28, 0.05, 0, 0.64, sd*0.735, CASE);     // the cheeks
+      K("oak", 0.04, 1.22, 1.42, -0.27, 0.67, 0, DARKP);                                // the back
+      K("oak", 0.62, 0.04, 1.56, 0.0, 1.30, 0, TRIM);                                  // the lid
+      m.C("oak", 0.025,0.025,1.56,10, px+0.31, RD+1.30, pz, TRIM, Math.PI/2);          // its rolled edge
+      K("oak", 0.04, 0.38, 1.42, 0.20, 1.06, 0, CASE);                                 // the upper door
+      for(const sd of [-1,1]){
+        K("oak", 0.012, 0.26, 0.56, 0.224, 1.07, sd*0.35, DARKP);                      // fretwork panels
+        K("oak", 0.016, 0.30, 0.04, 0.226, 1.07, sd*0.65, TRIM);                       // and their stiles
       }
-      m.B("brass", 0.04, 0.05, 1.30, px+0.33, RD+0.68, pz, 0.4, 0, BRD);
-      m.P("oak", boxGeo(0.56, 0.05, 1.50, 0.6), px-0.02, RD+1.42, pz, 0, "#5e3a24", 0, -0.30);
-      m.col(px-0.34, px+0.52, pz-0.84, pz+0.84, RD, RD+1.34);
-      m.C("oak", 0.20,0.22,0.09,14, px+0.86, RD+0.52, pz, "#5e3a24");
-      for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]])
-        m.C("oak", 0.026,0.022,0.50,8, px+0.86+a[0]*0.14, RD+0.24, pz+a[1]*0.14, OAKD);
-      m.col(px+0.62, px+1.10, pz-0.24, pz+0.24, RD, RD+0.50);
-      addSeat(W(px+0.86), Z(pz), GY+RD+0.58, -Math.PI/2, "THE PIANO");
-      m.C("glass", 0.034,0.026,0.11,10, px-0.10, RD+1.38, pz+0.50, "#9aa8a4");
-      m.P("paper", boxGeo(0.26,0.014,0.34,0.4), px-0.02, RD+1.34, pz-0.34, 0.14, "#cfc6ae", 0, 0);
-      m.lamp(px+0.5, RD+1.80, pz, {color:0xffb86a, intensity:0.52, dist:6.4, decay:1.7,
+      K("oak", 0.016, 0.30, 0.04, 0.226, 1.07, 0, TRIM);
+      K("oak", 0.07, 0.03, 1.32, 0.255, 0.925, 0, TRIM);                               // the music desk
+      K("oak", 0.012, 0.05, 1.32, 0.285, 0.95, 0, TRIM);                               // and its lip
+      K("oak", 0.13, 0.018, 1.34, 0.17, 0.875, 0, CASE, 0, -0.55);                     // fallboard, folded back
+      // the candle arms, one each side of the desk, swung out
+      for(const sd of [-1,1]){
+        K("brass", 0.16, 0.018, 0.018, 0.30, 1.12, sd*0.58, BR);
+        m.C("brass", 0.030,0.022,0.03,10, px+0.38, RD+1.14, pz+sd*0.58, BR);
+        m.C("plaster", 0.011,0.011,0.07,8, px+0.38, RD+1.19, pz+sd*0.58, "#e6dcc4");
+      }
+      // the key cheeks, the keybed, the key slip
+      for(const sd of [-1,1]) K("oak", 0.32, 0.16, 0.08, 0.41, 0.76, sd*0.69, CASE);
+      K("oak", 0.32, 0.05, 1.30, 0.41, 0.739, 0, CASE);
+      K("oak", 0.03, 0.065, 1.30, 0.555, 0.735, 0, TRIM);
+      for(let i=0;i<36;i++){                                                            // the ivories
+        if(i===23) continue;                                                            // one gone
+        const col=(i===9||i===30)?"#d4c49c":"#e4d9c2";
+        K("plaster", 0.15, 0.022, 0.033, 0.47, 0.775, -0.63+i*0.036, col);
+      }
+      for(let i=0;i<35;i++){                                                            // the sharps
+        if(![0,1,3,4,5].includes(i%7)) continue;
+        K("paint", 0.095, 0.026, 0.020, 0.432, 0.797, -0.63+i*0.036+0.018, "#151212");
+      }
+      // turned legs under the cheeks, on toe blocks
+      for(const sd of [-1,1]){
+        m.C("oak", 0.040,0.032,0.58,10, px+0.46, RD+0.38, pz+sd*0.69, TRIM);
+        m.C("oak", 0.055,0.055,0.06,10, px+0.46, RD+0.70, pz+sd*0.69, TRIM);
+        K("oak", 0.12, 0.08, 0.12, 0.46, 0.04, sd*0.69, CASE);
+      }
+      // the lower door with its two panels, the plinth, the pedals
+      K("oak", 0.03, 0.52, 1.42, 0.17, 0.40, 0, CASE);
+      for(const sd of [-1,1]) K("oak", 0.010, 0.38, 0.58, 0.188, 0.40, sd*0.34, DARKP);
+      K("oak", 0.60, 0.10, 1.50, 0.01, 0.05, 0, TRIM);
+      for(const w of [-0.11,0,0.11]) K("brass", 0.14, 0.022, 0.035, 0.37, 0.085, w, BR);
+      m.col(px-0.31, px+0.58, pz-0.78, pz+0.78, RD, RD+1.34);
+      // the stool: a buttoned velvet top on a turned apron, a screw column
+      // and four splayed legs
+      const sx=px+1.00;
+      m.C("velvet", 0.20,0.20,0.07,18, sx, RD+0.535, pz, "#4a1a1c");
+      { const g=new T.SphereGeometry(0.195,18,6,0,Math.PI*2,0,Math.PI/2); g.scale(1,0.18,1);
+        m.P("velvet", g, sx, RD+0.57, pz, 0, "#5a2226"); }
+      m.C("oak", 0.21,0.20,0.06,18, sx, RD+0.47, pz, TRIM);
+      m.C("metal", 0.030,0.030,0.20,10, sx, RD+0.34, pz, "#8a7a50");
+      for(let k=0;k<4;k++){
+        const a=k*Math.PI/2+Math.PI/4, lx=Math.sin(a)*0.13, lz=Math.cos(a)*0.13;
+        m.C("oak", 0.020,0.016,0.46,8, sx+lx, RD+0.22, pz+lz, TRIM, Math.cos(a)*0.22, 0, -Math.sin(a)*0.22);
+      }
+      m.col(sx-0.24, sx+0.24, pz-0.24, pz+0.24, RD, RD+0.58);
+      addSeat(W(sx), Z(pz), GY+RD+0.60, Math.PI/2, "THE PIANO");
+      // a glass on the lid, music on the desk, and the lamp over it
+      m.C("glass", 0.034,0.026,0.11,10, px-0.10, RD+1.375, pz+0.50, "#9aa8a4");
+      // two sheets of music open on the desk (portrait, 22 x 30, not two boards)
+      m.P("paper", boxGeo(0.008,0.30,0.22,0.4), px+0.262, RD+1.09, pz-0.12, 0, "#d8ceb2", 0, -0.12);
+      m.P("paper", boxGeo(0.008,0.30,0.22,0.4), px+0.264, RD+1.09, pz+0.11, 0.03, "#cfc4a6", 0, -0.12);
+      m.lamp(px+0.6, RD+1.80, pz, {color:0xffb86a, intensity:0.52, dist:6.4, decay:1.7,
              indoor:true, vol:RVOL});
-      m.B("brass", 0.10, 0.26, 0.30, px-0.18, RD+1.92, pz, 0.4, 0, BR);
-      m.P("sconce", planeGeo(0.22, 0.12, 0), px-0.06, RD+1.82, pz, Math.PI/2, "#ffcf8a", 1.1, 0);
+      m.B("brass", 0.10, 0.26, 0.30, RX0+0.05, RD+1.92, pz, 0.4, 0, BR);
+      m.P("sconce", planeGeo(0.22, 0.12, 0), RX0+0.17, RD+1.82, pz, Math.PI/2, "#ffcf8a", 1.1, 0);
+    }
+    /* A RUNNER down the open floor: from the foot of the stair the whole way
+       to the Long Room's door, beside the snug's edge, between the lounge
+       and the bar. Its top stands on two bound edges, so it has a thickness
+       you can see, and it has a fringe at each end. */
+    {
+      const ux0=-52.75, ux1=-38.15, uz=44.85, UW=1.00, L=ux1-ux0, ucx=(ux0+ux1)/2;
+      m.P("runner", runnerGeo(L, UW, 2.0), ucx, RD+0.027, uz, 0, "#ffffff");
+      for(const sd of [-1,1])
+        m.B("fabric", L, 0.016, 0.03, ucx, RD+0.018, uz+sd*(UW/2-0.015), 0.5, 0, "#1d2a42");
+      for(const ex of [ux0-0.04, ux1+0.04])
+        m.P("fabric", planeGeo(0.08, UW-0.04, 0), ex, RD+0.0205, uz, Math.PI/2, "#cdbb92", -Math.PI/2, 0);
     }
     /* ---- the sconces, which are the room's own light ----------------- */
     const sconce=(x,z,ry)=>{

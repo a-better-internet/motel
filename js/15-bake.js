@@ -68,6 +68,10 @@ bucketOf("bedding", ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.
 bucketOf("clockled",()=>emitMat(0xff6a34, 0.9, "warm"));
 bucketOf("neonbox", ()=>emitMat(0xff4a32, 0.5, "warm"));
 bucketOf("fabric",  ()=>new T.MeshStandardMaterial({map:TEX.weave,  roughness:0.96}));
+bucketOf("runner",  ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.runner, roughness:0.97}));
+// glazed brick and pool mosaic: a glaze is glossy, and dust takes the edge off it
+bucketOf("glazed",  ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.glazed, roughness:0.42}));
+bucketOf("mosaic",  ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.mosaic, roughness:0.55}));
 // Boulders were flat-shaded dodecahedra in the foliage bucket — twelve faces
 // and one colour. They get their own stone map, and enough facets to read as
 // rock rather than as dice.

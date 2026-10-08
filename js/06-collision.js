@@ -94,16 +94,19 @@ function indoorsAt(x,z,y){
    lit by its own fixtures and nothing else. The loop fades it over a third
    of a second so walking down the stair is a transition rather than a cut. */
 const BURIED=[];
-function addBuried(x0,x1,z0,z1,y0,y1){
-  BURIED.push({x0:x0,x1:x1,z0:z0,z1:z1,y0:y0,y1:y1});
+// `amb`, optional: the colour the ambient takes in here (a lamplit room is
+// warm; a tiled one lit by a few cold tubes is not)
+function addBuried(x0,x1,z0,z1,y0,y1,amb){
+  BURIED.push({x0:x0,x1:x1,z0:z0,z1:z1,y0:y0,y1:y1,amb:amb});
 }
-function buriedAt(x,z,y){
+function buriedVolAt(x,z,y){
   for(let i=0;i<BURIED.length;i++){
     const q=BURIED[i];
-    if(x>q.x0&&x<q.x1&&z>q.z0&&z<q.z1&&y>=q.y0&&y<q.y1) return true;
+    if(x>q.x0&&x<q.x1&&z>q.z0&&z<q.z1&&y>=q.y0&&y<q.y1) return q;
   }
-  return false;
+  return null;
 }
+function buriedAt(x,z,y){ return !!buriedVolAt(x,z,y); }
 
 const PAVED={x0:LOT.x0, x1:LOT.x1, z0:ROADZ+4.5, z1:LOT.z1};
 // pool basin profile — the ground itself dips inside the tank

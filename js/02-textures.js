@@ -221,6 +221,42 @@ TEX.ceilTile=(function(){                     // sprayed popcorn ceiling
   return rep(setSRGB(new T.CanvasTexture(c)),1,1);
 })();
 
+/* A HALL RUNNER, one two-metre repeat: a madder field, two medallions, a
+   navy border with an ivory and an ochre guard down both long edges, and a
+   paler, flatter band down the middle where forty years of shoes have gone.
+   It tiles along u only (the border runs the length of it), so the geometry
+   that carries it sets u in metres/2 and v across 0..1 — see runnerGeo(). */
+TEX.runner=(function(){
+  const W=512, H=256, c=cvs(W,H), x=c.getContext("2d");
+  const dia=(cx,cy,rx,ry,col)=>{ x.fillStyle=col; x.beginPath(); x.moveTo(cx-rx,cy);
+    x.lineTo(cx,cy-ry); x.lineTo(cx+rx,cy); x.lineTo(cx,cy+ry); x.closePath(); x.fill(); };
+  x.fillStyle="#5c1b18"; x.fillRect(0,0,W,H);                         // the field
+  const band=(y0,h,col)=>{ x.fillStyle=col; x.fillRect(0,y0,W,h); x.fillRect(0,H-y0-h,W,h); };
+  band(0,32,"#1d2a42"); band(32,4,"#d6c49a"); band(36,9,"#94642a"); band(45,3,"#d6c49a");
+  for(let u=0;u<W;u+=32) for(const y of [16,H-16]){                   // the vine in the border
+    dia(u+8,y,9,7,"#a8362a"); dia(u+8,y,4,3,"#d6c49a"); dia(u+24,y,5,4,"#94642a");
+  }
+  for(const mu of [128,384]){                                          // the medallions
+    dia(mu,H/2,92,62,"#1d2a42"); dia(mu,H/2,82,54,"#d6c49a"); dia(mu,H/2,74,48,"#7a2a22");
+    dia(mu,H/2,54,34,"#94642a"); dia(mu,H/2,44,27,"#1d2a42"); dia(mu,H/2,22,13,"#d6c49a");
+    dia(mu,H/2,10,6,"#a8362a");
+    for(const s of [-1,1]){ dia(mu+s*104,H/2,8,8,"#94642a"); dia(mu+s*104,H/2,3,3,"#d6c49a"); }
+  }
+  for(let u=0;u<W;u+=64) for(const y of [70,H-70]){                   // small guls between
+    dia(u,y,10,8,"#7a2a22"); dia(u,y,5,4,"#d6c49a");
+  }
+  // the walked path: paler and flatter down the middle, and the pile
+  const g=x.createLinearGradient(0,0,0,H);
+  g.addColorStop(0.0,"rgba(210,180,150,0)"); g.addColorStop(0.32,"rgba(210,180,150,0)");
+  g.addColorStop(0.5,"rgba(210,180,150,0.20)"); g.addColorStop(0.68,"rgba(210,180,150,0)");
+  g.addColorStop(1.0,"rgba(210,180,150,0)");
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  noiseDots(x,W,H,9000,["rgba(0,0,0,0.12)","rgba(230,205,170,0.08)","rgba(60,20,16,0.12)"]);
+  const t=setSRGB(new T.CanvasTexture(c));
+  t.wrapS=T.RepeatWrapping; t.wrapT=T.ClampToEdgeWrapping;
+  return t;
+})();
+
 TEX.lino=(function(){                         // speckled terrazzo, office floor
   const c=cvs(256,256), x=c.getContext("2d");
   x.fillStyle="#b9ae95"; x.fillRect(0,0,256,256);
@@ -243,6 +279,51 @@ TEX.bathTile=(function(){                     // glossy square wall tile
   x.strokeStyle="rgba(140,150,146,0.8)"; x.lineWidth=2;
   for(let u=0;u<=128;u+=32){ x.beginPath(); x.moveTo(u,0);x.lineTo(u,128);x.stroke();
                              x.beginPath(); x.moveTo(0,u);x.lineTo(128,u);x.stroke(); }
+  return rep(setSRGB(new T.CanvasTexture(c)),1,1);
+})();
+
+/* GLAZED BRICK, the kind every public baths was lined with: 300 x 100 mm
+   in a running bond, each one a slightly different white under its glaze
+   (the colour is the vertex tint — green, in the pool), a light lip along
+   the top edge where the glaze pooled, dark grout, and the odd crazed one.
+   One repeat is 1.2 m: use uvScale 1/1.2. */
+TEX.glazed=(function(){
+  const S=256, c=cvs(S,S), x=c.getContext("2d");
+  x.fillStyle="#4a4a46"; x.fillRect(0,0,S,S);                       // the grout
+  const bw=S/4, bh=S/12, g=2;
+  for(let r=0;r<12;r++){
+    const off=(r%2)*bw/2;
+    for(let k=-1;k<5;k++){
+      const x0=k*bw+off, y0=r*bh;
+      const v=222+((Math.sin(r*12.9898+k*78.233)*43758.5453)%1+1)%1*30;
+      x.fillStyle="rgb("+(v|0)+","+(v|0)+","+((v-4)|0)+")";
+      x.fillRect(x0+g, y0+g, bw-2*g, bh-2*g);
+      const gr=x.createLinearGradient(0,y0+g,0,y0+bh-g);             // the glaze pooled at the lip
+      gr.addColorStop(0,"rgba(255,255,255,0.30)"); gr.addColorStop(0.35,"rgba(255,255,255,0)");
+      gr.addColorStop(1,"rgba(0,0,0,0.10)");
+      x.fillStyle=gr; x.fillRect(x0+g, y0+g, bw-2*g, bh-2*g);
+    }
+  }
+  x.strokeStyle="rgba(60,60,56,0.35)"; x.lineWidth=0.6;              // crazing on a few
+  for(let i=0;i<5;i++){
+    const cx=Math.random()*S, cy=Math.random()*S;
+    for(let k=0;k<6;k++){ x.beginPath(); x.moveTo(cx,cy);
+      x.lineTo(cx+(Math.random()-0.5)*40, cy+(Math.random()-0.5)*14); x.stroke(); }
+  }
+  noiseDots(x,S,S,1600,["rgba(255,255,255,0.08)","rgba(90,90,80,0.07)"]);
+  return rep(setSRGB(new T.CanvasTexture(c)),1,1);
+})();
+/* POOL MOSAIC: 50 mm square tiles, twelve to a 0.6 m repeat (uvScale 1/0.6),
+   white under the vertex tint, with grey grout. */
+TEX.mosaic=(function(){
+  const S=192, c=cvs(S,S), x=c.getContext("2d"), n=12, t=S/n;
+  x.fillStyle="#7a7a74"; x.fillRect(0,0,S,S);
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++){
+    const v=226+((Math.sin(i*91.7+j*17.3)*43758.5)%1+1)%1*24;
+    x.fillStyle="rgb("+(v|0)+","+(v|0)+","+((v-3)|0)+")";
+    x.fillRect(i*t+1.2, j*t+1.2, t-2.4, t-2.4);
+  }
+  noiseDots(x,S,S,900,["rgba(255,255,255,0.08)","rgba(90,90,80,0.08)"]);
   return rep(setSRGB(new T.CanvasTexture(c)),1,1);
 })();
 

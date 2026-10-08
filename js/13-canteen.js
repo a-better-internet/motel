@@ -762,8 +762,12 @@ i===1?"#6a5a3c":"#7a6746");
   cyl("glass", 0.075,0.075,0.22,12, BX+0.26, FY+BH2+0.20, BZ0+7.7, "#d8d2b8");
   cyl("metal", 0.078,0.078,0.03,12, BX+0.26, FY+BH2+0.32, BZ0+7.7, "#9aa1a4");
   // a clock on the east wall (it was a bare face half a metre off it)
-  cyl("weathered", 0.245,0.245,0.04,18, IX1-0.02, FY+3.10, BZ0-0.9, "#2a2622", 0, 0, Math.PI/2);
-  push("clockface", planeGeo(0.44,0.44,0), IX1-0.042, FY+3.10, BZ0-0.9, -Math.PI/2, "#e8e2cf");
+  cyl("weathered", 0.245,0.245,0.04,18, IX1-0.02, FY+2.62, -28.79, "#2a2622", 0, 0, Math.PI/2);
+  // a round face in its round rim (a square plane stuck out past the rim at
+  // the corners), and hands stopped at ten to four
+  push("clockface", new T.CircleGeometry(0.215, 28), IX1-0.042, FY+2.62, -28.79, -Math.PI/2, "#e8e2cf");
+  push("paint", boxGeo(0.006, 0.12, 0.018, 0), IX1-0.047, FY+2.62+0.05, -28.79-0.03, 0, "#1e1b18", -0.55, 0);
+  push("paint", boxGeo(0.006, 0.17, 0.012, 0), IX1-0.050, FY+2.62+0.043, -28.79+0.074, 0, "#1e1b18", 1.05, 0);
   for(const bz2 of [BZ0+2.2, (BZ0+BZ1)/2, BZ1-2.2]){     // the strip that lights the bottles
     bx("ceilfix", 0.10,0.05,1.60, IX1-0.45, FY+2.672, bz2, 0, 0, "#f2e9cf");
     LAMPS.push({x:IX1-0.75, y:FY+2.52, z:bz2, color:0xffd8a8, intensity:0.62, dist:5.5,
@@ -988,21 +992,35 @@ i===1?"#6a5a3c":"#7a6746");
   // west wall, which is the stage, behind the 4x12 and the bass rig; and one
   // at IX1 near IZ1, which is where the jukebox stands. Six on the walls that
   // are actually walls.
-  const PW2=[[0,IX0+0.04,-25.0,Math.PI/2],[1,IX0+0.04,-21.9,Math.PI/2],
-             [2,-86.4,IZ0+0.04,0],[3,-74.6,IZ0+0.04,0],
-             [4,IX1-0.06,-23.6,-Math.PI/2],[5,-77.4,IZ1-0.04,Math.PI]];
-  for(const q of PW2) poster(q[0], q[1], FY+1.95+rr(-0.12,0.12), q[2], q[3]);
-  poster(3, -83.2, FY+2.66, IZ0+0.04, 0);
-  poster(5, -71.8, FY+1.90, IZ1-0.04, Math.PI);
+  /* THE POSTERS ARE HUNG, NOT SCATTERED. There were fourteen of six
+     designs — "Night Shift" three times — at random heights, one half
+     behind the roller screen, two crowding the television, one behind the
+     bottle shelves where nobody could see it and one behind the coat rail.
+     Eight now, no design twice on one wall, every one on the same line
+     (centres 1.85 up, 1.95 over the booths), each in a clear bay between
+     the things that are actually fixed to that wall: the cigarette machine,
+     the door, the dartboard and the chalkboard on the south; the roller
+     screen and the TV on the west; the payphone, the coat rail and the
+     jukebox on the north. The east wall is the back bar. */
+  /* The front wall has two glass-block windows (WINN) and a door, and its
+     bays are, west to east: the cigarette machine | window | the cue rack
+     and a poster | door | coat hooks, the pinboard, the dartboard, the
+     scoreboard with the trophy shelf over it | window | a poster and the
+     fish. Nothing on that wall is allowed over a window or over another
+     thing on it — which is what the first hanging did five times. */
+  const PW2=[[2,-81.75,IZ0+0.04,0,1.85],[4,-70.0,IZ0+0.04,0,1.85],
+             [0,IX0+0.04,-28.0,Math.PI/2,1.95],[5,IX0+0.04,-22.3,Math.PI/2,1.95],
+             [4,-81.6,IZ1-0.04,Math.PI,1.85],[1,-75.2,IZ1-0.04,Math.PI,1.85]];
+  for(const q of PW2) poster(q[0], q[1], FY+q[4], q[2], q[3]);
   // dartboard, with the throw line scuffed into the boards
-  push("bin", new T.CylinderGeometry(0.24,0.24,0.06,18), -75.6, FY+1.72, IZ0+0.07,
+  push("bin", new T.CylinderGeometry(0.24,0.24,0.06,18), -75.2, FY+1.72, IZ0+0.07,
        0, "#2a2622", Math.PI/2, 0);
-  push("baize", new T.CylinderGeometry(0.21,0.21,0.02,18), -75.6, FY+1.72, IZ0+0.11,
+  push("baize", new T.CylinderGeometry(0.21,0.21,0.02,18), -75.2, FY+1.72, IZ0+0.11,
        0, "#1f5c38", Math.PI/2, 0);
-  push("plaster", new T.CylinderGeometry(0.035,0.035,0.02,12), -75.6, FY+1.72, IZ0+0.13,
+  push("plaster", new T.CylinderGeometry(0.035,0.035,0.02,12), -75.2, FY+1.72, IZ0+0.13,
        0, "#e8e2cf", Math.PI/2, 0);
-  bx("oak", 1.00, 1.00, 0.06, -75.6, FY+1.72, IZ0+0.04, 0.5, 0, "#3e342c");
-  bx("paint", 0.90, 0.02, 0.08, -75.6, FY+0.02, IZ0+2.38, 0, 0, "#c9bb92");
+  bx("oak", 1.00, 1.00, 0.06, -75.2, FY+1.72, IZ0+0.04, 0.5, 0, "#3e342c");
+  bx("paint", 0.90, 0.02, 0.08, -75.2, FY+0.02, IZ0+2.38, 0, 0, "#c9bb92");
   // a screen nobody is watching, and a jukebox
   bx("weathered", 1.58, 1.28, 0.10, IX0+0.10, FY+2.62, -20.6, 0.4, Math.PI/2, "#3a342e");
   push("pic:tv:1", new T.PlaneGeometry(1.44, 1.08), IX0+0.16, FY+2.62, -20.6,
@@ -1039,8 +1057,10 @@ i===1?"#6a5a3c":"#7a6746");
   bx("oak", 0.62, 1.60, 0.42, -86.6, FY+0.80, IZ0+0.24, 0.45, 0, "#4a3a2c");
   bx("tvglass", 0.52, 0.66, 0.03, -86.6, FY+1.16, IZ0+0.04, 0, 0, "#1a2022");
   for(let i=0;i<5;i++) bx("metal", 0.03,0.10,0.03, -86.82+i*0.11, FY+0.70, IZ0+0.03, 0,0,CHROME);
-  bx("oak", 1.50, 0.96, 0.07, -73.0, FY+2.10, IZ0+0.06, 0.5, 0, "#3e342c");
-  bx("baize", 1.34, 0.80, 0.03, -73.0, FY+2.10, IZ0+0.10, 0, 0, "#20241f");
+  // the scoreboard beside the darts, under the trophy shelf, clear of the
+  // window (it ran 35 cm over the glass block)
+  bx("oak", 1.50, 0.96, 0.07, -73.6, FY+2.10, IZ0+0.06, 0.5, 0, "#3e342c");
+  bx("baize", 1.34, 0.80, 0.03, -73.6, FY+2.10, IZ0+0.10, 0, 0, "#20241f");
   cyl("metal", 0.075,0.075,0.44,12, IX1-0.60, FY+0.30, IZ0+0.55, "#a82e22");
   cyl("metal", 0.05,0.05,0.10,10, IX1-0.60, FY+0.56, IZ0+0.55, "#3a3632");
   bx("oak", 2.20, 0.10, 0.08, -78.4, FY+1.86, IZ1-0.06, 0.5, 0, "#4a3a2c");
@@ -1134,13 +1154,7 @@ i===1?"#6a5a3c":"#7a6746");
        0, "#2a2622", Math.PI/2, 0);
   push("bin", new T.CylinderGeometry(0.035,0.035,0.02,10), -83.87, FY+1.90, IZ1-0.12,
        0, "#2a2622", Math.PI/2, 0);
-  // six more posters, because they go up and they do not come down
-  for(const q of [[2,IX0+0.04,-28.0,Math.PI/2],[5,IX0+0.04,-19.4,Math.PI/2],
-                  [1,-84.55,IZ0+0.04,0],[4,-69.9,IZ0+0.04,0],
-                  // poster 0 east of the payphone: at -84.9 it ran over the
-                  // restroom door's jamb and the stage edge
-                  [0,-81.9,IZ1-0.04,Math.PI],[3,-74.2,IZ1-0.04,Math.PI]])
-    poster(q[0], q[1], FY+2.06+rr(-0.14,0.14), q[2], q[3]);
+  // (the second batch of six posters is gone; see the note over PW2)
   // two speakers up in the corners, wired back along the joists
   /* In the corners, not near them: each one is turned to face the room
      across the diagonal and pushed back until two of its edges are on the
@@ -1249,9 +1263,13 @@ i===1?"#6a5a3c":"#7a6746");
   /* The photographs hang on the east wall south of the back bar. They were
      at IX1-0.60 — in the air in front of the bottle shelves, edge on to
      the room, because a frame thin in z is a frame for a wall running in x. */
-  for(let i=0;i<5;i++)
-    bx("art", 0.03, 0.20, 0.26, IX1-0.015, FY+(i<3?1.92:1.62), (i<3?-29.2+i*0.4:-29.0+(i-3)*0.4),
-       0, 0, "#cfc4a8");
+  // four framed photographs in a square, under the clock, in the one bay of
+  // the east wall the back bar leaves
+  for(let i=0;i<4;i++){
+    const fz=-29.08+(i%2)*0.58, fy=FY+1.66+((i/2)|0)*0.36;
+    bx("oak", 0.03, 0.28, 0.36, IX1-0.015, fy, fz, 0, 0, "#3e2c1e");
+    bx("art", 0.012, 0.22, 0.30, IX1-0.035, fy, fz, 0, 0, ["#cfc4a8","#b8ad94","#c4b89e","#a99e88"][i]);
+  }
   bx("metal", 0.34, 0.86, 0.22, BX+0.18, FY+BH2+0.60, BZ0+0.30, 0.4, 0, "#8d9498");
   for(let i=0;i<5;i++)
     bx("paper", 0.28, 0.17, 0.03, BX+0.18, FY+BH2+0.28+i*0.17, BZ0+0.18, 0, 0,
@@ -1546,7 +1564,7 @@ i===1?"#6a5a3c":"#7a6746");
 
   /* ---- what is pinned up by the door ---------------------------------- */
   (function(){
-    const nx=-77.2, nz=IZ0+0.06;
+    const nx=-77.0, nz=IZ0+0.06;
     bx("oak", 1.40, 0.90, 0.05, nx, FY+1.80, nz, 0.5, 0, "#5b4632");
     bx("bath", 1.28, 0.78, 0.02, nx, FY+1.80, nz+0.02, 0.5, 0, "#8a7f63");
     for(let i=0;i<17;i++){                                  // cards, polaroids, a rota
@@ -1558,22 +1576,26 @@ i===1?"#6a5a3c":"#7a6746");
                        nx-0.54+((i*0.29)%1.12), FY+1.48+((i*0.23)%0.62)+ch*0.4, nz+0.045,
                        0, "#c8342a", Math.PI/2, 0);
     }
-    for(let i=0;i<5;i++){                                   // coat hooks, one coat
-      bx("metal", 0.05,0.05,0.09, nx+1.35+i*0.24, FY+1.74, nz+0.04, 0, 0, "#8d9498");
-      push("metal", new T.SphereGeometry(0.026,8,6), nx+1.35+i*0.24, FY+1.70, nz+0.09,
+    // coat hooks by the door, where a coat goes, with one coat on them (they
+    // were on the dartboard, with the coat hanging over the board)
+    bx("oak", 1.10, 0.10, 0.03, -78.72, FY+1.76, nz+0.005, 0.4, 0, "#4a3a2c");
+    for(let i=0;i<5;i++){
+      bx("metal", 0.05,0.05,0.09, -79.20+i*0.24, FY+1.74, nz+0.04, 0, 0, "#8d9498");
+      push("metal", new T.SphereGeometry(0.026,8,6), -79.20+i*0.24, FY+1.70, nz+0.09,
            0, "#8d9498");
     }
-    push("fabric", boxGeo(0.36,0.80,0.14,0.5), nx+1.83, FY+1.30, nz+0.12, 0.15,
+    push("fabric", boxGeo(0.36,0.80,0.14,0.5), -78.48, FY+1.30, nz+0.12, 0.15,
          "#5a4a38", 0, -0.08);
     // and the fish somebody caught, in a hat that is not his
-    bx("oak", 0.72, 0.34, 0.05, -71.6, FY+2.40, IZ0+0.06, 0.5, 0, "#4e3720");
+    // (east of the window now: it was mounted over the glass block)
+    bx("oak", 0.72, 0.34, 0.05, -69.0, FY+2.55, IZ0+0.06, 0.5, 0, "#4e3720");
     { const g=new T.SphereGeometry(0.15,12,9); g.scale(2.0,0.70,0.45);
-      push("foliage", g, -71.6, FY+2.40, IZ0+0.12, 0, "#4e6a58"); }
-    push("foliage", new T.ConeGeometry(0.11,0.20,6), -71.94, FY+2.40, IZ0+0.12, 0,
+      push("foliage", g, -69.0, FY+2.55, IZ0+0.12, 0, "#4e6a58"); }
+    push("foliage", new T.ConeGeometry(0.11,0.20,6), -69.34, FY+2.55, IZ0+0.12, 0,
          "#4e6a58", 0, Math.PI/2);
-    push("fabric", new T.CylinderGeometry(0.075,0.095,0.09,12), -71.30, FY+2.52, IZ0+0.13,
+    push("fabric", new T.CylinderGeometry(0.075,0.095,0.09,12), -68.70, FY+2.67, IZ0+0.13,
          0, "#6a5236", 0.35, 0);
-    push("fabric", new T.CylinderGeometry(0.15,0.15,0.015,14), -71.30, FY+2.48, IZ0+0.13,
+    push("fabric", new T.CylinderGeometry(0.15,0.15,0.015,14), -68.70, FY+2.63, IZ0+0.13,
          0, "#6a5236", 0.35, 0);
     // a shelf of things won at darts, none of it recent
     bx("oak", 1.10, 0.05, 0.22, -73.6, FY+2.66, IZ0+0.13, 0.5, 0, "#5b4632");
@@ -1691,8 +1713,9 @@ i===1?"#6a5a3c":"#7a6746");
   })();
   // an OUT OF ORDER card, a NO MINORS notice, a coat nobody came back for
   bx("paper", 0.22,0.14,0.02, -86.6, FY+1.38, IZ0+0.06, 0, 0, "#e6dcbe");
-  bx("paper", 0.20,0.26,0.02, -75.0, FY+1.64, IZ0+0.05, 0, 0, "#ded4b4");
-  push("fabric", boxGeo(0.34,0.72,0.16,0.5), -74.4, FY+1.46, IZ1-0.12, 0.2, "#3a4a52", 0, 0.06);
+  bx("paper", 0.20,0.26,0.02, -81.05, FY+1.64, IZ0+0.05, 0, 0, "#ded4b4");   // NO MINORS, by the door
+  // on the coat rail's hooks (it hung on the bare wall beside a poster)
+  push("fabric", boxGeo(0.34,0.72,0.16,0.5), -78.6, FY+1.44, IZ1-0.13, 0.08, "#3a4a52", 0, 0.04);
   // rings where glasses have stood, and the pools the pendants throw
   for(const q of [[-75.8,-26.0],[-75.8,-22.0],[-75.8,-17.8],[-80.4,-23.0],
                   [-80.4,-19.0],[-80.4,-16.0]])

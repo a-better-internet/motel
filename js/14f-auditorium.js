@@ -1032,8 +1032,15 @@ const STORES_DOOR={z0:14.19, z1:15.35, h:2.14};
     face(Math.PI/2, L1X0+0.02, 0, L1Z0, L1Z1, CH);
     face(-Math.PI/2, L1X1-0.02, 0, L2Z1, L1Z1, CH);
     face(0, 0, L2Z0+0.02, L2X0, L2X1, CH);
-    face(Math.PI, 0, L2Z1-0.02, L1X1, L2X1, CH);
-    face(Math.PI/2, L2X0+0.02, 0, L2Z0, L2Z1, CH);
+    /* Leg two's north side runs from the end room to where leg one comes in
+       (L2X0 to L1X0); it was given L1X1..L2X1, which is the same number
+       twice, so that wall had no render at all. And there was a sixth face
+       here, at L2X0 facing east — across leg two's open west end, the way
+       into the end room. A plane faces one way and has no collider, so from
+       the corridor the end of it was a grey wall, from the room there was
+       nothing, and you could walk through it: the hidden wall at the
+       entrance to the stores. An open end gets no face. */
+    face(Math.PI, 0, L2Z1-0.02, L2X0, L1X0-WT2, CH);
     for(const q of [[0, EZ0+0.02],[Math.PI, EZ1-0.02]]) face(q[0], 0, q[1], EX0, EX1, EH);
     face(Math.PI/2, EX0+0.02, 0, EZ0, STORES_DOOR.z0, EH);
     face(Math.PI/2, EX0+0.02, 0, STORES_DOOR.z1, EZ1, EH);

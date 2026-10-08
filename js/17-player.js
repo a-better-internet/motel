@@ -68,8 +68,9 @@ function look(dx,dy){
   player.pitch  = clamp(player.pitch - dy*0.0024, -1.15, 1.15);
 }
 dom.addEventListener("click",()=>{ if(document.pointerLockElement!==dom && dom.requestPointerLock) dom.requestPointerLock(); });
-addEventListener("wheel",e=>{ fov=clamp(fov+Math.sign(e.deltaY)*3, 45, 95);
-  camera.fov=fov; camera.updateProjectionMatrix(); }, {passive:true});
+// the wheel zooms in (to 24° tighter) or opens the view a little (6° wider)
+addEventListener("wheel",e=>{ fovZoom=clamp(fovZoom+Math.sign(e.deltaY)*3, -24, 6); applyFov(); },
+                 {passive:true});
 
 // touch: drag to look, on-screen pad to walk
 const touchPad=document.getElementById("touch");

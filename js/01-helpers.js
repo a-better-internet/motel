@@ -484,6 +484,15 @@ function isFlat(geo){
    bulb where you would look for it. */
 function shadeGeo(rt, rb, h, seg){ return new T.CylinderGeometry(rt, rb, h, seg||14, 1, true); }
 const shadeBulb=(r)=>new T.SphereGeometry(r||0.032, 10, 8);
+// a runner's top: L long in x, W across in z, lying flat; u in repeats of
+// `rep` metres along it and v 0..1 across, so the border stays on the edges
+function runnerGeo(L, W, rep){
+  const g=new T.PlaneGeometry(L, W), uv=g.attributes.uv, pos=g.attributes.position;
+  for(let i=0;i<uv.count;i++) uv.setXY(i, (pos.getX(i)/L+0.5)*L/(rep||2), uv.getY(i));
+  uv.needsUpdate=true;
+  g.rotateX(-Math.PI/2);
+  return g;
+}
 /* ...and a ceiling fitting is a bowl. The flush drums had flat bottoms, and
    a flat disc facing straight down at the lamp under it takes the full
    light and the full glow at once: the brightest, flattest, whitest thing in

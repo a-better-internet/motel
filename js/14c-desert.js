@@ -1037,9 +1037,15 @@
     /* ---- what got left behind ----------------------------------------- */
     // papers, everywhere: on the floor, drifted into the corners, one or two
     // still pinned where somebody put them
+    // each sheet a rung above whatever it lies on (0.6 mm a rung), not a
+    // rung above every sheet before it: at 1.6 mm a sheet the last of the
+    // sixty-two was hovering ten centimetres over the floor
+    const lay=[];
     for(let i=0;i<62;i++){
       const px=rr2(IX0+0.25, IX1-0.25), pz=rr2(IZ0+0.18, IZ1-0.18);
-      m.P("paper", planeGeo(rr2(0.16,0.24), rr2(0.22,0.31), 0), px, FY+0.012+i*0.0016, pz,
+      let k=0; for(const q of lay) if(Math.hypot(q[0]-px,q[1]-pz)<0.36) k=Math.max(k,q[2]+1);
+      lay.push([px,pz,k]);
+      m.P("paper", planeGeo(rr2(0.16,0.24), rr2(0.22,0.31), 0), px, FY+0.012+Math.min(k,30)*0.0006, pz,
           rr2(0,6.28), "#ffffff", -Math.PI/2 + rr2(-0.05,0.05), rr2(-0.05,0.05));
     }
     for(let i=0;i<7;i++){                              // banked against the walls
@@ -1087,8 +1093,10 @@
     m.P("weathered", boxGeo(3.44,0.10,0.07,0), 1.10, FY+1.52, ZS+1.70, 0, "#9d9280", 0, 0.07);
     m.C("teal", 0.035,0.035,2.06,8, 2.72, 1.05, ZS+1.66, "#9aa1a4");         // the leg left
     m.P("teal", boxGeo(0.05,1.90,0.05,0), -0.55, 0.20, ZS+2.20, 0.4, "#9aa1a4", 1.42, 0);
-    m.C("weathered", 0.16,0.16,0.62,12, -L/2+0.5, 0.31, ZS+0.70, "#b8613a", 0, 0, 0.08); // propane
-    m.C("metal", 0.05,0.05,0.10,8, -L/2+0.5, 0.66, ZS+0.70, "#8e877a");
+    // the yard is not level: what stands in it stands on the ground under it
+    const GZ=(x,z)=>Terrain.groundAt(OX+x, OZ+z)-m.y;
+    m.C("weathered", 0.16,0.16,0.62,12, -L/2+0.5, GZ(-L/2+0.5,ZS+0.70)+0.31, ZS+0.70, "#b8613a", 0, 0, 0.08); // propane
+    m.C("metal", 0.05,0.05,0.10,8, -L/2+0.5, GZ(-L/2+0.5,ZS+0.70)+0.66, ZS+0.70, "#8e877a");
     m.B("weathered", 0.66,0.36,0.52, 3.90, 0.18, ZS+0.90, 0.4, 0.4, "#a89c84");   // a cooler
     m.C("tyre", 0.34,0.34,0.22,14, -2.60, 0.11, ZS+1.90, "#1b1914", Math.PI/2, 0.3, 0);
     m.P("oak", boxGeo(0.44,0.05,0.42,0.5), 0.90, 0.30, ZS+2.10, 0.9, "#6f624a", 1.4, 0);
@@ -1185,7 +1193,7 @@
                              ZS+1.10+Math.sin(i*2.1)*0.20, "#6e6a62", 0.18, i*2.1, 0.12);
     m.B("weathered", 0.24,0.36,0.16, 5.40, 0.18, ZS+0.55, 0.4, 0.3, "#8a6a3a");
     for(let i=0;i<3;i++)
-      m.C("tyre", 0.33,0.33,0.19,14, -4.10, 0.10+i*0.19, ZS+1.30, "#1b1914");
+      m.C("tyre", 0.33,0.33,0.19,14, -4.10, GZ(-4.10,ZS+1.30)+0.095+i*0.19, ZS+1.30, "#1b1914");
     push("plaster", new T.CylinderGeometry(0.13,0.10,0.07,14), OX+3.10, m.y+0.04, OZ+ZS+1.60,
          0, new T.Color("#b9b2a2"));
     // stepping stones from the track to the step

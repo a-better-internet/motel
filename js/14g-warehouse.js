@@ -79,7 +79,8 @@
       (HZ0+HZ1)/2, 0.5, 0, "#4a4741");
   const wall=(x0,x1,z0,z1,y0,y1)=>{
     m.B("concrete", x1-x0, y1-y0, z1-z0, (x0+x1)/2, FY+(y0+y1)/2, (z0+z1)/2, 0.35, 0, CONC);
-    m.col(x0, x1, z0, z1, FY+y0-0.5, FY+y1);
+    // a wall off the floor goes half a metre under it; a lintel stops where it is
+    m.col(x0, x1, z0, z1, FY+y0-(y0<=0?0.5:0), FY+y1);
   };
   // west: owns both its corners, and has the fire door in it (POOL_DOOR, in
   // 14h-pool.js's terms: what is through it is built there)
@@ -609,11 +610,11 @@
   /* --- the leak in the north-west corner ------------------------------ */
   {
     const lx=-174.2, lz=33.6;
-    m.P("mirrorw", planeGeo(3.4, 2.2, 0), lx, FY+0.016, lz, 0.3, "#20262a", -Math.PI/2, 0);
+    m.P("puddle", puddleGeo(1.6, 1.0, 5), lx, FY+0.016, lz, 0.3, "#20262a", 0, 0);
     m.P("stain", streakGeo(4.2, 3.0, 0), lx, FY+0.0145, lz, 0.3, "#3a3024", -Math.PI/2, 0);
     m.P("stain", streakGeo(1.2, 3.0, 0), HX0+0.015, FY+HH-2.2, lz, Math.PI/2, "#3a3024", 0, 0);
     m.C("paint", 0.17,0.14,0.30,14, lx+0.4, FY+0.15, lz-0.2, "#5a6a72");          // a bucket, full
-    m.C("mirrorw", 0.16,0.16,0.01,14, lx+0.4, FY+0.27, lz-0.2, "#20262a");
+    m.C("puddle", 0.16,0.16,0.01,14, lx+0.4, FY+0.27, lz-0.2, "#20262a");
     m.col(lx+0.2, lx+0.6, lz-0.4, lz, FY, FY+0.3);
   }
 

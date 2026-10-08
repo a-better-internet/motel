@@ -615,6 +615,92 @@ TEX.streak=(function(){
   return setSRGB(new T.CanvasTexture(c));
 })();
 
+/* PAINT ON A WALL NOBODY WATCHES — four pieces of spray paint, one per
+   cell: a bubble-letter throw-up, a scrawl, initials in a heart and a
+   looping tag. Drawn white so the vertex colour is the can, then worn: sun
+   takes the paint off in flecks and in runs, so each one is half there.
+   Cut a piece out with tagGeo(w,h,ci,ri), never planeGeo. */
+TEX.tags=(function(){
+  const N=512, C=N/2, c=cvs(N,N), x=c.getContext("2d");
+  let sd=19840715;
+  const r=()=>{ sd=(sd*1103515245+12345)&0x7fffffff; return sd/0x7fffffff; };
+  x.clearRect(0,0,N,N);
+  x.lineCap="round"; x.lineJoin="round";
+  const drips=(ox,oy,x0,x1,y,n,a)=>{
+    for(let i=0;i<n;i++){
+      const px=ox+x0+r()*(x1-x0), py=oy+y+(r()-0.5)*8, len=8+r()*40;
+      const g=x.createLinearGradient(0,py,0,py+len);
+      g.addColorStop(0,"rgba(255,255,255,"+a+")"); g.addColorStop(1,"rgba(255,255,255,0)");
+      x.fillStyle=g; x.fillRect(px, py, 1.6+r()*1.6, len);
+      x.beginPath(); x.arc(px+1.2, py+len*0.82, 1.6, 0, Math.PI*2); x.fill();
+    }
+  };
+  const font=(px,w)=>(w||"900")+" "+px+"px 'Arial Black', Impact, 'Helvetica Neue', Arial, sans-serif";
+  // 0: a throw-up, outlined, the fill gone thin
+  { const ox=0, oy=0;
+    x.save(); x.translate(ox+C/2, oy+C*0.52); x.rotate(-0.08);
+    x.font=font(104); x.textAlign="center"; x.textBaseline="middle";
+    x.fillStyle="rgba(255,255,255,0.55)"; x.fillText("SOL", 0, 0);
+    x.lineWidth=7; x.strokeStyle="rgba(255,255,255,0.95)"; x.strokeText("SOL", 0, 0);
+    x.restore();
+    drips(ox, oy, C*0.18, C*0.82, C*0.70, 9, 0.7); }
+  // 1: a scrawl and an arrow, thin and fast
+  { const ox=C, oy=0;
+    x.save(); x.translate(ox+C/2, oy+C*0.42); x.rotate(0.05);
+    x.font=font(58,"700"); x.textAlign="center"; x.textBaseline="middle";
+    x.fillStyle="rgba(255,255,255,0.95)"; x.fillText("NO GAS", 0, 0);
+    x.restore();
+    x.strokeStyle="rgba(255,255,255,0.9)"; x.lineWidth=6;
+    x.beginPath(); x.moveTo(ox+C*0.22, oy+C*0.68); x.lineTo(ox+C*0.74, oy+C*0.64);
+    x.moveTo(ox+C*0.64, oy+C*0.56); x.lineTo(ox+C*0.76, oy+C*0.64); x.lineTo(ox+C*0.65, oy+C*0.73);
+    x.stroke();
+    drips(ox, oy, C*0.22, C*0.78, C*0.52, 7, 0.8); }
+  // 2: initials in a heart, and a year
+  { const ox=0, oy=C;
+    x.strokeStyle="rgba(255,255,255,0.95)"; x.lineWidth=7;
+    const hx=ox+C/2, hy=oy+C*0.50, s2=C*0.34;
+    x.beginPath(); x.moveTo(hx, hy+s2*0.95);
+    x.bezierCurveTo(hx-s2*1.5, hy+s2*0.05, hx-s2*0.85, hy-s2*1.05, hx, hy-s2*0.38);
+    x.bezierCurveTo(hx+s2*0.85, hy-s2*1.05, hx+s2*1.5, hy+s2*0.05, hx, hy+s2*0.95);
+    x.stroke();
+    x.font=font(40,"700"); x.textAlign="center"; x.textBaseline="middle";
+    x.fillStyle="rgba(255,255,255,0.95)"; x.fillText("JR + DL", hx, hy-4);
+    x.font=font(30,"700"); x.fillText("'84", hx, hy+s2*0.52);
+    drips(ox, oy, C*0.30, C*0.70, C*0.82, 4, 0.6); }
+  // 3: a looping tag with a swoosh under it, and a star
+  { const ox=C, oy=C;
+    x.strokeStyle="rgba(255,255,255,0.95)"; x.lineWidth=8;
+    x.beginPath();
+    let px=ox+C*0.16, py=oy+C*0.56; x.moveTo(px,py);
+    for(let i=0;i<7;i++){
+      const nx=px+C*(0.08+r()*0.04), ny=oy+C*(0.42+r()*0.22);
+      x.bezierCurveTo(px+C*0.06, py-C*(0.22+r()*0.12), nx-C*0.08, ny-C*(0.18+r()*0.1), nx, ny);
+      px=nx; py=ny;
+    }
+    x.stroke();
+    x.lineWidth=5;
+    x.beginPath(); x.moveTo(ox+C*0.12, oy+C*0.74);
+    x.quadraticCurveTo(ox+C*0.50, oy+C*0.86, ox+C*0.88, oy+C*0.66); x.stroke();
+    x.lineWidth=4; x.beginPath();
+    for(let i=0;i<=5;i++){ const t=-Math.PI/2+i*Math.PI*0.8;
+      x.lineTo(ox+C*0.84+Math.cos(t)*C*0.07, oy+C*0.30+Math.sin(t)*C*0.07); }
+    x.stroke();
+    drips(ox, oy, C*0.20, C*0.70, C*0.62, 6, 0.6); }
+  // the sun has had it for years: flecks out, and runs out
+  x.globalCompositeOperation="destination-out";
+  for(let i=0;i<9000;i++){
+    x.fillStyle="rgba(0,0,0,"+(0.25+r()*0.75).toFixed(2)+")";
+    x.fillRect(r()*N, r()*N, 1+r()*2.5, 1+r()*2.5);
+  }
+  for(let i=0;i<60;i++){
+    x.fillStyle="rgba(0,0,0,"+(0.15+r()*0.35).toFixed(2)+")";
+    x.fillRect(r()*N, r()*N, 3+r()*10, 20+r()*80);
+  }
+  x.globalCompositeOperation="source-over";
+  for(let ci=0;ci<2;ci++) for(let ri=0;ri<2;ri++) _sealCell(x, ci*C, ri*C, C, C, 14);
+  return setSRGB(new T.CanvasTexture(c));
+})();
+
 
 TEX.leafskin=(function(){                     // every plant in the desert
   const c=cvs(128,128), x=c.getContext("2d");

@@ -127,6 +127,14 @@ bucketOf("stain",   ()=>new T.MeshStandardMaterial({map:TEX.stain, transparent:t
 // the speakeasy's bottles that read as a sheet of daylight.
 bucketOf("mirrorw", ()=>new T.MeshStandardMaterial({color:0xffffff, metalness:0.50,
                           roughness:0.10, emissive:0x3a2a16, emissiveIntensity:0.40}));
+// Standing water. Not mirrorw: that one glows amber on purpose, and a
+// puddle on a cold tiled floor that glows amber is a brown slab.
+bucketOf("puddle",  ()=>new T.MeshStandardMaterial({color:0xffffff, metalness:0.35,
+                          roughness:0.06}));
+// spray paint: lit, so it is never brighter than the wall it is on
+bucketOf("tag",     ()=>new T.MeshStandardMaterial({map:TEX.tags, transparent:true,
+                          opacity:0.82, roughness:0.9, depthWrite:false,
+                          polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-2}));
 bucketOf("rust",    ()=>new T.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.30,
                           map:TEX.streak, depthWrite:false, side:T.DoubleSide}));
 bucketOf("ember",   ()=>emitMat(0xff5518, 1.6, "warm"));

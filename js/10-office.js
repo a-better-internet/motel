@@ -1300,9 +1300,17 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
   /* --- the rug, the walls, and the light ------------------------------- */
   {
     push("fabric", boxGeo(2.00, 0.02, 2.40, 0.7), (IX0+IX1)/2+0.5, y0+0.035, IZ0+2.60, 0, "#6a5a4e");
-    push("fabric", boxGeo(1.80, 0.012, 2.20, 0.7), (IX0+IX1)/2+0.5, y0+0.048, IZ0+2.60, 0, "#94806a");
+    /* A rug with a pattern in it. The plain brown slab read as a mat
+       somebody had laid down to cover the floor; a worn madder rug with its
+       border and its fringe is a thing somebody once chose. The runner's
+       map has its border down the long sides and its fringe on the ends,
+       which is how a rug is made. */
+    push("runner", runnerGeo(2.20, 1.80, 1.10), (IX0+IX1)/2+0.5, y0+0.0465, IZ0+2.60, Math.PI/2, "#c2b2a2");
+    for(const q of [-1,1])
+      push("fabric", planeGeo(1.72, 0.07, 0), (IX0+IX1)/2+0.5, y0+0.0468, IZ0+2.60+q*1.135, 0,
+           "#cfc3a8", -Math.PI/2, 0);
     // worn through on the line the door takes to the kitchen and the bed
-    push("soot", planeGeo(0.84, 2.20, 0), APT_DX+0.5, y0+0.056, IZ0+1.9, 0.18, "#6e6558", -Math.PI/2, 0);
+    push("soot", planeGeo(0.84, 2.20, 0), APT_DX+0.5, y0+0.0485, IZ0+1.9, 0.18, "#6e6558", -Math.PI/2, 0);
     // a calendar that stopped, and a photograph that did not
     push("paper", planeGeo(0.28, 0.38, 0), APT_DX+1.35, y0+1.60, IZ0+0.03, 0, "#d4ccb4", 0, 0);
     push("art", planeGeo(0.26, 0.20, 0), APT_DX+1.35, y0+1.70, IZ0+0.035, 0, "#8a7a5a", 0, 0);
@@ -1677,6 +1685,160 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
       bx("metal", 0.46, 0.44, 0.46, CX, RY-0.10, CZ, 0.4, 0, "#9aa1a6");
       cyl("metal", 0.010,0.010,1.20,6, CX+0.46, RY-0.42, CZ+0.40, "#8e8274", 0.1, 0, 0.06);
       push("rust", streakGeo(0.26, 1.60, 0), A.x1+0.004, y0+1.50, CZ+0.30, Math.PI/2, "#6b5a45", 0, 0);
+    }
+
+    /* --- the counter, which is where a kitchen actually lives ---------- */
+    {
+      const KX=IX0+0.32, TOP=y0+0.925;      // the lino's top
+      // canisters against the wall, smallest last
+      for(let i=0;i<3;i++){
+        const r=0.075-i*0.010, h=0.20-i*0.03, cz=KZ0+0.13+i*0.16;
+        cyl("plaster", r, r, h, 16, IX0+0.10, TOP+h/2, cz, "#ddd5c0");
+        cyl("metal", r+0.004, r+0.004, 0.022, 16, IX0+0.10, TOP+h+0.011, cz, "#a8402e");
+        cyl("metal", 0.012, 0.012, 0.018, 8, IX0+0.10, TOP+h+0.031, cz, "#2b2722");
+      }
+      // the toaster, crumbs round it
+      const TZ=KZ0+0.62;
+      bx("metal", 0.17, 0.19, 0.27, IX0+0.30, TOP+0.095, TZ, 0.4, 0, "#b8bcbc");
+      for(const q of [-0.04, 0.04])
+        push("paint", planeGeo(0.03, 0.20, 0), IX0+0.30+q, TOP+0.1915, TZ, 0, "#1c1a18", -Math.PI/2, 0);
+      bx("paint", 0.02, 0.025, 0.05, IX0+0.395, TOP+0.15, TZ+0.07, 0.4, 0, "#2b2722");
+      for(let i=0;i<6;i++)
+        push("paint", boxGeo(0.006,0.004,0.006,0), IX0+0.44+R2(i+40)*0.08, TOP+0.002,
+             TZ-0.10+R2(i+44)*0.20, 0, "#9a7a4e", 0, 0);
+      // a bread bin with its roll-top part way up
+      const BZ=KZ0+0.98;
+      bx("paint", 0.32, 0.14, 0.36, IX0+0.20, TOP+0.07, BZ, 0.4, 0, "#c8bfa8");
+      push("paint", new T.CylinderGeometry(0.16,0.16,0.36,14,1,false,0,Math.PI), IX0+0.20, TOP+0.14, BZ,
+           Math.PI/2, "#c8bfa8", 0, Math.PI/2);          // the half round on top, along the bin
+      push("paint", planeGeo(0.30, 0.10, 0), IX0+0.362, TOP+0.10, BZ, Math.PI/2, "#2b2520", 0, 0);
+      // the rack by the sink, three plates and a cup in it
+      const RZ=WINW[0]+0.17;
+      bx("metal", 0.36, 0.015, 0.26, IX0+0.30, TOP+0.008, RZ, 0.4, 0, "#a7ada6");
+      for(const q of [-1,1]) bx("metal", 0.36, 0.08, 0.008, IX0+0.30, TOP+0.05, RZ+q*0.12, 0.4, 0, "#a7ada6");
+      for(let i=0;i<3;i++)
+        cyl("plaster", 0.095, 0.095, 0.012, 18, IX0+0.26, TOP+0.11, RZ-0.07+i*0.06,
+            ["#ddd6c4","#d6cfbd","#cfc8b6"][i], Math.PI/2, 0, 0);
+      cyl("plaster", 0.038, 0.032, 0.08, 12, IX0+0.42, TOP+0.06, RZ+0.02, "#b8c4bc", Math.PI);
+      // the percolator on the front ring, where it lives
+      const hz=KZ1-0.52;
+      cyl("metal", 0.060, 0.075, 0.22, 14, KX-0.10, TOP+0.03+0.11, hz-0.12, "#c4c8c6");
+      cyl("metal", 0.048, 0.060, 0.03, 14, KX-0.10, TOP+0.03+0.235, hz-0.12, "#b8bcbc");
+      push("glass", new T.SphereGeometry(0.022,10,6), KX-0.10, TOP+0.03+0.26, hz-0.12, 0, "#c8b080");
+      bx("paint", 0.03, 0.12, 0.025, KX-0.10+0.085, TOP+0.15, hz-0.12, 0.4, 0, "#2b2722");
+      // and the sink window gets curtains: two panels tied back, a valance
+      // (the wall cupboard stops 5 cm short of the glass, so neither the rod
+      // nor the valance may run past it)
+      const CX=IX0+0.20, WZ=(WINW[0]+WINW[1])/2;
+      cyl("metal", 0.008, 0.008, WINW[1]-WINW[0]+0.08, 8, CX, y0+2.17, WZ, "#b8a67e", Math.PI/2);
+      bx("fabric", 0.035, 0.20, WINW[1]-WINW[0]+0.06, CX, y0+2.06, WZ, 0.6, 0, "#cfc39a");
+      for(const side of [-1,1]){
+        const ez=side<0 ? WINW[0]+0.04 : WINW[1]-0.04;
+        for(let k=0;k<3;k++)
+          push("fabric", boxGeo(0.025, 0.92, 0.09, 0.6), CX+((k%2)?0.012:-0.008), y0+1.52,
+               ez-side*(0.045+k*0.07), 0, k%2?"#c4b88f":"#cfc39a", 0, 0);
+        bx("fabric", 0.05, 0.04, 0.22, CX+0.01, y0+1.36, ez-side*0.11, 0.5, 0, "#a8463a");
+      }
+    }
+
+    /* --- a bookcase in the corner past the nightstand ------------------ */
+    {
+      const BX1=IX1, BX0=IX1-0.92, BZ1=IZ1, BZ0=IZ1-0.30, H=1.78, bcx=(BX0+BX1)/2, bcz=(BZ0+BZ1)/2;
+      for(const x of [BX0+0.0125, BX1-0.0125])
+        bx("oak", 0.025, H, BZ1-BZ0, x, y0+H/2, bcz, 0.5, 0, WOODD);
+      bx("oak", BX1-BX0+0.02, 0.03, BZ1-BZ0+0.02, bcx, y0+H+0.015, bcz, 0.5, 0, WOODD);
+      bx("oak", BX1-BX0-0.05, 0.07, 0.02, bcx, y0+0.035, BZ0+0.01, 0.4, 0, "#4c3624");
+      bx("oak", BX1-BX0-0.05, H-0.04, 0.012, bcx, y0+H/2, BZ1-0.006, 0.4, 0, "#4c3624");
+      const SH=[0.07, 0.49, 0.91, 1.33];
+      for(const sy of SH) bx("oak", BX1-BX0-0.05, 0.02, BZ1-BZ0-0.03, bcx, y0+sy+0.01, bcz+0.01, 0.5, 0, WOODD);
+      const BOOK=["#6b3a2a","#2f4a5a","#5a5a3a","#7a6a4a","#3a3a3a","#8a2a2a","#c8bca0","#4a5a4a","#9a7a4e"];
+      let n=0;
+      for(let s2=0;s2<SH.length;s2++){
+        let x=BX0+0.04; const yb=y0+SH[s2]+0.02;
+        // a run of upright books, a gap, one leaning into it, a stack lying flat
+        const stop=BX1-0.04-(s2===1?0.30:0)-(s2===3?0.22:0);
+        while(x<stop){
+          n++;
+          const w=0.022+R2(n)*0.030, h=0.17+R2(n+50)*0.12, d=0.15+R2(n+90)*0.07;
+          if(R2(n+130)<0.10 && x<stop-0.12){ x+=0.06+R2(n+170)*0.05; continue; }
+          bx("paper", w, h, d, x+w/2, yb+h/2, BZ1-0.02-d/2, 0.4, 0, BOOK[n%BOOK.length]);
+          x+=w+0.002;
+        }
+        if(s2===1){                         // the leaner and the flat stack
+          push("paper", boxGeo(0.03,0.24,0.19,0.4), stop+0.07, yb+0.115, BZ1-0.12, 0, "#2f4a5a", 0, -0.32);
+          for(let k=0;k<4;k++)
+            bx("paper", 0.20, 0.035, 0.15+k*0.01, BX1-0.15, yb+0.018+k*0.036, BZ1-0.11, 0.4,
+               (R2(k+200)-0.5)*0.2, BOOK[(k*3)%BOOK.length]);
+        }
+        if(s2===3){                         // a photograph in a frame on the top shelf
+          bx("oak", 0.16, 0.20, 0.02, BX1-0.13, yb+0.10, BZ1-0.10, 0.4, -0.2, WOODD);
+          push("art", planeGeo(0.12,0.16,0), BX1-0.13-0.012*Math.sin(0.2), yb+0.10, BZ1-0.112, -0.2+Math.PI, "#9c8e70", 0, 0);
+        }
+      }
+      // on top: a vase with nothing in it and a stack of National Geographics
+      cyl("plaster", 0.05, 0.07, 0.24, 14, BX0+0.18, y0+H+0.15, bcz, "#6a8a8a");
+      for(let k=0;k<5;k++)
+        bx("paper", 0.19, 0.012, 0.26, BX1-0.30, y0+H+0.036+k*0.013, bcz, 0.4, (R2(k+220)-0.5)*0.1, "#d8b84a");
+      addCol(BX0, BX1, BZ0, BZ1, y0, y0+H);
+    }
+
+    /* --- the ironing, set up in front of the kitchen and left ---------- */
+    {
+      const IXc=-41.25, IZc=3.95, TOPY=y0+0.86;
+      // the board: a slab and its pointed end, with a cover on it
+      bx("paint", 0.36, 0.025, 0.90, IXc, TOPY, IZc-0.12, 0.4, 0, "#8e9490");
+      const ng=new T.CylinderGeometry(0.18,0.18,0.025,16,1,false,-Math.PI/2,Math.PI); ng.scale(1,1,1.6);
+      push("paint", ng, IXc, TOPY, IZc+0.33, 0, "#8e9490");
+      bx("fabric", 0.37, 0.006, 0.91, IXc, TOPY+0.0155, IZc-0.12, 0.6, 0, "#c8c0a8");
+      const nc=new T.CylinderGeometry(0.185,0.185,0.006,16,1,false,-Math.PI/2,Math.PI); nc.scale(1,1,1.6);
+      push("fabric", nc, IXc, TOPY+0.0155, IZc+0.33, 0, "#c8c0a8");
+      // the legs, crossed, with their feet
+      for(const q of [1,-1]){
+        for(const sx of [-0.12, 0.12])
+          cyl("metal", 0.010, 0.010, 1.03, 6, IXc+sx, y0+0.42, IZc-0.15, "#8a8f8c", q*0.62);
+        for(const ez of [IZc-0.45, IZc+0.15])
+          bx("metal", 0.30, 0.015, 0.03, IXc, y0+0.008, ez, 0.4, 0, "#6e736f");
+      }
+      // the iron, on its heel at the square end, and its flex to the wall
+      bx("metal", 0.11, 0.21, 0.10, IXc+0.02, TOPY+0.12, IZc-0.52, 0.4, 0, "#b8bcbc");
+      bx("paint", 0.035, 0.15, 0.035, IXc+0.02, TOPY+0.13, IZc-0.585, 0.4, 0, "#2b2722");
+      cyl("paint", 0.018, 0.018, 0.012, 10, IXc+0.077, TOPY+0.07, IZc-0.52, "#a8402e", 0, 0, Math.PI/2);
+      cyl("paint", 0.005, 0.005, 0.86, 5, IXc+0.10, y0+0.48, IZc-0.66, "#3a3632", 0.10, 0, -0.12);
+      const fx0=IXc+0.16, fz0=IZc-0.70, fx1=-40.62, fz1=IZ1-0.01;
+      cyl("paint", 0.005, 0.005, Math.hypot(fx1-fx0, fz1-fz0), 5, (fx0+fx1)/2, y0+0.006, (fz0+fz1)/2,
+          "#3a3632", Math.PI/2, Math.atan2(fx1-fx0, fz1-fz0), 0);
+      bx("paint", 0.08, 0.12, 0.012, fx1, y0+0.30, IZ1-0.006, 0.4, 0, "#e2ddcc");
+      cyl("paint", 0.006, 0.006, 0.30, 5, fx1, y0+0.15, IZ1-0.02, "#3a3632");
+      // a shirt half done, one sleeve hanging off the side
+      bx("fabric", 0.30, 0.012, 0.46, IXc-0.01, TOPY+0.024, IZc+0.02, 0.6, 0.06, "#a8b8c8");
+      push("fabric", boxGeo(0.012, 0.36, 0.12, 0.6), IXc+0.19, TOPY-0.15, IZc+0.05, 0, "#a0b0c0", 0, 0.10);
+      push("fabric", boxGeo(0.12, 0.010, 0.10, 0.6), IXc-0.05, TOPY+0.031, IZc+0.30, 0.3, "#a8b8c8", 0, 0);
+      addCol(IXc-0.21, IXc+0.21, IZc-0.62, IZc+0.62, y0, y0+0.92);
+      // the basket of what is still to do, between the board and the bed
+      const LBX=-40.64, LBZ=4.78;
+      const lb=new T.CylinderGeometry(0.26,0.22,0.30,18,1,true); lb.scale(1,1,0.72);
+      push("plaster", lb, LBX, y0+0.15, LBZ, 0.2, "#d8d4c8");
+      const lbb=new T.CircleGeometry(0.22,18); lbb.rotateX(-Math.PI/2); lbb.scale(1,1,0.72);
+      push("plaster", lbb, LBX, y0+0.004, LBZ, 0.2, "#c8c4b8");
+      for(let k=0;k<4;k++){
+        const g=new T.SphereGeometry(0.14,10,7); g.scale(1.2,0.45,0.9);
+        push("fabric", g, LBX+(R2(k+240)-0.5)*0.16, y0+0.25+k*0.025, LBZ+(R2(k+250)-0.5)*0.12,
+             R2(k+260)*3, ["#c8c0a8","#6b7a8a","#a8b8c8","#8a6a50"][k], 0.1, 0);
+      }
+      addCol(LBX-0.27, LBX+0.27, LBZ-0.21, LBZ+0.21, y0, y0+0.36);
+      // his slippers, by his side of the bed
+      for(const q of [[-40.12, 4.10, 0.15],[-40.02, 4.32, -0.10]]){
+        push("fabric", boxGeo(0.10, 0.05, 0.25, 0.5), q[0], y0+0.025, q[1], q[2], "#5e4a3c", 0, 0);
+        push("fabric", boxGeo(0.10, 0.03, 0.12, 0.5), q[0]+0.06*Math.sin(q[2]), y0+0.062,
+             q[1]+0.06*Math.cos(q[2]), q[2], "#6e5848", 0, 0);   // the toe, over the front half
+      }
+    }
+
+    /* --- over the bed: the picture somebody else chose ---------------- */
+    {
+      const PX=(BEDX[0]+BEDX[1])/2;
+      bx("oak", 0.64, 0.46, 0.03, PX, y0+1.56, IZ1-0.015, 0.4, 0, "#8a6a40");
+      push("art", planeGeo(0.56, 0.38, 0), PX, y0+1.56, IZ1-0.032, Math.PI, "#8aa0a0", 0, 0);
     }
   }
 })();

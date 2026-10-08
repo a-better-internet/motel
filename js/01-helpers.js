@@ -368,8 +368,32 @@ function cellGeo(w,h,cols,rows,seed){
   a.needsUpdate=true;
   return g;
 }
+// one named cell of a 2x2 map: TEX.tags' pieces are not interchangeable
+function tagGeo(w,h,ci,ri){
+  const g=new T.PlaneGeometry(w,h), a=g.attributes.uv, ins=0.004;
+  for(let i=0;i<a.count;i++)
+    a.setXY(i, (ci+ins+a.getX(i)*(1-ins*2))*0.5, (ri+ins+a.getY(i)*(1-ins*2))*0.5);
+  a.needsUpdate=true;
+  return g;
+}
 // every decal in the world goes through this; both maps behind it are 2x2 grids
 function streakGeo(w,h,seed){ return cellGeo(w,h,2,2,seed); }
+
+/* Standing water, already lying flat in xz. A plane is a rectangle, and a
+   rectangle of dark water on a floor reads as a dark slab somebody laid
+   there — water finds its own outline, so the rim wanders. rx, rz are the
+   half-extents before the wobble; seed picks the shape. */
+function puddleGeo(rx, rz, seed){
+  const N=30, g=new T.CircleGeometry(1, N), p=g.attributes.position;
+  const ph=[1,2,3].map(k=>(((Math.sin((seed||1)*12.9898+k*78.233)*43758.5)%1+1)%1)*6.283);
+  for(let i=1;i<p.count;i++){
+    const x=p.getX(i), y=p.getY(i), t=Math.atan2(y,x);
+    const k=1+0.20*Math.sin(2*t+ph[0])+0.11*Math.sin(3*t+ph[1])+0.06*Math.sin(5*t+ph[2]);
+    p.setXY(i, x*k*rx, y*k*rz);
+  }
+  g.rotateX(-Math.PI/2);
+  return g;
+}
 
 // flat panel with world-scaled UVs, for alpha-cut things like chain-link
 function planeGeo(w,h,uvScale){

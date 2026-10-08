@@ -156,6 +156,19 @@ const Terrain=(function(){
     if(d>DINER.r+DINER.blend) return h;
     return h+(DINER.y-h)*(1-smoothstep(DINER.r, DINER.r+DINER.blend, d));
   }
+  /* The filling station's apron, poured on graded fill beside the track.
+     The desert under it rises half a metre to the west, and the slab laid
+     on that was either buried at one end or standing proud at the other —
+     so it was drawn 12 cm above the ground you walked on and everything
+     printed on it was inside it. Same trick as the diner, as a rectangle,
+     because the apron is one. */
+  const FILL={x0:-162.5, x1:-134.5, z0:-366.5, z1:-351.5, y:0.05, blend:9};
+  function fillPad(x,z,h){
+    const dx=Math.max(FILL.x0-x, 0, x-FILL.x1), dz=Math.max(FILL.z0-z, 0, z-FILL.z1);
+    const d=Math.hypot(dx,dz);
+    if(d>FILL.blend) return h;
+    return h+(FILL.y-h)*(1-smoothstep(0, FILL.blend, d));
+  }
   /* ---- the fire road up the lookout butte -----------------------------
      A trail on a mesa flank is not scenery you lay on the ground, it is a
      bench somebody cut into it, and it has to be the ground for the same
@@ -279,7 +292,7 @@ const Terrain=(function(){
         h=Math.max(h, top+rough+ridge+fine);
       }
     }
-    return trailCut(x,z, dinerPad(x,z, dishPad(x,z, aditCut(x,z,h))));
+    return trailCut(x,z, fillPad(x,z, dinerPad(x,z, dishPad(x,z, aditCut(x,z,h)))));
   }
   return {heightAt:heightAt, fbm:fbm, PAD:PAD, PAD_Y:PAD_Y, ADIT:ADIT, DISH:DISH,
           DINER:DINER, LOOK:LOOK, trailPath:trailPath};

@@ -756,6 +756,68 @@ the ceiling, speakers in mid-air facing the wall, bunting with no string,
 photographs edge-on in front of a bar. The scan page now records the
 source line of every primitive, so each find names its file and line.
 
+### An open end gets no face, and only the drawn world can show one
+
+The grey wall across the way into the stores was a `face()` closing the
+west end of the auditorium's second leg — a plane with no collider behind
+it, left over from before that end was opened. Every probe the world had
+reads colliders, so the doors walked clean and the routes walked clean
+while a wall stood in the opening. It was the third time a new doorway
+shipped with its old face across it. When an end of a corridor or a room
+is opened, the face that closed it goes; and `sight46.js` raycasts the
+**drawn** world along both lanes of every door and along any route you
+give it, and names whatever it hits by bucket and source line.
+
+### A lintel stops where it is
+
+The `wall()` helpers in the stores and the baths sank every collider half
+a metre below its base, which is right for a wall standing on a floor (no
+gap for the player to slip under at a seam) and wrong for a lintel: the
+fire door's head became a bar 1.64 m off the floor, in the doorway, at
+head height. A wall that starts above the floor now stops where it is.
+`heads46.js` checks the opening of every door for colliders between ankle
+and head height; run it with the other door probes.
+
+### The view is set across, not up
+
+A perspective camera fixes its **vertical** field of view and lets the
+horizontal fall out of the window's shape. It was 72° vertical, which is
+104° across on a widescreen, and a flat projection stretches anything off
+centre by 1/cos² of its angle along the radius: two and a half times at
+the edge of that frame, so a car changed shape with a few degrees of
+turn. `baseFov(aspect)` in `03-scene.js` aims for 88° across and clamps
+the vertical between 50° and 66°; the resize handler and the mouse wheel
+(an offset, `fovZoom`) both go through `applyFov()`.
+
+### Each buried volume has its own ambient
+
+`addBuried(..., amb)` gives a volume the colour its ambient fades to: the
+lamplit rooms stay warm, the tiled baths lit by a few cold fittings do
+not. The loop lerps to it as you cross from one volume to the next.
+
+### Paint, puddles and a rug: three things a plane gets wrong
+
+`streakGeo()` picks a random cell of a 2×2 decal map, which is right for
+stains (any one will do) and wrong for graffiti — the pieces in
+`TEX.tags` are not interchangeable, so `tagGeo(w,h,ci,ri)` names its
+cell. Standing water is `puddleGeo()`, an irregular disc already lying in
+xz, in the `puddle` bucket: a rectangle of dark water reads as a slab
+somebody laid on the floor, and the `mirrorw` bucket it used to borrow
+glows amber on purpose (it is the speakeasy's back-bar mirror). And a rug
+is the `runner` map on `runnerGeo()`: border down the long sides, fringe
+on the ends, which is how rugs are made.
+
+### A slab's top is the flat's height, written as one
+
+`B()` takes the centre of a box. The filling station's apron was 0.26
+thick and centred at 0.13, so its top stood 12 cm above the flat the
+player walks on (`F+0.02`): the shop's checker floor, the bay's slab and
+every stain, joint and drift printed on the apron were inside it, and
+your feet were sunk in it. When a slab and a flat describe the same floor,
+write the slab's centre from the flat (`F+0.02-0.13`), and give a site on
+sloping desert a graded pad in `04-terrain.js` (`dinerPad`, `fillPad`)
+rather than a thicker slab.
+
 ## Checking it still works
 
 The harness in the scratchpad drives a headless build: `sync.sh` mirrors
@@ -793,6 +855,15 @@ heights, which is how the Canteen and the lounge were laid out;
 overlaps; `seats45.js`, the seat-facing audit; `float45.js`, above; and
 `hgt45.js`, a terrain height grid over a box with the primitives in it,
 for siting something underground.
+
+Round 46 added `sight46.js` (above: rays through the drawn world along
+door lanes and routes), `heads46.js` (colliders in a doorway at head
+height), `path46.js` (the player's own view along a path, with the doors
+simulated open as they would be in play — give it a feet height for
+anything underground, or it stands you on the mesa over it), `elev46.js`
+(an orthographic elevation of one wall, which is how the Canteen's walls
+were laid out; its first shot of a run is always a perspective frame, so
+start with a dummy) and `cols46.js` (the colliders in a box).
 
 If the scratchpad is lost, it is quick to rebuild: the CDNs answer 403
 from the sandbox, so three.js comes from `npm pack three@0.128.0`

@@ -59,12 +59,13 @@
 
   const wall=(bk,x0,x1,z0,z1,y0,y1,c,uv)=>{
     m.B(bk, x1-x0, y1-y0, z1-z0, (x0+x1)/2, FY+(y0+y1)/2, (z0+z1)/2, uv||0.833, 0, c);
-    m.col(x0, x1, z0, z1, FY+y0-0.5, FY+y1);
+    m.col(x0, x1, z0, z1, FY+y0-(y0<=0?0.5:0), FY+y1);   // a lintel stops where it is
   };
 
   /* --- the passage ----------------------------------------------------- */
   {
-    m.B("concrete", (CX1-OS)-(CX0), 0.50, CZ1-CZ0+2*CWT+2*OS, (CX0+CX1-OS)/2, FY-0.25,
+    // from CX0+OS: the hall's east deck strip oversails to there
+    m.B("concrete", (CX1-OS)-(CX0+OS), 0.50, CZ1-CZ0+2*CWT+2*OS, (CX0+CX1)/2, FY-0.25,
         DOORZ, 0.5, 0, "#6e6a62");
     m.P("lino", planeGeo((CX1+0.50)-QX1, CZ1-CZ0, 0.6), (QX1+CX1+0.50)/2, FY+0.006, DOORZ,
         0, "#b8b2a2", -Math.PI/2, 0);
@@ -212,7 +213,7 @@
       const th=Math.atan2(DD-DS, SL1-SL0), Ls=Math.hypot(SL1-SL0, DD-DS);
       m.P("mosaic", boxGeo(Ls, 0.006, 0.24, 1.667), (SL0+SL1)/2, FY-(DS+DD)/2+0.003, lz, 0, LANE, 0, th);
       for(const ex of [BX1-1.6, BX0+1.6])
-        m.B("mosaic", 0.24, 0.006, 1.0, ex, floorAt(ex)+0.0035, lz, 1.667, 0, LANE);
+        m.B("mosaic", 0.24, 0.006, 1.0, ex, floorAt(ex)+0.004, lz, 1.667, 0, LANE);
       // and the target on each end wall
       for(const q of [[BX0, 1],[BX1, -1]]){
         const fy=floorAt(q[0]+q[1]*0.5);
@@ -225,8 +226,10 @@
     // the steps into the shallow end: three risers, so two treads and then
     // the floor, and a handrail
     for(let i=0;i<2;i++){
-      const ty=FY-(i+1)*(DS/3), tx0=BX1-(i+1)*0.36;
-      m.B("mosaic", BX1-tx0, ty-(FY-DS)+0.002, STZ1-STZ0, (tx0+BX1)/2, (ty+FY-DS)/2+0.001,
+      // each tread's block starts on the one below it; both run from the
+      // floor, their ends were the same face twice
+      const ty=FY-(i+1)*(DS/3), tx0=BX1-(i+1)*0.36, y0=FY-(i+2)*(DS/3);
+      m.B("mosaic", BX1-tx0, ty-y0+0.002, STZ1-STZ0, (tx0+BX1)/2, (ty+y0)/2+0.001,
           (STZ0+STZ1)/2, 1.667, 0, BASIN);
       m.B("mosaic", 0.06, 0.008, STZ1-STZ0, tx0+0.03, ty+0.005, (STZ0+STZ1)/2, 1.667, 0, LANE);
       m.flat(tx0, BX1, STZ0, STZ1, ty);
@@ -283,7 +286,7 @@
     const gSeat=boxGeo(0.40,0.025,0.38,0.6), gBack=boxGeo(0.38,0.20,0.025,0.6);
     const gLeg=boxGeo(0.022,0.44,0.022,0), gPost=boxGeo(0.022,0.42,0.022,0);
     const gTop=boxGeo(0.62,0.025,0.46,0.6), gDLeg=boxGeo(0.026,0.68,0.026,0), gRack=boxGeo(0.56,0.02,0.36,0);
-    const SEATC=["#9a6a3a","#8a5a30","#a87444","#6f8a5a","#7a8a96","#b0703a","#8e6a42"];
+    const SEATC=["#b8783c","#a8662e","#c48a4c","#7f9a62","#8c9ca6","#c47c3c","#a87a48","#b88a50"];
     const put=(bk,g,ox,oy,oz,cx,cy,cz,rx,ry,rz,col)=>{
       e.set(rx,ry,rz); v.set(ox,oy,oz).applyEuler(e);
       m.P(bk, g, cx+v.x, cy+v.y, cz+v.z, ry, col, rx, rz);
@@ -302,17 +305,22 @@
       for(const a of [[-0.27,-0.19],[0.27,-0.19],[-0.27,0.19],[0.27,0.19]])
         put("metal", gDLeg, a[0],0.35,a[1], cx,cy,cz, rx,ry,rz, "#4a4e52");
     };
-    // the mound: a dome over the deep floor's middle, running out up the slope
-    const MX=-207.6, MZ=(BZ0+BZ1)/2;
+    /* The mound: a dome over the deep end that comes up over the deck at
+       its middle and is still a metre deep against the
+       side walls, running out up the slope towards the shallow end — the
+       basin in the photograph is full. What you see of a heap is its
+       surface and its open face, so most pieces go in the top metre of it
+       and the rest fill the face up the slope. */
+    const MX=-206.6, MZ=(BZ0+BZ1)/2;
     const mound=(x,z)=>{
-      const dx=(x-MX)/7.2, dz=(z-MZ)/6.4, r=Math.sqrt(dx*dx+dz*dz);
-      return Math.max(0, 2.9*(1-r*r));
+      const dx=(x-MX)/8.6, dz=(z-MZ)/7.6, r2=dx*dx+dz*dz;
+      return Math.max(0, 3.7*(1-r2));
     };
     let placed=0;
-    for(let i=0;i<900 && placed<300;i++){
-      const x=BX0+0.35+R()*(SL1-1.0-(BX0+0.35)), z=BZ0+0.35+R()*(BZ1-BZ0-0.70);
-      const h=mound(x,z); if(h<0.05 && R()<0.75) continue;
-      const y=floorAt(x)+0.22+R()*Math.max(0.05,h);
+    for(let i=0;i<2800 && placed<760;i++){
+      const x=BX0+0.30+R()*(SL1-1.0-(BX0+0.30)), z=BZ0+0.32+R()*(BZ1-BZ0-0.64);
+      const h=mound(x,z); if(h<0.10 && R()<0.85) continue;
+      const y=floorAt(x)+Math.max(0.22, h-R()*Math.min(h, x>SL0?h:1.1));
       const tumble=R()<0.8;
       const rx=tumble?(R()-0.5)*Math.PI*2:0, rz=tumble?(R()-0.5)*Math.PI*2:0, ry=R()*Math.PI*2;
       if(R()<0.10) desk(x, y, z, rx, ry, rz); else chair(x, y, z, rx, ry, rz);
@@ -330,11 +338,68 @@
     for(let k=0;k<8;k++)
       m.P("metal", boxGeo(0.44, 0.03, 0.04, 0), -199.2-0.70+k*0.18, FY-2.2+k*0.30*0.84, 11.1, 0.35,
           "#b0a060", 0, -0.55);
+    /* The deck has its share, the way the photograph's does: chairs
+       stacked against the north wall and strewn by the deep end, a desk on
+       its back, a stepladder against the brick, a tall cabinet with its
+       door hanging, a cleaning cart and a pile of boxes in the far corner. */
+    for(const st of [[-208.6, 23.9, 6],[-207.7, 23.9, 4],[-189.8, 6.5, 5]])
+      // each one nests a little off the one under it: square on, their backs
+      // were one plane and fought
+      for(let k=0;k<st[2];k++) chair(st[0]+k*0.012, FY+k*0.085, st[1]+(st[1]>15?-1:1)*k*0.011, 0, Math.PI, 0);
+    m.col(-209.0, -207.3, 23.5, 24.3, FY, FY+1.4);
+    m.col(-190.2, -189.4, 6.1, 6.9, FY, FY+1.3);
+    // strewn: [x, z, heading, 0 standing | 1 on its side | 2 on its back]
+    for(const c of [[-214.8, 9.8, 1.4, 0],[-215.6, 12.4, 2.6, 1],[-214.2, 19.6, 0.8, 2],
+                    [-215.2, 21.9, 3.9, 1],[-205.0, 6.9, 2.2, 0],[-199.5, 23.6, 0.4, 2]]){
+      if(c[3]===0) chair(c[0], FY, c[1], 0, c[2], 0);
+      else if(c[3]===1) chair(c[0], FY+0.20, c[1], 0, c[2], Math.PI/2);
+      else chair(c[0], FY+0.21, c[1], -Math.PI/2, c[2], 0);
+    }
+    desk(-215.0, FY+0.72, 16.8, Math.PI, 0.5, 0);                       // a desk on its back
+    m.col(-215.5, -214.5, 16.4, 17.2, FY, FY+0.8);
+    // the stepladder against the north wall
+    for(const sd of [-1,1])
+      m.P("metal", boxGeo(0.05, 2.6, 0.05, 0), -196.0+sd*0.22, FY+1.27, QZ1-0.30, 0, "#b0a060", 0.18, 0);
+    for(let k=0;k<7;k++)
+      m.B("metal", 0.44, 0.03, 0.06, -196.0, FY+0.30+k*0.34, QZ1-0.30-(1.27-(0.30+k*0.34))*Math.tan(0.18), 0.4, 0, "#b0a060");
+    m.col(-196.3, -195.7, QZ1-0.6, QZ1, FY, FY+2.6);
+    // a tall cabinet, door hanging open
+    m.B("paint", 0.90, 1.95, 0.45, -211.6, FY+0.975, QZ1-0.23, 0.4, 0, "#5f6a62");
+    m.P("paint", boxGeo(0.44, 1.85, 0.025, 0.4), -211.0+0.22*Math.cos(1.2), FY+0.98, QZ1-0.46-0.22*Math.sin(1.2),
+        1.2, "#5f6a62", 0, 0);
+    for(let k=0;k<4;k++) m.B("metal", 0.84, 0.02, 0.40, -211.6, FY+0.30+k*0.42, QZ1-0.24, 0.4, 0, "#4a524c");
+    m.col(-212.1, -211.1, QZ1-0.48, QZ1, FY, FY+2.0);
+    // a cleaning cart, and boxes in the far corner
+    m.B("paint", 0.90, 0.06, 0.50, -192.3, FY+0.86, 22.9, 0.4, 0, "#c8a83a");
+    m.B("paint", 0.90, 0.06, 0.50, -192.3, FY+0.30, 22.9, 0.4, 0, "#c8a83a");
+    for(const a2 of [[-0.42,-0.22],[0.42,-0.22],[-0.42,0.22],[0.42,0.22]])
+      m.B("metal", 0.03, 0.86, 0.03, -192.3+a2[0], FY+0.53, 22.9+a2[1], 0, 0, "#8a8f92");
+    m.C("bin", 0.16,0.13,0.36,12, -192.6, FY+1.07, 22.9, "#3a5a6a");
+    m.col(-192.8, -191.8, 22.6, 23.2, FY, FY+1.2);
+    for(let k=0;k<7;k++){
+      const bx2=-215.6+(k%3)*0.52+(R()-0.5)*0.05, bz2=23.8-Math.floor(k/3)*0.0, by2=FY+0.21+Math.floor(k/3)*0.42;
+      m.B("bin", 0.48, 0.42, 0.58, bx2, by2, bz2, 0.6, (R()-0.5)*0.2, pick(["#a8845a","#9c7a50","#b39064"]));
+    }
+    m.col(-216.0, -214.0, 23.4, 24.3, FY, FY+1.3);
     // the heap is solid to walk into; the shallow end is not
     m.col(BX0, SL1-1.0, BZ0, BZ1, FY-DD, FY+0.6);
+    /* Grime, where an empty basin collects it: along the joint of floor and
+       wall, in the corners, and in runs down the walls under every gutter
+       outlet. A few, not a wash over everything. */
+    for(const q of [[BZ0+0.25, 0],[BZ1-0.25, Math.PI]])
+      for(let k=0;k<3;k++){
+        const x=SL1+0.8+k*2.8;
+        m.P("stain", streakGeo(2.6, 0.55, 0), x, FY-DS+0.008+k*0.0006, q[0], q[1], "#4a3e2c", -Math.PI/2, 0);
+      }
+    for(const q of [[BZ0, 1],[BZ1, -1]])
+      for(let x=BX1-2.0; x>SL1; x-=2.6)
+        m.P("stain", streakGeo(0.30, DS-0.25, 0), x, FY-0.6, q[0]+q[1]*0.008, q[1]>0?0:Math.PI, "#5a4a36", 0, 0);
+    for(const c of [[BX1-0.5, BZ0+0.5],[BX1-0.5, BZ1-0.5]])
+      m.P("stain", streakGeo(1.2, 1.2, 0), c[0], FY-DS+0.0095, c[1], 0.7, "#3e3426", -Math.PI/2, 0);
     // and what puddles in the bottom of an empty pool: dark water, leaves
-    m.P("mirrorw", planeGeo(2.6, 1.9, 0), -191.6, FY-DS+0.012, 18.4, 0.4, "#1e2826", -Math.PI/2, 0);
-    m.P("stain", streakGeo(3.4, 2.6, 0), -191.6, FY-DS+0.010, 18.4, 0.4, "#3a3024", -Math.PI/2, 0);
+    m.P("puddle", puddleGeo(1.25, 0.85, 3), -191.6, FY-DS+0.012, 18.4, 0.4, "#1e2826", 0, 0);
+    m.P("puddle", puddleGeo(0.45, 0.30, 7), -190.1, FY-DS+0.012, 17.5, 1.1, "#1e2826", 0, 0);
+    m.P("stain", streakGeo(3.6, 2.8, 0), -191.4, FY-DS+0.010, 18.2, 0.4, "#3a3024", -Math.PI/2, 0);
     for(let i=0;i<22;i++)
       m.P("paper", planeGeo(0.06, 0.04, 0), -193.0+R()*3.2, FY-DS+0.014+i*0.0005, 17.2+R()*2.6, R()*6,
           pick(["#6a5a3a","#7a6440","#5a4a30"]), -Math.PI/2, 0);
@@ -422,11 +487,11 @@
     const AZc=(QZ0+QZ1)/2, AR=2.6, AY=2.5;
     for(let i=0;i<=22;i++){
       const a=Math.PI*i/22, zz=AZc+Math.cos(a)*AR, yy=AY+Math.sin(a)*AR*1.15;
-      m.P("paint", planeGeo(0.06, 0.16, 0), QX0+0.016, FY+yy, zz, Math.PI/2, "#c4402e", 0, -(a-Math.PI/2));
+      m.P("paint", planeGeo(0.10, 0.26, 0), QX0+0.016, FY+yy, zz, Math.PI/2, "#d2402a", 0, -(a-Math.PI/2));
     }
     for(let i=0;i<5;i++)
       for(const sd of [-1,1])
-        m.P("paint", planeGeo(0.06, 0.16, 0), QX0+0.016, FY+AY-0.45-i*0.42, AZc+sd*AR, Math.PI/2, "#c4402e", 0, 0);
+        m.P("paint", planeGeo(0.10, 0.26, 0), QX0+0.016, FY+AY-0.45-i*0.42, AZc+sd*AR, Math.PI/2, "#d2402a", 0, 0);
     // and a sign on the east wall, NO DIVING, in the same red
     const nd=signTex(256,96,(x,w,h)=>{ x.fillStyle="#e2dcc6"; x.fillRect(0,0,w,h);
       x.fillStyle="#b23a2a"; fitText(x, "NO DIVING", w*0.84, 52, w/2, 40);

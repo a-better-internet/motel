@@ -1029,7 +1029,12 @@ i===1?"#6a5a3c":"#7a6746");
                            CHROME, Math.PI/2, 0, 0);
   cyl("bin", 0.23,0.19,0.52,14, -87.2, FY+0.26, IZ1-0.70, "#3e443f");
   // a high top by the window, and one against the dado under the screen
-  for(const q of [[-74.2,-28.5],[-77.9,-28.5]]){   // a pair along the front wall
+  /* One high top, not two, and nowhere near the door or the darts. The
+     pair stood at -77.9 and -74.2: the first a metre and a half inside the
+     front door, so walking in you came face to face with a table and two
+     stools, and the second square in the throwing lane between the
+     dartboard (x -75.6) and its oche. */
+  for(const q of [[-71.6,-28.55]]){
     bx("oak", 0.76, 0.07, 0.76, q[0], FY+1.04, q[1], 0.5, 0, "#7a5734");
     cyl("metal", 0.06,0.15,1.02,10, q[0], FY+0.51, q[1], "#3e3a36");
     cyl("metal", 0.34,0.34,0.03,14, q[0], FY+0.03, q[1], "#4a4640");
@@ -1043,13 +1048,18 @@ i===1?"#6a5a3c":"#7a6746");
       addSeat(sx2, q[1], FY+0.84, sd2>0?Math.PI/2:-Math.PI/2, "A HIGH TOP");
     }
   }
-  // stools stacked in a corner, and a crate of empties by the door
+  /* Stools stacked in a corner — the front-left one. They were in the
+     back-left, which became the stage afterwards: the stack stood on the
+     floor up through the stage deck and inside the 4x12 on it. */
   for(let i=0;i<3;i++)
-    cyl("fabric", 0.19,0.19,0.10,14, IX0+0.55, FY+0.30+i*0.13, IZ1-0.60, VINYL);
-  cyl("metal", 0.05,0.06,0.72,10, IX0+0.55, FY+0.36, IZ1-0.60, CHROME);
+    cyl("fabric", 0.19,0.19,0.10,14, IX0+0.40, FY+0.30+i*0.13, IZ0+0.50, VINYL);
+  cyl("metal", 0.05,0.06,0.72,10, IX0+0.40, FY+0.36, IZ0+0.50, CHROME);
+  addCol(IX0+0.18, IX0+0.62, IZ0+0.28, IZ0+0.72, 0, FY+0.75);
   // the door to the rest of it, which does not open
-  bx("oak", 0.96, 2.05, 0.08, -86.2, FY+1.03, IZ1-0.05, 0.5, 0, "#4a3a2c");
-  bx("paint", 0.22, 0.16, 0.02, -86.2, FY+1.80, IZ1-0.10, 0, 0, "#d8d2be");
+  // standing on the stage deck (FY+0.35), which was built across it later;
+  // from the floor it disappeared 35 cm down into the stage
+  bx("oak", 0.96, 2.05, 0.08, -86.2, FY+0.35+1.025, IZ1-0.05, 0.5, 0, "#4a3a2c");
+  bx("paint", 0.22, 0.16, 0.02, -86.2, FY+0.35+1.80, IZ1-0.10, 0, 0, "#d8d2be");
   // and the bits that make it a bar: a mat, crates, a mop bucket, a sign
   bx("fabric", 2.60, 0.03, 1.10, (DHX0+DHX1)/2, FY+0.02, Z0+1.10, 0.5, 0, "#3a342e");
   for(let i=0;i<3;i++)
@@ -1098,16 +1108,19 @@ i===1?"#6a5a3c":"#7a6746");
   }
   bx("oak", 0.28, 0.06, BZ1-BZ0-0.6, IX1-0.62, FY+1.86, (BZ0+BZ1)/2, 0.45, 0, "#4c3a26");
   // the restrooms, with the sign nobody has repainted
-  bx("oak", 1.00, 2.08, 0.08, -84.2, FY+1.04, IZ1-0.05, 0.5, 0, "#4a3a2c");
-  bx("paint", 0.26, 0.20, 0.02, -84.2, FY+1.86, IZ1-0.10, 0, 0, "#d8d2be");
-  push("bin", new T.CylinderGeometry(0.035,0.035,0.02,10), -84.28, FY+1.90, IZ1-0.12,
+  // 25 cm east of where it was: its west jamb ran 10 cm into the stage's edge
+  bx("oak", 1.00, 2.08, 0.08, -83.95, FY+1.04, IZ1-0.05, 0.5, 0, "#4a3a2c");
+  bx("paint", 0.26, 0.20, 0.02, -83.95, FY+1.86, IZ1-0.10, 0, 0, "#d8d2be");
+  push("bin", new T.CylinderGeometry(0.035,0.035,0.02,10), -84.03, FY+1.90, IZ1-0.12,
        0, "#2a2622", Math.PI/2, 0);
-  push("bin", new T.CylinderGeometry(0.035,0.035,0.02,10), -84.12, FY+1.90, IZ1-0.12,
+  push("bin", new T.CylinderGeometry(0.035,0.035,0.02,10), -83.87, FY+1.90, IZ1-0.12,
        0, "#2a2622", Math.PI/2, 0);
   // six more posters, because they go up and they do not come down
   for(const q of [[2,IX0+0.04,-28.0,Math.PI/2],[5,IX0+0.04,-19.4,Math.PI/2],
                   [1,-84.55,IZ0+0.04,0],[4,-69.9,IZ0+0.04,0],
-                  [0,-84.9,IZ1-0.04,Math.PI],[3,-74.2,IZ1-0.04,Math.PI]])
+                  // poster 0 east of the payphone: at -84.9 it ran over the
+                  // restroom door's jamb and the stage edge
+                  [0,-81.9,IZ1-0.04,Math.PI],[3,-74.2,IZ1-0.04,Math.PI]])
     poster(q[0], q[1], FY+2.06+rr(-0.14,0.14), q[2], q[3]);
   // two speakers up in the corners, wired back along the joists
   for(const q of [[IX0+0.55, IZ0+0.45, 0.5],[IX1-0.55, IZ0+0.45, -0.5]]){

@@ -523,16 +523,17 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
   for(let k=0;k<3;k++){ const a=k*2.09;
     O_("metal", 0.16,0.05,0.05, O.x1-0.9+Math.cos(a)*0.10, 1.66, O.z1-2.2+Math.sin(a)*0.10, 0, "#6b6156"); }
   O_("paint", 0.34,0.14,0.34, O.x1-0.9, 1.80, O.z1-2.2, 0, "#8a6a3c");
-  // hung clear above the machines, not behind them
-  push("oak", boxGeo(1.14,0.78,0.04,0), O.x0+5.2, y0+2.50, O.z1-0.38, 0, "#7a6a4c");
-  push("pic:artLand:office", planeGeo(1.05,0.70,0), O.x0+5.2, y0+2.50, O.z1-0.405,
-       Math.PI, "#ffffff");
+  /* No print on the north wall. The one that was here — hung "clear above
+     the machines" before there was a door to the manager's apartment in
+     this wall — ended up directly over that door, its frame crowding the
+     head trim. The wall above a door stays empty. */
   O_("paint", 0.42,0.06,0.32, O.x0+3.3, 1.24, cz+0.2, 0, "#e6e0cc");
   O_("oak",   0.44,0.04,0.34, O.x0+3.3, 1.21, cz+0.2, 0.6, "#4a3524");
   push("bin", new T.SphereGeometry(0.10,10,8), O.x0+3.3, y0+1.24, cz-1.9, 0, "#cfe0e6");
   OC("metal", 0.13,0.13,0.05,12, O.x0+3.2, 1.36, cz+1.6, "#8f9aa0", Math.PI/2);
   OC("metal", 0.02,0.02,0.22,6, O.x0+3.2, 1.28, cz+1.6, "#8f9aa0");
-  push("neonbox", boxGeo(0.92,0.30,0.05,0), O.x1-3.0, y0+2.60, O.z0+0.42, 0, "#ff5a3a");
+  /* (A 0.92 m red neon box used to hang here, high on the shopfront wall,
+     with nothing written on it — a lit red rectangle and no reason. Gone.) */
   /* --- the working side of the desk -------------------------------------
      A front desk is not a counter with a bell on it. It is somebody's desk,
      and everything on it is there because it gets used every day.        */

@@ -309,19 +309,25 @@ function buildBay(xf, level, kind, roomNo, lit){
          them their spill on the slab, put a zapper on the return that has
          been killing moths since 1971, and let the corners go unswept.   */
       for(const g of [[-1.95,"#ffd9a0"],[-0.30,"#ffc98a"],[1.35,"#bfe0ff"]]){
-        AP("floorglow", planeGeo(2.5,2.5,0), xf.x(g[0],4.85), y0+0.022, xf.z(g[0],4.85),
+        /* AP() turns alcove-local coordinates into world ones itself. These
+           three, the zapper and the cobwebs were handed xf.x()/xf.z() — the
+           world position — and AP turned THAT again, which flung all six
+           out of the alcove: the purple zapper square floating two metres
+           up behind the north wing and by the road, glowing discs on open
+           ground at night, and cobwebs hanging in the air. Local only. */
+        AP("floorglow", planeGeo(2.5,2.5,0), g[0], y0+0.022, 4.85,
            g[1], -Math.PI/2, 0);
         LAMPS.push({x:xf.x(g[0],5.30), y:y0+0.9, z:xf.z(g[0],5.30), color:0xffd2a0,
                     intensity:0.22, dist:6.0, decay:1.35, indoor:true});
       }
       // bug zapper, high on the right return
       A("metal", 0.10,0.34,0.26, 2.52, 2.10, 3.40, 0, "#6b6f72");
-      AP("zapper", boxGeo(0.05,0.26,0.18,0), xf.x(2.44,3.40), y0+2.10, xf.z(2.44,3.40), "#c9a8ff");
+      AP("zapper", boxGeo(0.05,0.26,0.18,0), 2.44, y0+2.10, 3.40, "#c9a8ff");
       LAMPS.push({x:xf.x(2.20,3.40), y:y0+2.10, z:xf.z(2.20,3.40), color:0x9a6cff,
                   intensity:0.20, dist:4.6, decay:1.5, indoor:true, mothy:true});
       // cobwebs in the two ceiling corners
       for(const cw of [[-2.52,6.42],[2.52,6.42]])
-        AP("soot", planeGeo(0.62,0.62,0), xf.x(cw[0],cw[1]), y0+ROOM_H-0.30, xf.z(cw[0],cw[1]),
+        AP("soot", planeGeo(0.62,0.62,0), cw[0], y0+ROOM_H-0.30, cw[1],
            "#d2cdbe", 0.9, cw[0]<0?0.7:-0.7);
       // a wet-floor sign left out days after the floor dried
       A("paint", 0.30,0.62,0.05, 0.62, 0.31, 4.35, 0, "#e8b32a");

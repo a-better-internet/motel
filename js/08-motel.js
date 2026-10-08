@@ -286,11 +286,12 @@ function buildBay(xf, level, kind, roomNo, lit){
       A("metal", 0.92,0.44,0.06, -1.95, 1.44, 5.65, 0, "#8f9aa0");
       AP("iceglow", boxGeo(0.74,0.24,0.02,0), -1.95, y0+0.94, 5.63, "#7fd2ff");
       A("metal", 1.10,0.10,0.80, -1.95, 1.88, 6.04, 0, "#b6bcbe");
-      AP("signlit", boxGeo(0.90,0.34,0.05,0), -1.95, y0+2.18, 5.70, "#e8e4d6");
+      // the header sits ON the machine's cap (top 1.93); it hovered 8 cm over it
+      AP("signlit", boxGeo(0.90,0.34,0.05,0), -1.95, y0+2.10, 5.70, "#e8e4d6");
       NEON.push(signPanel(0.78,0.26, hosted("vendHeader", signTex(384,128,(x,W,H)=>{
         x.fillStyle="#13405e"; x.fillRect(0,0,W,H);
         x.fillStyle="#bfe9ff"; fitText(x,"I C E", W*0.62, H*0.62, W/2, H/2+2);
-      })), xf.x(-1.95,5.66), y0+2.18, xf.z(-1.95,5.66), xf.ry+Math.PI, true));
+      })), xf.x(-1.95,5.66), y0+2.10, xf.z(-1.95,5.66), xf.ry+Math.PI, true));
       AC(1.10,0.80, -1.95,6.04, 1.92);
       A("paint", 1.04,1.92,0.74, -0.30, 0.96, 6.06, 0, "#8f2c22");        // snack machine
       push("pic:vendFront:snack", planeGeo(0.80,1.60,0), xf.x(-0.30,5.676), y0+1.02,
@@ -321,8 +322,9 @@ function buildBay(xf, level, kind, roomNo, lit){
                     intensity:0.22, dist:6.0, decay:1.35, indoor:true});
       }
       // bug zapper, high on the right return
-      A("metal", 0.10,0.34,0.26, 2.52, 2.10, 3.40, 0, "#6b6f72");
-      AP("zapper", boxGeo(0.05,0.26,0.18,0), 2.44, y0+2.10, 3.40, "#c9a8ff");
+      // on the wall, whose face is at 2.65 (the change machine's back is on it)
+      A("metal", 0.10,0.34,0.26, 2.60, 2.10, 3.40, 0, "#6b6f72");
+      AP("zapper", boxGeo(0.05,0.26,0.18,0), 2.525, y0+2.10, 3.40, "#c9a8ff");
       LAMPS.push({x:xf.x(2.20,3.40), y:y0+2.10, z:xf.z(2.20,3.40), color:0x9a6cff,
                   intensity:0.20, dist:4.6, decay:1.5, indoor:true, mothy:true});
       // cobwebs in the two ceiling corners
@@ -434,8 +436,9 @@ function buildBay(xf, level, kind, roomNo, lit){
                   intensity:0.50, dist:10, decay:1.4, indoor:true, flicker:true});
     }
     // fire extinguisher, both levels
-    AP("paint", new T.CylinderGeometry(0.085,0.085,0.42,12), 2.50, y0+1.22, 2.70, "#b8302a");
-    A("metal", 0.08,0.10,0.08, 2.50, 1.48, 2.70, 0, "#9aa1a6");
+    // on its bracket on the wall (face at 2.65), not ten centimetres off it
+    AP("paint", new T.CylinderGeometry(0.085,0.085,0.42,12), 2.555, y0+1.22, 2.70, "#b8302a");
+    A("metal", 0.08,0.10,0.08, 2.61, 1.48, 2.70, 0, "#9aa1a6");
     return;
   }
 
@@ -491,10 +494,13 @@ function buildBay(xf, level, kind, roomNo, lit){
     push("winglow", boxGeo(winX1-winX0-0.06, winY1-winY0-0.06, 0.02, 0),
          xf.x((winX0+winX1)/2, 0.36), y0+(winY0+winY1)/2, xf.z((winX0+winX1)/2, 0.36),
          xf.ry, roomNo===206?"#39414a":"#ffcf8a");
+    /* The glow is the room's own television: its screen, on the dresser
+       wall at (-2.196, 1.06, 2.10). It used to be a free-standing panel
+       1.3 m in from the glass, which from outside was right and from inside
+       room 206 was a blue rectangle hanging in the air by the bed. */
     if(roomNo===206)
-      push("tvwin", boxGeo(0.86, 0.56, 0.02, 0),
-           xf.x((winX0+winX1)/2+0.30, 1.30), y0+winY0+0.56,
-           xf.z((winX0+winX1)/2+0.30, 1.30), xf.ry, "#ffffff");
+      push("tvwin", boxGeo(0.012, 0.31, 0.42, 0),
+           xf.x(-2.19, 2.10), y0+1.06, xf.z(-2.19, 2.10), xf.ry, "#ffffff");
   }
 
   // through-wall air conditioner under the sill, and the rust streak it has
@@ -642,7 +648,9 @@ function furnishRoom(xf, y0, roomNo, md){
   B("bath", 0.66,0.10,1.54, tubX, 0.48, tubZ, 0.8, "#dbe2df");
   noseZ("bath", 1.70, 0.05, 1.87, 0.50, tubZ, "#eef0ec");                    // rolled rim
   noseZ("bath", 1.70, 0.05, 2.65, 0.50, tubZ, "#eef0ec");
-  B("metal",0.04,0.04,1.74, tubX, 1.90, tubZ, 0, "#b9bdbd");                 // curtain rail
+  // the curtain rail runs wall to wall along the tub's open edge, where the
+  // curtain hangs from it — it was down the tub's middle, short of both walls
+  B("metal",0.04,0.04,2.03, 1.89, 1.90, 5.495, 0, "#b9bdbd");
   B("paint",0.04,1.36,1.30, 1.89, 1.20, 5.70, 0, "#dfe9e6");                 // curtain, half drawn
   B("metal",0.20,0.05,0.05, 2.56, 1.74, 4.78, 0, "#c9cdcd");                 // shower arm
   P("bin", new T.CylinderGeometry(0.07,0.05,0.06,10), 2.42, 1.70, 4.78, "#c9cdcd", 0, 0.6);
@@ -921,9 +929,10 @@ function furnishRoom(xf, y0, roomNo, md){
         P("art", boxGeo(0.34,0.01,0.26,0), -0.60, 0.045, 4.20, "#d8d2bc", 0, 0.12);
         break;
       case 4:  // room-service tray and a bottle
-        B("metal",0.34,0.02,0.28, -0.20, 0.755, 0.92, 0, "#b8bcbc");
-        P("glass", new T.CylinderGeometry(0.035,0.035,0.24,10), -0.24, 0.88, 0.86, "#4a6b3a");
-        P("glass", new T.CylinderGeometry(0.040,0.034,0.09,10), -0.12, 0.80, 0.98, "#cfe0e6");
+        // on the table (centre 0.60, 0.92) — it was 20 cm off its edge, in the air
+        B("metal",0.34,0.02,0.28, 0.66, 0.755, 0.92, 0, "#b8bcbc");
+        P("glass", new T.CylinderGeometry(0.035,0.035,0.24,10), 0.62, 0.88, 0.86, "#4a6b3a");
+        P("glass", new T.CylinderGeometry(0.040,0.034,0.09,10), 0.74, 0.80, 0.98, "#cfe0e6");
         break;
       case 5:  // a hat left on the dresser
         P("fabric", new T.CylinderGeometry(0.11,0.13,0.11,14), -2.46, 0.89, 1.60, "#6a5236");

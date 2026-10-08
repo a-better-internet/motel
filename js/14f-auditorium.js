@@ -697,11 +697,17 @@ const STORES_DOOR={z0:14.19, z1:15.35, h:2.14};
             0.4, 0, "#3e3832");
       // the seat 2 cm narrower than the back: at the same width their end
       // faces were one plane wherever the two touched, on every seat
-      if(up) m.P("velvet", boxGeo(0.44, 0.07, PITCH-0.11, 2.2), sx-0.20, sy+0.46, sz,
+      /* THE STAGE IS AT -x, so the back is on the +x edge. It was at sx-0.22,
+         on the stage side, which sat all four hundred of them facing the
+         balcony; the lean on the back (-0.12, top toward +x) was written for
+         this edge all along, which is how a reclined back became one tipped
+         forward over its own seat. The folded seat stands just in front of
+         the back, leaning with it. */
+      if(up) m.P("velvet", boxGeo(0.44, 0.07, PITCH-0.11, 2.2), sx+0.12, sy+0.46, sz,
                  0, OX, 0, Math.PI/2-0.22);
       else   m.P("velvet", boxGeo(0.46, 0.09, PITCH-0.11, 2.2), sx, sy+0.44, sz,
                  0, OX, 0, 0);
-      m.P("velvet", boxGeo(0.10, 0.52, PITCH-0.09, 2.2), sx-0.22, sy+0.70, sz,
+      m.P("velvet", boxGeo(0.10, 0.52, PITCH-0.09, 2.2), sx+0.22, sy+0.70, sz,
           0, OX, 0, -0.12);
       m.P("oak", boxGeo(0.34, 0.05, 0.07, 0.4), sx+0.02, sy+0.50, sz+PITCH/2-0.025,
           0, OAKD, 0, 0);
@@ -716,7 +722,8 @@ const STORES_DOOR={z0:14.19, z1:15.35, h:2.14};
         for(let i=0;i<cnt;i++){
           const sz=z0+i*PITCH;
           seat(sx, sy, sz, R(n)<0.72);          // most of them tipped up
-          if((n%37)===5) addSeat(W(sx), Z(sz), GY+sy+0.52, Math.PI, "A SEAT");
+          // looking at the stage, down -x: yaw PI/2 (it was PI, along the row)
+          if((n%37)===5) addSeat(W(sx), Z(sz), GY+sy+0.52, Math.PI/2, "A SEAT");
           n++;
         }
         // the row letter on the end standard
@@ -729,7 +736,7 @@ const STORES_DOOR={z0:14.19, z1:15.35, h:2.14};
     /* The three things that say somebody was here. A coat over the back of
        a seat at the end of a row, a programme face down on another, and one
        seat in the middle of the hall still tipped down. */
-    m.P("velvet", boxGeo(0.14, 0.70, 0.46, 2.2), rowX(9)-0.26, rowY(9)+0.78,
+    m.P("velvet", boxGeo(0.14, 0.70, 0.46, 2.2), rowX(9)+0.26, rowY(9)+0.78,   // (the back's edge)
         CA1+0.9, 0, "#2e2a26", 0.08, 0);
     m.P("paper", boxGeo(0.17, 0.012, 0.24, 0.4), rowX(4), rowY(4)+0.50, CA0-1.6,
         0.3, "#cfc6ae", 0, 0);
@@ -1001,7 +1008,9 @@ const STORES_DOOR={z0:14.19, z1:15.35, h:2.14};
       const nx=Math.sin(ry), nz=Math.cos(ry);
       const X2=flat?c:px, Z2=flat?pz:c;
       m.P("plaster", planeGeo(L, h, 0.5), X2, FY+h/2, Z2, ry, DIM, 0, 0);
-      m.B("concrete", flat?L:0.08, 0.16, flat?0.08:L, X2+nx*0.04, FY+0.08,
+      // (the x-facing runs stand 5 mm taller, so two skirtings meeting in a
+      // corner do not share a top)
+      m.B("concrete", flat?L:0.08, flat?0.16:0.165, flat?0.08:L, X2+nx*0.04, FY+(flat?0.08:0.0825),
           Z2+nz*0.04, 0.5, 0, DIMD);                       // a skirting, and that is all
       for(let i=0;i<Math.max(2,Math.round(L/2.2));i++){
         const n=Math.max(2,Math.round(L/2.2));
@@ -1010,10 +1019,13 @@ const STORES_DOOR={z0:14.19, z1:15.35, h:2.14};
             flat?u:X2+nx*o, FY+0.5+R(i+6)*(h-1.0), flat?Z2+nz*o:u, ry,
             R(i+2)<0.5?"#3e3228":"#4e4134", 0, 0);
       }
-      for(let i=0;i<Math.round(L/1.7);i++){               // and the cracks
+      // and the cracks, a rung above the last of the stains: at a flat 0.012
+      // they sat 0.2 mm off the second stain on every wall
+      const co=0.012+Math.max(2,Math.round(L/2.2))*0.0018;
+      for(let i=0;i<Math.round(L/1.7);i++){
         const u=a0+L*((i+0.6)/Math.round(L/1.7));
-        m.P("art", planeGeo(0.02, 0.5+R(i+9)*1.3, 0), flat?u:X2+nx*0.012,
-            FY+0.8+R(i+3)*(h-1.6), flat?Z2+nz*0.012:u, ry, "#4a4036",
+        m.P("art", planeGeo(0.02, 0.5+R(i+9)*1.3, 0), flat?u:X2+nx*co,
+            FY+0.8+R(i+3)*(h-1.6), flat?Z2+nz*co:u, ry, "#4a4036",
             0, (R(i+7)-0.5)*0.7);
       }
     };
@@ -1116,7 +1128,9 @@ const STORES_DOOR={z0:14.19, z1:15.35, h:2.14};
       const SD=STORES_DOOR, xw=EX0-WT2/2;
       for(const z of [SD.z0+0.05, SD.z1-0.05])
         m.B("metal", WT2+0.12, SD.h+0.10, 0.10, xw, FY+(SD.h+0.10)/2, z, 0.4, 0, "#4a4e50");
-      m.B("metal", WT2+0.12, 0.10, SD.z1-SD.z0, xw, FY+SD.h+0.05, (SD.z0+SD.z1)/2, 0.4, 0, "#4a4e50");
+      // the head is a centimetre proud of the jambs each side and drops 2 cm
+      // below the lintel, so none of its faces lies on one of theirs
+      m.B("metal", WT2+0.14, 0.11, SD.z1-SD.z0, xw, FY+SD.h+0.035, (SD.z0+SD.z1)/2, 0.4, 0, "#4a4e50");
       m.flat(EX0-WT2-0.3, EX0+0.3, SD.z0, SD.z1, FY);
       /* XF with ry = PI/2 lays the leaf along -z from the hinge, so it hangs
          off the north jamb; it swings west, into the passage, away from
@@ -1152,7 +1166,7 @@ const STORES_DOOR={z0:14.19, z1:15.35, h:2.14};
       m.C("metal", 0.17,0.14,0.28,14, EX1-0.8, FY+0.14, EZ0+0.6, "#5a5248");
       m.P("stain", streakGeo(1.9, 1.5, 0), EX0+2.8, FY+0.03, (EZ0+EZ1)/2, 0,
           "#3a3028", -Math.PI/2, 0);
-      m.P("art", planeGeo(0.30, 0.22, 0), EX0+0.03, FY+1.52, EZ1-1.75,
+      m.P("art", planeGeo(0.30, 0.22, 0), EX0+0.036, FY+1.52, EZ1-1.75,
           Math.PI/2, "#6e675c", 0, 0);                   // a notice, long dead
     }
     addBuried(W(EX0-1), W(L1X1+1), Z(EZ0-1), Z(AZ0+1), GY+FY-1, GY+CY+1.4);

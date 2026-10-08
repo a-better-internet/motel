@@ -1539,7 +1539,7 @@
     m.C("bin", 0.035,0.035,0.24,10, IX1-0.30, FY+1.00, 0.43, "#22262a", 0.3, 0, 0.2);
     m.C("metal", 0.008,0.008,0.62,5, IX1-0.30, FY+1.24, 0.49, "#3a3f3c", 0.5, 0, 0.1);
     for(let i=0;i<5;i++)                             // the numbers somebody wrote up
-      m.P("paper", planeGeo(0.07,0.04,0), IX1-0.12, FY+1.74-i*0.07, 0.22+((i%2)*0.06),
+      m.P("paper", planeGeo(0.07,0.04,0), IX1-0.032, FY+1.74-i*0.07, 0.22+((i%2)*0.06),
           -Math.PI/2, "#c9c1aa", 0, 0.1);
     // a coat rack with one wire hanger on it
     m.C("metal", 0.030,0.036,1.58,10, IX1-0.40, FY+0.79, -1.60, CHRX);

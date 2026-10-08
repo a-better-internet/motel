@@ -692,6 +692,9 @@ i===1?"#6a5a3c":"#7a6746");
   bx("stairs", BX-RX0-0.43, 0.13, 0.92, (RX0-0.05+BX-0.48)/2, FY+BH2+0.045, RZ-0.05,
      0.5, 0, BARTOP);
   bx("metal", BX-RX0-0.35, 0.06, 0.06, (RX0+0.05+BX-0.30)/2, FY+0.17, RZ-0.44, 0, 0, BRASS);
+  // ...on brackets back to the bar front (it stood 6 cm off it on nothing)
+  for(let k=0;k<4;k++)
+    bx("metal", 0.04, 0.04, 0.10, RX0+0.40+k*(BX-RX0-1.10)/3, FY+0.17, RZ-0.39, 0, 0, BRASS);
   cyl("stairs", 0.065,0.065, BX-RX0-0.43, 12, (RX0-0.05+BX-0.48)/2, FY+BH2+0.045,
       RZ-0.51, BARTOP, 0, 0, Math.PI/2);
   addCol(RX0, BX+0.72, RZ-0.36, RZ+0.36, 0, FY+BH2);
@@ -758,7 +761,9 @@ i===1?"#6a5a3c":"#7a6746");
          FY+BH2+0.17, BZ0+7.1+Math.sin(i*1.3)*0.05, 0, "#8aa83a");
   cyl("glass", 0.075,0.075,0.22,12, BX+0.26, FY+BH2+0.20, BZ0+7.7, "#d8d2b8");
   cyl("metal", 0.078,0.078,0.03,12, BX+0.26, FY+BH2+0.32, BZ0+7.7, "#9aa1a4");
-  push("clockface", planeGeo(0.44,0.44,0), IX1-0.50, FY+3.10, BZ0-0.9, -Math.PI/2, "#e8e2cf");
+  // a clock on the east wall (it was a bare face half a metre off it)
+  cyl("weathered", 0.245,0.245,0.04,18, IX1-0.02, FY+3.10, BZ0-0.9, "#2a2622", 0, 0, Math.PI/2);
+  push("clockface", planeGeo(0.44,0.44,0), IX1-0.042, FY+3.10, BZ0-0.9, -Math.PI/2, "#e8e2cf");
   for(const bz2 of [BZ0+2.2, (BZ0+BZ1)/2, BZ1-2.2]){     // the strip that lights the bottles
     bx("ceilfix", 0.10,0.05,1.60, IX1-0.45, FY+2.672, bz2, 0, 0, "#f2e9cf");
     LAMPS.push({x:IX1-0.75, y:FY+2.52, z:bz2, color:0xffd8a8, intensity:0.62, dist:5.5,
@@ -1472,14 +1477,17 @@ i===1?"#6a5a3c":"#7a6746");
     for(let i=0;i<6;i++)
       push("soot", planeGeo(0.11,0.012,0), SX1-1.05, SY+0.062, SZ0+0.35+i*0.028, 0.18,
            "#3a332a", -Math.PI/2, 0);
-    for(const q of [[SX0+0.42,SZ1-0.30],[SX0+1.48,SZ1-0.34],[SX0+1.70,SZ1-0.30]])
-      cyl("glass", 0.033,0.028,0.22,10, q[0], SY+1.36, q[1], "#3f5a2e");
+    // standing on the amp head (top SY+0.98) and on the combo (top SY+0.48);
+    // they were all at one height, 25 cm and more over both
+    for(const q of [[SX0+0.42,SZ1-0.30,0.98],[SX0+1.48,SZ1-0.34,0.48],[SX0+1.70,SZ1-0.30,0.48]])
+      cyl("glass", 0.033,0.028,0.22,10, q[0], SY+q[2]+0.11, q[1], "#3f5a2e");
     // the banner that went up for one Friday and stayed up
-    push("fabric", planeGeo(2.30,0.60,0), SX0+0.09, FY+2.60, (SZ0+SZ1)/2+0.30,
+    // on the wall (SX0 is its face), not nine centimetres in front of it
+    push("fabric", planeGeo(2.30,0.60,0), SX0+0.012, FY+2.60, (SZ0+SZ1)/2+0.30,
          Math.PI/2, "#3a1f1e");
-    push("fabric", planeGeo(2.30,0.05,0), SX0+0.10, FY+2.90, (SZ0+SZ1)/2+0.30,
+    push("fabric", planeGeo(2.30,0.05,0), SX0+0.015, FY+2.90, (SZ0+SZ1)/2+0.30,
          Math.PI/2, "#8a6a2a");
-    push("fabric", planeGeo(2.30,0.05,0), SX0+0.10, FY+2.31, (SZ0+SZ1)/2+0.30,
+    push("fabric", planeGeo(2.30,0.05,0), SX0+0.015, FY+2.31, (SZ0+SZ1)/2+0.30,
          Math.PI/2, "#8a6a2a");
     addCol(SX0, SX0+1.1, SZ1-0.7, SZ1, 0, SY+1.0);
     addZone(SX0, SX1, SZ0, SZ1, 0, FY+2.2, "THE STAGE");
@@ -1624,7 +1632,8 @@ i===1?"#6a5a3c":"#7a6746");
       cyl("bell", 0.013,0.013,0.002,10, BX+0.40+((i*7)%4)*0.04, FY+BH2+0.087,
           BZ1-3.1+((i*5)%3)*0.05, "#b8a24a", Math.PI/2, 0, 0);
     // coats left over two chair backs, and a hat on a table
-    for(const q of [[-75.8,-22.0+0.86,0],[-80.4,-19.0-0.86,Math.PI]])
+    for(const q of [[-75.8,-22.0+0.86,0],[-75.8,-22.0-0.86,Math.PI]])   // (the second chair
+                                                                        // is at this table)
       push("fabric", boxGeo(0.40,0.52,0.14,0.5), q[0]+Math.cos(q[2])*0.20, FY+0.86,
            q[1], q[2], "#4a3f36", 0.1, 0.05);
     push("fabric", new T.CylinderGeometry(0.115,0.135,0.10,14), -75.5, FY+0.83, -26.3,
@@ -1677,7 +1686,7 @@ i===1?"#6a5a3c":"#7a6746");
          0, "#1a1a19", 0.35, 0);                                  // hanging off its cord
     push("paint", new T.CylinderGeometry(0.010,0.010,0.52,6), px2-0.16, FY+1.22, pz2-0.13,
          0, "#222", 0.15, 0.22);
-    bx("paper", 0.16,0.20,0.02, px2+0.30, FY+1.46, pz2-0.02, 0, 0, "#d8d2bc");
+    bx("paper", 0.16,0.20,0.02, px2+0.30, FY+1.46, IZ1-0.012, 0, 0, "#d8d2bc");   // on the wall
     addCol(px2-0.3, px2+0.3, pz2-0.25, pz2+0.12, 0, FY+1.7);
   })();
   // an OUT OF ORDER card, a NO MINORS notice, a coat nobody came back for

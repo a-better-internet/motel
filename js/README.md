@@ -1,6 +1,6 @@
 # How the world is put together
 
-`index.html` is the page: the markup, the CSS, the HUD, and twenty-five
+`index.html` is the page: the markup, the CSS, the HUD, and twenty-six
 `<script src="js/…">` tags. Everything else lives here, one file per part of
 the world, loaded **in order** as classic scripts sharing one global scope.
 
@@ -30,6 +30,7 @@ scheduled. The numbering is the load order; nothing re-orders itself.
 | `14d-diner.js` | Roxie's Diner, the car out east — inside and out |
 | `14e-speakeasy.js` | the equipment shelter, the shaft, the tunnel, The Dry Well |
 | `14f-auditorium.js` | The Long Room, its stage and the backstage corridor |
+| `14g-warehouse.js` | the stores, through the door in the backstage end room |
 | `15-bake.js` | glow materials, then merge and bake every bucket |
 | `16-lighting.js` | the pool of real lights that follows the player |
 | `17-player.js` | movement, collision response, doors, seats |
@@ -50,7 +51,7 @@ is called, every script has run.
 
 **No modules, no bundler, no build step.** ES modules will not load from a
 `file://` page, and this is meant to open by double-clicking it. Classic
-scripts share one global lexical scope, which is what lets these twenty-five files
+scripts share one global lexical scope, which is what lets these twenty-six files
 behave exactly like the single file they came from.
 
 **A wall you can stand inside has to be a ring, not a slab.** A course of
@@ -542,7 +543,8 @@ reported from screenshots instead of being caught here. **Anything added to
 this world is not finished until all four of these have been run over it**,
 and "it is only a corridor" is exactly the kind of addition that fails them.
 
-1. **`coplanar.js` over the new region's box.** Every time. The pairs that
+1. **`coplanar45.js` over the new region's box** (it supersedes
+   `coplanar.js`, which could not see a face at an angle). Every time. The pairs that
    matter have `dp` at 0.0000 and at least one opaque bucket; pairs between
    two `depthWrite:false` decal buckets are noise. One omission in round 42
    left twenty-two square metres of flicker in a corridor nobody had
@@ -660,6 +662,99 @@ Until round 44 the whole world was lit through the stock
 cast no shadow on its own car park. **Any change to `ksc` is followed by
 that call.**
 
+### What is allowed to cast a shadow, and how close it stands
+
+three.js draws every `castShadow` mesh into the depth map, and for a
+single-sided material it draws the **back** faces. A plane's back face is
+its front face, so anything flat sat in the depth map exactly on the surface
+it was lying on and shadowed itself; the only thing holding that acne off
+was a normalBias of 4.6 cm, and a big normalBias is precisely what lifts a
+shadow off the foot of whatever casts it — 11 cm of daylight under a post.
+So `bakeBuckets` splits every bucket in two (see the note over `FLAT_T` in
+`01-helpers.js`): entries thinner than 12 mm go in a second mesh that
+receives but does not cast, and transparent, additive or depth-less buckets
+cast nothing at all. With the self-shadowing gone the bias can be tight:
+`bias -0.00005, normalBias 0.012`, and the key sits 110 m back from its
+target on the sun line (`KEY_D`), so the near and far planes hug the scene.
+Measured with `sgap45.js`: the gap between a post and its shadow went from
+11.1 cm to 0.3–1.8 cm, and acne on the court is under 1 %.
+
+**Do not raise `normalBias` to cure acne.** Find what is shadowing itself.
+
+### Decals stand on a ladder, not at one height
+
+Everything printed on a floor — oil, soot, tyre marks, paper, rugs' edges —
+is a plane a few millimetres up, and two of them at the same height fight
+wherever they overlap. At 30 m the depth buffer resolves about a fifth of a
+millimetre, so decals get distinct heights at least 0.6 mm apart, and the
+height is handed out by **overlap**, greedily: each decal takes the rung
+above the highest one already under it (`LY()` in `14d-diner.js`). Cycling a
+counter is enough only where the decals are sparse (`dec()` in the stores).
+
+### A lampshade is a tube, and a ceiling fitting is a bowl
+
+Every shade used to be a closed cylinder, which puts a flat disc across its
+mouth: from a chair or from under a ceiling rose it read as a lid of
+glowing cream with no bulb and no inside — a sticker, and the brightest flat
+area in the room. Use `shadeGeo()` (an open tube, in the double-sided
+`lampshade` bucket, so the lamp standing in it lights its inside) with a
+`shadeBulb()` in it, and `domeGeo()` under a canopy for a flush fitting.
+The `ceilfix` bucket has a grey diffuse under its glow on purpose: a fitting
+always has its own lamp a few inches away, and white diffuse let that lamp
+push the face past white. An enamel pendant is dark paint outside and a
+`shadein` lining (double-sided, not emissive) — the `lampshade` emissive
+ignores vertex colour, so a dark shade in that bucket glows amber.
+
+A room's fittings follow its MOOD row: a lamp that is off draws its shade
+in `shadein` and its bulb in `paint`, rather than glowing at dusk with
+nothing behind it.
+
+### A seat looks the other way from its chair
+
+A chair built facing its own +z (back at −z) and placed with `ry` faces
+world `(sin ry, cos ry)`. A seat's yaw is the *camera's*, and the camera
+looks down its own −z: `(−sin yaw, −cos yaw)`. So the seat that looks the
+way the chair faces has **yaw = ry + π**. Getting this backwards is how the
+speakeasy's armchairs, the end room's chair and the manager's armchair all
+shipped facing away from what they were set at — and the armchair was
+facing away in its geometry as well, because its `ry` carried the half turn
+the seat should have had. Aim a chair with `atan2(tx−cx, tz−cz)` at the
+thing it faces and add π for the seat. `seats45.js` checks every seat's
+yaw against the tops around it.
+
+### Local helpers take local coordinates
+
+`AP()` in the motel's alcoves transforms what it is given through the bay's
+frame. Handing it a coordinate that had already been through `xf.x()` moved
+the purple floor glow, the zapper and the cobwebs a second time — the
+floating purple square outside the motel was a floor glow from an alcove
+sixty metres away. When a helper takes `(x, z)`, find out which frame it
+expects before calling it.
+
+### Underground is not on the clock
+
+A lamp inside a BURIED volume burns at full strength at noon as at
+midnight: `updateLights` asks `buriedAt()` once per lamp and remembers.
+The `buried` emissive kind and the `floorglowb` bucket (a basic glow with
+`always:true`) do the same for surfaces. The ordinary `floorglow` is on the
+clock, which is right at the surface — a vending machine's pool is washed
+out by daylight — and wrong forty feet down.
+
+### What `float45.js` adds
+
+The old `float.js` skipped oversized slabs from its index and so reported
+everything on a wall, a road or a soffit. `float45.js` unions primitives
+that touch (3 cm), counts a cluster as held up if it touches *any*
+primitive, however big, and reports only clusters that are above the
+ground and the walkable surfaces **and** more than 6 cm from anything
+that is not themselves. Its output is short enough to read, and in round 45
+nearly all of it was real: a VACANCY board hanging over its name board,
+gooseneck lamps in front of a sign, a mast beacon and a lookout's cupola
+on nothing, barbed wire off its arms, TV brackets and a fan rod short of
+the ceiling, speakers in mid-air facing the wall, bunting with no string,
+photographs edge-on in front of a bar. The scan page now records the
+source line of every primitive, so each find names its file and line.
+
 ## Checking it still works
 
 The harness in the scratchpad drives a headless build: `sync.sh` mirrors
@@ -685,3 +780,22 @@ the only thing that finds a wall no source file draws — `free.js` puts the
 camera anywhere and points it anywhere, which `look22.js` cannot do for a
 walking shot, and `prof41.js` and `ground41.js` measure how much rock there
 is over a place you want to dig.
+
+Round 45 added: `coplanar45.js`, which finds overlapping coplanar triangles
+at **any** orientation (the old probe only saw axis-aligned faces) and
+filters the ones nobody can see — faces buried inside an opaque primitive,
+rock (below the ground and outside every VOID; not BURIED, which is
+oversized by 0.4 m), and the underside of anything resting on a walkable
+surface; `plan45.js`, a top-down orthographic plan of a box between two
+heights, which is how the Canteen and the lounge were laid out;
+`sgap45.js`, the shadow-gap and acne meter; `colov45.js`, collider
+overlaps; `seats45.js`, the seat-facing audit; `float45.js`, above; and
+`hgt45.js`, a terrain height grid over a box with the primitives in it,
+for siting something underground.
+
+If the scratchpad is lost, it is quick to rebuild: the CDNs answer 403
+from the sandbox, so three.js comes from `npm pack three@0.128.0`
+(`build/three.min.js`); playwright is the global one under
+`/opt/node22/lib/node_modules`, linked into a local `node_modules`, with
+chromium at `/opt/pw-browsers`; and the image scripts want `pillow`.
+`sync.sh` asserts the script count, so it has to change with `index.html`.

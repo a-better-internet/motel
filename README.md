@@ -557,6 +557,26 @@ Open `index.html` in a browser. There is no build step and no asset pipeline.
   you cannot see the end from the start, and the end is a small room with
   one chair in it facing the corner, a bulb on a flex and one coat on a
   rail. Nothing happens in it.
+- **The stores.** That room has a steel door in its west wall, stencilled
+  STORES. Behind it is a short concrete passage with one caged bulkhead
+  and a strip curtain gone milky, and through the curtain the largest room
+  under the mesa: fifty-six metres by forty-three and ten high, racked to
+  the roof in seven numbered aisles of blue uprights and orange beams, and
+  left. The racking is half full, the freight still on its pallets:
+  cartons, wrapped loads gone grey with dust, drums, sacks. One forklift
+  stands in aisle four with a pallet raised halfway into a slot at the
+  second level. Another, an orange one, has its forks run in under a
+  frame it folded in aisle five, and two bays of freight are on the floor
+  around it. A third is up on blocks at the back with a wheel off and the
+  toolbox open. The outbound lanes by the two dock doors are still staged
+  with their lane lines worn through, and one shutter is stuck two feet up
+  with nothing behind it but black. There is a foreman's cabin with the
+  chair pushed in to the desk, a fire door chained through its push bar,
+  a leak in the north-west corner and a bucket under it, cobwebs in the
+  beams, paper and tyre marks on the floor, and eleven of the thirty-six
+  high-bays still lit: sodium mostly, and two mercury lamps gone the colour
+  of cold water, one at the far end of the aisle the door opens on. You
+  can sit in any of the forklifts.
 - **A fire lookout on the mesa rim, and a fire road up to it.** Five hundred
   metres north-west and a hundred metres up, on the tabletop of a butte you
   can see from the walkway. You get there on foot: a graded bench eight

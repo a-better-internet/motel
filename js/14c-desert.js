@@ -842,7 +842,9 @@
     m.P("oak", new T.CylinderGeometry(0.05,0.07,0.66,6), 0.1,0.06,0, 0, "#2a241c", 0, 1.3);
     m.P("oak", new T.CylinderGeometry(0.05,0.07,0.60,6), -0.1,0.06,0.1, 0.8, "#2a241c", 0, 1.4);
     for(const d of [[2.4,1.1,0.2,"#8a4a2a"],[3.0,0.3,1.5,"#5a6b4a"],[2.1,-0.9,0.9,"#7a4a30"]])
-      m.C("weathered", 0.30,0.30,0.88,14, d[0],0.44,d[1], d[3], 0,0,d[2]);
+      // resting on the ground at whatever angle it fell: centre height is
+      // half its length times cos, plus its radius times sin
+      m.C("weathered", 0.30,0.30,0.88,14, d[0],0.44*Math.cos(d[2])+0.30*Math.sin(d[2]),d[1], d[3], 0,0,d[2]);
     m.P("fabric", boxGeo(1.35,0.22,1.95,0.5), -2.6,0.09,0.9, 0.6, "#8f8878", 0.07, 0.05);
     m.P("fabric", boxGeo(1.16,0.06,1.72,0.5), -2.6,0.20,0.9, 0.6, "#6e6656", 0.07, 0.05);
     m.P("rust", streakGeo(1.1,1.5,0), -2.5,0.21,1.0, 0.6, "#6a4028", -Math.PI/2, 0);
@@ -946,9 +948,16 @@
     // hung from the jamb at DOOR[0], so it opens where a door would
     const DA=-0.95, DW=0.86, DCX=DOOR[0]+DW/2*Math.cos(DA), DCZ=ZS-DW/2*Math.sin(DA);
     m.P("siding", boxGeo(DW,DH,0.05,0.6), DCX, FY+DH/2-0.06, DCZ, DA, "#c3b9a2", 0, 0.05);
-    m.P("oak", boxGeo(DW-0.10,0.62,0.02,0.5), DCX-0.03, FY+0.28, DCZ-0.03, DA, "#8e8064", 0, 0.05);
-    m.P("glass", boxGeo(0.44,0.42,0.02,0), DCX+0.02, FY+1.34, DCZ-0.03, DA, "#93a49f", 0, 0.05);
-    m.P("teal", boxGeo(0.10,0.05,0.05,0), DOOR[0]+0.74, FY+0.96, ZS+0.10, DA, "#8e877a", 0, 0.05);
+    /* The panel, the glass and the handle go on the leaf's face, along its
+       own normal (sin DA, cos DA). They were offset in world x and z, which
+       buried the panel and the glass inside the leaf and left the handle
+       standing 11 cm off it in the air. */
+    const DNX=Math.sin(DA), DNZ=Math.cos(DA), DUX=Math.cos(DA), DUZ=-Math.sin(DA);
+    m.P("oak", boxGeo(DW-0.10,0.62,0.02,0.5), DCX+DNX*0.035, FY+0.28, DCZ+DNZ*0.035, DA, "#8e8064", 0, 0.05);
+    m.P("glass", boxGeo(0.44,0.42,0.02,0), DCX+DUX*0.02+DNX*0.035, FY+1.34, DCZ+DUZ*0.02+DNZ*0.035, DA,
+        "#93a49f", 0, 0.05);
+    m.P("teal", boxGeo(0.10,0.05,0.05,0), DOOR[0]+DUX*0.74+DNX*0.05, FY+0.96, ZS+DUZ*0.74+DNZ*0.05, DA,
+        "#8e877a", 0, 0.05);
     for(const hy of [FY+0.22, FY+1.66])                                  // the hinge straps
       m.B("teal", 0.13,0.09,0.06, DOOR[0]+0.05, hy, ZS+0.04, 0, 0, "#7d766a");
     // a notice nobody was left to read
@@ -1124,7 +1133,8 @@
     m.B("plaster", 0.10,0.14,0.02, 2.90, FY+1.26, WVIS1-0.02, 0, 0, "#ded6c2");     // switch
     m.B("plaster", 0.09,0.12,0.02, -2.60, FY+0.36, WVIS0+0.02, 0, 0, "#ded6c2");    // outlet
     m.B("plaster", 0.14,0.10,0.02, -1.05, FY+1.34, WVIS0+0.02, 0, 0, "#e2dac6");    // thermostat
-    m.P("clockface", planeGeo(0.24,0.24,0), 0.35, FY+1.44, WVIS0+0.03, 0, "#e8e2cf", 0, 0);
+    // on the panelling, not over the window hole beside it
+    m.P("clockface", planeGeo(0.24,0.24,0), 1.60, FY+1.44, WVIS0+0.012, 0, "#e8e2cf", 0, 0);
     // kitchen: what was on the counter when they left
     m.C("teal", 0.09,0.10,0.17,12, -2.05, FY+0.95, IZ0+0.36, "#b2b8b8");            // kettle
     m.B("teal", 0.06,0.02,0.09, -1.94, FY+1.00, IZ0+0.36, 0, 0.5, "#b2b8b8");
@@ -1184,9 +1194,11 @@
           ZS+1.35+i*0.95, i*0.5, "#a09888", 0, 0);
     // the skirting torn open, and what has got in under there
     m.P("siding", boxGeo(0.90,0.52,0.05,0.55), -1.30, 0.30, ZN-0.16, 0.25, "#b0a793", 0.12, 0.30);
-    for(let i=0;i<5;i++)
-      m.P("paper", planeGeo(0.18,0.25,0), rr2(-4.0,4.0), 0.02, ZN-rr2(0.5,1.9),
+    for(let i=0;i<5;i++){                         // on the ground, wherever it is
+      const px=rr2(-4.0,4.0), pz=ZN-rr2(0.5,1.9);
+      m.P("paper", planeGeo(0.18,0.25,0), px, Terrain.groundAt(OX+px, OZ+pz)-m.y+0.02, pz,
           rr2(0,6.28), "#ffffff", -Math.PI/2, 0);
+    }
     // sand banked up the shaded side, and a drift across the north skirt
     m.P("gravel", boxGeo(7.40,0.34,1.10,0.4), -0.40, 0.10, ZN-0.52, 0, "#c0a87e", 0, 0.02);
     // a plate nailed to the end wall, and the number the mail came to
@@ -1232,6 +1244,7 @@
   for(let i=0;i<6;i++){                                                      // condensers on the back wall
     const cx=-24+i*9.5;
     bx("metal", 1.05,0.95,0.85, cx, 0.62, 21.6, 0.4, 0, GALV);
+    bx("concrete", 1.25,0.15,1.05, cx, 0.075, 21.65, 0.4, 0, "#9a9488");     // the pad it sits on
     // 21.165, not 21.19: at 21.19 the louvre's own back face landed exactly on
     // the condenser's front face at 21.175 and the two fought all down the wall
     for(let k=0;k<5;k++) bx("metal", 0.95,0.04,0.03, cx, 0.36+k*0.13, 21.165, 0, 0, "#5f676b");

@@ -184,9 +184,11 @@
     makeDoor(XF(W(GT0+0.03), Z(CZ0), 0), 0, Terrain.groundAt(W(GT0), Z(CZ0))+0.04, 0,
              "THE GATE", true, 0, "gate");
     // and the sign wired to it, which says nothing anybody wants to read
-    const sgy=Terrain.groundAt(W(GT1-0.4), Z(CZ0))+1.28;
-    bx("paint", 0.52, 0.34, 0.02, W(GT1-0.42), sgy, Z(CZ0)-0.05, 0.4, 0, "#b8b4a2");
-    push("art", planeGeo(0.46,0.28,0), W(GT1-0.42), sgy, Z(CZ0)-0.065, Math.PI, "#7a7668", 0, 0);
+    // wired to the fence beside the gate, not hung in the gateway in front of
+    // the leaf (which swung away from it and left it in the air)
+    const sgy=Terrain.groundAt(W(GT1+0.50), Z(CZ0))+1.28;
+    bx("paint", 0.52, 0.34, 0.02, W(GT1+0.50), sgy, Z(CZ0)-0.012, 0.4, 0, "#b8b4a2");
+    push("art", planeGeo(0.46,0.28,0), W(GT1+0.50), sgy, Z(CZ0)-0.027, Math.PI, "#7a7668", 0, 0);
     for(const q of [[-2.9,-0.5],[3.4,0.3]]){           // tumbleweed caught in the wire
       const g0=Terrain.groundAt(W(q[0]), Z(CZ0+q[1]));
       for(let i=0;i<9;i++)

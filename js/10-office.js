@@ -113,13 +113,14 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
     addCol(p[0]-0.16,p[0]+0.16,p[1]-0.16,p[1]+0.16, y0, y0+3.3);
   }
   // OFFICE sign over the door + a small neon VACANCY box
-  push("signlit", boxGeo(2.2,0.62,0.10,0), O.x1+0.16, y0+2.62, cz, -Math.PI/2, "#e8e4d6");
+  // on the wall, whose outer face is O.x1 (it stood 11 cm off it)
+  push("signlit", boxGeo(2.2,0.62,0.10,0), O.x1+0.05, y0+2.62, cz, -Math.PI/2, "#e8e4d6");
   const sg=new T.Mesh(new T.PlaneGeometry(2.1,0.55),
     new T.MeshBasicMaterial({map:signTex(320,84,(x,W,H)=>{
       x.fillStyle="#13405e"; x.fillRect(0,0,W,H);
       x.fillStyle="#ede0c2"; fitText(x,"OFFICE",W*0.86,52,W/2,H/2+2);
     }), transparent:false, toneMapped:false}));
-  sg.position.set(O.x1+0.22, y0+2.62, cz); sg.rotation.y=Math.PI/2; scene.add(sg);
+  sg.position.set(O.x1+0.106, y0+2.62, cz); sg.rotation.y=Math.PI/2; scene.add(sg);
 
   /* --- lobby: desk, key rack, seating, the small stuff --------------- */
   const dx=O.x0+3.0;
@@ -184,15 +185,18 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
       const q=[ax+lx*Math.cos(ry)+lz*Math.sin(ry), az-lx*Math.sin(ry)+lz*Math.cos(ry)];
       push(bk, boxGeo(ww,hh,dd,uv||0.5), q[0], y0+ly, q[1], ry, c);
     };
-    A("oak",   0.94,0.32,0.90, 0,0.31,0, 0.6,"#5c4029");
-    A("spread",0.88,0.26,0.82, 0,0.58,0, 0.5,"#7a5a52");
-    A("spread",0.88,0.60,0.22, 0,0.86,-0.34, 0.5,"#7a5a52");
-    A("spread",0.20,0.38,0.84, -0.38,0.74,0, 0.5,"#6a4c46");
-    A("spread",0.20,0.38,0.84,  0.38,0.74,0, 0.5,"#6a4c46");
+    /* From the floor up, every piece standing on the one below: the base
+       used to start 15 cm off the floor, so the whole chair hovered. */
+    A("oak",   0.94,0.12,0.90, 0,0.06,0, 0.6,"#5c4029");                 // plinth
+    A("spread",0.92,0.30,0.88, 0,0.27,0, 0.5,"#6a4c46");                 // the upholstered base
+    A("spread",0.86,0.17,0.80, 0,0.505,0.02, 0.5,"#7a5a52");             // the seat cushion
+    A("spread",0.88,0.62,0.22, 0,0.73,-0.33, 0.5,"#7a5a52");             // the back
+    A("spread",0.18,0.36,0.86, -0.37,0.60,0, 0.5,"#6a4c46");             // arms
+    A("spread",0.18,0.36,0.86,  0.37,0.60,0, 0.5,"#6a4c46");
     push("spread", new T.CylinderGeometry(0.10,0.10,0.88,12),
-         ax+(-0.34)*Math.sin(ry), y0+0.94, az+(-0.34)*Math.cos(ry), ry, "#7a5a52", 0, Math.PI/2);
+         ax+(-0.34)*Math.sin(ry), y0+1.03, az+(-0.34)*Math.cos(ry), ry, "#7a5a52", 0, Math.PI/2);
     addCol(ax-0.58,ax+0.58, az-0.58, az+0.58, y0, y0+0.9);
-    addSeat(ax+0.04*Math.sin(ry), az+0.04*Math.cos(ry), y0+0.66, ry+Math.PI, "THE ARMCHAIR");
+    addSeat(ax+0.04*Math.sin(ry), az+0.04*Math.cos(ry), y0+0.62, ry+Math.PI, "THE ARMCHAIR");
   })();
   // standing lamp in the corner beside the sofa
   cyl("metal", 0.20,0.22,0.04,14, sofaX-1.55, y0+0.03, sofaZ-0.30, "#6b6156");
@@ -517,6 +521,10 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
   signPanel(0.60,0.40, mapTex, O.x0+9.4, y0+2.02, O.z1-0.42, Math.PI, false);
   // television on a bracket in the corner
   O_("metal", 0.30,0.06,0.30, O.x1-1.4, 2.10, O.z1-0.7, 0, "#8f9aa0");
+  // ...and the arm the shelf hangs off, back to the wall (whose face is at
+  // O.z1-0.22): the shelf and the set on it stood 33 cm out on nothing
+  O_("metal", 0.06,0.06,0.34, O.x1-1.4, 2.06, O.z1-0.39, 0, "#8f9aa0");
+  O_("metal", 0.16,0.22,0.02, O.x1-1.4, 2.04, O.z1-0.23, 0, "#8f9aa0");
   O_("paint", 0.56,0.46,0.52, O.x1-1.4, 2.36, O.z1-0.7, 0, "#2f2f2e");
   push("paint", boxGeo(0.46,0.36,0.03,0), O.x1-1.4, y0+2.36, O.z1-0.97, 0, "#191919");
   push("pic:tv:2", planeGeo(0.40,0.30,0), O.x1-1.4, y0+2.36, O.z1-0.995, Math.PI, "#ffffff");

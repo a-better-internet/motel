@@ -233,11 +233,16 @@
       const REEL=["#4a4f52","#6b4a2a","#3f4447","#5a4030"];
       for(let i=0;i<7;i++)
         m.P("metal", new T.CylinderGeometry(0.19,0.19,0.035,16), QX0+0.55+((i%3)*0.44),
-            PF+0.02+(((i/3)|0)*0.045), QZ1-0.52, i, REEL[i%4], Math.PI/2, 0);
+            PF+0.02+(((i/3)|0)*0.045), QZ1-0.52, i, REEL[i%4], 0, 0);   // lying flat, stacked
+      /* A shelf ON the wall (QX1 is its face) on two brackets, with the
+         reels standing on edge along it. The shelf stood 21 cm out from the
+         wall on nothing, with the reels sunk halfway through it. */
       for(let i=0;i<5;i++)
-        m.P("metal", new T.CylinderGeometry(0.17,0.17,0.06,16), QX1-0.42,
-            PF+1.55+i*0.075, QZ0+0.90+i*0.03, 0, REEL[(i+1)%4], Math.PI/2, 0);
-      m.B("oak", 0.42, 0.05, 1.40, QX1-0.42, PF+1.50, QZ0+1.10, 0.5, 0, "#6f6048");
+        m.P("metal", new T.CylinderGeometry(0.17,0.17,0.06,16), QX1-0.21,
+            PF+1.525+0.17, QZ0+0.62+i*0.11, 0, REEL[(i+1)%4], Math.PI/2, 0);
+      m.B("oak", 0.42, 0.05, 1.40, QX1-0.21, PF+1.50, QZ0+1.10, 0.5, 0, "#6f6048");
+      for(const bz of [QZ0+0.55, QZ0+1.65])
+        m.B("metal", 0.30, 0.04, 0.03, QX1-0.15, PF+1.455, bz, 0, 0, "#5e6468");
       for(let i=0;i<16;i++){                                   // film, unspooled
         const t=i/15, ax=QX0+0.6+t*3.2+Math.sin(t*9.1)*0.26, az=QZ1-0.9-Math.sin(t*5.7)*0.55;
         m.P("soot", planeGeo(0.34,0.035,0), ax, PF+0.026, az, Math.sin(t*7.3)*1.4,
@@ -270,35 +275,37 @@
       addSeat(OX-1.40, OZ+QZ1-1.02, m.y+PF+0.70, Math.PI, "THE REWIND BENCH");
       m.C("teal", 0.012,0.012,0.62,6, -1.0, PF+PH-0.33, (QZ0+QZ1)/2, "#6e6a62");
       m.P("glass", new T.SphereGeometry(0.075,10,8), -1.0, PF+PH-0.72, (QZ0+QZ1)/2, 0, "#6a6458");
-      for(let i=0;i<9;i++)                                     // schedules on the wall
-        m.P("paper", planeGeo(0.19,0.26,0), QX0+0.35+ (i%5)*0.30, PF+1.95+(((i/5)|0)*0.34),
-            QZ0+PT+0.02, 0, "#ffffff", 0, ((i*7)%5-2)*0.03);
+      for(let i=0;i<9;i++)                                     // schedules on the wall (beside
+        m.P("paper", planeGeo(0.19,0.26,0), -0.20+(i%5)*0.30, PF+1.95+(((i/5)|0)*0.34),  // the ports, not on them)
+            QZ0+0.012, 0, "#ffffff", 0, ((i*7)%5-2)*0.03);
       for(let i=0;i<11;i++)                                    // and on the floor
         m.P("paper", planeGeo(0.19,0.26,0), QX0+0.4+((i*0.37)%3.9), PF+0.014+i*0.0015,
             QZ0+0.9+((i*0.53)%2.0), i*1.7, "#ffffff", -Math.PI/2, 0);
-      m.P("clockface", planeGeo(0.30,0.30,0), QX1-0.06, PF+2.10, (QZ0+QZ1)/2, -Math.PI/2,
+      m.P("clockface", planeGeo(0.30,0.30,0), QX1-0.012, PF+2.10, (QZ0+QZ1)/2, -Math.PI/2,
           "#e8e2cf");
-      for(const st of [[QX1-1.25, QZ0+PT+0.07, 0],[QX0+1.95, QZ1-PT-0.07, Math.PI]])
+      for(const st of [[QX1-1.25, QZ0+0.014, 0],[QX0+1.95, QZ1-0.014, Math.PI]])
         m.P("soot", planeGeo(1.10,1.50,0), st[0], PF+1.34, st[1], st[2], "#6a5a3a", 0, 0);
       // the rest of what is in here: a toolboard, a spares shelf, cable, and
       // the calendar that stopped being turned over
-      m.B("oak", 0.90, 0.72, 0.05, QX0+1.30, PF+1.86, QZ1-PT-0.03, 0.5, 0, "#5b4632");
+      m.B("oak", 0.90, 0.72, 0.05, QX0+1.30, PF+1.86, QZ1-0.03, 0.5, 0, "#5b4632");
       for(let i=0;i<7;i++){
         m.C("metal", 0.012,0.012,0.16+((i*7)%4)*0.05,6, QX0+0.95+i*0.12, PF+1.84,
-            QZ1-PT-0.06, "#8a8274");
-        m.B("metal", 0.05,0.03,0.02, QX0+0.95+i*0.12, PF+1.95, QZ1-PT-0.07, 0, 0, "#9aa1a4");
+            QZ1-0.067, "#8a8274");
+        m.B("metal", 0.05,0.03,0.02, QX0+0.95+i*0.12, PF+1.95, QZ1-0.065, 0, 0, "#9aa1a4");
       }
-      m.B("oak", 1.30, 0.05, 0.28, QX1-0.85, PF+2.34, QZ1-0.20, 0.5, 0, "#6f6048");
+      m.B("oak", 1.30, 0.05, 0.28, QX1-0.85, PF+2.34, QZ1-0.14, 0.5, 0, "#6f6048");   // on the wall
+      for(const bx2 of [QX1-1.35, QX1-0.35])
+        m.B("metal", 0.03, 0.04, 0.22, bx2, PF+2.295, QZ1-0.13, 0, 0, "#5e6468");
       for(let i=0;i<5;i++)
-        m.C("metal", 0.055,0.055,0.15,10, QX1-1.35+i*0.24, PF+2.44, QZ1-0.20,
+        m.C("metal", 0.055,0.055,0.15,10, QX1-1.35+i*0.24, PF+2.44, QZ1-0.14,
             ["#7a5a2a","#4a5f52","#6d6a62"][i%3]);
-      m.P("paper", planeGeo(0.24,0.34,0), QX0+2.55, PF+1.92, QZ1-PT-0.03, Math.PI,
+      m.P("paper", planeGeo(0.24,0.34,0), QX0+2.55, PF+1.92, QZ1-0.012, Math.PI,
           "#ded4b4", 0, 0.02);
-      m.C("metal", 0.075,0.075,0.40,12, QX1-0.30, PF+0.30, QZ0+0.60, "#a82e22");  // extinguisher
+      m.C("metal", 0.075,0.075,0.40,12, QX1-0.09, PF+0.20, QZ0+0.60, "#a82e22");  // extinguisher, on the floor by the wall
       for(let i=0;i<9;i++){                                    // cable, looped along the wall
         const t=i/8;
         m.P("teal", boxGeo(0.60,0.02,0.02,0), QX0+0.6+t*3.6, PF+2.62-Math.sin(t*3.14)*0.12,
-            QZ0+PT+0.04, 0, "#3a342e", 0, Math.sin(t*3.14)*0.22);
+            QZ0+0.012, 0, "#3a342e", 0, Math.sin(t*3.14)*0.22);
       }
       addZone(OX+QX0, OX+QX1, OZ+QZ0, OZ+QZ1, m.y+PF-0.3, m.y+PF+PH,
               "THE PROJECTION ROOM", true);
@@ -420,8 +427,10 @@
           BZ-0.090+Math.sin(i*0.63)*0.0, DRK, Math.PI/2, 0, 0);
     m.B("metal", 0.13, 0.055, 0.035, 0.02, 0.12+1.07, BZ-0.075, 0.4, 0, CHR);  // return cup
     m.B("paint", 0.11, 0.03, 0.02, 0.02, 0.12+1.075, BZ-0.088, 0.4, 0, DRK);
-    m.B("paint", 0.15, 0.10, 0.02, -0.02, 0.12+1.76, BZ-0.075, 0.4, 0, "#e4e0d2"); // number card
-    m.B("metal", 0.17, 0.12, 0.012, -0.02, 0.12+1.76, BZ-0.070, 0.4, 0, CHR);
+    // the number card, in its frame on the case's top edge (case top 1.59;
+    // it stood 12 cm over it in front of the glass)
+    m.B("paint", 0.15, 0.10, 0.02, -0.02, 0.12+1.65, BZ-0.075, 0.4, 0, "#e4e0d2");
+    m.B("metal", 0.17, 0.12, 0.012, -0.02, 0.12+1.65, BZ-0.070, 0.4, 0, CHR);
     // the handset, on its hook, with the cord hanging in a loose coil
     m.B("metal", 0.05, 0.10, 0.05, -0.17, 0.12+1.46, BZ-0.06, 0.4, 0, CHR);
     m.P("paint", boxGeo(0.055,0.23,0.055,0), -0.17, 0.12+1.40, BZ-0.095, 0.1, DRK, 0.06, 0);

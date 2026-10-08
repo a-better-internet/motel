@@ -621,8 +621,8 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
           "#d8d2c2", Math.PI/2, 0, 0);
     bx("bin", 0.10,0.30,0.09, px+0.26, y+1.34, pz+0.16, ry, 0, "#1f1c19"); // the handset,
     bx("bin", 0.08,0.10,0.07, px+0.26, y+1.16, pz+0.16, ry, 0, "#1f1c19"); // off the hook
-    for(let k=0;k<7;k++)                                                // on its cord
-      push("metal", new T.TorusGeometry(0.030,0.010,5,9), px+0.26, y+1.05-k*0.085,
+    for(let k=0;k<9;k++)                                                // on its cord,
+      push("metal", new T.TorusGeometry(0.030,0.010,5,9), px+0.26, y+1.10-k*0.019,  // coil on coil
            pz+0.16, 0, "#4b5054", Math.PI/2, 0);
     cyl("metal", 0.12,0.15,0.05,10, px, y+2.34, pz, "#6f767a");
     push("lampshade", shadeGeo(0.10,0.13,0.07,10), px, y+2.28, pz, 0, "#e8dcc0");

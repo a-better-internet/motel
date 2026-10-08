@@ -161,14 +161,19 @@
     m.P("weathered", boxGeo(1.48,0.10,0.74,0.4), QX0+0.86, F+0.95, QZ0+0.52, 0,
         "#a9bdc1", -0.48, 0);
     m.col(QX0, QX0+1.62, QZ0, QZ0+0.90, 0, F+0.95);
-    m.B("metal", 0.40, 1.10, 0.16, QX1-0.30, F+1.40, QZ0+1.30, 0.5, 0, "#7d8387");
+    // the map rack is a shallow case ON the east wall with the maps in its
+    // face; it was a deep box standing 10 cm off the wall with the maps
+    // inside it
+    m.B("metal", 0.16, 1.10, 0.86, QX1-0.08, F+1.40, QZ0+1.23, 0.5, 0, "#7d8387");
     for(let i=0;i<8;i++)
-      m.P("paper", planeGeo(0.17,0.24,0), QX1-0.44, F+1.06+((i%4)*0.29), QZ0+1.02+((i/4)|0)*0.42,
+      m.P("paper", planeGeo(0.17,0.24,0), QX1-0.165, F+1.06+((i%4)*0.29), QZ0+1.02+((i/4)|0)*0.42,
           -Math.PI/2, "#dcd2b4", 0, ((i*7)%5-2)*0.05);
     m.P("art", boxGeo(0.02,0.46,0.34,0), QX1-0.02, F+1.90, QZ0+2.40, 0, "#e2dac4");
     // a sink in the corner and a door that says STAFF and never opens
-    m.B("plaster", 0.50,0.16,0.40, QX1-0.34, F+0.86, QZ1-0.40, 0.5, 0, "#dcdcd4");
-    m.C("metal", 0.016,0.016,0.12,8, QX1-0.34, F+1.00, QZ1-0.22, "#9aa4a8");
+    // in the corner: against both walls (it stood 9 and 20 cm off them)
+    m.B("plaster", 0.50,0.16,0.40, QX1-0.25, F+0.86, QZ1-0.20, 0.5, 0, "#dcdcd4");
+    m.C("metal", 0.016,0.016,0.12,8, QX1-0.25, F+1.00, QZ1-0.04, "#9aa4a8");
+    m.C("metal", 0.025,0.025,0.70,8, QX1-0.25, F+0.43, QZ1-0.06, "#9aa4a8");     // its trap and pipe
     m.B("oak", 0.10, 2.04, 0.92, QX1-0.03, F+1.02, QZ0+3.40, 0.5, 0, "#6a4b30");
     m.B("paint", 0.02, 0.22, 0.16, QX1-0.09, F+1.62, QZ0+3.40, 0, 0, "#2a3a5a");
     // what blew in, and the glass that got broken

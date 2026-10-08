@@ -226,8 +226,9 @@
     const L=(lx,lz)=>[x+lx*k+lz*s, z-lx*s+lz*k];
     for(let i=0;i<7;i++){ const q=L(0, -0.55+i*(1.10/6)); m.P("oak", gBoard, q[0], y+0.133, q[1], ry||0, c); }
     for(const o of [-0.45,0,0.45]){ const q=L(o,0); m.P("oak", gRun, q[0], y+0.061, q[1], ry||0, c); }
-    for(const o of [-0.53,0,0.53]){ const q=L(0,o); m.P("oak", gBot, q[0], y+0.011, q[1], ry||0, c); }
+    for(const o of [-0.525,0,0.525]){ const q=L(0,o); m.P("oak", gBot, q[0], y+0.011, q[1], ry||0, c); }
   }
+  const gDrum=new T.CylinderGeometry(0.25,0.25,0.88,10), gHoop=new T.CylinderGeometry(0.253,0.253,0.04,10,1,true);
   const gCart=[boxGeo(0.48,0.36,0.58,0.6), boxGeo(0.48,0.44,0.58,0.6), boxGeo(0.48,0.48,0.58,0.6)];
   function load(x,y,z,maxH,kind){
     const t=y+PL.h;
@@ -250,9 +251,9 @@
       const c=pick(["#2f4f7a","#6e2a22","#3e5a3c","#5a5248","#2f4f7a"]);
       for(const a of [[-0.255,-0.30],[0.255,-0.30],[-0.255,0.30],[0.255,0.30]]){
         if(R()<0.12) continue;
-        m.C("paint", 0.25,0.25,0.88,14, x+a[0], t+0.44, z+a[1], c);
-        m.C("metal", 0.252,0.252,0.03,14, x+a[0], t+0.30, z+a[1], "#6a6660");
-        m.C("metal", 0.252,0.252,0.03,14, x+a[0], t+0.62, z+a[1], "#6a6660");
+        // ten sides and one rolling hoop: there are a couple of hundred of these
+        m.P("paint", gDrum, x+a[0], t+0.44, z+a[1], 0, c);
+        m.P("metal", gHoop, x+a[0], t+0.44, z+a[1], 0, "#6a6660");
       }
     }else if(kind<0.92){                            // sacks, slumped
       for(let l=0;l<2;l++) for(const a of [[-0.24,0],[0.24,0]])
@@ -261,7 +262,7 @@
     }                                               // and the rest: an empty pallet
   }
 
-  const RESERVED=new Set(["7,7,2,-0.62"]);         // the slot forklift 1 is loading
+  const RESERVED=new Set(["5,7,2,-0.62"]);         // the slot forklift 1 is loading
   RACKS.forEach((rk,li)=>{
     const zm=(rk[0]+rk[1])/2;
     const thin=R()<0.25;                            // some lines were mostly cleared
@@ -303,11 +304,11 @@
       const crushed=R()<0.35, lying=!crushed && R()<0.4;
       const h=crushed?0.14+R()*0.10:0.36+R()*0.12;
       const up=lying?0.58:h;
-      m.P("bin", boxGeo(0.48, h, 0.58, 0.6), x, FY+up/2+(R()<0.3?0.144:0), z, R()*3,
+      m.P("bin", boxGeo(0.48, h, 0.58, 0.6), x, FY+up/2+(R()<0.3?0.144:0)+i*0.0011, z, R()*3,
           pick(KRAFT), lying?Math.PI/2:(crushed?(R()-0.5)*0.3:0), crushed?(R()-0.5)*0.2:0);
     }
     for(let i=0;i<9;i++)                             // flattened ones
-      m.P("bin", boxGeo(0.62, 0.010, 0.80, 0.6), xA-0.4+R()*6.0, FY+0.012+i*0.0006,
+      m.P("bin", boxGeo(0.62, 0.010, 0.80, 0.6), xA-0.4+R()*6.0, FY+0.032+i*0.0012,
           z0-0.3-R()*2.9, R()*3, pick(KRAFT));
     m.col(xA, xB, z0-2.7, z0, FY, FY+0.9);
   }
@@ -324,9 +325,12 @@
     const B=(bk,w,h,d,lx,ly,lz,c,rx,rz)=>{ const q=L(lx,lz); m.P(bk, boxGeo(w,h,d,0.5), q[0], FY+ly, q[1], ry, c, rx||0, rz||0); };
     const C=(bk,r,h,lx,ly,lz,c,seg,rx,rz)=>{ const q=L(lx,lz); m.P(bk, new T.CylinderGeometry(r,r,h,seg||14), q[0], FY+ly, q[1], ry, c, rx||0, rz||0); };
     // body, counterweight, hood
-    B("paint", 1.08, 0.52, 1.90, 0, 0.56, 0.05, BODY);
-    B("paint", 1.12, 0.74, 0.52, 0, 0.67, -1.02, o.cw||"#a87e18");
-    C("paint", 0.37, 1.12, 0, 0.67, -1.26, o.cw||"#a87e18", 16, 0, Math.PI/2);
+    // (the body is 4 cm narrower than the wheels' outer faces, the round
+    // back 2 cm shorter than the counterweight it ends, and the counterweight
+    // a centimetre lower than the body, so no two of them share a face)
+    B("paint", 1.04, 0.52, 1.90, 0, 0.56, 0.05, BODY);
+    B("paint", 1.12, 0.74, 0.52, 0, 0.66, -1.02, o.cw||"#a87e18");
+    C("paint", 0.37, 1.10, 0, 0.66, -1.26, o.cw||"#a87e18", 16, 0, Math.PI/2);
     B("paint", 0.98, 0.20, 0.90, 0, 0.92, -0.45, BODY);
     B("paint", 0.96, 0.34, 0.26, 0, 0.98, 0.50, BODY);                 // the cowl
     // the seat and the wheel
@@ -354,8 +358,8 @@
       B("paint", 0.10, 2.40, 0.12, sx, 1.25, 0.96, DARK);
       B("paint", 0.08, 2.30, 0.10, sx*0.80, 1.20+lift, 1.02, "#33332f");
     }
-    B("paint", 0.76, 0.10, 0.12, 0, 2.40, 0.96, DARK);
-    B("paint", 0.76, 0.10, 0.12, 0, 0.62, 0.96, DARK);
+    B("paint", 0.76, 0.10, 0.10, 0, 2.40, 0.96, DARK);
+    B("paint", 0.76, 0.10, 0.10, 0, 0.62, 0.96, DARK);
     C("metal", 0.045, 1.80, 0, 1.05+lift*0.5, 0.90, "#8a8a84", 10);
     // carriage, backrest and the two forks
     B("paint", 0.92, 0.40, 0.06, 0, fh+0.25, 1.10, DARK);
@@ -380,9 +384,11 @@
     addSeat(W(st[0]), Z(st[1]), GY+FY+1.16, ry+Math.PI, "THE FORKLIFT");
   }
 
-  // 1 · in aisle four, stopped with a load halfway into a slot at level two
+  // 1 · in aisle three, stopped with a load halfway into a slot at level two
+  //     (not in aisle four, the one the door opens on: there it left 0.6 m
+  //     to get past, and the walk probe could not)
   {
-    const cx=frameAt(7)+BW/2-0.62, lineZ0=RACKS[7][0];   // row 3's south half, facing aisle four
+    const cx=frameAt(7)+BW/2-0.62, lineZ0=RACKS[5][0];   // row 2's south half, facing aisle three
     const fh=LV[2]+0.06+0.002;
     const pz=lineZ0+0.05;                            // the pallet half in
     forklift(cx, pz-1.73, 0, fh);
@@ -489,6 +495,14 @@
     m.B("paint", t, ch, 0.60, cx0+t/2, FY+ch/2, cz1-0.30, 0.5, 0, CW);
     m.col(cx0, cx0+t, cz1-0.60, cz1, FY, FY+ch);
     m.B("paint", cx1-cx0, 0.10, cz1-cz0, (cx0+cx1)/2, FY+ch+0.05, (cz0+cz1)/2, 0.5, 0, "#8a857a"); // its roof
+    // the door, standing open into the room, and a dead tube on the ceiling
+    { // hung on the north jamb, swung a hundred degrees in, along the wall
+      const dr=-0.175, ux=Math.cos(dr), uz=-Math.sin(dr), hx=cx0+t, hz=cz1-0.62;
+      m.P("paint", boxGeo(0.92, 2.04, 0.045, 0.5), hx+0.46*ux, FY+1.04, hz+0.46*uz, dr, "#7d8478");
+      m.P("metal", boxGeo(0.12, 0.03, 0.10, 0), hx+0.84*ux, FY+1.02, hz+0.84*uz, dr, "#b8b4a8");
+    }
+    m.B("paint", 1.22, 0.07, 0.16, (cx0+cx1)/2, FY+ch-0.035, (cz0+cz1)/2, 0.4, 0, "#d8d4c8");
+    m.B("glass", 1.14, 0.03, 0.10, (cx0+cx1)/2, FY+ch-0.085, (cz0+cz1)/2, 0, 0, "#9a9a92");
     // inside: the desk at the window, the chair at the desk, a cabinet
     const dX=-124.8, dZ=cz0+0.62;
     m.B("paint", 1.50, 0.04, 0.72, dX, FY+0.74, dZ, 0.5, 0, "#6b7468");
@@ -497,7 +511,7 @@
     m.B("paint", 0.40, 0.30, 0.36, dX-0.30, FY+0.91, dZ+0.05, 0.4, 0, "#cfc8b4");     // a dead monitor
     m.B("tvglass", 0.32, 0.22, 0.01, dX-0.30, FY+0.92, dZ+0.235, 0, 0, "#1b2226");
     for(let i=0;i<6;i++)
-      m.P("paper", boxGeo(0.21, 0.004, 0.30, 0.5), dX+0.25+R()*0.35, FY+0.762+i*0.0012, dZ+(R()-0.5)*0.3,
+      m.P("paper", boxGeo(0.21, 0.004, 0.30, 0.5), dX+0.25+R()*0.35, FY+0.7635+i*0.0045, dZ+(R()-0.5)*0.3,
           R()*0.8, "#d8d2c0");
     { // the chair, pulled in to the desk and facing it
       const qx=dX+0.05, qz=dZ+0.78;
@@ -533,8 +547,18 @@
 
   /* --- the floor: lines, oil, tyre marks, paper ----------------------- */
   {
-    let rung=0;
-    const dec=()=>FY+0.0100+((rung++)%23)*0.0006;
+    /* Each decal takes the rung above the highest one already under it
+       (the diner's LY rule): cycling a counter put two overlapping marks
+       on the same rung whenever the count came round. Rungs are 0.6 mm,
+       from 10 mm up; 24 of them stay under the 25 mm the lane lines and
+       anything else standing on the floor start at. */
+    const placed=[];
+    const decAt=(x,z,r)=>{
+      let k=0;
+      for(const q of placed) if(Math.hypot(q[0]-x, q[1]-z)<q[2]+r) k=Math.max(k, q[3]+1);
+      k=Math.min(k, 23); placed.push([x,z,r,k]);
+      return FY+0.0115+k*0.0006;
+    };
     // aisle edge lines, worn through in places
     RACKS.forEach(rk=>{
       const za=rk[2]<0 ? rk[0]-0.20 : rk[1]+0.20;
@@ -547,27 +571,28 @@
     });
     // oil, under where things stood and stand
     for(let i=0;i<26;i++){
-      const z=pick(AISLE)+(R()-0.5)*2.0, x=RX0+R()*(RX1-RX0+8);
-      m.P("stain", streakGeo(0.6+R()*1.6, 0.5+R()*1.2, 0), x, dec(), z, R()*3, "#2a241c", -Math.PI/2, 0);
+      const z=pick(AISLE)+(R()-0.5)*2.0, x=RX0+R()*(RX1-RX0+8), w=0.6+R()*1.6, d=0.5+R()*1.2;
+      m.P("stain", streakGeo(w, d, 0), x, decAt(x,z,Math.hypot(w,d)/2), z, R()*3, "#2a241c", -Math.PI/2, 0);
     }
     // tyre tracks: long dark arcs out of the staging bay and down the aisles
     for(let i=0;i<9;i++){
       const z0=pick(AISLE)+(R()-0.5)*1.4, x0=-128-R()*4, len=8+R()*20;
       for(let k=0;k<6;k++){
         const x=x0-k*len/6, z=z0+Math.sin(k*0.5+i)*0.3;
-        m.P("soot", planeGeo(len/6+0.2, 0.16, 0), x, dec(), z, 0, "#151210", -Math.PI/2, 0);
+        m.P("soot", planeGeo(len/6+0.2, 0.16, 0), x, decAt(x,z,len/12+0.1), z, 0, "#151210", -Math.PI/2, 0);
       }
     }
     // paper, shrink wrap, a glove
     for(let i=0;i<40;i++){
       const z=pick(AISLE)+(R()-0.5)*3.0, x=RX0-6+R()*(RX1-RX0+14);
-      m.P("paper", planeGeo(0.21, 0.30, 0), x, dec(), z, R()*3, pick(["#d8d2c0","#cfc8b4","#e2dccb"]),
+      m.P("paper", planeGeo(0.21, 0.30, 0), x, decAt(x,z,0.19), z, R()*3, pick(["#d8d2c0","#cfc8b4","#e2dccb"]),
           -Math.PI/2, 0);
     }
+    // shrink wrap, balled up and trodden flat: a crumpled sheet, not a stone
     for(let i=0;i<14;i++){
-      const g=blobGeo(0.16);
-      m.P("plaster", g, RX0-5+R()*(RX1-RX0+10), FY+0.05, pick(AISLE)+(R()-0.5)*2.6, R()*3,
-          "#c9ccc4", 0, 0);
+      const g=new T.IcosahedronGeometry(0.22+R()*0.12, 0); g.scale(1.0, 0.16+R()*0.10, 0.75);
+      m.P("plaster", g, RX0-5+R()*(RX1-RX0+10), FY+0.025, pick(AISLE)+(R()-0.5)*2.6, R()*3,
+          "#d4d8d2", 0, 0);
     }
   }
 
@@ -637,11 +662,11 @@
   {
     // floor and roof slabs: the floor runs from the stores' own slab edge to
     // the end room's (both oversail), and its face covers the threshold
-    m.B("concrete", (PX1-OS)-(HX1+WT+OS), 0.50, PZ1-PZ0+2*WT, ((PX1-OS)+(HX1+WT+OS))/2, FY-0.25,
+    m.B("concrete", (PX1-OS)-(HX1+WT+OS), 0.50, PZ1-PZ0+2*WT+2*OS, ((PX1-OS)+(HX1+WT+OS))/2, FY-0.25,
         (PZ0+PZ1)/2, 0.5, 0, CONCD);
     m.P("concrete", planeGeo((PX1-OS)-HX1, PZ1-PZ0, 0.5), ((PX1-OS)+HX1)/2, FY+0.006, (PZ0+PZ1)/2,
         0, FLR, -Math.PI/2, 0);
-    m.B("concrete", PX1-PX0, 0.50, PZ1-PZ0+2*WT, (PX0+PX1)/2, FY+PH+0.25, (PZ0+PZ1)/2, 0.5, 0, "#4a4741");
+    m.B("concrete", PX1-PX0, 0.50, PZ1-PZ0+2*WT+2*OS, (PX0+PX1)/2, FY+PH+0.25, (PZ0+PZ1)/2, 0.5, 0, "#4a4741");
     wall(PX0, PX1, PZ0-WT, PZ0, -0.1, PH+0.4);
     wall(PX0, PX1, PZ1, PZ1+WT, -0.1, PH+0.4);
     for(const q of [[PZ0, 1],[PZ1, -1]]){

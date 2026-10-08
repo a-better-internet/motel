@@ -163,7 +163,12 @@
       const a=(i/20)*6.283+r2()*0.22, rr=D.r-1.2+r2()*3.4, sc=2.2+r2()*3.4;
       const fr=new T.CircleGeometry(sc, 11), fu=fr.attributes.uv;
       for(let k=0;k<fu.count;k++) fu.setXY(k, fu.getX(k)*sc, fu.getY(k)*sc);
-      m.P("concrete", fr, Math.cos(a)*rr, 0.024+i*0.0003, Math.sin(a)*rr, a,
+      /* 2 mm a rung, six rungs, all under the cap. At 0.3 mm a step the rim
+         discs and the cap above them were separated by less than the depth
+         buffer can resolve beyond about twenty-five metres, and the whole
+         forecourt shimmered as you came up the road. Neighbours round the
+         rim are never on the same rung. */
+      m.P("concrete", fr, Math.cos(a)*rr, 0.018+(i%6)*0.002, Math.sin(a)*rr, a,
           (i%3===0)?"#7a7060":((i%3===1)?"#6b6252":"#746b5b"), -Math.PI/2, 0);
     }
     /* And the desert taking the gravel back. The lot read as one clean pale
@@ -185,16 +190,34 @@
       const sc=0.8+r2()*1.9, g=new T.CircleGeometry(1, 20), u=g.attributes.uv;
       for(let k=0;k<u.count;k++) u.setXY(k, u.getX(k)*sc*2, u.getY(k)*sc*2);
       g.scale(sc*1.5, sc*(0.7+r2()*0.5), 1);
-      m.P("sand", g, Math.cos(a)*rr, 0.031+i*0.00006, Math.sin(a)*rr, a+r2(),
+      // 1.5 mm a rung (it was 0.06 mm — a twentieth of what reads at ten metres)
+      m.P("sand", g, Math.cos(a)*rr, 0.032+(i%7)*0.0015, Math.sin(a)*rr, a+r2(),
           ["#7d5c3e","#866847","#725438"][i%3], -Math.PI/2, 0);
     }
     /* Everything scattered on the slab shares one counter and one step, so
        the order it is written in is the order it stacks — and the step has
        to be small enough that three hundred of them do not end up as a deck
        of cards five centimetres off the ground. */
-    let lay=0;
-    const LY=()=>0.036+(lay++)*0.00014;
-    const dec=(bk,w,h,x,z,ry,c)=>m.P(bk, planeGeo(w,h,0.5), x, LY(), z,
+    /* EACH DECAL ONE RUNG ABOVE THE HIGHEST ONE IT TOUCHES. The step used
+       to be 0.14 mm for every one of three hundred, in a single climbing
+       stack: small enough not to make a deck of cards, and also small enough
+       that beyond about twenty metres the depth buffer could not tell the
+       layers apart and the whole forecourt shimmered. A rung is 0.6 mm now,
+       which holds to forty-five metres — but three hundred of those would be
+       eighteen centimetres. So a decal only climbs above the ones it actually
+       overlaps (bounding circles, which is generous), and anything with
+       nothing under it goes on rung 0. Later still sits on top of anything
+       earlier that it touches, which was the point of the old ladder. */
+    const placed=[];
+    const LY=(x,z,r)=>{
+      let k=0;
+      for(const q of placed)
+        if((q[0]-x)*(q[0]-x)+(q[1]-z)*(q[1]-z) < (q[2]+r)*(q[2]+r)) k=Math.max(k, q[3]+1);
+      k=Math.min(k, 59);
+      placed.push([x,z,r,k]);
+      return 0.046+k*0.0006;
+    };
+    const dec=(bk,w,h,x,z,ry,c)=>m.P(bk, planeGeo(w,h,0.5), x, LY(x,z,Math.hypot(w,h)/2), z,
                                      ry, c, -Math.PI/2, 0);
     /* A stain is not a rectangle. Every blotch on this slab was a rotated
        quad, so from standing height the apron read as a heap of dark cards
@@ -205,13 +228,13 @@
       const g=new T.CircleGeometry(1, 13), u=g.attributes.uv;
       for(let k=0;k<u.count;k++) u.setXY(k, u.getX(k)*rx*2, u.getY(k)*rz*2);
       g.scale(rx, rz, 1);
-      m.P(bk, g, x, LY(), z, ry, c, -Math.PI/2, 0);
+      m.P(bk, g, x, LY(x,z,Math.max(rx,rz)), z, ry, c, -Math.PI/2, 0);
     };
     /* The concrete apron, only as far as the cars ever parked — and aged
        properly. Scattered rectangles in two greys read as a clean slab with
        some dirt on it; what ages concrete is the crack pattern, and a crack
        is a line that wanders and forks, not a box. */
-    m.P("concrete", planeGeo(19.0, 10.4, 0.9), 0, 0.035, -1.6, 0, "#67624f", -Math.PI/2, 0);
+    m.P("concrete", planeGeo(19.0, 10.4, 0.9), 0, 0.044, -1.6, 0, "#67624f", -Math.PI/2, 0);
     /* And the slab does not end on a drawn rectangle any more than the lot
        ends on a drawn arc. Discs of the same grey lapped over the edge, and
        drifts of the lot's colour lapped back in, so the boundary is a line
@@ -233,7 +256,7 @@
     const seg=(x0,z0,x1,z1,w,col)=>{
       const dx2=x1-x0, dz2=z1-z0, ln=Math.hypot(dx2,dz2);
       if(ln<0.02) return;
-      m.P("concrete", planeGeo(ln*1.08, w, 0.5), (x0+x1)/2, LY(),
+      m.P("concrete", planeGeo(ln*1.08, w, 0.5), (x0+x1)/2, LY((x0+x1)/2,(z0+z1)/2,ln*0.54+w),
           (z0+z1)/2, Math.atan2(-dz2, dx2), col, -Math.PI/2, 0);
     };
     const crack=(x0,z0,a0,steps,w,col,depth)=>{
@@ -648,14 +671,17 @@
        each tread is a real walkable plate at its own top. */
     const APR=0.03, TRD=0.36, SW=2.10;
     for(let i=0;i<3;i++){
-      const top=FY-(i+1)*((FY-APR)/3);         // 0.42, 0.22, 0.03
+      // the bottom tread 4 cm above the apron, not AT it: level with the lot
+      // it was a slab lying in the lot's own plane, and the two fought
+      const top=FY-(i+1)*((FY-APR-0.04)/3);    // about 0.43, 0.25, 0.07
       const z1=Z-0.34-i*TRD, z0=z1-TRD;        // and each one further out
       const w=SW-i*0.10;
       m.B("concrete", w, top-APR+0.26, TRD+0.02, DX, (APR+top)/2-0.13, (z0+z1)/2,
           0.5, 0, (i%2)?"#8d8474":"#847b6b");
       m.flat(DX-w/2, DX+w/2, z0, z1, top);
       // the nosing, and the crack across it that every one of these has
-      m.B("concrete", w, 0.035, 0.05, DX, top-0.018, z0+0.025, 0.4, 0, "#9a9182");
+      // 3 mm proud of the tread, not 0.5 mm under its surface
+      m.B("concrete", w, 0.035, 0.05, DX, top-0.0145, z0+0.025, 0.4, 0, "#9a9182");
       m.P("soot", planeGeo(0.05+((i*7)%3)*0.04, TRD*0.9, 0),
           DX-0.5+((i*5)%3)*0.5, top+0.004, (z0+z1)/2, 0.2*(i-1), "#57503f",
           -Math.PI/2, 0);

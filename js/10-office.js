@@ -697,7 +697,9 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
   push("soot", planeGeo(1.30,0.85,0), O.x1-0.90, y0+0.012, cz-0.40, 0, "#4a443a",
        -Math.PI/2, 0);
   for(let i=0;i<7;i++)
-    push("paper", boxGeo(0.30,0.012,0.24,0), O.x1-1.80, y0+0.018+i*0.012, cz+3.30,
+    // 11 mm sheets at 12 mm steps: paper is double-sided, so a sheet's top
+    // and the underside of the one on it were both drawn, in one plane
+    push("paper", boxGeo(0.30,0.011,0.24,0), O.x1-1.80, y0+0.018+i*0.012, cz+3.30,
          ((i*7)%5-2)*0.06, "#ded6c0");
   // the ceiling has been letting go over the corner for years
   for(let i=0;i<3;i++)
@@ -837,7 +839,9 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
 
     /* ---- greenhouse, per body style ----------------------------------- */
     if(kind===1){                                             // pickup
-      B("carpaint", 1.82,0.16,1.06, 0,0.90, 0.58);            // cab base
+      // cab base 1 cm higher than the hood deck: both topped out at 0.98 and
+      // shared that plane across the half-metre where the two overlap
+      B("carpaint", 1.82,0.16,1.06, 0,0.91, 0.58);            // cab base
       G(1.52,0.44,1.26, 0,1.20,0.58);
       G(1.46,0.48,0.05, 0,1.21, 1.16, 0.40);                  // raked windscreen
       B("carpaint", 1.44,0.14,1.10, 0,1.41, 0.56);            // cab roof
@@ -952,7 +956,10 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
      north so it tucks under the office's own eave rather than fighting it.
      It has no south wall of its own — the office's north wall is that wall,
      and building a second one on the same plane is two slabs z-fighting. */
-  bx("concrete", W+1.0, 0.32, D2+0.9, (A.x0+A.x1)/2, y0-0.16, (IZ0+A.z1)/2+0.2, 0.45, 0, "#b6afa0");
+  /* The slab stops 2 cm outside the walls. It used to run half a metre
+     past them on three sides, and out there its top was the same plane as
+     the apron round the office. */
+  bx("concrete", W+0.04, 0.32, D2+0.27, (A.x0+A.x1)/2, y0-0.16, (IZ0-0.25+A.z1+0.02)/2, 0.45, 0, "#b6afa0");
   addFlat(A.x0-0.5, A.x1+0.5, IZ0-0.2, A.z1+0.45, y0);
   bx("lino", W-0.3, 0.04, D2-0.3, (A.x0+A.x1)/2, y0+0.02, (IZ0+A.z1)/2, 0.85, 0, "#b9ad91");
   addZone(A.x0, A.x1, IZ0-0.25, A.z1, y0-0.5, y0+CH+0.4, "THE MANAGER'S APARTMENT", true);
@@ -972,8 +979,11 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
     }else bx("stucco", 0.22, CH, D2, px, y0+CH/2, (IZ0+A.z1)/2, 0.3, 0, SLATE);
     addCol(px-0.11, px+0.11, IZ0-0.05, A.z1, y0, y0+CH);
   }
-  bx("stucco", WINN[0]-A.x0, CH, 0.22, (A.x0+WINN[0])/2, y0+CH/2, A.z1-0.11, 0.3, 0, SLATE);
-  bx("stucco", A.x1-WINN[1], CH, 0.22, (WINN[1]+A.x1)/2, y0+CH/2, A.z1-0.11, 0.3, 0, SLATE);
+  /* The north wall runs BETWEEN the side walls, from inner face to inner
+     face. Run out to A.x0 and A.x1 it shared both outside corners with
+     them, and the two faces of each corner flickered full height. */
+  bx("stucco", WINN[0]-IX0, CH, 0.22, (IX0+WINN[0])/2, y0+CH/2, A.z1-0.11, 0.3, 0, SLATE);
+  bx("stucco", IX1-WINN[1], CH, 0.22, (WINN[1]+IX1)/2, y0+CH/2, A.z1-0.11, 0.3, 0, SLATE);
   bx("stucco", WINN[1]-WINN[0], 1.06, 0.22, (WINN[0]+WINN[1])/2, y0+0.53, A.z1-0.11, 0.3, 0, SLATE);
   bx("stucco", WINN[1]-WINN[0], CH-2.20, 0.22, (WINN[0]+WINN[1])/2, y0+2.20+(CH-2.20)/2,
      A.z1-0.11, 0.3, 0, SLATE);

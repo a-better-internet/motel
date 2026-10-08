@@ -127,7 +127,12 @@
        two side walls, a soffit and a floor, each a single long box, with the
        flats overlapping their neighbours so no line of the floor is a line
        with nothing on it. */
-    m.B("concrete", VX0-CX0, 0.45, CZ1-CZ0+WT*2, (CX0+VX0)/2, RD-0.225,
+    /* The corridor's floor, walls and soffit stop at VX0-WT, where the
+       vestibule's west wall begins, and its walls start at the hall wall's
+       OUTER face. They ran from the hall's inside face to VX0, through
+       both walls, so the reveals either side of each doorway and the
+       ceiling of the corridor mouth were each two faces in one plane. */
+    m.B("concrete", VX0-WT-CX0, 0.45, CZ1-CZ0+WT*2, (CX0+VX0-WT)/2, RD-0.225,
         (CZ0+CZ1)/2, 0.5, 0, "#948d83");
     m.P("plank", planeGeo(VX0-CX0, CZ1-CZ0, 0.42), (CX0+VX0)/2, RD+0.01,
         (CZ0+CZ1)/2, 0, "#8d7049", -Math.PI/2, 0);
@@ -137,11 +142,11 @@
         (CZ0+CZ1)/2, 0, CARD, 0, 0);          // the worn strip down the middle
     m.flat(CX0-0.4, VX0+0.4, CZ0, CZ1, RD);
     for(const q of [[CZ0-WT, CZ0],[CZ1, CZ1+WT]]){
-      m.B("concrete", VX0-CX0, VH, q[1]-q[0], (CX0+VX0)/2, RD+VH/2, (q[0]+q[1])/2,
+      m.B("concrete", VX0-WT-CX0-WT, VH, q[1]-q[0], (CX0+WT+VX0-WT)/2, RD+VH/2, (q[0]+q[1])/2,
           0.42, 0, "#8d877c");
       m.col(CX0, VX0, q[0], q[1], RD-1, RD+VH+0.5);
     }
-    m.B("concrete", VX0-CX0+0.12, 0.45, CZ1-CZ0+WT*2, (CX0+VX0)/2-0.06, RD+VH+0.225,
+    m.B("concrete", VX0-WT-CX0+0.12, 0.45, CZ1-CZ0+WT*2, (CX0+VX0-WT)/2-0.06, RD+VH+0.225,
         (CZ0+CZ1)/2, 0.5, 0, "#6e5a4a");
     // dado and plaster, both sides of the corridor and round the vestibule
     /* Same convention as the speakeasy's line(): ry 0 or pi means the run
@@ -335,16 +340,19 @@
       { const base = house ? STGY : STLY-0.6;
         for(const r of (cut ? [[b[0], SDX0],[SDX1, b[1]]] : [[b[0], b[1]]]))
           if(r[1]-r[0]>0.02)
+            // 8 mm proud of the plaster field: both were drawn at q[0], and
+            // the two fought down the full length of both walls
             m.P("oak", planeGeo(r[1]-r[0], 1.90, 1.3), (r[0]+r[1])/2, base+0.95,
-                q[0], ry, OAKM, 0, 0);
+                q[0]+(q[1]===0?0.008:-0.008), ry, OAKM, 0, 0);
         /* THE CAP RAIL STOPS AT THE DOOR. A rail carried across an opening
            is the single most-repeated fault in this project; it is thin, it
            is easy to miss in a screenshot, and it is a barrier across the
            way through all the same. */
         for(const r of (cut ? [[b[0], SDX0],[SDX1, b[1]]] : [[b[0], b[1]]])){
           const RL=r[1]-r[0]; if(RL<=0.02) continue;
-          m.B("oak", RL, 0.11, 0.17, (r[0]+r[1])/2, base+1.95,
-              q[0]+(q[1]===0?0.075:-0.075), 0.5, 0, OAKD);
+          // 0.18 deep, not 0.17: at 0.17 its face was the pilasters' face
+          m.B("oak", RL, 0.11, 0.18, (r[0]+r[1])/2, base+1.95,
+              q[0]+(q[1]===0?0.085:-0.085), 0.5, 0, OAKD);
           m.B("brass", RL, 0.045, 0.11, (r[0]+r[1])/2, base+2.03,
               q[0]+(q[1]===0?0.055:-0.055), 0.4, 0, GILT);
           m.B("oak", RL, 0.13, 0.15, (r[0]+r[1])/2, base+0.10,
@@ -611,14 +619,18 @@
       const t=i/33, z=PZ_0+0.3+t*(PW-0.6);
       const sag=Math.sin(t*Math.PI)*1.10;
       const top=HEAD-0.5, bot=top-2.2-sag*2.4;
+      /* each fold turned its own way: identical ten-sided cylinders standing
+         in a row have their across-stage facets in one plane, and where two
+         overlap those facets fight */
       m.C("velvet", 0.30,0.26,top-bot, 10, STGX-0.42, (top+bot)/2, z,
-          i%2?OX:OXD);
+          i%2?OX:OXD, 0, i*0.413, 0);
     }
     m.B("velvet", 0.44, 0.44, PW-0.4, STGX-0.42, HEAD-0.36, (AZ0+AZ1)/2, 2.2, 0, OXD);
     for(const q of [PZ_0+0.9, PZ_1-0.9])                 // the legs, drawn back
       for(let i=0;i<7;i++)
         m.C("velvet", 0.34,0.30, HEAD-STGY-1.0, 10, STGX-0.42-0.0,
-            (HEAD+STGY)/2-0.5, q+(q<(AZ0+AZ1)/2?1:-1)*i*0.30, i%2?OX:OXD);
+            (HEAD+STGY)/2-0.5, q+(q<(AZ0+AZ1)/2?1:-1)*i*0.30, i%2?OX:OXD,
+            0, 0.19+i*0.437, 0);
     /* THE TIE-BACKS FACE THE HOUSE. A torus's axis is +z, so with ry of
        nothing it hangs edge-on to the audience and reads as a gold sliver;
        the ring has to be turned a quarter turn to be a ring at all. A
@@ -679,9 +691,11 @@
       for(const q of [-1,1])
         m.B("metal", 0.46, 0.44, 0.05, sx-0.02, sy+0.22, sz+q*(PITCH/2-0.025),
             0.4, 0, "#3e3832");
-      if(up) m.P("velvet", boxGeo(0.44, 0.07, PITCH-0.09, 2.2), sx-0.20, sy+0.46, sz,
+      // the seat 2 cm narrower than the back: at the same width their end
+      // faces were one plane wherever the two touched, on every seat
+      if(up) m.P("velvet", boxGeo(0.44, 0.07, PITCH-0.11, 2.2), sx-0.20, sy+0.46, sz,
                  0, OX, 0, Math.PI/2-0.22);
-      else   m.P("velvet", boxGeo(0.46, 0.09, PITCH-0.09, 2.2), sx, sy+0.44, sz,
+      else   m.P("velvet", boxGeo(0.46, 0.09, PITCH-0.11, 2.2), sx, sy+0.44, sz,
                  0, OX, 0, 0);
       m.P("velvet", boxGeo(0.10, 0.52, PITCH-0.09, 2.2), sx-0.22, sy+0.70, sz,
           0, OX, 0, -0.12);
@@ -924,7 +938,13 @@
        butting is free: those two faces point opposite ways and one is
        culled. Oversail the outside, butt the inside. */
     const OS=0.08;
-    SL(L1X0-WT2-OS, L1X1+WT2+OS, L2Z1,         L1Z1+WT2+OS, CH);
+    /* LEG ONE ENDS AT THE HALL'S INSIDE FACE, NOT HALF A METRE PAST IT.
+       L1Z1 is AZ0, the hall's INNER face; "+WT2+OS" reached on into the
+       auditorium, so a grey strip of corridor floor, two concrete wall
+       stubs and a ceiling ledge stuck out into the side aisle beside the
+       stage door. The slabs stop at AZ0 and butt the hall's floor; the
+       walls stop 10 cm short of it, inside the hall wall's thickness. */
+    SL(L1X0-WT2-OS, L1X1+WT2+OS, L2Z1,         L1Z1,        CH);
     SL(L2X0-WT2,    L1X1+WT2+OS, L2Z0-WT2-OS,  L2Z1,        CH);
     SL(EX0-WT2-OS,  L2X0-WT2,    EZ0-WT2-OS,   EZ1+WT2+OS,  EH);
     const wall=(x0,x1,z0,z1,h)=>{
@@ -936,8 +956,8 @@
     /* Leg one's side walls start 12 cm BEFORE the corner, so their end
        faces are buried in leg two rather than landing on the plane where
        the two ceiling slabs meet. */
-    wall(L1X0-WT2, L1X0, L2Z1-0.12, L1Z1+WT2, CH);
-    wall(L1X1, L1X1+WT2, L2Z1-0.12, L1Z1+WT2, CH);
+    wall(L1X0-WT2, L1X0, L2Z1-0.12, L1Z1-0.10, CH);
+    wall(L1X1, L1X1+WT2, L2Z1-0.12, L1Z1-0.10, CH);
     // LEG TWO: south side the whole way, north side up to leg one's west
     // wall, and the east end, which was open to nothing at all.
     // reaching 10 cm PAST the slab edge at L2X0-WT2, so its own west face
@@ -960,8 +980,10 @@
        closes on all four sides — flush with it, its west face and the end
        room's ceiling slab's edge were the same plane, and its north face
        and leg two's slab edge likewise. */
-    m.B("concrete", WT2+0.18, EH-CH+0.5, L2Z1-L2Z0+0.20, EX1-0.28,
-        FY+CH+(EH-CH+0.5)/2, (L2Z0+L2Z1)/2, 0.5, 0, "#4a443c");
+    // ...and its underside 1 cm above leg two's ceiling, inside that slab,
+    // instead of in the same plane as it
+    m.B("concrete", WT2+0.18, EH-CH+0.49, L2Z1-L2Z0+0.20, EX1-0.28,
+        FY+CH+0.01+(EH-CH+0.49)/2, (L2Z0+L2Z1)/2, 0.5, 0, "#4a443c");
 
     /* ---- render, and forty years of damp on it ----------------------- */
     const face=(ry,px,pz,a0,a1,h)=>{

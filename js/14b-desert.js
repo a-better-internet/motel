@@ -270,8 +270,9 @@
     for(let i=0;i<22;i++){
       const sx=-0.6+((i*2.17)%11.2), w=0.10+((i*5)%4)*0.09;
       for(const sd of [-1,1])
+        // 4 mm off the fascia: at IZ+-3.21 they were ON its outer face
         m.P("rust", streakGeo(w, 0.34+((i*7)%4)*0.13, 0), 4.0-5.0+sx, F+4.30,
-            IZ+sd*3.21, sd>0?0:Math.PI, "#6a4a2c", 0, 0);
+            IZ+sd*3.214, sd>0?0:Math.PI, "#6a4a2c", 0, 0);
     }
     for(let i=0;i<9;i++)                               // and down the posts
       for(const px of [0.8, 7.2])
@@ -282,7 +283,8 @@
           -0.4+((i*1.87)%9.0), F+4.245, IZ-2.4+((i*1.31)%4.8), i*1.3,
           "#d6d2c6", -Math.PI/2, 0);
     // a panel gone out of the soffit, and the framing behind it
-    m.B("bin", 1.30, 0.06, 1.05, 2.4, F+4.30, IZ+1.1, 0.4, 0, "#2b2723");
+    // its underside 3 mm below the soffit's, not in the soffit's plane
+    m.B("bin", 1.30, 0.06, 1.05, 2.4, F+4.297, IZ+1.1, 0.4, 0, "#2b2723");
     for(let i=0;i<4;i++)
       m.B("metal", 1.26, 0.05, 0.05, 2.4, F+4.44, IZ+0.66+i*0.29, 0, 0, "#6f6a60");
     // one pump with its nozzle off and the hose on the ground
@@ -443,9 +445,19 @@
        third of a millimetre apart so no two of them fight.              */
     {
       let sd=4471; const r2=()=>{ sd=(sd*1103515245+12345)%2147483648; return sd/2147483648; };
-      let lay=0;
-      const dec=(w,h,rr,a2,ry,c)=>m.P("concrete", planeGeo(w,h,0.5), Math.cos(a2)*rr,
-          0.226+(lay++)*0.0003, Math.sin(a2)*rr, ry, c, -Math.PI/2, 0);
+      /* Each patch one 0.8 mm rung above the highest patch it overlaps
+         (bounding circles), rung 0 if it overlaps none. A third of a
+         millimetre a step only holds to about thirty metres and this pad is
+         ninety across. Same rule as the diner's forecourt. */
+      const placed=[];
+      const dec=(w,h,rr,a2,ry,c)=>{
+        const x=Math.cos(a2)*rr, z=Math.sin(a2)*rr, r=Math.hypot(w,h)/2;
+        let k=0;
+        for(const q of placed)
+          if((q[0]-x)*(q[0]-x)+(q[1]-z)*(q[1]-z) < (q[2]+r)*(q[2]+r)) k=Math.max(k, q[3]+1);
+        k=Math.min(k, 39); placed.push([x,z,r,k]);
+        m.P("concrete", planeGeo(w,h,0.5), x, 0.226+k*0.0008, z, ry, c, -Math.PI/2, 0);
+      };
       for(let i=0;i<24;i++){                       // sand drifting back across it
         const a2=r2()*6.283, rr=r2()*(D.r-3);
         dec(6.0+r2()*8.0, 1.4+r2()*2.0, rr, a2, 0.42+(r2()-0.5)*0.3, "#9b9077");

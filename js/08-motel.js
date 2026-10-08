@@ -871,7 +871,14 @@ function furnishRoom(xf, y0, roomNo){
   P("lampshade", new T.CylinderGeometry(0.11,0.16,0.18,12), -2.46, 1.72, 0.60, "#e8dcc0");
 
   /* --- what the last guest left behind --------------------------------- */
-  const pick3=[(roomNo*7)%8, (roomNo*13+3)%8, (roomNo*5+6)%8];
+  /* Three DIFFERENT vignettes. (7r)%8 and (5r+6)%8 agree whenever r is 3
+     mod 4, so rooms 3, 7, 11, 15... had the same one drawn twice on top of
+     itself — two identical stacks of magazines fighting on the table. */
+  const pick3=[];
+  for(const c of [(roomNo*7)%8, (roomNo*13+3)%8, (roomNo*5+6)%8]){
+    let v=c; while(pick3.includes(v)) v=(v+1)%8;
+    pick3.push(v);
+  }
   for(let k=0;k<3;k++){
     switch(pick3[k]){
       case 0:  // ashtray with a cigarette still going
@@ -951,7 +958,11 @@ function buildWing(cfg){
   // ---- wing caps, gables, rear facade ---------------------------------
   for(const s of [-1,1]){
     const ex=s*halfLen;
-    lwall(wxf,"stucco", 0.30, FLOOR_H+WALL_H1, 6.80, ex, BASE+(FLOOR_H+WALL_H1)/2, 3.40, 0.3, SLATE);
+    /* 1 cm proud of the facade, like a corner pilaster. Starting at local
+       z = 0 its front face was the end bay's front-wall face for the 15 cm
+       the two overlap, and the strip flickered up both storeys of all four
+       corners of the motel. */
+    lwall(wxf,"stucco", 0.30, FLOOR_H+WALL_H1, 6.81, ex, BASE+(FLOOR_H+WALL_H1)/2, 3.395, 0.3, SLATE);
     // the shape is laid out in (3.40 - localZ, height above the wall head);
     // 29 cm thick, so its cheeks sit just inboard of the 30 cm end wall and
     // nothing ends up coplanar with it

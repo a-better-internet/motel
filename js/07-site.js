@@ -136,7 +136,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
         const a=r2()*Math.PI*2;
         for(let k=0;k<5;k++)
           push("soot", planeGeo(0.24, 1.5+r2()*0.8, 0), x+Math.cos(a)*k*0.9,
-               LY+k*0.00008, z+Math.sin(a)*k*0.9, a+k*0.13,
+               LY+k*0.0006, z+Math.sin(a)*k*0.9, a+k*0.13,
                "#1d1b18", -Math.PI/2, 0);
       }
     }

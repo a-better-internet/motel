@@ -373,8 +373,13 @@
        different numbers and they disagree on the second landing. */
     for(let i=1;i<=STEPS;i++){
       const ty=F-i*RISE, z0=STOP+(i-1)*GO;
-      m.B("stairs", SW1-SW0, 0.055, GO+0.03, (SW0+SW1)/2, ty-0.027, z0+GO/2, 0.7, 0,
-          i%2 ? "#b4ac9c" : "#b8b0a0");
+      /* The last "tread" is the landing. 24 x 0.2108 from F lands 1.3 mm
+         above TD, so a tread drawn there was a second floor laid on the
+         first, and the two fought at the foot of the flight. Its riser and
+         nosing stay; the slab is the landing's. */
+      if(i<STEPS)
+        m.B("stairs", SW1-SW0, 0.055, GO+0.03, (SW0+SW1)/2, ty-0.027, z0+GO/2, 0.7, 0,
+            i%2 ? "#b4ac9c" : "#b8b0a0");
       /* THE RISER CLOSES THE FACE ABOVE ITS OWN TREAD, not below it. It was
          at ty-RISE/2 — the gap between this tread and the NEXT one down,
          which is behind the tread and can never be seen — so the flight had
@@ -529,21 +534,31 @@
        [side, lo, hi] in along-axis coordinates, where side 0 is the c0 wall
        and 1 the c1 wall. Without it the two legs wall each other off at the
        corner and the whole route is a dead end you cannot see the end of. */
-    const bore=(axis, a0, a1, c0, c1, seed, hole)=>{
+    /* `end1`/`end0` say where the walls and slabs stop at each end, for a
+       leg that runs INTO something. Left to themselves leg B's walls ran to
+       leg A's inside wall line and its slabs 30 cm past that (and 30 cm into
+       the anteroom's doorway at the other end), so every end face lay on
+       one of the other structure's faces and the slabs overlapped. A leg
+       that meets another stops at that one's OUTSIDE faces and butts them. */
+    const bore=(axis, a0, a1, c0, c1, seed, hole, end1, end0)=>{
       const mid=(c0+c1)/2, len=a1-a0, mida=(a0+a1)/2;
       const X=(a,c)=>axis==="z" ? c : a, ZZ=(a,c)=>axis==="z" ? a : c;
       // invert and soffit
-      m.B("concrete", axis==="z"?(c1-c0+TWW*2):len+TWW*2, 0.32,
-          axis==="z"?len:(c1-c0+TWW*2), X(mida,mid), TD-0.16, ZZ(mida,mid), 0.5, 0, "#948d83");
-      m.B("concrete", axis==="z"?(c1-c0+TWW*2):len+TWW*2, 0.34,
-          axis==="z"?len:(c1-c0+TWW*2), X(mida,mid), TD+TH+0.17, ZZ(mida,mid), 0.45, 0, "#8d877c");
-      m.flat(axis==="z"?c0+0.02:a0, axis==="z"?c1-0.02:a1,
-             axis==="z"?a0:c0+0.02, axis==="z"?a1:c1-0.02, TD);
+      const s0=end0 ? end0.slab : a0-TWW, s1=end1 ? end1.slab : a1+TWW, sl=s1-s0, sm=(s0+s1)/2;
+      m.B("concrete", axis==="z"?(c1-c0+TWW*2):sl, 0.32,
+          axis==="z"?sl:(c1-c0+TWW*2), X(sm,mid), TD-0.16, ZZ(sm,mid), 0.5, 0, "#948d83");
+      m.B("concrete", axis==="z"?(c1-c0+TWW*2):sl, 0.34,
+          axis==="z"?sl:(c1-c0+TWW*2), X(sm,mid), TD+TH+0.17, ZZ(sm,mid), 0.45, 0, "#8d877c");
+      // the flat still runs to a1 and a little past, over the joint
+      const f1=end1 ? a1+0.10 : a1;
+      m.flat(axis==="z"?c0+0.02:a0, axis==="z"?c1-0.02:f1,
+             axis==="z"?a0:c0+0.02, axis==="z"?f1:c1-0.02, TD);
+      const w1=end1 ? end1.wall : a1;
       for(let sd=0; sd<2; sd++){
         const q = sd ? [c1, c1+TWW] : [c0-TWW, c0];
         const segs = (hole && hole[0]===sd)
-          ? [[a0, hole[1]],[hole[2], a1]].filter(g=>g[1]-g[0]>0.06)
-          : [[a0, a1]];
+          ? [[a0, hole[1]],[hole[2], w1]].filter(g=>g[1]-g[0]>0.06)
+          : [[a0, w1]];
         for(const g of segs){
           const gl=g[1]-g[0], gm=(g[0]+g[1])/2;
           m.B("concrete", axis==="z"?(q[1]-q[0]):gl, TH+1.0, axis==="z"?gl:(q[1]-q[0]),
@@ -629,7 +644,8 @@
       }
     };
     bore("z", TZ0, TZ1, TN0, TN1, 11, [0, BZ0, BZ1]);   // leg B comes in here
-    bore("x", BX0, BX1, BZ0, BZ1, 73);
+    // butting leg A at one end and the anteroom's east wall at the other
+    bore("x", BX0, BX1, BZ0, BZ1, 73, null, {wall:TN0-TWW, slab:TN0-TWW}, {slab:BX0});
     // leg A stops at the corner, so it needs an end wall of its own
     m.B("concrete", TN1-TN0+TWW*2, TH+1.0, TWW, (TN0+TN1)/2, TD+TH/2, TZ1+TWW/2,
         0.42, 0, CONCD);
@@ -1012,8 +1028,11 @@
     }
     m.B("oak", L, 0.16, 0.06, CX, RD+0.08, BARZ-0.02, 0.5, 0, OAKD);
     m.B("oak", L+0.24, 0.07, CW+0.34, CX, TOPY+0.035, BARZ+CW/2-0.10, 0.7, 0, "#7a4a28");
-    m.P("oak", new T.CylinderGeometry(0.035,0.035,L+0.24,10), CX, TOPY+0.035, BARZ-0.27,
-        0, "#8a5630", 0, Math.PI/2);                     // the bullnose edge
+    // the bullnose edge, its centre 5 mm low: at TOPY+0.035 the cylinder's
+    // flat top facet sat 1.7 mm under the counter's top face and overlapped
+    // it by a centimetre the length of the bar
+    m.P("oak", new T.CylinderGeometry(0.035,0.035,L+0.24,10), CX, TOPY+0.030, BARZ-0.27,
+        0, "#8a5630", 0, Math.PI/2);
     m.P("brass", new T.CylinderGeometry(0.030,0.030,L,10), CX, RD+0.19, BARZ-0.19,
         0, BR, 0, Math.PI/2);                            // and the foot rail
     for(let i=0;i<=Math.round(L/2.2);i++)
@@ -1174,13 +1193,22 @@
        primitive count: a hundred and sixty staves at forty-five degrees,
        all in the plank bucket, one draw call. It is four square metres of
        floor doing the work of a sign that says this corner is different. */
+    /* Each stave on its own rung of an eleven-step ladder, 0.4 mm a step.
+       All at SY+0.012, every stave that crossed a neighbour — which in this
+       layout is all of them — shared its plane, and the snug's whole floor
+       shimmered. Eleven, because a stave's neighbours are 1, 2, 23-29 staves
+       away in this count and none of those is a multiple of eleven, so no two
+       that touch can land on the same rung. */
+    let nst=0;
     for(let i=0;i<13;i++)
       for(let k=0;k<13;k++){
         const px=SNX0+0.30+i*0.26, pz=SNZ0+0.30+k*0.50;
-        if(px>SNX1-0.12 || pz>SNZ1-0.12) continue;
-        for(const q of [0,1])
-          m.P("plank", planeGeo(0.52, 0.13, 0.9), px, SY+0.012, pz+q*0.25,
+        if(px>SNX1-0.12 || pz>SNZ1-0.12){ nst+=2; continue; }
+        for(const q of [0,1]){
+          m.P("plank", planeGeo(0.52, 0.13, 0.9), px, SY+0.010+(nst%11)*0.0004, pz+q*0.25,
               q?Math.PI/4:-Math.PI/4, q?"#6a4524":"#7d5230", -Math.PI/2, 0);
+          nst++;
+        }
       }
     m.flat(SNX0, SNX1, SNZ0, SNZ1, SY);
     for(let i=1;i<=2;i++)                                  // two steps up into it
@@ -1248,7 +1276,7 @@
                 [2.96, 1.50, 0.34, 0.46]];
     for(const q of pics){
       m.B("brass", q[2]+0.07, q[3]+0.07, 0.035, SNX0+q[0], SY+q[1], SNZ0+0.035, 0.4, 0, BR);
-      m.P("art", planeGeo(q[2], q[3], 0), SNX0+q[0], SY+q[1], SNZ0+0.056, 0,
+      m.P("art", planeGeo(q[2], q[3], 0), SNX0+q[0], SY+q[1], SNZ0+0.060, 0,
           "#8a7a5e", 0, 0);
       m.B("brass", q[2]+0.10, 0.03, 0.045, SNX0+q[0], SY+q[1]+q[3]/2+0.055, SNZ0+0.04,
           0.4, 0, BRD);
@@ -1365,10 +1393,14 @@
 
       /* ---- the table ----------------------------------------------------
                            x0      x1      y0      y1      z0      z1
-         seat box        -0.40    0.40    0.17    0.40   -0.40    0.40
-         back            -0.42    0.42    0.17    1.08   -0.42   -0.24
+         seat box        -0.40    0.40    0.17    0.40   -0.40    0.395
+         back            -0.41    0.41    0.175   1.08   -0.42   -0.24
          arm (each)      ±0.27   ±0.42    0.36    0.66   -0.40    0.40
-         wing (each)     ±0.27   ±0.42    0.64    1.08   -0.34   -0.10
+         wing (each)     ±0.275  ±0.415   0.64    1.07   -0.34   -0.10
+         No two pieces share a face plane where they meet: the back, the
+         arms and the wings all used to have their outsides at ±0.42, and
+         the seat box and back their undersides at 0.17, and those faces
+         flickered down both sides of every chair. 5 mm between them now.
          inner back      -0.28    0.28    0.40    1.06   -0.26   -0.16
          cushion         -0.29    0.29    0.40    0.54   -0.34    0.34
          ------------------------------------------------------------------ */
@@ -1378,14 +1410,14 @@
         const q=S(a[0]*0.31, a[1]*0.31);
         m.C("oak", 0.030,0.050,0.18,10, q[0], RD+0.090, q[1], "#2b1b11");
       }
-      bx(-0.40, 0.40, 0.17, 0.40, -0.40, 0.40, col);          // seat box
-      bx(-0.42, 0.42, 0.17, 1.08, -0.42, -0.24, col);         // back
+      bx(-0.40, 0.40, 0.17, 0.40, -0.40, 0.395, col);         // seat box
+      bx(-0.41, 0.41, 0.175, 1.08, -0.42, -0.24, col);        // back
       edgeX(-0.42, 0.42, 1.08, -0.33, 0.09, col);             // crown over it
       for(const q of [-1,1]){
         bx(q*AI, q*AO, 0.36, 0.66, -0.40, 0.40, col);         // arm
         edgeZ(-0.40, 0.40, q*AC, 0.66, 0.075, col);           // its roll
         edgeX(q*AI, q*AO, 0.66, 0.40, 0.075, col);            // scroll across the front
-        bx(q*AI, q*AO, 0.64, 1.08, -0.34, -0.10, col);        // wing
+        bx(q*(AI+0.005), q*(AO-0.005), 0.64, 1.07, -0.34, -0.10, col);   // wing
         edgeZ(-0.34, -0.10, q*AC, 1.08, 0.075, col);          // rolled on top
         edgeY(0.64, 1.08, q*AC, -0.10, 0.075, col);           // and down its front
         // studs along the arm's front and its bottom edge, as in the photograph

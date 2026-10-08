@@ -31,15 +31,25 @@ const SKIRT_GAPS=[{x0:-141, x1:-106, z0:370, z1:398, drop:1.2},
                   {x0:-196, x1:-130, z0:344, z1:402, drop:1.2},
                   // the shelter patch, whose rims cross the tunnel below
                   {x0: -86, x1: -70, z0:336, z1:358, drop:1.2},
-                  // and the stairwell itself, where even 1.2 m of apron
-                  // would hang across the flight. 10 cm, behind the kerb.
-                  {x0: -79, x1: -75, z0:339.5, z1:346, drop:0.10}];
+                  // and the stairwell itself: NO apron. Even 10 cm of one
+                  // hung on the shaft walls' faces and across the shaft at
+                  // the hut's back wall, in sand colour — the orange bands
+                  // down both walls of the stair. The bore's rim is now
+                  // behind the walls and under the hut's floor, where there
+                  // is no crack for an apron to cover.
+                  {x0: -79, x1: -75, z0:339.5, z1:346, drop:0.0}];
+/* The SMALLEST drop of every box the point is in, not the first box's.
+   With the first-match rule the shelter patch's 1.2 m (listed third)
+   swallowed the stairwell's own setting (listed fourth, and inside it),
+   so the "10 cm behind the kerb" apron round the bore was 1.2 m all
+   along — hanging down both shaft walls and across the flight. */
 function skirtDrop(x,z,drop){
+  let d=drop;
   for(let i=0;i<SKIRT_GAPS.length;i++){
     const g=SKIRT_GAPS[i];
-    if(x>g.x0 && x<g.x1 && z>g.z0 && z<g.z1) return Math.min(drop, g.drop);
+    if(x>g.x0 && x<g.x1 && z>g.z0 && z<g.z1) d=Math.min(d, g.drop);
   }
-  return drop;
+  return d;
 }
 
 const Terrain=(function(){
@@ -424,7 +434,13 @@ const TERRAIN_RINGS=[];
      out to z = 356 so the mid ring's own rim never lands on the tunnel
      running south underneath it. */
   const SHELTER_SITE={x0:-84, x1:-72, z0:338, z1:356};
-  const SHELTER_BORE={x0:-78, x1:-76, z0:340.5, z1:345.0};
+  /* The bore is cut to the shaft walls' OUTER faces (-78.26 / -75.74),
+     rounded out to this patch's half-metre lattice — not to the shaft's
+     clear width. Cut to the clear width, the ground's edge ran exactly
+     along the inside face of each wall, and the sand fought the concrete
+     for the top metre of the stair. Out here the edge is behind the walls
+     and under the hut's floor mass, where nothing can see it. */
+  const SHELTER_BORE={x0:-78.5, x1:-75.5, z0:340.5, z1:345.0};
   /* A hole is only punched for a cell that falls ENTIRELY inside it, so a
      hole whose edge lands mid-cell leaves the coarse grid covering up to a
      whole cell of ground the fine grid also covers. NEAR_SITE's edges were

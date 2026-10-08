@@ -448,20 +448,52 @@ function bx(name, w,h,d, x,y,z, uvScale, ry, color){
 function cyl(name, rt,rb,h,seg, x,y,z, color, rx,ry,rz){
   push(name, new T.CylinderGeometry(rt,rb,h,seg||14), x,y,z, ry||0, color, rx||0, rz||0);
 }
+/* WHAT IS ALLOWED TO CAST A SHADOW.
+
+   three.js draws every castShadow mesh into the depth map whatever its
+   material, and for a single-sided material it draws the BACK faces. Two
+   consequences had been shaping every shadow in the world:
+
+   * Anything flat shadows itself. A plane's back face is its front face, so
+     a plane in the depth map sits exactly on the surface being shaded. The
+     car park's visible surface is a layer of planes (lotTop breaks up the
+     tiling), and so is every stain, soot patch, tyre mark and rug edge. The
+     only thing holding that acne off was a large normalBias — 4.6 cm — and
+     a large normalBias is precisely what lifts a shadow off the foot of
+     whatever casts it: an 11 cm gap under a post at an evening sun, more on
+     the textured lot. A flat thing lying on a surface has no shadow worth
+     casting, so entries thinner than FLAT_T are split into a second mesh
+     that receives but does not cast.
+   * Transparent and additive materials cast solid shadows. The light-shaft
+     haze, the candle-pool floorglow, smoke, soot, every window pane: each
+     was printing an opaque shadow. Anything transparent, additive or not
+     writing depth does not cast at all. */
+const FLAT_T=0.012;
+const noCast=m=> !!(m.transparent || m.blending===T.AdditiveBlending || m.depthWrite===false);
+function isFlat(geo){
+  if(!geo.boundingBox) geo.computeBoundingBox();
+  const b=geo.boundingBox;
+  return Math.min(b.max.x-b.min.x, b.max.y-b.min.y, b.max.z-b.min.z) < FLAT_T;
+}
 function bakeBuckets(scene){
   const out=[];
   for(const [name,b] of BUCKETS){
     if(!b.entries.length) continue;
-    const geo=mergeEntries(b.entries);
     const m=b.makeMat ? b.makeMat() : mat(0xffffff);
     m.vertexColors=true; b.mat=m;
-    const mesh=new T.Mesh(geo,m);
-    mesh.castShadow=true;
-    // a 100 mm ledge is a couple of shadow texels wide however fine the map
-    // gets, so the waterline band opts out of receiving altogether
-    mesh.receiveShadow = !NO_SHADOW_IN.has(name);
-    mesh.name="bucket:"+name;
-    scene.add(mesh); out.push(mesh);
+    const solid=[], flat=[];
+    if(noCast(m)) flat.push(...b.entries);
+    else for(const e of b.entries) (isFlat(e.geo) ? flat : solid).push(e);
+    for(const [ents, cast] of [[solid,true],[flat,false]]){
+      if(!ents.length) continue;
+      const mesh=new T.Mesh(mergeEntries(ents), m);
+      mesh.castShadow=cast;
+      // a 100 mm ledge is a couple of shadow texels wide however fine the map
+      // gets, so the waterline band opts out of receiving altogether
+      mesh.receiveShadow = !NO_SHADOW_IN.has(name);
+      mesh.name="bucket:"+name+(cast?"":(solid.length?":flat":""));
+      scene.add(mesh); out.push(mesh);
+    }
     b.entries.length=0;
   }
   return out;

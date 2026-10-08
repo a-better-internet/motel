@@ -94,7 +94,13 @@ const ksc=key.shadow.camera;
 // enough world: standing at the far side of the car park, the motel was
 // forty metres off and cast nothing at all onto its own forecourt. 92 m
 // holds the whole court from anywhere you can stand in it.
-ksc.near=1; ksc.far=520; ksc.left=-46; ksc.right=46; ksc.top=46; ksc.bottom=-46;
+/* The key sits KEY_D metres out along the sun direction from a target at the
+   player, and the depth map only has to span the 92 m box around that
+   target: ±100 m of depth, not the 1-520 m it used to cover from a light
+   parked 200-280 m away. Depth precision is what a bias is measured in, so
+   halving the range halves the bias needed for the same protection. */
+const KEY_D=110;
+ksc.near=KEY_D-100; ksc.far=KEY_D+100; ksc.left=-46; ksc.right=46; ksc.top=46; ksc.bottom=-46;
 /* AND THEN TELL IT. An OrthographicCamera builds its projection matrix in its
    constructor and never again on its own; three.js's shadow pass only
    recomputes the VIEW matrix each frame. So every one of the six numbers
@@ -107,6 +113,16 @@ ksc.near=1; ksc.far=520; ksc.left=-46; ksc.right=46; ksc.top=46; ksc.bottom=-46;
    simply not drawn into the map.
    Any later change to ksc has to be followed by this call. */
 ksc.updateProjectionMatrix();
-key.shadow.bias=-0.00022; key.shadow.normalBias=0.046;   // one and a half texels
+/* SHADOWS THAT TOUCH WHAT CASTS THEM. Bias and normalBias both buy freedom
+   from acne by moving the shadow away from its caster: at -0.00022 over a
+   519 m range and 0.046 normalBias, a post stood on the lot had an 11 cm
+   strip of sunlight between its foot and its shadow at an evening sun (24
+   on the textured asphalt), which is the "gap" that made every shadow in
+   the world look pasted on. Most of that bias was only ever needed because
+   flat decals were casting onto the surfaces they lie on — see bakeBuckets.
+   With those out of the depth map, measured with sgap45.js at 9, 13 and 17
+   o'clock: gap 0.6-1.8 cm (the PCF soft edge itself), and no acne on the
+   lot, the motel front or the pool deck. */
+key.shadow.bias=-0.00005; key.shadow.normalBias=0.012;
 const SHADOW_SNAP=(ksc.right-ksc.left)/key.shadow.mapSize.x*2;   // kills the crawl
 scene.add(key); scene.add(key.target);

@@ -283,6 +283,7 @@ function updateFlyers(dt){
 
 let acc=0, last=performance.now()/1000, lastGifPush=0;
 let buriedMix=0;          // 0 under the sky, 1 under the ground; see below
+const _sunDir=new T.Vector3();
 const BURIED_SKY=new T.Color(0xffd2a0), BURIED_GND=new T.Color(0x3a2418);
 const BURIED_AMB=new T.Color(0xffdcb4), AMB_BASE=new T.Color(0xfff0dc);
 function frame(){
@@ -399,8 +400,13 @@ function frame(){
   // snap the shadow frustum to whole texels, or it crawls as you walk
   const kx=Math.round(camera.position.x/SHADOW_SNAP)*SHADOW_SNAP,
         kz=Math.round(camera.position.z/SHADOW_SNAP)*SHADOW_SNAP;
-  key.position.set(kx+Math.cos(ang)*R, Math.max(14, Math.sin(ang)*R+6), kz+70);
-  key.target.position.set(kx, camera.position.y*0.3, kz);
+  // the same sun direction as ever, but the light KEY_D out along it rather
+  // than two to three hundred metres off, so the depth map spans what it
+  // shades and nothing else (see the bias note in 03-scene.js)
+  const kty=camera.position.y*0.3;
+  _sunDir.set(Math.cos(ang)*R, Math.max(14, Math.sin(ang)*R+6)-kty, 70).normalize();
+  key.position.set(kx+_sunDir.x*KEY_D, kty+_sunDir.y*KEY_D, kz+_sunDir.z*KEY_D);
+  key.target.position.set(kx, kty, kz);
   key.intensity=dn.sunIntensity;
   // the moon is far too weak to cast anything but acne, so stop shadowing with it
   key.castShadow = dn.sunHeight > 0.04;

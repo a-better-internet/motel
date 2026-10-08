@@ -804,6 +804,15 @@
   const SB0=42.70, SB1=45.30;                       // the stair bay, in z
   const BARX0=-48.6, BARX1=-38.6, BARZ=48.45;       // the counter
   const BQX0=-48.6, BQX1=-38.4, BQZ=37.30;          // the banquette run
+  /* THE LOUNGE: two groups, each a coffee table with a wing chair at either
+     end facing across it. They used to stand on the room's one real axis —
+     the stair down off the entry platform (z 42.7-45.3) to the door to the
+     Long Room (z 44.75-45.95) — so crossing the room meant weaving through
+     armchairs, and a standard lamp stood at the foot of the stair itself.
+     They now sit in the band between the banquette stumps (which end at
+     z 40.2) and that axis, which is left clear its whole length. */
+  const LOUNGE=[[-45.40, 41.95],[-40.70, 41.95]];
+  const LCH=1.30;                                   // table centre to chair centre
   const SNX0=RX0, SNX1=-49.20, SNZ0=37.30, SNZ1=44.20, SNR=0.42;   // the snug
   const OAKD="#4a3426", OAKM="#6b4a2c", PLAS="#7a5c3c", CEIL="#4a2420";
   const OX="#5e2420", OXD="#471a18", VEL="#6e5a3a", BR="#c9a24a", BRD="#8e6f2e";
@@ -1394,7 +1403,11 @@
       // and a line of them along the front rail
       for(let i=0;i<9;i++) stud(-0.32+i*0.08, 0.225, 0.405);
       m.col(cx-0.46, cx+0.46, cz-0.46, cz+0.46, RD, RD+0.50);
-      addSeat(W(cx), Z(cz+0.04), GY+RD+0.60, ry, "AN ARMCHAIR");
+      /* A seat's yaw points the camera along (-sin yaw, -cos yaw); this
+         chair faces local +z, which S() turns to (sin ry, cos ry). So the
+         seat is ry + PI — passing ry sat you facing the wall behind it. */
+      const sp=S(0, 0.02);
+      addSeat(W(sp[0]), Z(sp[1]), GY+RD+0.60, ry+Math.PI, "AN ARMCHAIR");
     };
     const lowTable=(tx,tz)=>{
       m.B("oak", 1.16, 0.07, 0.74, tx, RD+0.42, tz, 0.7, 0, "#7a4a28");
@@ -1408,25 +1421,29 @@
       m.C("brass", 0.085,0.085,0.028,14, tx+0.30, RD+0.46, tz-0.12, BRD);
       m.P("paper", boxGeo(0.17,0.014,0.22,0.4), tx+0.16, RD+0.455, tz+0.20, 0.24, "#cfc6ae", 0, 0);
     };
-    // the rugs the groups stand on
-    for(const q of [[-44.6, 43.9],[-40.4, 44.6]]){
-      m.P("carpet", boxGeo(3.00, 0.018, 2.30, 0.55), q[0], RD+0.022, q[1], 0.1, "#6a3a34", 0, 0);
-      m.P("carpet", boxGeo(2.64, 0.012, 1.96, 0.55), q[0], RD+0.034, q[1], 0.1, "#8a5a46", 0, 0);
-    }
-    lowTable(-44.6, 43.9);
-    chair(-45.9, 43.3, -1.05, "#44301f", "#241a11", "#54402c");
-    chair(-43.4, 44.6,  2.05, "#3a2a1a", "#1d150d", "#4a3826");
-    lowTable(-40.4, 44.9);
-    chair(-41.7, 44.3, -1.20, "#3a2a1a", "#1d150d", "#4a3826");
-    chair(-39.2, 45.6,  1.95, "#44301f", "#241a11", "#54402c");
-    /* A STANDARD LAMP BESIDE EACH GROUP. The sconces are on the long walls,
-       eight metres off, and the only other light in the corner was a candle
-       on the table — so the armchairs, which are dark brown on a dark brown
-       floor, had nothing picking their edges out at all. One floor lamp per
-       group: it is what a room like this would have, and it is what makes
-       the chairs read as chairs from across the room. */
-    for(const q of [[-46.7, 42.3],[-38.5, 43.6]]){
-      const lx=q[0], lz=q[1];
+    /* ---- the lounge -----------------------------------------------------
+       A chair's facing is never typed in. It is worked out from the table it
+       belongs to, ry = atan2(tx-cx, tz-cz), because the chair is built
+       facing local +z and S() turns +z to (sin ry, cos ry). Four rounds of
+       hand-entered angles produced chairs facing the wall. */
+    const faceTo=(cx,cz,tx,tz)=>Math.atan2(tx-cx, tz-cz);
+    const HIDES=[["#44301f","#241a11","#54402c"],["#3a2a1a","#1d150d","#4a3826"]];
+    LOUNGE.forEach((g,gi)=>{
+      const gx=g[0], gz=g[1];
+      // the rug, square to the room like everything standing on it
+      m.P("carpet", boxGeo(3.70, 0.018, 1.90, 0.55), gx, RD+0.022, gz, 0, "#6a3a34", 0, 0);
+      m.P("carpet", boxGeo(3.34, 0.012, 1.56, 0.55), gx, RD+0.034, gz, 0, "#8a5a46", 0, 0);
+      lowTable(gx, gz);
+      for(const sd of [-1, 1]){
+        const cx=gx+sd*LCH, cz=gz, h=HIDES[(gi+(sd>0?1:0))%2];
+        chair(cx, cz, faceTo(cx, cz, gx, gz), h[0], h[1], h[2]);
+      }
+      /* A STANDARD LAMP AT THE OUTER END OF EACH GROUP, behind the chair's
+         shoulder and north of it — off the axis, off the stair, and off
+         the walk between the stumps and the rug. The sconces are on the
+         long walls eight metres off, so without these the chairs, dark
+         brown on a dark brown floor, had nothing picking out their edges. */
+      const lx=gx+(gi===0?-1:1)*(LCH+0.62), lz=gz-0.55;
       m.C("brass", 0.17,0.20,0.035,16, lx, RD+0.018, lz, BRD);          // the base
       m.C("brass", 0.11,0.14,0.055,16, lx, RD+0.052, lz, BR);
       m.C("brass", 0.022,0.026,1.34,10, lx, RD+0.75, lz, BRD);          // the column
@@ -1441,7 +1458,7 @@
       m.col(lx-0.24, lx+0.24, lz-0.24, lz+0.24, RD, RD+0.30);
       m.lamp(lx, RD+1.52, lz, {color:0xffbe7a, intensity:0.86, dist:7.4,
              decay:1.6, indoor:true, vol:RVOL});
-    }
+    });
     /* The piano. An upright against the west wall with the lid up, a stool
        pushed in, and a glass left on the top — which is the detail that
        says somebody played it tonight rather than that one is kept here. */
@@ -1603,7 +1620,7 @@
        hundredth of the cost of a real light, and nine of them are what make
        the room read as candlelit rather than as lamplit. */
     for(const q of [[-47.35, 39.12],[-44.80, 39.12],[-42.25, 39.12],[-39.70, 39.12],
-                    [-44.86, 43.90],[-40.66, 44.90],
+                    [LOUNGE[0][0]-0.26, LOUNGE[0][1]],[LOUNGE[1][0]-0.26, LOUNGE[1][1]],
                     [BARX0+0.9, BARZ+0.18],[BARX0+3.0, BARZ+0.18],
                     [BARX0+5.1, BARZ+0.18],[BARX0+7.2, BARZ+0.18],[BARX0+9.3, BARZ+0.18]])
       // the tables' tops are at RD+0.475 and the bar's at RD+1.12; a pool of
@@ -1612,14 +1629,16 @@
           0, "#ffb75a", -Math.PI/2, 0);
     // an ice bucket, a bottle in it and two coupes, on the near table
     {
-      const tx=-44.60, tz=43.90;
-      m.C("brass", 0.115,0.098,0.20,16, tx+0.30, RD+0.56, tz-0.10, BR);
-      m.C("brass", 0.122,0.122,0.022,16, tx+0.30, RD+0.655, tz-0.10, BRD);
+      // (tx+0.02, tz-0.14), not (tx+0.30, tz-0.10): that was the brass
+      // ashtray's spot, and the two were standing inside each other
+      const tx=LOUNGE[0][0], tz=LOUNGE[0][1], bx2=tx+0.02, bz2=tz-0.14;
+      m.C("brass", 0.115,0.098,0.20,16, bx2, RD+0.56, bz2, BR);
+      m.C("brass", 0.122,0.122,0.022,16, bx2, RD+0.655, bz2, BRD);
       for(const q of [-1,1])
-        m.P("brass", new T.TorusGeometry(0.030,0.008,5,10), tx+0.30+q*0.115, RD+0.62,
-            tz-0.10, 0, BRD, 0, Math.PI/2);
-      m.C("glass", 0.038,0.042,0.26,10, tx+0.30, RD+0.78, tz-0.10, "#2e4a2a");
-      m.C("glass", 0.014,0.014,0.07,6, tx+0.30, RD+0.945, tz-0.10, "#2e4a2a");
+        m.P("brass", new T.TorusGeometry(0.030,0.008,5,10), bx2+q*0.115, RD+0.62,
+            bz2, 0, BRD, 0, Math.PI/2);
+      m.C("glass", 0.038,0.042,0.26,10, bx2, RD+0.78, bz2, "#2e4a2a");
+      m.C("glass", 0.014,0.014,0.07,6, bx2, RD+0.945, bz2, "#2e4a2a");
       for(const q of [[-0.14,0.16],[0.02,0.22]]){
         m.C("glass", 0.050,0.016,0.045,12, tx+q[0], RD+0.515, tz+q[1], "#a6b4b0");
         m.C("glass", 0.008,0.008,0.055,6, tx+q[0], RD+0.52, tz+q[1], "#a6b4b0");

@@ -135,6 +135,12 @@ bucketOf("puddle",  ()=>new T.MeshStandardMaterial({color:0xffffff, metalness:0.
 bucketOf("tag",     ()=>new T.MeshStandardMaterial({map:TEX.tags, transparent:true,
                           opacity:0.82, roughness:0.9, depthWrite:false,
                           polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-2}));
+// Blown sand. It never had a material of its own, so it was flat paint:
+// a warm brown with no grain goes cream in full sun, and the drifts on the
+// diner's lot read as yellow ellipses somebody had painted there. The
+// terrain's own grain, with the terrain's own colours on it, is the desert
+// lying on top of the thing it is burying.
+bucketOf("sand",    ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.sand, roughness:0.97}));
 bucketOf("rust",    ()=>new T.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.30,
                           map:TEX.streak, depthWrite:false, side:T.DoubleSide}));
 bucketOf("ember",   ()=>emitMat(0xff5518, 1.6, "warm"));

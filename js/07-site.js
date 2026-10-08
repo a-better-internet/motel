@@ -167,7 +167,7 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
   // accessible stall by the office: blue field with a white hatched aisle
 
   // ---- xeriscape bed along the office / street frontage ---------------
-  bx("gravel", 16.5, 0.22, 4.0, -38.5, -0.02, -14.2, 0.22);
+  bx("gravel", 16.5, 0.22, 4.0, -38.5, -0.02, -14.2, 0.22, 0, "#b4a088");
   bx("concrete", 16.5, 0.30, 0.3, -38.5, 0.06, -12.15, 0.3, 0, "#8a6a4c");
   bx("concrete", 16.5, 0.30, 0.3, -38.5, 0.06, -16.25, 0.3, 0, "#8a6a4c");
 })();

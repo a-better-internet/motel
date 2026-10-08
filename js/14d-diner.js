@@ -182,7 +182,9 @@
        which is already a bright texture and a vertex colour can only darken
        it, so what came out was eight-metre tongues of near-white lying
        across the lot like spilled cement. The desert out here is a warm
-       red-brown; so is what it drops. */
+       red-brown; so is what it drops. (The bucket had no grain at all until
+       round 46, which is why these were flat yellow ellipses; they are the
+       terrain's floor and dune colours on the terrain's grain now.) */
     for(let i=0;i<20;i++){
       const a=(i/20)*6.283+r2()*0.30, rr=4.2+Math.pow(r2(),0.7)*(D.r+1.2);
       // twenty segments, not twelve: at four metres across a twelve-sided
@@ -192,7 +194,7 @@
       g.scale(sc*1.5, sc*(0.7+r2()*0.5), 1);
       // 1.5 mm a rung (it was 0.06 mm — a twentieth of what reads at ten metres)
       m.P("sand", g, Math.cos(a)*rr, 0.032+(i%7)*0.0015, Math.sin(a)*rr, a+r2(),
-          ["#7d5c3e","#866847","#725438"][i%3], -Math.PI/2, 0);
+          ["#b99165","#a47a4e","#b08a60"][i%3], -Math.PI/2, 0);
     }
     /* Everything scattered on the slab shares one counter and one step, so
        the order it is written in is the order it stacks — and the step has
@@ -735,7 +737,9 @@
     const w=0.20+((i*5)%3)*0.10;
     if(sz<0 && overDoor(px, w/2)) continue;
     m.P("rust", streakGeo(w, 0.70+((i*7)%4)*0.55, 0),
-        px, CH-0.30, sz*(HW+0.095+i*0.0030), sz>0?0:Math.PI, "#7c4526", 0, 0);
+        // just proud of the trim strips (2.60 out); laddered by i it drifted
+        // up to 15 cm off the side of the car
+        px, CH-0.30, sz*(HW+0.056+(i%4)*0.0012), sz>0?0:Math.PI, "#7c4526", 0, 0);
   }
   /* Large-scale tone on the stainless. The soot bucket is 16% and the rust
      bucket 30%, which reads on asphalt and reads as nothing at all on a pale
@@ -777,7 +781,7 @@
     const g=new T.SphereGeometry(0.60+((i*5)%3)*0.26, 14, 8);
     g.scale(1.5, 0.30, 1.0);
     m.P("sand", g, (i<5?-1:1)*(HL+0.16+((i*3)%3)*0.12), 0.02,
-        -1.6+((i*7)%5)*0.9, i*0.9, "#9a7c5d", 0, 0);
+        -1.6+((i*7)%5)*0.9, i*0.9, "#b08a60", 0, 0);
   }
   /* And along the foot of both long sides, where the sand banks up against
      the plinth and nobody has swept it back in forty years. Lower and longer
@@ -789,7 +793,7 @@
     const g=new T.SphereGeometry(0.42+((i*5)%4)*0.16, 12, 7);
     g.scale(1.9, 0.20+((i*3)%3)*0.05, 0.85);
     m.P("sand", g, px, 0.02, sz*(HW+0.30+((i*7)%3)*0.07), (i%2?1:-1)*0.09,
-        ["#97795a","#a08461","#8d7052"][i%3], 0, 0);
+        ["#b08a60","#b99165","#a47a4e"][i%3], 0, 0);
   }
   /* And what blew in and stopped against the front of it. A sphere in the
      foliage bucket is not a tumbleweed, it is a large olive pea — four of
@@ -945,7 +949,7 @@
   for(let i=0;i<9;i++){
     const g=new T.SphereGeometry(0.34+r2()*0.30, 12, 7); g.scale(1.5, 0.038, 1.0);
     m.P("sand", g, DX-1.15+r2()*2.3, FY+0.012, IZ0+0.22+r2()*0.72, r2()*6.28,
-        i%3?"#a08c6e":"#96856a", 0, 0);
+        i%3?"#c0a07a":"#b4946c", 0, 0);
   }
 
   /* ---- the ceiling -------------------------------------------------------

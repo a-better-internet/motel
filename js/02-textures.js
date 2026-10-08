@@ -381,8 +381,12 @@ TEX.sand=(function(){                         // desert ground grain (P76 recipe
 TEX.gravel=(function(){                       // xeriscape beds by the office
   const c=cvs(128,128), x=c.getContext("2d");
   x.fillStyle="#8a5f45"; x.fillRect(0,0,128,128);
+  // one value per pebble, then tinted: three independent channels drew
+  // pink, orange and yellow confetti, and in full sun the beds by the
+  // office read as a sprinkle of sweets rather than crushed stone
   for(let i=0;i<2400;i++){
-    x.fillStyle="rgba("+(120+Math.random()*90|0)+","+(80+Math.random()*60|0)+","+(60+Math.random()*40|0)+",0.7)";
+    const v=105+Math.random()*85, w=Math.random()*0.10;
+    x.fillStyle="rgba("+(v|0)+","+(v*(0.80+w)|0)+","+(v*(0.64+w)|0)+",0.7)";
     x.beginPath(); x.arc(Math.random()*128, Math.random()*128, 0.7+Math.random()*1.8, 0, 7); x.fill();
   }
   return rep(setSRGB(new T.CanvasTexture(c)),1,1);

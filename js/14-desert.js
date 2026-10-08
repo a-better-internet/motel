@@ -816,10 +816,13 @@
     // weeds through the cracks in the apron, and the sand that came for it
     for(let i=0;i<26;i++){
       const wx=X0-1.0+((i*2.31)%(SW+3.4)), wz=Z1+0.35+((i*0.97)%2.4);
+      // off the slab, on the ground it is actually on: where the desert
+      // falls away below SF a clump stood a quarter metre up in the air
+      const gb=Math.min(SF-0.02, G(m.wx(wx,wz), m.wz(wx,wz))-m.y-0.02);
       for(let k2=0;k2<5+((i*3)%4);k2++){
         const a=((i*7+k2*13)%360)*0.01745, lean=0.35+((k2*5)%4)*0.16, L=0.16+((i*5)%4)*0.09;
         const si=Math.sin(lean), co=Math.cos(lean);
-        m.P("foliage", boxGeo(0.018, L, 0.008, 0), wx+Math.sin(a)*si*L/2, SF-0.02+co*L/2,
+        m.P("foliage", boxGeo(0.018, L, 0.008, 0), wx+Math.sin(a)*si*L/2, gb+co*L/2,
             wz+Math.cos(a)*si*L/2, a, ((i+k2)%3) ? "#7a7f4e" : "#9a8f70", lean, 0);
       }
     }

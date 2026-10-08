@@ -284,6 +284,7 @@
       const sx=-0.6+((i*2.17)%11.2), w=0.10+((i*5)%4)*0.09;
       for(const sd of [-1,1]){
         if(sd<0 && 4.0-5.0+sx+w/2>6.85) continue;          // no fascia there any more
+        if(4.0-5.0+sx-w/2<-1.05 || 4.0-5.0+sx+w/2>9.05) continue;   // nor past its ends
         // 4 mm off the fascia: at IZ+-3.21 they were ON its outer face
         m.P("rust", streakGeo(w, 0.34+((i*7)%4)*0.13, 0), 4.0-5.0+sx, F+4.30,
             IZ+sd*3.214, sd>0?0:Math.PI, "#6a4a2c", 0, 0);
@@ -320,7 +321,7 @@
       if(sx>BX0-1.6 && sx<SX1+1.6 && sz>Z0g-1.2) continue;
       const g2=new T.SphereGeometry(0.44+((i*5)%4)*0.32,10,6);
       g2.scale(2.1+((i*7)%3)*0.5, 0.22, 1.35);
-      m.P("sand", g2, sx, F-0.10+((i*3)%3)*0.04, sz, i*0.9, ["#6e5236","#664a30","#74583a"][i%3], 0, 0);
+      m.P("sand", g2, sx, F-0.10+((i*3)%3)*0.04, sz, i*0.9, ["#b99165","#a47a4e","#b08a60"][i%3], 0, 0);
     }
     for(let i=0;i<20;i++){                             // and the drift it has left
       const sx=-14.5+((i*2.31)%24.0), sz=-5.9+((i*1.63)%11.6);
@@ -558,7 +559,7 @@
         m.col(CXc-0.95, CXc+0.95, CZc-2.62, CZc+2.62, 0, F+1.32);
         for(let i=0;i<5;i++){                               // sand piled into the wheel arches
           const g2=new T.SphereGeometry(0.50,10,6); g2.scale(1.4, 0.36, 1.0);
-          m.P("sand", g2, CXc+((i%2)?0.95:-0.95), F-0.06, CZc-1.5+((i*7)%4)*1.0, i*0.7, "#6a4e34", 0, 0);
+          m.P("sand", g2, CXc+((i%2)?0.95:-0.95), F-0.06, CZc-1.5+((i*7)%4)*1.0, i*0.7, "#a47a4e", 0, 0);
         }
       }
 
@@ -702,12 +703,13 @@
       for(let i=0;i<12;i++)
         m.C("metal", 0.010,0.010,0.003,10, -3.05+(R3(i+960)-0.5)*0.9, F+0.0275, QZ1-1.40+(R3(i+970)-0.5)*0.6,
             i%2?"#b8a67e":"#9aa1a6");
-      tag(0,1, 1.20, 0.80, QX0+0.008, F+1.55, 2.35, Math.PI/2, TAGR);
+      // (the party wall is centred on SX0, so its face is SX0+GT/2, not QX0)
+      tag(0,1, 1.20, 0.80, SX0+GT/2+0.008, F+1.55, 2.35, Math.PI/2, TAGR);
       tag(1,0, 0.56, 0.36, QX1-0.088, F+1.25, QZ0+3.40, -Math.PI/2, TAGK);
       // sand blown in under the door and along the front wall
       for(let i=0;i<3;i++){
         const g2=new T.SphereGeometry(0.40+i*0.08,10,6); g2.scale(2.0, 0.16, 0.9);
-        m.P("sand", g2, -4.6+i*0.5, F-0.02, QZ0+0.26, 0.05*i, "#8a6a4a", 0, 0);
+        m.P("sand", g2, -4.6+i*0.5, F-0.02, QZ0+0.26, 0.05*i, "#b4946c", 0, 0);
       }
       m.P("soot", planeGeo(1.2, 1.4, 0), -2.70, F+0.032, QZ0+0.55, 0.2, "#b09772", -Math.PI/2, 0);
 
@@ -1059,7 +1061,7 @@
       for(let i=0;i<7;i++){                        // sand banked up the west end
         // A half-buried sphere reads as a ball, so squash it to a drift
         const g=blobGeo(0.62+((i*5)%3)*0.26); g.scale(1.5, 0.22, 1.0);
-        m.P("sand", g, X0-0.22+((i*3)%3)*0.16, 0.235, Z0+0.5+i*0.60, i*0.9, "#b09b79", 0, 0);
+        m.P("sand", g, X0-0.22+((i*3)%3)*0.16, 0.235, Z0+0.5+i*0.60, i*0.9, "#c0a07a", 0, 0);
       }
       // racks down the back wall, and the console facing the window
       for(let k=0;k<5;k++){

@@ -740,7 +740,7 @@
             cz2-0.18+((i%3)*0.16), ["#c8443a","#2f6e8a","#4f7a4a"][i%3], i===3?1.4:0, 0, 0);
     })();
     // ---- a ceiling fan, and the nest on the fitting in the corner -------
-    m.C("metal", 0.030,0.030,0.34,8, 0.4, SF+SH-0.30, 0.6, "#6f767a");
+    m.C("metal", 0.030,0.030,0.47,8, 0.4, SF+SH-0.235, 0.6, "#6f767a");    // up to the ceiling
     m.C("weathered", 0.13,0.13,0.13,12, 0.4, SF+SH-0.52, 0.6, "#8c8477");
     for(let i=0;i<4;i++)
       m.P("oak", boxGeo(1.00,0.02,0.18,0.5), 0.4+Math.cos(i*1.571)*0.58, SF+SH-0.56,

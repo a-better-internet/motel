@@ -470,7 +470,7 @@ function frame(){
   /* ---- artificial light: emissives ramp, real lights follow the player -- */
   for(const g of GLOW){
     if(g.basic){
-      let a=(g.day?(1-dark):dark)*(g.max===undefined?1:g.max);
+      let a=(g.always?1:(g.day?(1-dark):dark))*(g.max===undefined?1:g.max);
       /* An obstruction light on a mast is not a lamp that comes on at dusk
          and sits there: it is a beacon, and what makes it read across a
          kilometre of dark desert is the gap between flashes. `blink` is the

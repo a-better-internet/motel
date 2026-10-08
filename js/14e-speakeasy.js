@@ -145,17 +145,23 @@
              horiz?0:Math.PI/2, "#b4b9bc");
         bx("metal", horiz?L:0.05, 0.05, horiz?0.05:L, W(px), g0+FH-0.04, Z(pz), 0, 0, GALV);
         bx("metal", horiz?L:0.04, 0.04, horiz?0.04:L, W(px), g0+FH*0.50, Z(pz), 0, 0, GALVD);
-        // barbed wire on a canted arm, which is what says KEEP OUT at distance
-        for(let i=0;i<3;i++)
-          bx("metal", horiz?L:0.016, 0.016, horiz?0.016:L, W(px)+(horiz?0:-0.10-i*0.09),
-             g0+FH+0.14+i*0.15, Z(pz)+(horiz?-0.10-i*0.09:0), 0, 0, GALVD);
+        /* Barbed wire on a canted arm, which is what says KEEP OUT at
+           distance. The strands are ON the arm: it leans out at 0.52 rad
+           through FH+0.24, so a strand at height h sits (h-FH-0.24)·tan
+           0.52 outboard. They used to be laid out on their own spacing and
+           stood up to fifteen centimetres off the arms that carry them. */
+        for(let i=0;i<3;i++){
+          const hy=0.14+i*0.13, off=-(hy-0.24)*Math.tan(0.52)-0.022;
+          bx("metal", horiz?L:0.016, 0.016, horiz?0.016:L, W(px)+(horiz?0:off),
+             g0+FH+hy, Z(pz)+(horiz?off:0), 0, 0, GALVD);
+        }
         const n=Math.max(2, Math.round(L/2.6));
         for(let i=0;i<=n;i++){
           const a=sg[0]+(sg[1]-sg[0])*i/n;
           const g1=POST(horiz?a:x0, horiz?z0:a, FH, 0.052);
           // the arm the barbed strands are carried out on
-          push("metal", boxGeo(0.030,0.46,0.030,0), W(horiz?a:x0),
-               g1+FH+0.20, Z(horiz?z0:a), horiz?0:Math.PI/2, GALVD, -0.52, 0);
+          push("metal", boxGeo(0.030,0.56,0.030,0), W(horiz?a:x0),
+               g1+FH+0.24, Z(horiz?z0:a), horiz?0:Math.PI/2, GALVD, -0.52, 0);
         }
         /* The collider's foot is the GROUND under that run, not a round
            number. At -2 it reached four metres down, and the tunnel passes

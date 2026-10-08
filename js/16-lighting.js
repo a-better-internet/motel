@@ -40,8 +40,12 @@ function updateLights(dark, camPos){
   for(let i=0;i<LIGHT_POOL.length;i++){
     const L=LIGHT_POOL[i], e=_lampSort[i];
     // indoor fixtures stay on through the day — a motel room has no daylight
-    // to speak of once the drapes are drawn
-    const mult=e ? (e.l.indoor ? Math.max(dark,0.70) : dark) : 0;
+    // to speak of once the drapes are drawn. Under the ground there is no
+    // day at all: a lamp inside a BURIED volume burns the same at noon as at
+    // midnight, the way the "buried" emissives always have (asked once and
+    // remembered, since the volumes never move).
+    if(e && e.l.buried===undefined) e.l.buried=buriedAt(e.l.x, e.l.z, e.l.y);
+    const mult=e ? (e.l.buried ? 1 : e.l.indoor ? Math.max(dark,0.70) : dark) : 0;
     if(!e || mult<0.02){ L.intensity=0; continue; }
     L.position.set(e.l.x, e.l.y, e.l.z);
     L.color.setHex(e.l.color);

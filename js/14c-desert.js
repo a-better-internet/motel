@@ -1357,7 +1357,9 @@
       addCol(bx0+d-0.26, bx0+d+0.26, bz-0.30, bz+0.30, 0, 9.0); }
     for(const yy of [4.56, 8.64])                     // a rail over and under it
       bx("metal", 11.5,0.16,0.26, bx0, yy, bz, 0, 0, "#5f564d");
-    bx("paint", 10.4,3.8,0.34, bx0, 6.6, bz, 0, 0, "#e6e2d6");
+    // the board fills the frame: rail to rail (it was 6 cm short of both,
+    // and 17 cm short of the posts, hanging in its frame on nothing)
+    bx("paint", 10.74,3.92,0.34, bx0, 6.6, bz, 0, 0, "#e6e2d6");
     const tex=signTex(768,280,(x,W,H)=>{
       x.fillStyle="#d8cdae"; x.fillRect(0,0,W,H);
       x.fillStyle="#13405e"; x.fillRect(0,0,W,54);
@@ -1701,9 +1703,15 @@
            0, "#6b6f62", hx?sg*0.30:0, hx?0:-sg*0.30);
     }
     bx("oak", CAB+2.0, 0.09, CAB+2.0, lx, F+CHh+0.06, lz, 0.5, 0, TIM);
-    bx("metal", 1.10, 0.36, 1.10, lx, F+CHh+0.62, lz, 0.5, 0, GALV2);          // the cupola
-    push("roofG", boxGeo(1.40,0.08,1.40,0.5), lx, F+CHh+0.84, lz, 0, "#6b6f62");
-    for(const q of [-1,1]) bx("metal", 1.12, 0.16, 0.03, lx, F+CHh+0.62, lz+q*0.56, 0.4, 0, GALVD);
+    /* The four hip panels are a ring: they rise inward to F+CHh+0.50 at
+       1.97 m from the middle and stop. The middle was open — a four-metre
+       pit in the roof with the ceiling deck at the bottom of it and the
+       cupola standing a third of a metre over that on nothing. A flat lead
+       closes it at the panels' inner edge, and the cupola sits on that. */
+    push("roofG", boxGeo(4.02, 0.08, 4.02, 0.5), lx, F+CHh+0.50, lz, 0, "#6b6f62");
+    bx("metal", 1.10, 0.36, 1.10, lx, F+CHh+0.72, lz, 0.5, 0, GALV2);          // the cupola
+    push("roofG", boxGeo(1.40,0.08,1.40,0.5), lx, F+CHh+0.94, lz, 0, "#6b6f62");
+    for(const q of [-1,1]) bx("metal", 1.12, 0.16, 0.03, lx, F+CHh+0.72, lz+q*0.56, 0.4, 0, GALVD);
     cyl("metal", 0.10,0.10,1.30,8, lx+1.32, F+CHh+0.80, lz+1.10, "#5f5348");   // the stove flue
     cyl("metal", 0.14,0.14,0.16,8, lx+1.32, F+CHh+1.50, lz+1.10, "#5f5348");
     cyl("metal", 0.020,0.020,2.10,6, lx-1.90, F+CHh+1.10, lz-1.70, GALVD);     // the aerial

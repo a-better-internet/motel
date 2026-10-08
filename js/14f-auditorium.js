@@ -32,6 +32,10 @@
    stand in the pit, a coat over a chair at the back, and the house lights
    are on. Nothing says what was performed or who came.
    ---------------------------------------------------------------------- */
+/* The door at the end of the backstage corridor, in the end room's west
+   wall, through to the stores (14g-warehouse.js builds what is behind it).
+   Local z of its two jambs' outer edges, and its clear height. */
+const STORES_DOOR={z0:14.19, z1:15.35, h:2.14};
 (function(){
   const SX=-80, SZ=340;                 // the same frame the speakeasy is in
   const m=mk(SX,SZ), GY=m.y;
@@ -969,8 +973,14 @@
     wall(L2X0-WT2, L1X0-WT2, L2Z1, L2Z1+WT2, CH);
     // stopping where leg one's side walls now start, so the two butt
     wall(L1X1, L1X1+WT2, L2Z0-WT2, L2Z1-0.12, CH);
-    // THE END ROOM: three sides, and the fourth with the doorway in it
-    wall(EX0-WT2, EX0, EZ0-WT2, EZ1+WT2, EH);
+    // THE END ROOM: three sides, and the fourth with the doorway in it —
+    // and now the west side has one too, through to the stores
+    const SD=STORES_DOOR;
+    wall(EX0-WT2, EX0, EZ0-WT2, SD.z0, EH);
+    wall(EX0-WT2, EX0, SD.z1, EZ1+WT2, EH);
+    m.B("concrete", WT2, EH+0.4-SD.h, SD.z1-SD.z0, EX0-WT2/2, FY+(SD.h+EH+0.4)/2,
+        (SD.z0+SD.z1)/2, 0.5, 0, "#7a746a");
+    m.col(EX0-WT2, EX0, SD.z0, SD.z1, FY+SD.h, FY+EH+0.6);
     wall(EX0, EX1+WT2, EZ0-WT2, EZ0, EH);      // the west wall owns both of
     wall(EX0, EX1+WT2, EZ1, EZ1+WT2, EH);      // this room's west corners
     wall(EX1, EX1+WT2, EZ0, L2Z0-WT2, EH);      // leg two's own walls own
@@ -1013,7 +1023,10 @@
     face(Math.PI, 0, L2Z1-0.02, L1X1, L2X1, CH);
     face(Math.PI/2, L2X0+0.02, 0, L2Z0, L2Z1, CH);
     for(const q of [[0, EZ0+0.02],[Math.PI, EZ1-0.02]]) face(q[0], 0, q[1], EX0, EX1, EH);
-    face(Math.PI/2, EX0+0.02, 0, EZ0, EZ1, EH);
+    face(Math.PI/2, EX0+0.02, 0, EZ0, STORES_DOOR.z0, EH);
+    face(Math.PI/2, EX0+0.02, 0, STORES_DOOR.z1, EZ1, EH);
+    m.P("plaster", planeGeo(STORES_DOOR.z1-STORES_DOOR.z0, EH-STORES_DOOR.h, 0.5), EX0+0.02,
+        FY+(STORES_DOOR.h+EH)/2, (STORES_DOOR.z0+STORES_DOOR.z1)/2, Math.PI/2, DIM, 0, 0);
 
     /* ---- the light, or what is left of it ----------------------------- */
     /* Four fittings in twenty-eight metres and two of them dead. The dead
@@ -1098,6 +1111,24 @@
     for(let i=0;i<9;i++)                                   // a coil of cable
       m.P("metal", new T.TorusGeometry(0.22-i*0.012, 0.022, 5, 14), L2X0+8.4,
           FY+0.03+i*0.035, L2Z0+0.60, 0, "#3a3a38", Math.PI/2, 0);
+    /* ---- the stores door, in the end room's west wall ----------------- */
+    {
+      const SD=STORES_DOOR, xw=EX0-WT2/2;
+      for(const z of [SD.z0+0.05, SD.z1-0.05])
+        m.B("metal", WT2+0.12, SD.h+0.10, 0.10, xw, FY+(SD.h+0.10)/2, z, 0.4, 0, "#4a4e50");
+      m.B("metal", WT2+0.12, 0.10, SD.z1-SD.z0, xw, FY+SD.h+0.05, (SD.z0+SD.z1)/2, 0.4, 0, "#4a4e50");
+      m.flat(EX0-WT2-0.3, EX0+0.3, SD.z0, SD.z1, FY);
+      /* XF with ry = PI/2 lays the leaf along -z from the hinge, so it hangs
+         off the north jamb; it swings west, into the passage, away from
+         the room. */
+      makeDoor(XF(W(xw), Z(SD.z1-0.10), Math.PI/2), 0, GY+FY+0.02, 0,
+               "THE STORES", false, 0, "steel");
+      const st=signTex(256,64,(x,w,h)=>{
+        x.fillStyle="#7a7468"; x.fillRect(0,0,w,h);
+        x.fillStyle="#2a2620"; fitText(x, "STORES", w*0.80, 46, w/2, h/2+2);
+      });
+      signPanel(0.84, 0.21, st, W(EX0+0.026), GY+FY+SD.h+0.24, Z((SD.z0+SD.z1)/2), Math.PI/2, false);
+    }
     /* ---- and the room at the end -------------------------------------- */
     {
       const cx=EX0+1.5, cz=EZ0+1.4;
@@ -1109,7 +1140,9 @@
       for(let k=0;k<3;k++)
         m.B("oak", 0.42, 0.055, 0.04, cx, FY+0.62+k*0.14, cz+0.17, 0.6, 0, "#4a3c2c");
       m.col(cx-0.3, cx+0.3, cz-0.3, cz+0.3, FY, FY+0.5);
-      addSeat(W(cx), Z(cz), GY+FY+0.50, Math.PI, "A CHAIR");
+      // the back is at +z, so it faces -z, into the corner — and so does the
+      // seat, whose yaw looks down -z at 0 (it was PI: sat facing the door)
+      addSeat(W(cx), Z(cz), GY+FY+0.50, 0, "A CHAIR");
       // a bulb on a flex, a rail with one coat on it, and a bucket
       m.C("metal", 0.006,0.006,0.70,4, EX1-2.2, FY+2.28, (EZ0+EZ1)/2, "#4a443c");
       m.C("brass", 0.022,0.022,1.90,8, EX0+0.9, FY+1.86, EZ1-0.8, "#6e5a32",
@@ -1119,7 +1152,7 @@
       m.C("metal", 0.17,0.14,0.28,14, EX1-0.8, FY+0.14, EZ0+0.6, "#5a5248");
       m.P("stain", streakGeo(1.9, 1.5, 0), EX0+2.8, FY+0.03, (EZ0+EZ1)/2, 0,
           "#3a3028", -Math.PI/2, 0);
-      m.P("art", planeGeo(0.30, 0.22, 0), EX0+0.03, FY+1.52, EZ0+2.9,
+      m.P("art", planeGeo(0.30, 0.22, 0), EX0+0.03, FY+1.52, EZ1-1.75,
           Math.PI/2, "#6e675c", 0, 0);                   // a notice, long dead
     }
     addBuried(W(EX0-1), W(L1X1+1), Z(EZ0-1), Z(AZ0+1), GY+FY-1, GY+CY+1.4);

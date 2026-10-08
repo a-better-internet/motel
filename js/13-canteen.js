@@ -642,6 +642,9 @@ i===1?"#6a5a3c":"#7a6746");
     x.fillStyle="#8fdfd0"; fitSerif(x,"On Tap", W*0.48, H2*0.21, W/2, H2*0.80);
   }), {aspect:3/2}), -85.1, FY+1.72, Z0-0.02, Math.PI, true));
   push("ceilfix", new T.SphereGeometry(0.11,12,8), (DHX0+DHX1)/2, FY+2.50, Z0-0.34, 0, "#f2e9cf");
+  // on an arm out of the wall: the globe used to hang in front of it on nothing
+  bx("metal", 0.035, 0.035, 0.36, (DHX0+DHX1)/2, FY+2.625, Z0-0.17, 0, 0, "#3a342e");
+  bx("metal", 0.12, 0.12, 0.03, (DHX0+DHX1)/2, FY+2.625, Z0-0.015, 0, 0, "#3a342e");
   LAMPS.push({x:(DHX0+DHX1)/2, y:FY+2.4, z:Z0-0.45, color:0xffd8a0, intensity:0.85,
               dist:14, decay:1.6, mothy:true});
 
@@ -999,8 +1002,11 @@ i===1?"#6a5a3c":"#7a6746");
   bx("weathered", 1.58, 1.28, 0.10, IX0+0.10, FY+2.62, -20.6, 0.4, Math.PI/2, "#3a342e");
   push("pic:tv:1", new T.PlaneGeometry(1.44, 1.08), IX0+0.16, FY+2.62, -20.6,
        Math.PI/2, "#ffffff");
-  for(const q of [-0.62,0.62])                              // the bracket it hangs off
-    bx("metal", 0.06, 0.34, 0.06, IX0+0.22, FY+3.34, -20.6+q, 0, 0, "#5b5f62");
+  // the drops it hangs off, from its top edge to the ceiling (they used to
+  // stop short of both, beside it, in the air)
+  for(const q of [-0.62,0.62])
+    bx("metal", 0.05, (TOPY-0.10)-(FY+3.26), 0.05, IX0+0.10, ((TOPY-0.10)+(FY+3.26))/2, -20.6+q,
+       0, 0, "#5b5f62");
   (function(){
     const jx=IX1-1.10, jz=IZ1-0.90;
     bx("oak", 0.86, 1.42, 0.56, jx, FY+0.71, jz, 0.45, 0, "#5c3a28");
@@ -1131,13 +1137,19 @@ i===1?"#6a5a3c":"#7a6746");
                   [0,-81.9,IZ1-0.04,Math.PI],[3,-74.2,IZ1-0.04,Math.PI]])
     poster(q[0], q[1], FY+2.06+rr(-0.14,0.14), q[2], q[3]);
   // two speakers up in the corners, wired back along the joists
-  for(const q of [[IX0+0.55, IZ0+0.45, 0.5],[IX1-0.55, IZ0+0.45, -0.5]]){
-    bx("weathered", 0.38, 0.58, 0.32, q[0], FY+3.26, q[1], 0.4, q[2], "#4a423a");
-    push("bin", new T.CylinderGeometry(0.11,0.11,0.03,12), q[0], FY+3.34, q[1]-0.16,
-         q[2], "#2a2622", Math.PI/2, 0);
+  /* In the corners, not near them: each one is turned to face the room
+     across the diagonal and pushed back until two of its edges are on the
+     walls. They stood half a metre out in the air, facing the walls. */
+  for(const q of [[IX0, 1],[IX1, -1]]){
+    const ry=q[1]>0 ? -2.356 : 2.356, fx=-Math.sin(ry), fz=-Math.cos(ry);
+    const hx=0.19*Math.abs(Math.cos(ry))+0.16*Math.abs(Math.sin(ry));
+    const cx=q[0]+q[1]*hx, cz=IZ0+hx;
+    bx("weathered", 0.38, 0.58, 0.32, cx, FY+3.26, cz, 0.4, ry, "#4a423a");
+    push("bin", new T.CylinderGeometry(0.11,0.11,0.03,12), cx+fx*0.165, FY+3.34, cz+fz*0.165,
+         ry, "#2a2622", Math.PI/2, 0);
   }
   // a ceiling fan that has not turned in a while
-  cyl("metal", 0.030,0.030,0.34,8, -79.0, TOPY-0.34, -21.8, "#3a342e");
+  cyl("metal", 0.030,0.030,0.39,8, -79.0, TOPY-0.295, -21.8, "#3a342e");     // to the ceiling
   cyl("weathered", 0.13,0.13,0.14,12, -79.0, TOPY-0.56, -21.8, "#4a423a");
   for(let i=0;i<4;i++)
     push("oak", boxGeo(1.10,0.02,0.20,0.5), -79.0+Math.cos(i*1.571)*0.62, TOPY-0.60,
@@ -1229,8 +1241,12 @@ i===1?"#6a5a3c":"#7a6746");
          ["#1d3a5c","#7a2a22","#2f4a2a","#3a3632","#6a5a2a"][i%5]);
   }
   // framed photographs, a crisps rack, a microwave, a till receipt spike
+  /* The photographs hang on the east wall south of the back bar. They were
+     at IX1-0.60 — in the air in front of the bottle shelves, edge on to
+     the room, because a frame thin in z is a frame for a wall running in x. */
   for(let i=0;i<5;i++)
-    bx("art", 0.26, 0.20, 0.03, IX1-0.60, FY+1.62+((i%2)*0.30), BZ0+1.4+i*0.62, 0, 0, "#cfc4a8");
+    bx("art", 0.03, 0.20, 0.26, IX1-0.015, FY+(i<3?1.92:1.62), (i<3?-29.2+i*0.4:-29.0+(i-3)*0.4),
+       0, 0, "#cfc4a8");
   bx("metal", 0.34, 0.86, 0.22, BX+0.18, FY+BH2+0.60, BZ0+0.30, 0.4, 0, "#8d9498");
   for(let i=0;i<5;i++)
     bx("paper", 0.28, 0.17, 0.03, BX+0.18, FY+BH2+0.28+i*0.17, BZ0+0.18, 0, 0,
@@ -1261,11 +1277,22 @@ i===1?"#6a5a3c":"#7a6746");
     x.fillStyle="#9fe8d8"; fitSerif(x,"Fridays", W*0.52, H2*0.24, W/2, H2*0.76);
   }), IX0+0.09, FY+3.20, -17.4, Math.PI/2, true));
   // bunting over the pool table end
+  // ...on a string: it used to be thirteen pennants in a sagging line with
+  // nothing joining them, tied to nothing at either end
+  const bnt=[[IX0, FY+3.42]];
   for(let i=0;i<13;i++){
     const t=i/12, px2=IX0+0.7+t*6.4, py=FY+3.30-Math.sin(t*Math.PI)*0.22;
     push("fabric", new T.ConeGeometry(0.11,0.24,3), px2, py-0.12, IZ0+0.55, i*0.7,
          ["#c8202a","#f0a01e","#1d6f4e","#2b2f7a"][i%4], Math.PI, 0);
+    bnt.push([px2, py]);
   }
+  bnt.push([IX0+7.6, TOPY-0.10]);
+  for(let i=0;i<bnt.length-1;i++){
+    const a=bnt[i], b=bnt[i+1], L=Math.hypot(b[0]-a[0], b[1]-a[1]);
+    push("metal", new T.CylinderGeometry(0.004,0.004,L,4), (a[0]+b[0])/2, (a[1]+b[1])/2, IZ0+0.55,
+         0, "#d8d2c0", 0, -Math.atan2(b[0]-a[0], b[1]-a[1]));
+  }
+
   /* ---- a corner stage, for the Fridays the neon still advertises -------
      Nothing has played on it in years, but the backline never went home. */
   (function(){
@@ -1314,8 +1341,8 @@ i===1?"#6a5a3c":"#7a6746");
     // two par cans on a bar, one of them still warm
     cyl("metal", 0.026,0.026,SX1-SX0-0.5,8, cx2, FY+2.96, SZ0+0.34, "#3a3632", 0,0,Math.PI/2);
     for(const q of [-1.1, 1.1])                            // and the drops it hangs on
-      cyl("metal", 0.008,0.008, TOPY-0.18-(FY+2.96), 6, cx2+q,
-          (TOPY-0.18+FY+2.96)/2, SZ0+0.34, "#6e6a62");
+      cyl("metal", 0.008,0.008, TOPY-0.10-(FY+2.96), 6, cx2+q,
+          (TOPY-0.10+FY+2.96)/2, SZ0+0.34, "#6e6a62");
     for(const q of [-0.9, 0.55]){
       cyl("weathered", 0.11,0.13,0.22,12, cx2+q, FY+2.80, SZ0+0.34, "#2b2723", 0.5, 0, 0);
       cyl("metal", 0.020,0.020,0.16,6, cx2+q, FY+2.90, SZ0+0.34, "#3a3632");

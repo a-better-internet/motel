@@ -53,14 +53,24 @@
     x.fillStyle="#150c08"; x.fillRect(0,0,W,H);
     x.fillStyle="#ff8a3a"; fitText(x,"VACANCY", W*0.68, 60, W/2, H/2+3);
   }), {aspect:3.8/0.78});
-  bx("paint", 4.0, 0.9, 0.26, sx, 6.85, sz, 0, 0, "#22201c");
+  /* The VACANCY cabinet SITS ON the name board. It used to hang 7 cm above
+     it — the name board's top is 6.325 and this started at 6.40 — between
+     posts it does not reach, held up by nothing. It stands on the board's
+     top now, on two steel shoes bolted through into it. */
+  const VY=5.35+1.95/2+0.45;
+  bx("paint", 4.0, 0.9, 0.26, sx, VY, sz, 0, 0, "#22201c");
+  for(const d of [-1.5,1.5])
+    bx("metal", 0.16, 0.10, 0.34, sx+d, VY-0.40, sz, 0, 0, "#6f767a");
   // the VACANCY tube has never quite struck properly since about 1988
-  VAC_NEON.push(signPanel(3.8,0.78,vacTex, sx, 6.85, sz-0.19, Math.PI, true));
-  VAC_NEON.push(signPanel(3.8,0.78,vacTex, sx, 6.85, sz+0.19, 0, true));
-  // gooseneck lamps over the board
+  VAC_NEON.push(signPanel(3.8,0.78,vacTex, sx, VY, sz-0.19, Math.PI, true));
+  VAC_NEON.push(signPanel(3.8,0.78,vacTex, sx, VY, sz+0.19, 0, true));
+  /* Gooseneck lamps over the name board: an arm out of the board's top
+     edge, a neck down, and the hood at the end of it. The neck used to
+     stand 28 cm in front of the board with nothing joining the two. */
   for(const d of [-1.6,1.6]){
-    bx("metal", 0.07,0.60,0.07, sx+d, 6.45, sz-0.42, 0, 0, "#b8bcbc");
-    push("ceilfix", new T.CylinderGeometry(0.22,0.14,0.16,12), sx+d, 6.20, sz-0.62, 0, "#e8dcc0");
+    bx("metal", 0.06,0.06,0.42, sx+d, 6.31, sz-0.33, 0, 0, "#b8bcbc");     // the arm
+    bx("metal", 0.06,0.30,0.06, sx+d, 6.19, sz-0.54, 0, 0, "#b8bcbc");     // the neck
+    push("ceilfix", new T.CylinderGeometry(0.11,0.17,0.14,12), sx+d, 6.00, sz-0.54, 0, "#e8dcc0");
   }
   LAMPS.push({x:sx, y:6.0, z:sz-1.0, color:0xffd9a0, intensity:0.75, dist:16, decay:1.5});
 

@@ -356,6 +356,11 @@
         m.P("metal", boxGeo(0.06,0.06,dl,0), sd*(w+w2)/2,h+1.6,0, 0, ST, -an, 0);
       }
     }
+    // the legs stop at H2+0.22 in a 1.8 m square: a cap plate across them and
+    // a stub to carry the beacon, which used to sit half a metre over the
+    // middle of that square on nothing
+    m.B("metal", 2.0, 0.08, 2.0, 0, H2+0.18, 0, 0, 0, ST);
+    m.C("metal", 0.07, 0.07, 0.32, 8, 0, H2+0.37, 0, ST);
     m.P("neonbox", new T.SphereGeometry(0.42,10,8), 0,H2+0.7,0, 0, "#ff3a2a");
     m.B("concrete", 1.4,0.5,1.4, 0,0.25,0, 0.45,0, "#a9a294");
     m.col(-2.0,2.0,-2.0,2.0, 0,44);

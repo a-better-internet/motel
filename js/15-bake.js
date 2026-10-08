@@ -149,6 +149,12 @@ bucketOf("zapper",  ()=>emitMat(0x8f5cff, 0.7, "cool"));
    and it is what makes walking in out of the noon glare feel like walking
    into evening.                                                          */
 bucketOf("bulkhead",()=>emitMat(0xffd49a, 0.95, "buried"));
+bucketOf("hbcold",  ()=>emitMat(0xcfe6ff, 0.85, "buried"));     // a mercury lamp, gone cold
+// a floor pool under a lamp that is underground, and so is on all day
+bucketOf("floorglowb",()=>{ const m=new T.MeshBasicMaterial({color:0xffffff, map:TEX.soot,
+                          transparent:true, opacity:0, depthWrite:false, side:T.DoubleSide,
+                          blending:T.AdditiveBlending, toneMapped:false});
+                          GLOW.push({m:m, basic:true, always:true, max:0.30}); return m; });
 bucketOf("sconce",  ()=>emitMat(0xffa63e, 1.05, "buried"));
 bucketOf("flame",   ()=>emitMat(0xff8a28, 1.70, "buried"));
 // deep buttoned hide, and the nap on a velvet that has had forty years of

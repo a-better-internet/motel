@@ -90,6 +90,28 @@
   const CONC="#a6a096", CONCD="#8d877c", GALV="#9aa1a6", GALVD="#7f857f";
   const RUSTY="#7a4a2a";
   const R=n=>((Math.sin(n*91.73+41.3)*43758.5)%1+1)%1;
+  /* A BULKHEAD IS A BULB BEHIND GLASS, NOT A GLOWING BALL. These were an
+     emissive sphere on a black diffuse, so from the stair — at arm's length
+     from the first one — each was a single flat cream disc with no edge and
+     no form: the "blown out" lamp. Now a small hot core, and over it a
+     warm-tinted clear glass dome that takes highlights from the room and
+     lets the core show through, on its own cast base. `n` is the way the
+     dome faces out of whatever it is fixed to. */
+  const bulkLamp=(x,y,z,n,r)=>{
+    r=r||0.085;
+    const rot={ "x-":[0,Math.PI/2], "x+":[0,-Math.PI/2], "z+":[Math.PI/2,0],
+                "z-":[-Math.PI/2,0], "y-":[Math.PI,0] }[n];
+    const dx={"x-":-1,"x+":1}[n]||0, dz={"z-":-1,"z+":1}[n]||0, dy=n==="y-"?-1:0;
+    // the cast ring the dome seats in
+    m.P("metal", new T.CylinderGeometry(r*1.18, r*1.18, 0.022, 16), x, y, z, 0, "#4a4c48",
+        rot[0], rot[1]);
+    // the bulb, hot and small
+    m.P("bulkhead", new T.SphereGeometry(r*0.36, 10, 8),
+        x+dx*r*0.42, y+dy*r*0.42, z+dz*r*0.42, 0, "#ffd08a");
+    // the dome, clear and warm
+    m.P("glass", new T.SphereGeometry(r, 16, 8, 0, Math.PI*2, 0, Math.PI/2), x, y, z, 0,
+        "#e9d3a4", rot[0], rot[1]);
+  };
 
   /* ====================================================================
      1 · THE COMPOUND
@@ -313,8 +335,7 @@
     // the stencilled number, and the one lamp over the door
     push("art", planeGeo(0.52, 0.15, 0), W(4.20), GY+F+1.76, Z(HZ0-0.012), Math.PI, "#6e6a5c", 0, 0);
     m.B("metal", 0.26, 0.09, 0.22, (DR0+DR1)/2, F+2.42, HZ0-0.10, 0.4, 0, GALVD);
-    m.P("bulkhead", new T.SphereGeometry(0.075,10,8), (DR0+DR1)/2, F+2.355, HZ0-0.14,
-        0, "#ffe6bc");
+    bulkLamp((DR0+DR1)/2, F+2.375, HZ0-0.13, "y-", 0.072);
     m.lamp((DR0+DR1)/2, F+2.30, HZ0-0.20,
            {color:0xffd9a0, intensity:0.30, dist:7.0, decay:1.6, mothy:true});
     // a dead junction box and a coil of cable, OUTSIDE — the hut is a
@@ -482,7 +503,7 @@
     for(const i of [4, 12, 20]){
       const ty=F-i*RISE, z0=STOP+i*GO;
       m.B("metal", 0.10, 0.22, 0.30, SW1-0.02, ty+1.90, z0, 0.4, 0, GALVD);
-      m.P("bulkhead", new T.SphereGeometry(0.085,10,8), SW1-0.12, ty+1.90, z0, 0, "#ffe6bc");
+      bulkLamp(SW1-0.07, ty+1.90, z0, "x-");
       for(let k=0;k<3;k++)
         m.C("metal", 0.009,0.009,0.26,5, SW1-0.12, ty+1.90, z0, GALVD, 0, 0, k*1.05);
       m.lamp(SW1-0.22, ty+1.90, z0,
@@ -632,15 +653,20 @@
         const a=a0+len*(i+0.5)/nl;
         m.B("metal", axis==="z"?0.26:0.12, 0.17, axis==="z"?0.12:0.26,
             X(a,c0+0.06), TD+2.02, ZZ(a,c0+0.06), 0.4, 0, GALVD);
-        m.P("bulkhead", new T.SphereGeometry(0.085,10,8), X(a,c0+0.18), TD+2.02,
-            ZZ(a,c0+0.18), 0, "#ffe6bc");
+        bulkLamp(X(a,c0+0.13), TD+2.02, ZZ(a,c0+0.13), axis==="z"?"x+":"z+");
         for(let k=0;k<3;k++)
           m.C("metal", 0.009,0.009,0.26,5, X(a,c0+0.18), TD+2.02, ZZ(a,c0+0.18),
               GALVD, 0, 0, k*1.05);
+        /* Lit from the anteroom too. The volume used to stop at the
+           anteroom wall, so standing in the anteroom every tunnel lamp was
+           off and the tunnel, seen through the doorway, was ambient alone:
+           pale concrete with no falloff and no shading, a flat white slot
+           in a dark room. The volume now runs over the anteroom (AX0), and
+           the lamps are a shade warmer and lower than they were. */
         m.lamp(X(a,c0+0.30), TD+2.00, ZZ(a,c0+0.30),
-               {color:0xffdcae, intensity:0.72, dist:12.0, decay:1.35, indoor:true,
-                vol:[W(Math.min(TN0,BX0)-1), W(Math.max(TN1,BX1)+1),
-                     Z(TZ0-1), Z(Math.max(TZ1,BZ1)+1), GY+TD-1.2, GY+TD+TH+0.6]});
+               {color:0xffcf96, intensity:0.60, dist:11.0, decay:1.4, indoor:true,
+                vol:[W(Math.min(TN0,BX0,AX0)-0.5), W(Math.max(TN1,BX1)+1),
+                     Z(Math.min(TZ0,AZ0)-1), Z(Math.max(TZ1,BZ1,AZ1)+1), GY+TD-1.2, GY+TD+TH+0.6]});
       }
     };
     bore("z", TZ0, TZ1, TN0, TN1, 11, [0, BZ0, BZ1]);   // leg B comes in here

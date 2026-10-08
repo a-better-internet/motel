@@ -67,7 +67,8 @@
   /* --- walkway sconces on both wings, plus lot pole lights ----------- */
   let sconceN=0;
   function sconce(x,y,z,ry){
-    push("ceilfix", new T.CylinderGeometry(0.12,0.17,0.16,12), x, y, z, ry, "#e8dcc0");
+    push("lampshade", shadeGeo(0.12,0.17,0.16,12), x, y, z, ry, "#e8dcc0");
+    push("ceilfix", shadeBulb(0.040), x, y-0.02, z, 0, "#f2e9cf");
     bx("metal", 0.06,0.22,0.06, x, y+0.16, z, 0, 0, "#8f9aa0");
     // a soot halo on the soffit above every fixture — thirty summers of them
     push("soot", planeGeo(0.85,0.85,0), x, y+0.30, z, 0, "#2a241c", -Math.PI/2, 0);

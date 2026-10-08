@@ -46,8 +46,18 @@ bucketOf("clockface",()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0
 bucketOf("tvglass",()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.14, metalness:0.4,
                           emissive:0x0a1014}));
 bucketOf("signlit",()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.7}));
-bucketOf("lampshade",()=>glowMat({color:0xffffff, emissive:0xffd98a, emissiveIntensity:0.35}, "warm"));
-bucketOf("ceilfix", ()=>glowMat({color:0xffffff, emissive:0xffe9c4, emissiveIntensity:0.30}, "warm"));
+// double-sided: shades are open tubes (shadeGeo), and their inside is what
+// the lamp in them lights; see the note over shadeGeo in 01-helpers
+bucketOf("lampshade",()=>glowMat({color:0xffffff, emissive:0xffd98a, emissiveIntensity:0.28,
+                                  side:T.DoubleSide}, "warm"));
+/* Mid-grey diffuse under the glow: a fitting has a lamp a few inches from
+   it, and white diffuse let that lamp add a full share on top of the
+   emissive and push the face past white. Grey keeps the crown-to-rim
+   shading and stops short of clipping. */
+bucketOf("ceilfix", ()=>glowMat({color:0x9c968c, emissive:0xffe9c4, emissiveIntensity:0.27}, "warm"));
+// the inside of a shade that is not itself a lamp: an enamelled pendant's
+// white lining, or a lampshade with the lamp in it switched off
+bucketOf("shadein", ()=>new T.MeshStandardMaterial({color:0xffffff, roughness:0.7, side:T.DoubleSide}));
 bucketOf("winglow", ()=>glowMat({color:0xffffff, emissive:0xffcf8a, emissiveIntensity:0.15}, "warm"));
 bucketOf("tvwin",   ()=>{ TVWIN_MAT=new T.MeshBasicMaterial({color:0x000000, toneMapped:false});
                           return TVWIN_MAT; });

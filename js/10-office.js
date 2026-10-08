@@ -176,7 +176,10 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
 
   /* --- an armchair angled at the coffee table ------------------------- */
   (function armchair(){
-    const ax=sofaX-2.05, az=sofaZ+1.25, ry=0.55;
+    /* Built facing its own +z (the back is at -z). It sits at the end of
+       the coffee table, square to the sofa and turned a little toward the
+       room — it used to stand two metres off, looking past the table. */
+    const ax=sofaX-1.50, az=sofaZ+1.40, ry=1.40;
     const A=(bk,ww,hh,dd,lx,ly,lz,uv,c)=>{
       const q=[ax+lx*Math.cos(ry)+lz*Math.sin(ry), az-lx*Math.sin(ry)+lz*Math.cos(ry)];
       push(bk, boxGeo(ww,hh,dd,uv||0.5), q[0], y0+ly, q[1], ry, c);
@@ -189,12 +192,14 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
     push("spread", new T.CylinderGeometry(0.10,0.10,0.88,12),
          ax+(-0.34)*Math.sin(ry), y0+0.94, az+(-0.34)*Math.cos(ry), ry, "#7a5a52", 0, Math.PI/2);
     addCol(ax-0.58,ax+0.58, az-0.58, az+0.58, y0, y0+0.9);
+    addSeat(ax+0.04*Math.sin(ry), az+0.04*Math.cos(ry), y0+0.66, ry+Math.PI, "THE ARMCHAIR");
   })();
   // standing lamp in the corner beside the sofa
   cyl("metal", 0.20,0.22,0.04,14, sofaX-1.55, y0+0.03, sofaZ-0.30, "#6b6156");
   cyl("metal", 0.03,0.03,1.52,8,  sofaX-1.55, y0+0.78, sofaZ-0.30, "#6b6156");
-  push("lampshade", new T.CylinderGeometry(0.20,0.28,0.30,14),
+  push("lampshade", shadeGeo(0.20,0.28,0.30,14),
        sofaX-1.55, y0+1.66, sofaZ-0.30, 0, "#e2d2a8");
+  push("ceilfix", shadeBulb(0.036), sofaX-1.55, y0+1.62, sofaZ-0.30, 0, "#f2e9cf");
   LAMPS.push({x:sofaX-1.55, y:y0+1.60, z:sofaZ-0.30, color:0xffeed6,
               intensity:0.30, dist:8, decay:1.3, indoor:true});
   addCol(sofaX-1.78,sofaX-1.32, sofaZ-0.53, sofaZ-0.07, y0, y0+1.8);
@@ -261,7 +266,8 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
   for(const dd of [[-0.20,-0.20],[0.20,-0.20],[-0.20,0.20],[0.20,0.20]])
     bx("oak", 0.06,0.52,0.06, bnX+1.42+dd[0], y0+0.27, bnZ+0.05+dd[1], 0, 0, "#5c4029");
   bx("metal",0.09,0.24,0.09, bnX+1.42, y0+0.68, bnZ+0.05, 0, 0, "#b8a67e");
-  push("lampshade", new T.CylinderGeometry(0.14,0.19,0.22,12), bnX+1.42, y0+0.91, bnZ+0.05, 0, "#e8dcc0");
+  push("lampshade", shadeGeo(0.14,0.19,0.22,12), bnX+1.42, y0+0.91, bnZ+0.05, 0, "#e8dcc0");
+  push("ceilfix", shadeBulb(0.032), bnX+1.42, y0+0.87, bnZ+0.05, 0, "#f2e9cf");
   addCol(bnX+1.14,bnX+1.70, bnZ-0.23, bnZ+0.33, y0, y0+0.6);
   bx("art", 0.26,0.02,0.20, bnX+1.34, y0+0.58, bnZ-0.10, 0, 0, "#c9a24b");      // an old magazine
   bx("fabric", 2.30,0.03,1.60, bnX+0.5, y0+0.04, bnZ+0.95, 0, 0, "#6a5a4e");    // the rug it stood on
@@ -270,7 +276,8 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
               intensity:0.26, dist:7, decay:1.35, indoor:true});
   // a table lamp on the credenza, and something green beside the cooler
   bx("metal",0.10,0.26,0.10, crX+1.02, y0+1.05, crZ, 0, 0, "#b8a67e");
-  push("lampshade", new T.CylinderGeometry(0.15,0.21,0.24,12), crX+1.02, y0+1.30, crZ, 0, "#e8dcc0");
+  push("lampshade", shadeGeo(0.15,0.21,0.24,12), crX+1.02, y0+1.30, crZ, 0, "#e8dcc0");
+  push("ceilfix", shadeBulb(0.032), crX+1.02, y0+1.26, crZ, 0, "#f2e9cf");
   LAMPS.push({x:crX+1.02, y:y0+1.26, z:crZ, color:0xffd9a0,
               intensity:0.28, dist:7, decay:1.35, indoor:true});
   cyl("gravel", 0.30,0.24,0.52,12, wcX+0.95, y0+0.26, wcZ, "#a35a34");
@@ -731,7 +738,9 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
      fitting, so they stay on: warmer, a third as bright, and falling off
      fast enough to leave dim air between them. */
   for(const p of [[O.x0+2.6,cz-2.4],[O.x0+6.4,cz],[O.x1-2.4,cz+2.2]]){
-    push("ceilfix", new T.CylinderGeometry(0.34,0.40,0.14,14), p[0], y0+h-0.30, p[1], 0, "#e8d4ac");
+    // a canopy on the ceiling (whose underside is h-0.21) and the bowl under it
+    push("metal", new T.CylinderGeometry(0.39,0.39,0.035,20), p[0], y0+h-0.2225, p[1], 0, "#cfc8b4");
+    push("ceilfix", domeGeo(0.37,0.15,20), p[0], y0+h-0.24, p[1], 0, "#e8d4ac");
     LAMPS.push({x:p[0], y:y0+h-0.45, z:p[1], color:0xffe6c2, intensity:0.34, dist:9.0, decay:1.9, indoor:true});
   }
 })();
@@ -1099,7 +1108,8 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
     addCol(nx-0.26, nx+0.26, nz-0.25, nz+0.25, y0, y0+0.60);
     cyl("metal", 0.10,0.12,0.03,12, nx-0.07, y0+0.62, nz, "#b8a67e");
     cyl("metal", 0.016,0.016,0.24,8, nx-0.07, y0+0.74, nz, "#b8a67e");
-    push("lampshade", new T.CylinderGeometry(0.11,0.15,0.18,14), nx-0.07, y0+0.94, nz, 0, "#e8dcc0");
+    push("lampshade", shadeGeo(0.11,0.15,0.18,14), nx-0.07, y0+0.94, nz, 0, "#e8dcc0");
+    push("ceilfix", shadeBulb(0.028), nx-0.07, y0+0.91, nz, 0, "#f2e9cf");
     LAMPS.push({x:nx-0.07, y:y0+0.90, z:nz, color:0xffd9a0, intensity:0.36, dist:4.8,
                 decay:2.0, indoor:true, vol:[A.x0,A.x1, IZ0-0.3, A.z1, y0-0.5, y0+CH+0.3]});
     cyl("metal", 0.055,0.055,0.055,14, nx+0.14, y0+0.625, nz+0.11, "#8e9a94");
@@ -1312,7 +1322,9 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
     // the ceiling rose, and the shade that has been up there since before him
     const lcx=(IX0+IX1)/2+0.5, lcz=IZ0+2.90;
     cyl("metal", 0.04,0.04,0.10,10, lcx, y0+CH-0.16, lcz, "#cfc7b2");
-    push("lampshade", new T.CylinderGeometry(0.19,0.26,0.24,16), lcx, y0+CH-0.38, lcz, 0, "#e2d2a8");
+    push("lampshade", shadeGeo(0.19,0.26,0.24,16), lcx, y0+CH-0.38, lcz, 0, "#e2d2a8");
+    cyl("metal", 0.016,0.016,0.13,8, lcx, y0+CH-0.275, lcz, "#cfc7b2");     // the flex
+    push("ceilfix", shadeBulb(0.040), lcx, y0+CH-0.38, lcz, 0, "#f2e9cf");
     LAMPS.push({x:lcx, y:y0+CH-0.45, z:lcz, color:0xffe2b0, intensity:0.30, dist:6.4,
                 decay:2.0, indoor:true, vol:[A.x0,A.x1, IZ0-0.3, A.z1, y0-0.5, y0+CH+0.3]});
     void LANE;    // the plan's clear strip; asserted by clear36.js, not by code
@@ -1342,8 +1354,12 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
     /* --- the chair he actually sits in, in the south-west corner ------ */
     const ACX=-42.42, ACZ=1.08;
     {
-      // aimed at the television, which is diagonally across the room
-      const ry=Math.PI+Math.atan2(TVX-ACX, TVZ-ACZ);
+      /* Aimed at the television, which is diagonally across the room. The
+         chair is built facing its own +z (the back and the blanket are at
+         -z), so ry is the bearing of the set itself; the extra half turn
+         this used to carry sat him with his back to it. The seat's yaw is
+         the camera's, which looks down -z, so that one takes the half turn. */
+      const ry=Math.atan2(TVX-ACX, TVZ-ACZ);
       const S=(dx2,dz2)=>[ACX+dx2*Math.cos(ry)+dz2*Math.sin(ry),
                           ACZ-dx2*Math.sin(ry)+dz2*Math.cos(ry)];
       // a low sprung chair that has given up: seat dished, back leaning
@@ -1376,12 +1392,14 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
         push("spread", boxGeo(0.42, 0.14, 0.26, 0.5), c2[0], y0+1.02, c2[1], ry+0.06, "#8a6a50", 0.5, 0);
       }
       addCol(ACX-0.52, ACX+0.52, ACZ-0.52, ACZ+0.52, y0, y0+0.56);
-      addSeat(ACX, ACZ+0.04, y0+0.46, ry, "THE CHAIR");
+      addSeat(ACX, ACZ+0.04, y0+0.46, ry+Math.PI, "THE CHAIR");
     }
 
     /* --- what is within reach of it ----------------------------------- */
     {
-      const SX=-43.26, SZ=0.52;             // a little table at his left hand
+      // a little table at his right hand, between the chair and the west
+      // wall (his left is the door lane, which stays empty)
+      const SX=-42.82, SZ=1.78;
       bx("oak", 0.44, 0.04, 0.44, SX, y0+0.54, SZ, 0.6, 0, WOOD);
       for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]])
         cyl("oak", 0.018,0.014,0.52,8, SX+a[0]*0.17, y0+0.27, SZ+a[1]*0.17, WOODD);
@@ -1407,7 +1425,8 @@ const CAR_RIDE=(CARC.restLength-CAR_SAG+CARC.wheelRadius)-CAR_WHEEL_Y;
       const LX=-43.42, LZ=-0.18;
       cyl("metal", 0.13,0.13,0.025,14, LX, y0+0.02, LZ, STEELD);
       cyl("metal", 0.016,0.016,1.42,8, LX, y0+0.73, LZ, STEELD);
-      push("lampshade", new T.CylinderGeometry(0.15,0.21,0.26,16), LX, y0+1.56, LZ, 0, "#ddc9a2");
+      push("lampshade", shadeGeo(0.15,0.21,0.26,16), LX, y0+1.56, LZ, 0, "#ddc9a2");
+      push("ceilfix", shadeBulb(0.032), LX, y0+1.50, LZ, 0, "#f2e9cf");
       cyl("metal", 0.030,0.030,0.05,10, LX, y0+1.42, LZ, "#b8a67e");
       LAMPS.push({x:LX, y:y0+1.48, z:LZ, color:0xffd6a2, intensity:0.30, dist:5.2,
                   decay:2.0, indoor:true, vol:[A.x0,A.x1, IZ0-0.3, A.z1, y0-0.5, y0+CH+0.3]});

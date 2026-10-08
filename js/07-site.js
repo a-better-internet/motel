@@ -625,7 +625,8 @@ const TEAL="#4fb3a8", TEAL_D="#2f8b83", CREAM="#ded6c2", WHITE="#eeeae0",
       push("metal", new T.TorusGeometry(0.030,0.010,5,9), px+0.26, y+1.05-k*0.085,
            pz+0.16, 0, "#4b5054", Math.PI/2, 0);
     cyl("metal", 0.12,0.15,0.05,10, px, y+2.34, pz, "#6f767a");
-    cyl("lampshade", 0.10,0.13,0.07,10, px, y+2.28, pz, "#e8dcc0");
+    push("lampshade", shadeGeo(0.10,0.13,0.07,10), px, y+2.28, pz, 0, "#e8dcc0");
+    push("ceilfix", shadeBulb(0.028), px, y+2.29, pz, 0, "#f2e9cf");
     addCol(px-0.35,px+0.35, pz-0.25,pz+0.25, y, y+2.2);
   }
   // a speed sign nobody has obeyed, shot through twice

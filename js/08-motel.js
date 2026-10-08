@@ -574,7 +574,7 @@ function buildBay(xf, level, kind, roomNo, lit){
                 indoor:true, vol:vol, flicker:(md[4]===i)});
   }
 
-  furnishRoom(xf, y0, roomNo);
+  furnishRoom(xf, y0, roomNo, md);
 }
 
 /* --- room interior: beds, dresser, TV, bath. Density is the point -----
@@ -594,8 +594,13 @@ const paletteFor=no=>PALETTES[no%PALETTES.length];
    Single queen against the right-hand wall, dresser opposite, table under
    the window, bathroom in the back-right corner. Everything else keeps out
    of the 2.8 m lane that runs from the door to the bathroom door.        */
-function furnishRoom(xf, y0, roomNo){
+function furnishRoom(xf, y0, roomNo, md){
   const pal=paletteFor(roomNo), spread=pal.spread;
+  /* Which of the room's four lamps are on (the MOOD row: overhead, the
+     sconce by the door, the bath overhead, the bedside lamp). A fitting
+     whose lamp is off is drawn without its glow; a dark room used to have
+     every shade and dome in it glowing at dusk with nothing behind them. */
+  const on=i=>!md || md[i]>0;
   const B=(name,w,h,d,x,y,z,uv,col)=>lbx(xf,name,w,h,d,x,y0+y,z,uv,col);
   const C=(w,d,x,z,h)=>lcol(xf,w,d,x,z,y0,y0+(h||1.2));
   const P=(bucket,geo,x,y,z,col,rx,rz)=>push(bucket, geo, xf.x(x,z), y0+y, xf.z(x,z), xf.ry, col, rx, rz);
@@ -741,7 +746,8 @@ function furnishRoom(xf, y0, roomNo){
     C(0.52,0.52, 2.42,nz, 0.60);
     if(ns[1]==="lamp"){
       B("metal",0.10,0.30,0.10, 2.42, 0.73, nz, 0, "#b8a67e");
-      P("lampshade", new T.CylinderGeometry(0.15,0.20,0.24,12), 2.42, 1.00, nz, "#e8dcc0");
+      P(on(3)?"lampshade":"shadein", shadeGeo(0.15,0.20,0.24,12), 2.42, 1.00, nz, "#e8dcc0");
+      P(on(3)?"ceilfix":"paint", shadeBulb(0.034), 2.42, 0.96, nz, "#f2e9cf");
       B("paint",0.15,0.08,0.09, 2.24, 0.63, nz-0.14, 0, "#232323");          // clock radio
       P("clockled", boxGeo(0.06,0.03,0.01,0), 2.18, 0.64, nz-0.14, "#ff5a2a");
     }else{
@@ -752,7 +758,8 @@ function furnishRoom(xf, y0, roomNo){
   }
   // headboard reading light
   B("metal",0.05,0.05,0.26, 2.62, 1.44, bz-0.62, 0, "#9a9a94");
-  P("lampshade", new T.CylinderGeometry(0.09,0.13,0.14,10), 2.50, 1.42, bz-0.62, "#e8dcc0");
+  P(on(1)?"lampshade":"shadein", shadeGeo(0.09,0.13,0.14,10), 2.50, 1.42, bz-0.62, "#e8dcc0");
+  P(on(1)?"ceilfix":"paint", shadeBulb(0.026), 2.50, 1.41, bz-0.62, "#f2e9cf");
 
   /* --- dresser wall, opposite the bed ---------------------------------- */
   B("oak", 0.44,0.78,1.94, -2.48, 0.39, 2.60, 0.6, "#6f4a2c");
@@ -858,8 +865,11 @@ function furnishRoom(xf, y0, roomNo){
   P("art", boxGeo(0.02,0.22,0.16,0), -2.632, 1.46, 1.90, "#d8cfae");         // rate card
   B("metal", 0.03,0.05,0.16, -2.30, 1.32, 0.24, 0, "#caa23c");               // door chain
   B("metal", 0.03,0.03,0.24, -2.30, 1.52, 0.24, 0, "#caa23c");
-  P("ceilfix", new T.CylinderGeometry(0.22,0.26,0.10,14), 0.0, ROOM_H-0.09, 2.60, "#e8dcc0");
-  P("ceilfix", new T.CylinderGeometry(0.15,0.19,0.09,12), 1.40, ROOM_H-0.08, 5.30, "#e8dcc0");
+  // the overhead and the bath light: a canopy on the ceiling, a bowl under it
+  P("metal", new T.CylinderGeometry(0.25,0.25,0.035,18), 0.0, ROOM_H-0.0525, 2.60, "#cfc8b4");
+  P(on(0)?"ceilfix":"shadein", domeGeo(0.235,0.11), 0.0, ROOM_H-0.07, 2.60, "#efe6d2");
+  P("metal", new T.CylinderGeometry(0.17,0.17,0.035,16), 1.40, ROOM_H-0.0525, 5.30, "#cfc8b4");
+  P(on(2)?"ceilfix":"shadein", domeGeo(0.16,0.08), 1.40, ROOM_H-0.07, 5.30, "#efe6d2");
   lbx(xf,"roomwall", 5.30,0.10,0.10, 0, y0+ROOM_H-0.05, 3.40, 0.5, pal.wall);
 
   /* --- the soft things that stop a room reading as a showroom ---------- */
@@ -874,7 +884,8 @@ function furnishRoom(xf, y0, roomNo){
     P("foliage", new T.IcosahedronGeometry(b3[2],1), -2.44+b3[0], 1.10+b3[1], 1.66+b3[0]*0.6, "#57713f");
   // a sconce by the door, the kind with a pleated shade
   B("metal", 0.06,0.06,0.20, -2.62, 1.72, 0.60, 0, "#9a9a94");
-  P("lampshade", new T.CylinderGeometry(0.11,0.16,0.18,12), -2.46, 1.72, 0.60, "#e8dcc0");
+  P(on(1)?"lampshade":"shadein", shadeGeo(0.11,0.16,0.18,12), -2.46, 1.72, 0.60, "#e8dcc0");
+  P(on(1)?"ceilfix":"paint", shadeBulb(0.028), -2.46, 1.70, 0.60, "#f2e9cf");
 
   /* --- what the last guest left behind --------------------------------- */
   /* Three DIFFERENT vignettes. (7r)%8 and (5r+6)%8 agree whenever r is 3

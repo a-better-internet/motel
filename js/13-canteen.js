@@ -262,7 +262,10 @@ const BAR={x0:-88.0, x1:-67.0, z0:-30.0, z1:-14.5};
       const px=-58.8, pz=-14.8;
       cyl("metal", 0.10,0.13,6.40,10, px, 3.20, pz, "#6f6a60");
       bx("metal", 1.10, 0.10, 0.10, px+0.55, 6.32, pz, 0, 0, "#6f6a60");
-      cyl("ceilfix", 0.30,0.42,0.22,12, px+1.02, 6.18, pz, "#e8e2cf", Math.PI, 0, 0);
+      // a steel reflector, white inside, with a frosted bowl in its mouth
+      push("metal", shadeGeo(0.12,0.42,0.22,16), px+1.02, 6.18, pz, 0, "#6f6a60");
+      push("shadein", shadeGeo(0.115,0.41,0.21,16), px+1.02, 6.18, pz, 0, "#d9d2bf");
+      push("ceilfix", domeGeo(0.30,0.12), px+1.02, 6.12, pz, 0, "#e8e2cf");
       LAMPS.push({x:px+1.02, y:6.05, z:pz, color:0xffe9c4, intensity:0.62,
                   dist:17, decay:1.6, mothy:true});
       addCol(px-0.2, px+0.2, pz-0.2, pz+0.2, 0, 6.4);
@@ -822,8 +825,10 @@ i===1?"#6a5a3c":"#7a6746");
     // two pendants over it, which is where the light in here comes from
     for(const sd2 of [-0.62, 0.62]){
       cyl("metal", 0.012,0.012,1.30,6, px+sd2, TOPY-0.75, pz, "#3a342e");
-      push("lampshade", new T.CylinderGeometry(0.26,0.10,0.20,14), px+sd2, TOPY-1.48, pz, 0, "#2e2822");
-      push("ceilfix", new T.SphereGeometry(0.075,10,8), px+sd2, TOPY-1.60, pz, 0, "#f2e9cf");
+      // an enamelled coolie shade: dark outside, white inside, the bulb up in it
+      push("paint", shadeGeo(0.06,0.27,0.20,16), px+sd2, TOPY-1.48, pz, 0, "#2e2822");
+      push("shadein", shadeGeo(0.055,0.262,0.19,16), px+sd2, TOPY-1.482, pz, 0, "#d9d2bf");
+      push("ceilfix", new T.SphereGeometry(0.060,10,8), px+sd2, TOPY-1.50, pz, 0, "#f2e9cf");
       LAMPS.push({x:px+sd2, y:TOPY-1.62, z:pz, color:0xffd2a0, intensity:1.0, dist:9,
                   decay:1.7, indoor:true});
     }
@@ -1011,8 +1016,11 @@ i===1?"#6a5a3c":"#7a6746");
   // pendants over the bar and the tables
   for(const q of [[BX-0.5,-25.6],[BX-0.5,-21.0],[RX0+1.8,RZ-1.4],[-84.4,-21.4],[-77.6,-19.6]]){
     cyl("metal", 0.012,0.012,1.05,6, q[0], TOPY-0.62, q[1], "#3a342e");
-    push("lampshade", new T.ConeGeometry(0.22,0.22,14), q[0], TOPY-1.24, q[1], 0, "#3a3028");
-    push("ceilfix", new T.SphereGeometry(0.065,10,8), q[0], TOPY-1.34, q[1], 0, "#f2e9cf");
+    // open cones: a solid ConeGeometry has a base, and the base was a glowing
+    // amber disc facing down at every table
+    push("paint", shadeGeo(0.025,0.22,0.22,14), q[0], TOPY-1.24, q[1], 0, "#3a3028");
+    push("shadein", shadeGeo(0.020,0.212,0.21,14), q[0], TOPY-1.242, q[1], 0, "#d9d2bf");
+    push("ceilfix", new T.SphereGeometry(0.055,10,8), q[0], TOPY-1.29, q[1], 0, "#f2e9cf");
     LAMPS.push({x:q[0], y:TOPY-1.36, z:q[1], color:0xffcf96, intensity:0.80, dist:8,
                 decay:1.7, indoor:true});
   }

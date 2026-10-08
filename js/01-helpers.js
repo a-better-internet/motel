@@ -475,6 +475,25 @@ function isFlat(geo){
   const b=geo.boundingBox;
   return Math.min(b.max.x-b.min.x, b.max.y-b.min.y, b.max.z-b.min.z) < FLAT_T;
 }
+/* A LAMPSHADE IS A TUBE. Every shade in the world was a closed cylinder,
+   which puts a flat disc across the mouth of it: from a chair or from under
+   a ceiling rose what you saw was a lid of glowing cream with no bulb, no
+   inside and no falloff — a sticker, and the brightest flat area in the room.
+   A shade is open at both ends; the lampshade bucket is double-sided so its
+   inside shows, lit by the lamp standing in it, and shadeBulb() hangs the
+   bulb where you would look for it. */
+function shadeGeo(rt, rb, h, seg){ return new T.CylinderGeometry(rt, rb, h, seg||14, 1, true); }
+const shadeBulb=(r)=>new T.SphereGeometry(r||0.032, 10, 8);
+/* ...and a ceiling fitting is a bowl. The flush drums had flat bottoms, and
+   a flat disc facing straight down at the lamp under it takes the full
+   light and the full glow at once: the brightest, flattest, whitest thing in
+   every room. A frosted half-dome hung from its rim: y=0 is the rim and it
+   bulges down by `drop`, so its shading runs from the lit crown to the rim. */
+function domeGeo(r, drop, seg){
+  const g=new T.SphereGeometry(r, seg||18, 7, 0, Math.PI*2, Math.PI/2, Math.PI/2);
+  g.scale(1, drop/r, 1);
+  return g;
+}
 function bakeBuckets(scene){
   const out=[];
   for(const [name,b] of BUCKETS){

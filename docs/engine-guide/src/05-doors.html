@@ -1,0 +1,154 @@
+<section class="chapter">
+  <div class="opener"><div class="num">4</div><div><p class="kicker">Chapter four</p><h1>Doors and doorways</h1></div></div>
+  <p class="lede">The world has forty-six working doors, and almost every one of them shipped blocked at least once: by a wall course nobody split, a lintel collider hanging at head height, a sign screwed to the leaf's centre line, a face left across an opened corridor, or a sofa between the door and the rest of the room. A door is two separate things: the <em>leaf</em>, which is easy, and the <em>hole</em>, which is where everything goes wrong.</p>
+
+  <div class="g3">
+    <figure><img src="img/door_motel.jpg"><figcaption><b>Painted panel door</b>, motel room, opening inward onto a lit room.</figcaption></figure>
+    <figure><img src="img/door_brk.jpg"><figcaption><b>Steel door</b> into the warehouse break room, with the sign on the wall above the head.</figcaption></figure>
+    <figure><img src="img/door_rink.jpg"><figcaption><b>STAFF ONLY</b>, cut through the rink's 0.5 m block wall: two jambs, a lintel, a frame.</figcaption></figure>
+  </div>
+
+  <h2>The leaf</h2>
+<pre><code>makeDoor(xf, lx, ly, lz, label, opensIn, ajar, style);
+<span class="c">// xf       a local frame from XF(ox, oz, ry): the hinge is at local (lx, lz), the leaf extends +x from it</span>
+<span class="c">//          (ry = 0: leaf runs along world +x · ry = π/2: leaf runs along world −z)</span>
+<span class="c">// ly       the bottom of the leaf, 2 cm above the floor</span>
+<span class="c">// label    the prompt text ("E · STAFF ONLY"); a 3-digit label reads "ROOM 107"</span>
+<span class="c">// opensIn  which way it swings; ajar  how open it rests (0–1); style  which leaf</span></code></pre>
+  <p>Each leaf is its own small merged mesh inside a <code>Group</code> whose origin is the hinge, so opening it is one rotation: <code>g.rotation.y = base + swing × open</code>, with <code>swing</code> = ±1.52 rad (87°). Every face detail (panels, kick plates, push bars, louvres) is built on <em>both</em> faces of the leaf, each layer at its own depth, so it never flickers.</p>
+  <table class="keep">
+    <tr><th style="width:15%">Style</th><th style="width:22%">Leaf (w × h × t)</th><th>Character</th></tr>
+    <tr><td>(default)</td><td class="n">0.92 × 2.02 × 0.055</td><td>Motel room: cream slab, teal panels both faces, brass knob</td></tr>
+    <tr><td><code>bar</code></td><td class="n">0.98 × 2.02 × 0.055</td><td>Oxblood steel, brass kick plate, push bar, porthole</td></tr>
+    <tr><td><code>booth</code></td><td class="n">0.98 × 2.02 × 0.055</td><td>Olive louvred utility door with a hasp</td></tr>
+    <tr><td><code>swing</code></td><td class="n">0.98 × 2.02 × 0.055</td><td>Kitchen swing door: porthole, push plate, no latch</td></tr>
+    <tr><td><code>steel</code></td><td class="n">0.96 × 2.04 × 0.065</td><td>Flush grey slab, foot louvre, warning plate, lever</td></tr>
+    <tr><td><code>deco</code></td><td class="n">1.06 × 2.16 × 0.085</td><td>Black lacquer, brass fluting and sunburst, speakeasy grille</td></tr>
+    <tr><td><code>gate</code></td><td class="n">1.42 × 1.94 × 0.045</td><td>Galvanised frame, chain-link mesh, barbed wire, padlock</td></tr>
+  </table>
+  <h3>Behaviour</h3>
+  <ul>
+    <li><b>Doors open themselves.</b> On the same floor (feet within 1.8 m of the door's height) and within 2.5 m, a door's target is open; otherwise closed. Openness eases towards its target at rate 5.2 per second.</li>
+    <li><b>E overrides.</b> Pressing E on the nearest door (within 3.4 m) forces it open or shut until you walk more than 4.6 m away, after which it goes back to automatic.</li>
+    <li><b><code>ajar</code> is a minimum.</b> A door with <code>ajar = 0.34</code> never closes past a third open, like the room at the far end of the walkway with the light on and nobody in it.</li>
+    <li><b>The leaf has no collider.</b> A door can never trap the player or hold them in a doorway, which means the opening itself must be kept clear of everything else.</li>
+  </ul>
+
+  <h2>The hole</h2>
+  <p>Every doorway in the newer parts of the world is built from the same recipe. Here it is as the STAFF ONLY door through the rink's east wall: a 0.50 m painted block wall with a 2.14 m door head.</p>
+  <div class="diagram">
+  <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="blk" width="20" height="10" patternUnits="userSpaceOnUse"><rect width="20" height="10" fill="#e4e0d6"/><path d="M0,10 H20 M10,0 V10" stroke="#cfc9bb" stroke-width="0.8"/></pattern>
+      <marker id="dm" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#4d463e" stroke-width="1"/></marker>
+      <marker id="dm2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#4d463e" stroke-width="1"/></marker>
+    </defs>
+    <g font-size="8.6" fill="#4d463e">
+      <text x="65" y="12" font-size="10" font-weight="600" fill="#1f1b17">ELEVATION</text>
+      <rect x="65" y="22" width="81" height="238" fill="url(#blk)"/>
+      <rect x="254" y="22" width="81" height="238" fill="url(#blk)"/>
+      <rect x="146" y="22" width="108" height="40" fill="url(#blk)"/>
+      <line x1="146" y1="62" x2="254" y2="62" stroke="#b0502a" stroke-width="1.2"/>
+      <rect x="161.3" y="26.9" width="77.4" height="19.8" fill="#24365a"/>
+      <text x="200" y="40" text-anchor="middle" font-size="8" fill="#e8e6dc">STAFF ONLY</text>
+      <rect x="145.1" y="60.2" width="7.2" height="199.8" fill="#4a4e50"/>
+      <rect x="247.7" y="60.2" width="7.2" height="199.8" fill="#4a4e50"/>
+      <rect x="144.2" y="60.2" width="111.6" height="7.2" fill="#4a4e50"/>
+      <rect x="156.8" y="74.6" width="86.4" height="183.6" fill="#8d9490" stroke="#6a7170" stroke-width="0.8"/>
+      <rect x="160" y="78" width="80" height="177" fill="none" stroke="#6a7170" stroke-width="0.6"/>
+      <rect x="166" y="166" width="14" height="3" fill="#b8bcbc"/>
+      <rect x="169.4" y="105.2" width="61.2" height="144" rx="5" fill="none" stroke="#2a7f78" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="200" y="128" text-anchor="middle" fill="#2a7f78">player 0.68</text>
+      <line x1="40" y1="260" x2="360" y2="260" stroke="#1f1b17" stroke-width="1.2"/>
+      <line x1="152.3" y1="276" x2="247.7" y2="276" stroke="#4d463e" marker-start="url(#dm2)" marker-end="url(#dm)"/>
+      <text x="200" y="290" text-anchor="middle">1.06 clear between the frame posts</text>
+      <line x1="350" y1="67.4" x2="350" y2="260" stroke="#4d463e" marker-start="url(#dm2)" marker-end="url(#dm)"/>
+      <text x="354" y="160">2.14</text><text x="354" y="171">head</text>
+      <line x1="146" y1="17" x2="254" y2="17" stroke="#b0502a" stroke-width="0.8"/>
+      <text x="262" y="15" fill="#b0502a">1.20 structural hole</text>
+      <text x="40" y="66" fill="#b0502a" font-size="8">lintel →</text>
+      <text x="40" y="76" fill="#b0502a" font-size="8">collider starts</text>
+      <text x="40" y="86" fill="#b0502a" font-size="8">at its own base</text>
+      <text x="200" y="215" text-anchor="middle" fill="#1f1b17">leaf 0.96 × 2.04</text>
+    </g>
+    <g font-size="8.6" fill="#4d463e">
+      <text x="505" y="12" text-anchor="middle" font-size="10" font-weight="600" fill="#1f1b17">PLAN</text>
+      <rect x="456" y="60" width="98" height="225" fill="none" stroke="#b0502a" stroke-width="0.9" stroke-dasharray="2 3"/>
+      <text x="560" y="70" fill="#b0502a">probe</text><text x="560" y="80" fill="#b0502a">1 m into</text><text x="560" y="90" fill="#b0502a">each room</text>
+      <rect x="380" y="150" width="71" height="45" fill="url(#blk)" stroke="#a9a293" stroke-width="0.6"/>
+      <rect x="559" y="150" width="71" height="45" fill="url(#blk)" stroke="#a9a293" stroke-width="0.6"/>
+      <rect x="456.4" y="132" width="97.2" height="81" fill="#2a7f78" fill-opacity="0.10" stroke="#2a7f78" stroke-width="0.9" stroke-dasharray="4 2"/>
+      <rect x="445" y="144.6" width="7.2" height="55.8" fill="#4a4e50"/>
+      <rect x="557.8" y="144.6" width="7.2" height="55.8" fill="#4a4e50"/>
+      <line x1="548.2" y1="172.5" x2="548.2" y2="258.9" stroke="#6a7170" stroke-width="4.5"/>
+      <path d="M461.8,172.5 A86.4,86.4 0 0 0 548.2,258.9" fill="none" stroke="#6a7170" stroke-width="0.8" stroke-dasharray="3 2"/>
+      <circle cx="548.2" cy="172.5" r="2.4" fill="#1f1b17"/>
+      <text x="505" y="122" text-anchor="middle" fill="#2a7f78">threshold flat ± 0.2 past both faces</text>
+      <text x="415" y="140" text-anchor="middle">corridor</text>
+      <text x="415" y="225" text-anchor="middle">rink</text>
+      <text x="566" y="250">hinge, leaf</text><text x="566" y="261">swings into</text><text x="566" y="272">the rink</text>
+      <text x="415" y="176" text-anchor="middle" font-size="8">0.50 wall</text>
+    </g>
+  </svg></div>
+<pre><code>const AD = ARENA_DOOR, AD0 = AD.z - 0.54, AD1 = AD.z + 0.54;         <span class="c">// a 1.08 m opening</span>
+wall("block", RX1, RX1+RWT, LZ1,      AD0-0.06, -0.1,      RH+0.4);   <span class="c">// jamb wall, one side</span>
+wall("block", RX1, RX1+RWT, AD1+0.06, RZ1+RWT,  -0.1,      RH+0.4);   <span class="c">// jamb wall, the other</span>
+wall("block", RX1, RX1+RWT, AD0-0.06, AD1+0.06, AD.h+0.06, RH+0.4);   <span class="c">// the lintel, over the head</span>
+<span class="c">// frame posts and head trim, proud of both faces of the wall</span>
+for(const z of [AD0-0.03, AD1+0.03])
+  m.B("metal", RWT+0.12, AD.h+0.08, 0.08, RX1+RWT/2, FY+(AD.h+0.08)/2, z, 0.4, 0, "#4a4e50");
+m.B("metal", RWT+0.14, 0.08, AD1-AD0+0.16, RX1+RWT/2, FY+AD.h+0.04, AD.z, 0.4, 0, "#4a4e50");
+<span class="c">// the threshold flat, overlapping both floors, and the floor finish through the opening</span>
+m.flat(RX1-0.2, RX1+RWT+0.2, AD0, AD1, FY);
+m.P("lino", planeGeo(RWT, AD1-AD0, 0.6), RX1+RWT/2, FY+0.006, AD.z, 0, RUBBER, -Math.PI/2, 0);
+<span class="c">// the leaf, hinged 6 cm inside the far post, and the sign on the wall above, not on the leaf</span>
+makeDoor(XF(W(RX1+RWT/2), Z(AD1-0.06), Math.PI/2), 0, GY+FY+0.02, 0,
+         "STAFF ONLY", false, 0, "steel");
+sign(0.86, 0.22, "STAFF ONLY", "#24365a", "#e8e6dc",
+     RX1-0.012, AD.h+0.34, AD.z, -Math.PI/2);</code></pre>
+  <p>The <code>wall()</code> helper draws a box and registers its collider in one call. A wall that starts on the floor gets a collider sunk half a metre below it, so there is no seam to slip under. A wall that starts higher up, which is a lintel, gets a collider that starts exactly at its own base:</p>
+<pre><code>const wall = (bk, x0,x1, z0,z1, y0,y1, c, uv) => {
+  m.B(bk, x1-x0, y1-y0, z1-z0, (x0+x1)/2, FY+(y0+y1)/2, (z0+z1)/2, uv||0.833, 0, c);
+  m.col(x0, x1, z0, z1, FY + y0 - (y0 <= 0 ? 0.5 : 0), FY + y1);     <span class="c">// a lintel stops where it is</span>
+};</code></pre>
+</section>
+
+<section>
+  <h2>The numbers that make a doorway passable</h2>
+  <table class="keep">
+    <tr><th style="width:38%">Dimension</th><th style="width:18%">Value</th><th>Reason</th></tr>
+    <tr><td>Clear width between linings</td><td class="n">≥ 1.00 m</td><td>The body is 0.68 m wide; 16 cm each side lets you walk through at an angle without catching</td></tr>
+    <tr><td>Head height (underside of trim)</td><td class="n">2.14 m</td><td>The body test stops at 1.72 m; the standard steel leaf is 2.04 m and hangs 2 cm off the floor</td></tr>
+    <tr><td>Lintel collider bottom</td><td class="n">= lintel base</td><td>A collider sunk 0.5 m below a 2.14 m lintel becomes a bar at 1.64 m, which is head height in the doorway</td></tr>
+    <tr><td>Wall overlap at the jambs and head</td><td class="n">6 cm</td><td>Jamb walls stop 6 cm short of the opening and the lintel spans 6 cm past it, so pieces overlap rather than meet on a plane</td></tr>
+    <tr><td>Frame projection</td><td class="n">6–7 cm each face</td><td>Posts and trim stand proud of both wall faces, so nothing shares a plane with the wall</td></tr>
+    <tr><td>Threshold flat</td><td class="n">±0.2 m past the faces</td><td>Flat bounds are strict; a threshold that only meets the floors leaves a line where you drop</td></tr>
+    <tr><td>Floor finish through the opening</td><td class="n">+6 mm</td><td>Its own height, above the slab, below the rooms' finishes</td></tr>
+  </table>
+  <div class="rule"><div class="t">Rule · Clear width is the structural opening minus what you line it with</div>
+  <p>A reveal that straddles its jamb stands into the opening on both sides. A 1.10 m structural opening with 4.5 cm of reveal each side leaves 1.01 m clear, which does not pass a 1.06 m leaf. That is a doorway blocked by arithmetic rather than by a wall.</p></div>
+
+  <h2>Ten rules, each paid for</h2>
+  <ol class="rules">
+    <li><b>A hole goes through every course, including the ones you cannot see.</b> Skirting, wainscot, dado, cap rail, plaster lining, the tile skirt outside, the concrete mass under the floor: every layer that runs along a wall with a door in it must be split around the door. The diner's front door was blocked for rounds by three decorative courses that carried no collider at all.</li>
+    <li><b>Nothing goes between the jambs but the leaf.</b> Not a sign, not a hook, not a key board, not a "PRIVATE" card on the leaf's centre line. Signs go on the wall above the head, offset a centimetre along the wall's normal.</li>
+    <li><b>A lintel stops where it is.</b> Only colliders that start on the floor are sunk below it.</li>
+    <li><b>An opened end gets no face.</b> When a corridor that used to end in a wall is extended, the plane that closed it must go. A face has no collider behind it, so every collision probe walks straight through it while you stand looking at a grey wall.</li>
+    <li><b>Probe a metre into each room, not just through the wall.</b> A plaster lining stands clear of the wall on the room side, so a test the thickness of the wall misses it.</li>
+    <li><b>Test the drawn world, not only the colliders.</b> Geometry and collision disagree constantly. When a probe says a way is open and a screenshot says it is shut, the probe is testing the wrong thing.</li>
+    <li><b>Getting to the door is part of the door.</b> A doorway can pass every test and still be unusable because the route to it runs through a 20 cm slot between a desk and a soda machine. Flood-fill the whole floor from the building's front door every time a door goes into a furnished room.</li>
+    <li><b>Lay out rooms from a plan with a named lane.</b> Put a block of named anchors at the top of the room's code, including <code>LANE</code>, the strip from the door into the room that nothing may enter.</li>
+    <li><b>A leaf never swings over a stairwell.</b> If a door opens onto a flight, hang it to open the other way. The landing starts at the threshold.</li>
+    <li><b>Put the lights where the door leads.</b> A lamp's <code>vol</code> decides where it shines. A room seen through an open door is lit only if its lamps' volumes include the place you are standing.</li>
+  </ol>
+
+  <h2>How doors are checked</h2>
+  <table class="keep">
+    <tr><th style="width:24%">Probe</th><th>What it proves</th></tr>
+    <tr><td><code>doors18</code></td><td>Walks every doorway's lane through the colliders at ankle, waist and head height</td></tr>
+    <tr><td><code>heads46</code></td><td>Looks for any collider between ankle and head height inside each opening</td></tr>
+    <tr><td><code>clear36</code> / <code>sight46</code></td><td>Tests the <em>drawn</em> triangles of every baked bucket against a prism through the opening (a separating-axis test, so a plane crossing the hole with all its corners far away is still caught), and casts rays along both lanes naming whatever they hit by bucket and source line</td></tr>
+    <tr><td><code>reach33</code></td><td>Flood-fills a building's floor from its front door and lists the rooms you cannot get to</td></tr>
+    <tr><td><code>walk39</code></td><td>Walks a polyline the way the player does and prints surface height and zone at each leg</td></tr>
+  </table>
+</section>

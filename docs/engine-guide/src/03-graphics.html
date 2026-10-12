@@ -1,0 +1,210 @@
+<section class="chapter">
+  <div class="opener"><div class="num">2</div><div><p class="kicker">Chapter two</p><h1>Graphical style</h1></div></div>
+  <p class="lede">The look in one sentence: painted, literal colour under soft desert light. Every surface is a hex someone chose, shaded by a warm sky, one hard sun and a handful of lamps, with the brightest highlights rolled off rather than clipped. It is closer to a diorama than to photorealism, and it holds together because nothing is allowed to go flat white or flat black.</p>
+  <figure><img src="img/near_gold.jpg"><figcaption><b>Golden hour on the motel court.</b> A single shadow-casting sun low in the west, the warm hemisphere fill, the painted stucco and teal trim. No texture in this frame is a photograph.</figcaption></figure>
+
+  <h2>The renderer</h2>
+  <table class="keep">
+    <tr><th style="width:34%">Setting</th><th style="width:26%">Value</th><th>Why</th></tr>
+    <tr><td>Antialiasing, pixel ratio</td><td class="n">on · min(dpr, 2)</td><td>Crisp edges without paying for 3× screens</td></tr>
+    <tr><td>Output colour space</td><td class="n">sRGB</td><td>Canvas textures are flagged sRGB too, so painted hexes arrive as painted</td></tr>
+    <tr><td>Shadow map</td><td class="n">PCFSoftShadowMap</td><td>Soft edges at one shadow caster's cost</td></tr>
+    <tr><td>Tone mapping</td><td class="n">Custom shoulder at 0.76</td><td>Below 0.76 the output equals the input; above it each channel rolls off towards 1.0</td></tr>
+    <tr><td>Anisotropic filtering</td><td class="n">min(8, GPU max)</td><td>Floors and roads stay sharp at a grazing angle</td></tr>
+    <tr><td>Near / far planes</td><td class="n">0.24 m / 4,000 m</td><td>Depth precision is set by the near plane. At 0.08 distant signs buzzed; 0.24 gives about 6 cm of resolution 500 m out</td></tr>
+  </table>
+  <p>The tone-mapping shoulder is the single most important line for the look. Painted colours stay exactly as painted, because that was the reason for avoiding filmic curves. But a white lounger in full sun leaves the shader at 1.8, and without the shoulder every face of it clips to the same 255,255,255 and loses its form. The shoulder works per channel, so a warm highlight stays warm instead of being pulled towards grey.</p>
+<pre><code>T.ShaderChunk.tonemapping_pars_fragment = T.ShaderChunk.tonemapping_pars_fragment.replace(
+  "vec3 CustomToneMapping( vec3 color ) { return color; }",
+  `vec3 CustomToneMapping( vec3 color ) {
+     color *= toneMappingExposure;
+     const float K = 0.76;                               <span class="c">// where the shoulder starts</span>
+     vec3 lo = min( color, vec3( K ) );
+     vec3 hi = max( color - vec3( K ), vec3( 0.0 ) );
+     return lo + ( 1.0 - K ) * ( vec3( 1.0 ) - exp( -hi / ( 1.0 - K ) ) );
+   }`);
+renderer.toneMapping = T.CustomToneMapping;</code></pre>
+
+  <h2>Six layers of light</h2>
+  <p>Real-time lights are expensive and three.js recompiles shaders when their count changes, so the engine keeps the number of real lights fixed and builds everything else out of materials that glow.</p>
+  <table class="keep">
+    <tr><th style="width:4%">#</th><th style="width:22%">Layer</th><th style="width:34%">What it is</th><th>Used for</th></tr>
+    <tr><td class="n">1</td><td>Base fill</td><td><code>HemisphereLight</code> sky <code>#ffe7c4</code>, ground <code>#4a2a18</code>, 0.72 by day; <code>AmbientLight</code> <code>#fff0dc</code> 0.15 to 0.21</td><td>The sky and the warm ground bouncing light into every shadow, so nothing goes black</td></tr>
+    <tr><td class="n">2</td><td>The key</td><td>One <code>DirectionalLight</code>: the sun by day (<code>#ffeed0</code>, 1.12), the moon by night (<code>#8ea6d4</code>, about 0.38)</td><td>The only shadow caster in the world</td></tr>
+    <tr><td class="n">3</td><td>Lamp pool</td><td>Twelve <code>PointLight</code>s, no shadows, moved every frame onto the twelve registered lamps nearest the camera (within 46 m)</td><td>Every fixture that has to actually light a room: sconces, porch lights, strip lights, desk lamps</td></tr>
+    <tr><td class="n">4</td><td>Glowing surfaces</td><td><code>MeshStandardMaterial</code> with emissive, registered in <code>GLOW</code> and ramped by the clock</td><td>Lampshades, ceiling fittings, vending fronts, lit windows, bulkheads</td></tr>
+    <tr><td class="n">5</td><td>Unlit faces</td><td><code>MeshBasicMaterial</code> with <code>toneMapped:false</code>; neon panels run 0.40 + 0.60 × dark</td><td>Neon and lit signs, headlamp lenses, TV screens, fairy lights</td></tr>
+    <tr><td class="n">6</td><td>Faked light</td><td>Additive sprites and transparent discs</td><td>Candle pools on tables, the sun and moon discs, lamp halos, the pool's night glow</td></tr>
+  </table>
+  <p>On top of those sits the flashlight (<b>L</b>): a <code>SpotLight</code> moved onto the camera every frame (intensity 2.45, 34 m throw, cone 0.40 rad, penumbra 0.55, no shadow) plus a weak 6 m point light half a metre ahead, so the floor at your feet is lit too.</p>
+
+  <h3>Registering a lamp</h3>
+<pre><code>LAMPS.push({ x, y, z,                   <span class="c">// world position of the bulb</span>
+  color: 0xffd8a0, intensity: 0.42,      <span class="c">// colour and strength before the clock multiplier</span>
+  dist: 8, decay: 1.5,                   <span class="c">// range in metres; 1.5 is gentler than physical, so no hot spots</span>
+  indoor: true,                          <span class="c">// burns at max(dark, 0.70) all day</span>
+  vol: [x0,x1, z0,z1, y0,y1],            <span class="c">// only on while the CAMERA is inside this box</span>
+  flicker: false, mothy: false });       <span class="c">// a bad ballast; insects circle it at night</span></code></pre>
+  <p>Every frame <code>updateLights()</code> collects the lamps within 46 m whose volume contains the camera, sorts them by distance and hands the nearest twelve to the pool. The clock multiplier is <code>dark</code> for outdoor lamps, <code>max(dark, 0.70)</code> for indoor ones, and 1 for anything inside an underground volume.</p>
+
+  <div class="g2">
+    <figure><img src="img/room.jpg"><figcaption><b>A motel room at night.</b> The bedside and bathroom fixtures are pool lamps with a <code>vol</code> the size of the room, so they never light the walkway through the wall.</figcaption></figure>
+    <figure><img src="img/speak.jpg"><figcaption><b>The Dry Well, forty feet down.</b> The sun and sky are faded out; fourteen fixtures and candle discs do all the work.</figcaption></figure>
+  </div>
+
+  <div class="rule"><div class="t">Rules for light</div>
+  <ul>
+    <li><b>An emissive does not illuminate.</b> A glowing candle flame lights nothing. If a thing must light a room, register a lamp; if the twelve are spoken for, fake the pool of light with an additive disc on the table under it.</li>
+    <li><b>A lamp is a lens with a dark body.</b> <code>emitMat()</code> gives a glowing surface a near-black diffuse colour, so the point light a few centimetres away cannot add its own light on top of the emissive and push it past white.</li>
+    <li><b>A lampshade is a tube, and a ceiling fitting is a bowl.</b> A closed cylinder puts a flat glowing disc across the mouth of the shade, and that becomes the brightest flat area in the room. Use an open, double-sided tube with a bulb inside, and a half-dome under a ceiling rose.</li>
+    <li><b>A lamp with a volume is on only while you are inside it.</b> That is what stops light leaking through walls. For a room you look <em>into</em> but never enter, such as the living room behind the observation glass, widen the volume to include where the watcher stands.</li>
+    <li><b>Glow goes through a soft knee.</b> Emissive intensity is linear up to 0.55 of the brightest channel and then eases towards 0.92, so an amber lamp stays amber however hard it is driven.</li>
+  </ul></div>
+
+  <h2>Shadows that touch what casts them</h2>
+  <p>Only the key light casts shadows. Its shadow camera is an orthographic box 92 m across that follows the player, snapped to whole shadow-map texels so the shadows do not crawl as you walk. The light sits 110 m out along the sun direction from that target, so the depth range is only ±100 m, which is what lets the bias be tiny.</p>
+<pre><code>key.shadow.mapSize.set(3072, 3072);            <span class="c">// 3 cm a texel across 92 m</span>
+const ksc = key.shadow.camera, KEY_D = 110;
+ksc.left = -46; ksc.right = 46; ksc.top = 46; ksc.bottom = -46;
+ksc.near = KEY_D - 100; ksc.far = KEY_D + 100;
+ksc.updateProjectionMatrix();                  <span class="c">// without this, none of the above takes effect</span>
+key.shadow.bias = -0.00005; key.shadow.normalBias = 0.012;
+const SHADOW_SNAP = (ksc.right - ksc.left) / key.shadow.mapSize.x * 2;
+
+<span class="c">// every frame: follow the player in whole texels, then stand KEY_D out along the sun</span>
+const kx = Math.round(camera.position.x / SHADOW_SNAP) * SHADOW_SNAP;
+const kz = Math.round(camera.position.z / SHADOW_SNAP) * SHADOW_SNAP;
+key.position.set(kx + sunDir.x*KEY_D, kty + sunDir.y*KEY_D, kz + sunDir.z*KEY_D);
+key.target.position.set(kx, kty, kz);
+key.castShadow = dn.sunHeight > 0.04;          <span class="c">// the moon is too weak to shadow anything but acne</span></code></pre>
+  <div class="rule"><div class="t">Rules for shadows</div>
+  <ul>
+    <li><b>Tell the shadow camera.</b> An <code>OrthographicCamera</code> builds its projection once. Change its bounds without calling <code>updateProjectionMatrix()</code> and the world is shadowed through the stock 10 m box. That is why the motel once cast no shadow on its own car park.</li>
+    <li><b>Flat things do not cast.</b> When the merge bakes a bucket it splits off every piece thinner than 12 mm (decals, rugs, stains, the lot surface) into a second mesh that receives but does not cast. A plane in the depth map sits exactly on the surface it shades and makes acne.</li>
+    <li><b>See-through things do not cast.</b> Transparent, additive and depth-less materials are excluded, or every window pane and light shaft prints a solid shadow.</li>
+    <li><b>Do not raise <code>normalBias</code> to cure acne.</b> A big normal bias lifts the shadow off the foot of whatever casts it, so every post stands on a strip of daylight. Find what is shadowing itself instead. Measured result: the gap between a post and its shadow went from 11 cm to under 2 cm.</li>
+  </ul></div>
+
+  <h2>Under the ground there is no sky</h2>
+  <p>Indoors there is still a sky outside the window, so the hemisphere light stays on. Underground there is not. <code>addBuried(x0,x1, z0,z1, y0,y1, amb)</code> registers a volume; while the camera is inside one, the loop fades over about a third of a second to:</p>
+  <ul>
+    <li>sun intensity × 0 (taken away outright);</li>
+    <li>hemisphere intensity × 0.18, its colours pulled to lamplight (sky <code>#ffd2a0</code>, ground <code>#3a2418</code>);</li>
+    <li>ambient raised to 0.44 in the volume's own colour <code>amb</code>: warm <code>#ffdcb4</code> for a lamplit bar, grey-green <code>#d8dcd4</code> for a tiled corridor, near-dark <code>#585c5c</code> for an observation room.</li>
+  </ul>
+  <p>Lamps inside a buried volume ignore the clock and burn at full strength, and so do emissive materials of the <code>"buried"</code> kind. Walking down a stair becomes a transition rather than a cut.</p>
+  <div class="g2">
+    <figure><img src="img/rink.jpg"><figcaption><b>The ice arena.</b> Cold ambient, high-bay fixtures from the pool, grey-blue ice kept below white so it reads as a surface rather than a hole.</figcaption></figure>
+    <figure><img src="img/live.jpg"><figcaption><b>The 1955 living room.</b> Its lamps belong to a volume that includes the observation room, so the set stays lit for whoever is watching.</figcaption></figure>
+  </div>
+
+  <h2>Atmosphere</h2>
+  <p>Linear fog does the work of distance. By day its colour equals the sky's horizon colour, so a far mesa melts into heat haze. At night the haze is pulled towards <code>#0a1020</code> and made <em>darker</em> than the sky, or the mountains wash out into it. Fog starts at 185 m and is full at 1,460 m by day (237 m and 1,790 m at night), and a dust gust tints it and pulls it in by up to 46%. The sky itself is a 2,400 m sphere drawn from a 16 × 256 canvas gradient that is repainted every frame (chapter 5). Three cloud layers (cumulus, altocumulus, cirrus) are sprites drawn on canvases, tinted by the sky each frame, and drifting downwind.</p>
+</section>
+
+<section>
+  <h2>Textures: drawn, not loaded</h2>
+  <p>Every map in the world is drawn into a <code>&lt;canvas&gt;</code> at load time, almost always in three passes: a <b>base fill</b>, thousands of tiny <b>noise dots</b> in two or three tints, then <b>strokes and features</b> (joints, grain, cracks, trowel swirls). Sizes run from 64 to 512 px. The result is flagged sRGB, set to repeat, and given anisotropic filtering.</p>
+<pre><code>TEX.stucco = (function(){                         <span class="c">// slate-periwinkle motel walls</span>
+  const c = cvs(256,256), x = c.getContext("2d");
+  x.fillStyle = "#8e9cb4"; x.fillRect(0,0,256,256);                     <span class="c">// 1 · base fill</span>
+  noiseDots(x,256,256,2600,["rgba(255,255,255,0.06)","rgba(0,0,0,0.06)",
+                            "rgba(120,140,170,0.10)"]);                 <span class="c">// 2 · noise</span>
+  for(let i=0;i<70;i++){                                               <span class="c">// 3 · trowel swirls</span>
+    x.strokeStyle = "rgba(255,255,255,"+(0.02+Math.random()*0.05)+")";
+    x.lineWidth = 1+Math.random()*3; x.beginPath();
+    x.arc(Math.random()*256, Math.random()*256, 6+Math.random()*22, Math.random()*6, Math.random()*6);
+    x.stroke();
+  }
+  return rep(setSRGB(new T.CanvasTexture(c)), 1, 1);
+})();</code></pre>
+  <div class="swatches">
+    <div><img src="img/sw_stucco.jpg">stucco</div><div><img src="img/sw_asphalt.jpg">asphalt</div>
+    <div><img src="img/sw_sidewalk.jpg">sidewalk</div><div><img src="img/sw_brick.jpg">brick</div>
+    <div><img src="img/sw_block.jpg">painted block</div><div><img src="img/sw_glazed.jpg">glazed brick</div>
+    <div><img src="img/sw_plank.jpg">plank floor</div><div><img src="img/sw_carpet.jpg">carpet</div>
+    <div><img src="img/sw_hexfloor.jpg">hex tile</div><div><img src="img/sw_checker.jpg">checker</div>
+    <div><img src="img/sw_lino.jpg">terrazzo</div><div><img src="img/sw_ceilTile.jpg">popcorn ceiling</div>
+    <div><img src="img/sw_roomWall.jpg">drywall</div><div><img src="img/sw_atomic.jpg">atomic wallpaper</div>
+    <div><img src="img/sw_spread.jpg">bedspread</div><div><img src="img/sw_curtain.jpg">drapes</div>
+    <div><img src="img/sw_rug.jpg">rug</div><div><img src="img/sw_runner.jpg">runner</div>
+    <div><img src="img/sw_siding.jpg">corrugated siding</div><div><img src="img/sw_sand.jpg">desert sand</div>
+    <div><img src="img/sw_rock.jpg">rock</div><div><img src="img/sw_ice.jpg">rink ice</div>
+    <div><img src="img/sw_oak.jpg">oak</div><div><img src="img/sw_tags.jpg">graffiti sheet</div>
+  </div>
+
+  <h3>World-scaled UVs</h3>
+  <p><code>boxGeo(w, h, d, uvScale)</code> rescales each face's 0–1 UVs by that face's real size, so one texture tiles at the same density on a kerb and on a wall. <code>uvScale</code> is repeats per metre (0.35 by default; brick around 0.8; fine fabric 2 or more). This is what lets thousands of differently sized boxes share one material and merge into one mesh. <code>planeGeo(w, h, uvScale)</code> does the same for planes.</p>
+
+  <h3>Colour comes from the vertex, and can only darken</h3>
+  <p>Bucket materials are white, or carry a neutral map. Each piece pushed into a bucket carries its own hex, which the merge writes into a vertex-colour attribute. A vertex colour multiplies the map, so <b>it can only ever darken the texture under it</b>. Pick the bucket for the colour you want to end at, not for the material you would name the thing after. Twenty-four "spalled concrete" patches pushed into the gravel bucket came out orange-red, because the gravel map is <code>#8a5f45</code>.</p>
+
+  <h3>Decals: a different crop every time</h3>
+  <ul>
+    <li><code>streakGeo(w,h)</code> and <code>cellGeo(w,h,cols,rows)</code> pick a random cell of a 2×2 decal sheet, at a random offset, scale and flip. Each sheet fades to nothing at its margins, so a crop never lands on a hard edge and forty stains never repeat the same shape.</li>
+    <li><code>tagGeo(w,h,ci,ri)</code> names its cell, for graffiti where the pieces are not interchangeable.</li>
+    <li><code>puddleGeo(rx,rz)</code> is an irregular disc lying in xz. A rectangle of dark water reads as a slab someone laid on the floor.</li>
+    <li><code>runnerGeo(L,W)</code> keeps a rug's border on its long edges and its fringe on its ends, which is how rugs are made.</li>
+  </ul>
+  <p>Stains and age that must sit <em>in</em> a surface use a lit material with a vertex colour below the surface's own. An unlit stain is a constant brightness, so in the dim half of a room it ends up brighter than the plaster and reads as fog on the wall.</p>
+
+  <h3>Signs and printed faces</h3>
+<pre><code>const tex = signTex(Math.round(w*240), Math.round(h*240), (x, W, H) => {   <span class="c">// ~240 px a metre</span>
+  x.fillStyle = "#24365a"; x.fillRect(0, 0, W, H);
+  x.fillStyle = "#e8e6dc"; fitText(x, "STAFF ONLY", W*0.88, H*0.62, W/2, H/2);
+});
+signPanel(w, h, tex, x, y, z, ry, lit);   <span class="c">// a plane with polygonOffset; lit = unlit basic material</span></code></pre>
+  <p><code>fitText</code> (Oswald) and <code>fitSerif</code> (Georgia) shrink the font until the words fit, and clamp every request so lettering never comes within 8% of the board's edge and is never taller than 62% of it. Sign faces use <code>polygonOffset</code> (factor −2, units −4) so they win the depth test against the board behind them at any distance. Lit faces are unlit basic materials; the neon panels registered in <code>NEON</code> run from 0.40 by day to 1.0 at night and stop there, because with tone mapping off anything above that clips and the lettering goes with it.</p>
+
+  <h3>Image slots</h3>
+  <p>Printed things such as brochures, postcards, framed prints, TV screens and vending fronts are <em>slots</em> with a fixed aspect ratio (brochure 4:9, postcard 2:3, wide print 2:1, TV 4:3, vending front 1:2). Each one draws canvas art as a fallback, and if a URL is set against its key in <code>IMAGES</code> the hosted picture replaces it at run time, provided the host allows cross-origin reads. GIFs are decoded by a small LZW decoder in <code>01-helpers.js</code>, because browsers do not animate a GIF that is used as a WebGL texture. Procedural TV static runs underneath, so a set is never a frozen frame.</p>
+</section>
+
+<section>
+  <h2>Materials</h2>
+  <p>Almost everything is <code>MeshStandardMaterial</code> with metalness near zero. Roughness carries the material.</p>
+  <table class="keep">
+    <tr><th style="width:26%">Family</th><th style="width:20%">Roughness</th><th>Examples in the game</th></tr>
+    <tr><td>Matte: plaster, fabric, sand, carpet</td><td class="n">0.85 – 1.0</td><td><code>rug</code> 0.97 · <code>bedding</code> 0.98 · <code>rock</code> 0.97 (flat-shaded) · sun-killed paint 0.95</td></tr>
+    <tr><td>Satin: wood, painted block, vinyl</td><td class="n">0.60 – 0.85</td><td><code>block</code> 0.62 · <code>plank</code> 0.72 · <code>atomic</code> wallpaper 0.85</td></tr>
+    <tr><td>Gloss: glaze, ice, lacquer</td><td class="n">0.40 – 0.55</td><td><code>glazed</code> brick 0.42 · <code>ice</code> 0.45 · <code>dinertile</code> 0.52</td></tr>
+    <tr><td>Mirror-like: glass, water, chrome</td><td class="n">0.06 – 0.10</td><td><code>glass</code> 0.07 (opacity 0.34, double-sided) · <code>puddle</code> 0.06 · <code>mirror</code> 0.08</td></tr>
+    <tr><td>Metals</td><td class="n">0.30 – 0.60</td><td>metalness 0.35–0.75 only for chrome, brass, stainless quilting and car paint</td></tr>
+  </table>
+  <div class="rule"><div class="t">Rule · Nothing may clip to white</div>
+  <p>Painted hexes above about <code>#c0</code> under full sun leave the shader past 1.0. The shoulder catches most of it, but keep sunlit paint at or below roughly <code>#d8</code>, give glowing materials a dark diffuse, and keep bright things such as ice, snow, porcelain and white paint a step below white. A bright surface keeps its edges only if it has room above it.</p></div>
+
+  <h2>Buckets: how a world becomes a few hundred draw calls</h2>
+  <p>Static geometry is never added to the scene directly. It is pushed into a named <em>bucket</em>; at the end of the build, <code>bakeBuckets()</code> merges each bucket into one <code>BufferGeometry</code> (positions, normals, UVs and vertex colours) with one material. The last smoke test counted 564 meshes for the whole world, including doors, cars and sprites.</p>
+<pre><code>// a bucket is a name and a material factory, declared once
+bucketOf("plank", ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.plank, roughness:0.72}));
+
+// then anything, anywhere, pushes into it
+push("plank", planeGeo(8, 8.4, 0.5), x, y, z, ry, "#9a6a44", -Math.PI/2, 0);
+bx("block", w, h, d, x, y, z, 0.833, 0, "#d8d5ca");     <span class="c">// a box: centre x,y,z, then size</span>
+cyl("metal", rTop, rBot, h, seg, x, y, z, "#4a4e50");
+
+// ...and at the very end, 15-bake.js:
+const BAKED = bakeBuckets(scene);             <span class="c">// one mesh per bucket, plus a no-cast mesh for flats</span>
+buildColGrid();                                         <span class="c">// everything solid is in place by now</span></code></pre>
+  <p><code>push(name, geo, x, y, z, ry, color, rx, rz)</code> composes the matrix with Euler order <b>YXZ</b>, so a local tilt (<code>rx</code>, <code>rz</code>) is applied before the turn about the vertical (<code>ry</code>). <code>y</code> is always the <em>centre</em> of the piece. Things that move or change (door leaves, cars, the pool water, sprites, sign faces) are ordinary meshes outside the buckets.</p>
+
+  <h2>The lens</h2>
+  <p>three.js fixes the <em>vertical</em> field of view and lets the horizontal follow the window's shape. At the original 72° vertical a widescreen window was 104° across, and a flat projection stretches anything off-centre by 1/cos² of its angle, so a car visibly changed shape as you turned your head. The engine now aims for 88° across and clamps the vertical between 50° and 66°. The mouse wheel only offsets that (24° tighter, 6° wider).</p>
+<pre><code>function baseFov(aspect){
+  const h = 88 * Math.PI/180;
+  const v = 2*Math.atan(Math.tan(h/2) / Math.max(aspect, 0.2)) * 180/Math.PI;
+  return Math.max(50, Math.min(66, v));
+}</code></pre>
+
+  <h2>Modelling at this fidelity</h2>
+  <p>Objects are built from boxes, cylinders, spheres, tori and a few extrusions. At this level of detail the silhouette is everything.</p>
+  <ol class="rules">
+    <li><b>Model the thing that has a silhouette.</b> Four correctly proportioned club chairs read as "a pile of shapes". A wing chair, whose back is twice the height of its arms with wings coming forward, read at once. When a model will not read, choose a different object rather than refining the same one.</li>
+    <li><b>Upholstery is not made of boxes.</b> The parts you sit on are squashed spheres, arms are capsules, and only the hidden frame is boxes. An arm 25 cm above the cushion is an arm; 7 cm is a rail. The seat tucks under the arms rather than butting them.</li>
+    <li><b>Chain anything made of tube.</b> Ladders, rails and handrails are built so each piece starts where the last ended, with a quarter-torus at every bend. Built that way they cannot come apart.</li>
+    <li><b>Know each primitive's axis.</b> A cylinder is born along +y and a torus along +z, so the same rotation points them different ways. Work out the rotation for every piece; a back roll given <code>rx</code> instead of <code>rz</code> became a 74 cm log through a chair.</li>
+    <li><b>A thing seen from a mile away gets one layer.</b> Detail you cannot resolve averages into noise. A fire road seen from the valley is one strip, one colour, one width.</li>
+    <li><b>Render it lit, close and from four sides before believing it.</b> A walkthrough screenshot shows one angle, and one angle cannot tell a wrong shape from a wrong transform.</li>
+  </ol>
+</section>

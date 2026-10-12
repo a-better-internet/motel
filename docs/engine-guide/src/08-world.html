@@ -1,0 +1,109 @@
+<section class="chapter">
+  <div class="opener"><div class="num">7</div><div><p class="kicker">Chapter seven</p><h1>Building a different world</h1></div></div>
+  <p class="lede">Everything in chapters 2 to 6 is reusable. This chapter is about the part you replace, the content, and about the conventions and habits that kept a world of this size from falling apart as it grew from a motel to a desert with a dozen buildings and four levels underground.</p>
+  <figure><img src="img/aerial2.jpg"><figcaption><b>The motel site from the drone (F).</b> Two wings in an L round the pool, the office, the lot and the highway. Each building is authored in its own local frame and placed by a transform.</figcaption></figure>
+
+  <h2>Coordinates and frames</h2>
+  <ul>
+    <li><b>World:</b> metres; <code>+y</code> up; <code>+x</code> east; <code>+z</code> south (yaw 0 looks down −z, which the compass calls north). The highway runs along x at <code>z = −48.5</code>.</li>
+    <li><b>Rotations</b> use Euler order <code>YXZ</code>: tilt first, then turn about the vertical. A plane's front faces +z, so a wall lining with <code>ry</code> faces <code>(sin ry, 0, cos ry)</code>; point it <em>into</em> the room.</li>
+    <li><b>Colliders are axis-aligned</b>, so buildings turn only in quarter turns. Anything at another angle is scenery or gets a stepped set of boxes.</li>
+  </ul>
+  <h3>Three local frames</h3>
+<pre><code>const m = mk(ox, oz);               <span class="c">// origin at (ox, oz), heights relative to the ground there (m.y)</span>
+m.B(bucket, w,h,d, x,y,z, uv, ry, color);    m.C(...);   m.P(bucket, geo, x,y,z, ry, color, rx, rz);
+m.col(x0,x1, z0,z1, y0,y1);   m.flat(x0,x1, z0,z1, y);   m.voidAt(x0,x1, z0,z1, y0,y1, floor);
+m.rect(x0,x1, z0,z1, name);   m.lamp(x,y,z, {color, intensity, dist, ...});
+
+const m2 = mkPi(ox, oz, gy);        <span class="c">// the same, turned 180° (bounds negate and swap), ground height given</span>
+
+const xf = XF(ox, oz, ry);          <span class="c">// any quarter turn: xf.x(lx,lz), xf.z(lx,lz)</span>
+                                    <span class="c">// used by lbx, lwall, lflat and makeDoor</span>
+<span class="c">//   x = ox + lx·cos ry + lz·sin ry      z = oz − lx·sin ry + lz·cos ry      (three.js's own handedness)</span></code></pre>
+  <div class="rule"><div class="t">Rule · Write the offset helper once, the right way round</div>
+  <p>three.js's <code>rotation.y = t</code> sends a local offset <code>(dx, dz)</code> to <code>(dx·cos t + dz·sin t, −dx·sin t + dz·cos t)</code>. Writing the 2-D rotation out of habit as <code>(dx·cos − dz·sin, dx·sin + dz·cos)</code> orients every piece by +t and positions it by −t. At t = 0 the two agree and every test passes; at any other angle the object comes apart into correctly shaped blocks in the wrong places, which looks exactly like bad modelling. It cost five rebuilds of one armchair.</p></div>
+
+  <h2>Authoring a room</h2>
+  <ol class="rules">
+    <li><b>One page of numbers.</b> Open the block with every dimension named: the room's extents, wall thickness, ceiling height, each doorway's centre and half-width, and the <code>LANE</code> from the door into the room. Everything after it is written in those names, so a door can move without breaking a wall.</li>
+    <li><b>A wall you can stand inside is a ring, not a slab.</b> Four thin runs, each with its own collider. A doorway is two pieces plus a head. Then name every wall out loud, in order, and check the list against the code; one corridor shipped missing nine metres of its north side.</li>
+    <li><b>Floors: the slab's top is the flat's height.</b> <code>B()</code> takes a box's centre, so a 0.26 m slab under a flat at <code>F</code> is centred at <code>F − 0.13</code>. Lay the finish (lino, planks, carpet) a few millimetres above at its own height, and register one <code>addFlat</code> for the floor, grown 10 cm into every neighbour.</li>
+    <li><b>Ceiling, then volumes.</b> A zone with the room's name and <code>indoor:true</code>; underground, a void for the walkable space and a buried volume with the room's ambient colour.</li>
+    <li><b>Lamps, then glow.</b> Register the lamps that must light the room, each with a <code>vol</code> of the room. Then the fittings that glow: shades as open tubes, ceiling fittings as domes.</li>
+    <li><b>Furniture from anchors, outside the lane.</b> Seats get <code>addSeat</code> with yaw = chair ry + π. Anything you can walk into gets a collider; nothing goes in the lane.</li>
+    <li><b>Run the checks</b> (below) before calling it finished.</li>
+  </ol>
+
+  <h2>Terrain</h2>
+  <p>The ground is a function, <code>Terrain.heightAt(x, z)</code>: fractal value noise for the desert floor, a ring of mesas built from radial rims, and graded <em>pads</em> blended in where something is built (the motel pad and highway corridor at −0.25, the diner, the filling station, a dish, a trail cut into a butte). It is drawn as nested level-of-detail rings: 0.5, 2, 3, 6 and 12 m cells, each ring with holes where a finer ring sits.</p>
+  <ul>
+    <li><b>Ring cell sizes must be exact multiples</b> of one another, and each inner ring's box must land on the outer ring's lattice, or the rings only touch every few cells and the seams open onto sky.</li>
+    <li><b>Every ring hangs a skirt</b> off its edges to hide cracks between levels of detail, single-wound on a double-sided material (a skirt wound both ways sums its normals to zero and shades black).</li>
+    <li><b>Anything dug under the terrain goes in <code>SKIRT_GAPS</code></b>, which shortens the skirts over that box to 1.2 m. A 50 m skirt once hung straight down through the middle of the speakeasy as a pale wall that no file drew.</li>
+    <li><b>Build on a pad, not on a thicker slab.</b> A site on sloping ground gets a graded pad in the height function, blended over a few metres, so the floor, the apron and the ground agree.</li>
+    <li><b>A path up a slope is cut into the ground</b> (a bench forced into <code>heightAt</code> along a polyline), and the ground there needs cells fine enough to show it.</li>
+  </ul>
+
+  <h2>Going underground</h2>
+  <p>Underground rooms are the engine's most fragile feature and its most striking one. The order of work that has held up:</p>
+  <ol>
+    <li><b>Survey first.</b> Print the ground profile over the site and list every existing void and buried volume. Keep two metres of rock and the slab between any ceiling and the surface.</li>
+    <li><b>Voids end to end, overlapping by 40 cm.</b> A sample landing exactly on a seam between two voids belongs to neither, hands you the terrain four metres overhead, and you are stood on the roof for good, because <code>surfaceY</code> asks about the height you are already at.</li>
+    <li><b>Buried volumes</b> for every room, with its own ambient colour, so the sky fades as you descend.</li>
+    <li><b>A shaft that breaks the surface is cut out of the surface:</b> a hole in a fine terrain patch, plus <code>SKIRT_GAPS</code> entries for the patch's rim and the bore.</li>
+    <li><b>Colliders that you later dig under must be asked how deep they go.</b> A fence registered from <code>y = −2</code> stood across a tunnel four metres down.</li>
+  </ol>
+
+  <h2>Two faces on one plane fight</h2>
+  <p>The depth buffer cannot separate two surfaces at the same depth that face the same way, so they speckle as you move. Faces that merely butt edge to edge point opposite ways and one is culled, so butting is free and overlapping coplanar faces is the thing to avoid.</p>
+  <ul>
+    <li>A slab and its finish are never at the same height. A wall's foot sinks into the slab rather than sitting on its top. A riser's ends go <em>inside</em> the treads.</li>
+    <li>Anything applied to a surface (a plate on a door, a stain on a wall, a worn board) sits at its own depth. Twenty-six of them are twenty-six depths, at least 0.2 mm apart up close.</li>
+    <li>Floor decals stand on a ladder at least 0.6 mm apart, each taking the rung above the highest one already under it. The decal you want read goes last. A count and a step are one decision: 500 decals at 0.4 mm put the top one 20 cm in the air.</li>
+    <li>Sign faces use <code>polygonOffset</code> rather than distance, because depth precision falls with the square of range.</li>
+    <li>Make a jamb 0.11 thick and let it overlap; you never see the inside of a solid.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Performance</h2>
+  <table class="keep">
+    <tr><th style="width:30%">Technique</th><th>What it buys</th></tr>
+    <tr><td>Merge buckets</td><td>Tens of thousands of primitives in a few hundred draw calls. Frustum culling does the rest</td></tr>
+    <tr><td>Fixed light count</td><td>One shadowed key and twelve unshadowed point lights: one short shader loop that never recompiles</td></tr>
+    <tr><td>Flats and transparents do not cast</td><td>A smaller shadow pass and tighter bias</td></tr>
+    <tr><td>Shadow box follows the player</td><td>3 cm texels over 92 m instead of blurry shadows over a kilometre</td></tr>
+    <tr><td>Collider grid</td><td>Thousands of rocks, posts and walls; each query looks at one 12 m cell</td></tr>
+    <tr><td>Allocation-free hot paths</td><td>The car's <code>up()</code>, <code>forward()</code> and <code>right()</code> each own one vector and recompute it in place; about 1,400 fewer throwaway objects a second while driving</td></tr>
+    <tr><td>Fields around the camera</td><td>Sand, dust, clouds and birds are drawn relative to the camera and wrap, so the world feels endless at constant cost</td></tr>
+    <tr><td>Remembered answers</td><td>Whether a lamp is underground is asked once and cached, since volumes never move</td></tr>
+  </table>
+
+  <h2>Atmosphere: what makes it feel inhabited, and empty</h2>
+  <p>Liminal spaces are mostly made of small movements in places where nobody is. These are all cheap and they do more for immersion than any amount of geometry:</p>
+  <div class="two">
+    <p><b>Wind.</b> One wind vector with gusts; sand particles stream along it, the fog tints with dust, and lot dust lifts by day. All of it switches off indoors.</p>
+    <p><b>Tumbleweeds.</b> Seven, each grown as a tangle of forked twigs rather than a ball of spokes, rolling on a lumpy sphere so they hop.</p>
+    <p><b>Litter and geckos.</b> Paper that blows across the lot now and then; geckos that freeze and dart on warm rocks.</p>
+    <p><b>Sky life.</b> Clouds tinted by the sky, distant hot-air balloons that sit in the same haze as the mountains, birds by day, and one vulture that circles a thermal for a couple of minutes and then is gone.</p>
+    <p><b>Moths.</b> They orbit whichever outdoor lamps (<code>mothy</code>) the light pool is currently driving, and only after dark.</p>
+    <p><b>Bad fixtures.</b> A shared flicker (a product of three sines) for one lamp in each alcove; the VACANCY sign's bad tube; a TV left on behind one curtain, pulsing blue.</p>
+    <p><b>Screens.</b> TVs play real GIFs when a host allows it and procedural static when not, with a scan bar rolling through.</p>
+    <p><b>Names.</b> Every place names itself on the HUD when you arrive, so finding something registers as having found something.</p>
+  </div>
+
+  <h2>The HUD</h2>
+  <p>Plain HTML over the canvas: a compass rose (SVG) and heading, the clock, the current zone's name, a vacancy bar, a painted site plan, a one-line prompt and short toasts. <b>H</b> hides it, <b>O</b> switches to an orthographic plan view from 210 m up. Keep it small and quiet; the world is the interface.</p>
+
+  <h2>The checks that are not optional</h2>
+  <p>After four rounds of the same three faults being found in screenshots instead of by the tools, these became mandatory for anything added to the world, including "only a corridor":</p>
+  <ol class="rules">
+    <li><b>Coplanar scan</b> over the new region's box: every pair of overlapping faces on one plane, at any orientation, with the invisible ones filtered out.</li>
+    <li><b>Door probes and a walk</b> through the new space and back out: colliders at ankle, waist and head height, drawn geometry along each lane, and a polyline walked the way the player walks.</li>
+    <li><b>Name every wall</b> of every room out loud and check the list against the code.</li>
+    <li><b>A free-camera shot from inside</b>, pitched, and for anything object-sized a close lit shot from four sides. The ray probes cannot see a wrong colour, a stretched map or a cylinder pointing the wrong way, and all three have shipped.</li>
+  </ol>
+  <p>The probes run headless: Chromium with a software renderer loads the page, and the game exposes a <code>window.MOTEL</code> handle (move the player, step the simulation, set the hour, open doors, enter cars, read colliders and zones) for scripts to drive. A second copy of the page records every primitive's world box and source line, so a probe can say <em>which line</em> drew the thing in the doorway. Build that handle into a new world on day one.</p>
+  <div class="rule"><div class="t">Rule · When a probe and a picture disagree, the probe is testing the wrong thing</div>
+  <p>Geometry and collision are authored separately and drift apart. A probe walking cleanly through a wall the screenshot shows means the wall has no collider, or the probe reads colliders and the blocker has none. Find which, rather than trusting either.</p></div>
+</section>

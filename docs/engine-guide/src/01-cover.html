@@ -1,0 +1,17 @@
+<section class="toc-page">
+  <p class="kicker">Contents</p>
+  <h1 style="font-size:24pt;">What is in here</h1>
+  <p class="lede">The Low Desert Motel started as one HTML file and grew into a Route 66 motel, a desert with seven landmarks, a diner, a speakeasy forty feet under the ground, an auditorium, an ice rink and a 1950s living room seen through observation glass. Almost none of the code behind those places is about motels. It is a small, general engine for walkable first-person worlds. This guide pulls that engine apart so it can be handed to someone, or to another AI, and used to build something else entirely.</p>
+  <div class="toc">
+    <div class="row"><div class="n">1</div><div><div class="h">The engine at a glance</div><div class="d">What it is, how the files fit together, and the numbers everything else depends on.</div></div></div>
+    <div class="row"><div class="n">2</div><div><div class="h">Graphical style: light, shadow, texture</div><div class="d">The painted-colour look, the six layers of light, shadows that touch their casters, canvas textures, signs, and how a whole world becomes a few hundred draw calls.</div></div></div>
+    <div class="row"><div class="n">3</div><div><div class="h">Walking, running, sprinting, sitting</div><div class="d">Three gaits, eye level that follows the floor, collision that never traps you, and how sitting and lying down work.</div></div></div>
+    <div class="row"><div class="n">4</div><div><div class="h">Doors and doorways</div><div class="d">The door leaf, the hole it hangs in, and the rules that come from forty-six doors that each failed at least once.</div></div></div>
+    <div class="row"><div class="n">5</div><div><div class="h">The day/night cycle</div><div class="d">One number drives the sun, the sky, the fog, every lamp and every lit sign.</div></div></div>
+    <div class="row"><div class="n">6</div><div><div class="h">Cars</div><div class="d">How the cars are modelled, the rigid-body and tyre physics, the chase camera, headlights, and the highway traffic.</div></div></div>
+    <div class="row"><div class="n">7</div><div><div class="h">Building a different world</div><div class="d">Coordinates, local frames, rooms, terrain, underground spaces, performance, atmosphere, and the checks that keep a world from breaking.</div></div></div>
+    <div class="row"><div class="n">A</div><div><div class="h">Reference card</div><div class="d">Every registration function, the controls, and a porting checklist on two pages.</div></div></div>
+  </div>
+  <div class="note" style="margin-top:16pt;"><div class="t">How to read the numbers</div>
+  <p>Units are metres, seconds and radians. <code>y</code> is up. At yaw 0 the camera looks down <code>−z</code>, which the compass calls north, so <code>+x</code> is east and <code>+z</code> is south. Every number quoted here is the one in the game's source, not an idealised version of it. Where the source and good practice disagree, the guide says so.</p></div>
+</section>

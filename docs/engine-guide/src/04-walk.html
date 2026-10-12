@@ -1,0 +1,160 @@
+<section class="chapter">
+  <div class="opener"><div class="num">3</div><div><p class="kicker">Chapter three</p><h1>Walking, running, sprinting, sitting</h1></div></div>
+  <p class="lede">The player is not a physics body. It is a point with a radius, a pair of feet that follow the floor, and an eye 1.66 m above them. That simplicity is deliberate: it makes movement predictable, makes stairs and kerbs free, and means the player can never fall through the world or get stuck in it.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 62 640 200" xmlns="http://www.w3.org/2000/svg">
+    <g font-size="9" fill="#4d463e">
+      <line x1="10" y1="215" x2="630" y2="215" stroke="#1f1b17" stroke-width="1.2"/>
+      <!-- standing -->
+      <rect x="66" y="77.4" width="54.4" height="128" rx="6" fill="#efe7da" stroke="#b0502a" stroke-dasharray="4 3"/>
+      <circle cx="93" cy="82.2" r="3.6" fill="#2a7f78"/>
+      <line x1="93" y1="82.2" x2="128" y2="82.2" stroke="#2a7f78" stroke-width="0.8"/>
+      <line x1="140" y1="77.4" x2="140" y2="215" stroke="#7a7066" stroke-width="0.7"/>
+      <line x1="136" y1="77.4" x2="144" y2="77.4" stroke="#7a7066"/><text x="148" y="76">1.72 top of body test</text>
+      <line x1="136" y1="82.2" x2="144" y2="82.2" stroke="#2a7f78"/><text x="148" y="91" fill="#2a7f78">1.66 eye</text>
+      <line x1="136" y1="205.4" x2="144" y2="205.4" stroke="#7a7066"/><text x="148" y="208">0.12 body test starts</text>
+      <line x1="66" y1="226" x2="120.4" y2="226" stroke="#7a7066" stroke-width="0.7"/>
+      <text x="93" y="236" text-anchor="middle">0.68 (r 0.34)</text>
+      <text x="93" y="254" text-anchor="middle" font-size="10.5" fill="#1f1b17" font-weight="600">STANDING</text>
+      <!-- stepping -->
+      <rect x="270" y="165.4" width="70" height="49.6" fill="#d8b98c" stroke="#8a6a44" stroke-width="0.8"/>
+      <line x1="256" y1="215" x2="256" y2="165.4" stroke="#b0502a" stroke-width="1"/>
+      <line x1="252" y1="165.4" x2="260" y2="165.4" stroke="#b0502a"/>
+      <text x="305" y="160" text-anchor="middle" fill="#b0502a" font-weight="600">≤ 0.62</text>
+      <text x="305" y="194" text-anchor="middle" fill="#1f1b17">a flat, not a box</text>
+      <path d="M232,205 C244,200 250,172 268,166" fill="none" stroke="#2a7f78" stroke-width="1.2" stroke-dasharray="3 2"/>
+      <text x="300" y="110" text-anchor="middle">feet ease up at 14/s,</text>
+      <text x="300" y="122" text-anchor="middle">down at 9/s, so the eye</text>
+      <text x="300" y="134" text-anchor="middle">glides up and down steps</text>
+      <text x="300" y="254" text-anchor="middle" font-size="10.5" fill="#1f1b17" font-weight="600">STEPPING</text>
+      <!-- sitting -->
+      <rect x="380" y="173.4" width="54" height="8" rx="3" fill="#b0502a"/>
+      <rect x="380" y="139" width="8" height="42" rx="2" fill="#8a3f2a"/>
+      <line x1="384" y1="181" x2="384" y2="215" stroke="#5a3a28" stroke-width="2.4"/>
+      <line x1="430" y1="181" x2="430" y2="215" stroke="#5a3a28" stroke-width="2.4"/>
+      <circle cx="412" cy="93.4" r="3.6" fill="#2a7f78"/>
+      <line x1="412" y1="97" x2="412" y2="173" stroke="#2a7f78" stroke-width="0.8" stroke-dasharray="3 2"/>
+      <text x="418" y="137" fill="#2a7f78">+1.00</text>
+      <text x="446" y="177">seat.y 0.52</text>
+      <text x="420" y="88" fill="#2a7f78">eye 1.52</text>
+      <text x="412" y="254" text-anchor="middle" font-size="10.5" fill="#1f1b17" font-weight="600">SITTING</text>
+      <!-- lying -->
+      <rect x="506" y="153.4" width="118" height="20" rx="4" fill="#efe7da" stroke="#8a6a44" stroke-width="0.8"/>
+      <rect x="506" y="173.4" width="118" height="41.6" fill="#7a4a30"/>
+      <rect x="510" y="145" width="30" height="10" rx="4" fill="#ffffff" stroke="#8a6a44" stroke-width="0.6"/>
+      <circle cx="560" cy="127.8" r="3.6" fill="#2a7f78"/>
+      <line x1="560" y1="127.8" x2="582" y2="102" stroke="#2a7f78" stroke-width="1.1"/>
+      <path d="M582,102 l-7,1.5 l4,4.5 z" fill="#2a7f78"/>
+      <text x="586" y="100" fill="#2a7f78">pitch ≥ 0.86</text>
+      <text x="530" y="123" text-anchor="end" fill="#2a7f78">eye 1.09</text>
+      <text x="628" y="148" text-anchor="end">seat.y 0.77</text>
+      <text x="565" y="254" text-anchor="middle" font-size="10.5" fill="#1f1b17" font-weight="600">LYING</text>
+    </g>
+  </svg></div>
+  <p class="small" style="margin-top:-6pt">Heights in metres above the floor. The dashed box is the body that collision tests: radius 0.34, from 12 cm above the feet to 1.72 m. Anything lower than 12 cm, such as a kerb or a threshold, never blocks you.</p>
+
+  <h2>Three gaits</h2>
+  <table class="keep">
+    <tr><th style="width:18%">Gait</th><th style="width:16%">Key</th><th style="width:16%">Speed</th><th>Notes</th></tr>
+    <tr><td>Walk</td><td>W A S D or arrows</td><td class="n">3.05 m/s</td><td>A brisk walk; across the motel lot in about 30 s</td></tr>
+    <tr><td>Run</td><td>hold Shift</td><td class="n">5.6 m/s</td><td>Read by physical key code, never by <code>getModifierState</code> (on some layouts "/" needs Shift and became a run key)</td></tr>
+    <tr><td>Sprint</td><td>hold Q</td><td class="n">10.4 m/s</td><td>For crossing the desert; nothing else reads <code>KeyQ</code>, so it cannot clash with a modifier</td></tr>
+    <tr><td>Wading</td><td>(automatic)</td><td class="n">× 0.45</td><td>Feet below the waterline <em>and</em> inside the pool's rectangle; a blue overlay shows when the eye is under</td></tr>
+  </table>
+
+  <h2>The movement step</h2>
+  <p>Each fixed step turns the keys into a direction relative to the view, moves on each axis separately so you slide along walls instead of sticking to them, and then lets the feet chase the floor.</p>
+<pre><code>const f = (keys.KeyW||keys.ArrowUp ?1:0) - (keys.KeyS||keys.ArrowDown ?1:0);
+const r = (keys.KeyD||keys.ArrowRight?1:0) - (keys.KeyA||keys.ArrowLeft?1:0);
+let sp = (keys.KeyQ ? SPRINT : (keys.ShiftLeft||keys.ShiftRight) ? RUN : WALK) * (underwater ? 0.45 : 1);
+if(f || r){
+  const len = Math.hypot(f, r), s = Math.sin(player.yaw), c = Math.cos(player.yaw);
+  const dx = (-s*f + c*r)/len*sp*dt, dz = (-c*f - s*r)/len*sp*dt;   <span class="c">// forward is −z at yaw 0</span>
+  if(!blocked(player.pos.x+dx, player.pos.z, player.feetY)) player.pos.x += dx;   <span class="c">// slide on x…</span>
+  if(!blocked(player.pos.x, player.pos.z+dz, player.feetY)) player.pos.z += dz;   <span class="c">// …then on z</span>
+  player.step += sp*dt;
+  player.bob = Math.sin(player.step*3.1) * 0.025;                   <span class="c">// ±2.5 cm, tied to distance</span>
+} else player.bob += (0 - player.bob)*Math.min(1, dt*6);
+const target = surfaceY(player.pos.x, player.pos.z, player.feetY);
+const rate = target > player.feetY ? 14 : 9;                        <span class="c">// step up snappily, drop softly</span>
+player.feetY += (target - player.feetY)*Math.min(1, dt*rate);</code></pre>
+
+  <h2>Eye level</h2>
+  <p>The camera is placed once per frame from the player's state. The eye never has its own height; it is always a fixed distance above whatever the feet are on, which is why walking up a stair, onto a balcony or down a mine shaft needs no special code.</p>
+<pre><code>const eyeY = player.feetY + EYE + player.bob - player.sit*sitDrop;   <span class="c">// EYE = 1.66</span>
+camera.position.set(player.pos.x, eyeY, player.pos.z);
+const cp = Math.cos(player.pitch);
+camera.lookAt(player.pos.x - Math.sin(player.yaw)*cp,
+              eyeY + Math.sin(player.pitch),
+              player.pos.z - Math.cos(player.yaw)*cp);</code></pre>
+  <p><b>Looking.</b> Pointer lock on click, with drag-to-look as the fallback and touch drag on phones. Yaw changes by 0.0026 rad per pixel and pitch by 0.0024, with pitch clamped to ±1.15 rad (±66°). Keys are tracked by <code>e.code</code> in a <code>keys</code> map and all released on <code>blur</code>, <code>contextmenu</code> and when the tab hides, because the key-up for a key held while alt-tabbing never arrives.</p>
+
+  <h3>What the feet stand on: <code>surfaceY(x, z, currentY)</code></h3>
+  <ol>
+    <li><b>Start from the ground.</b> If the point is inside a <em>void</em> (a tunnel or room dug into a hill) at the current height, the ground is that void's floor. Otherwise it is <code>groundY</code>: the paved pad at 0, the pool basin, or <code>Terrain.groundAt(x,z)</code>.</li>
+    <li><b>Take the highest walkable surface you can reach.</b> Walk the list of flats and ramps; any whose height is above the current best and no more than <code>STEP_UP</code> (0.62 m) above where you already are wins.</li>
+  </ol>
+  <p>Because the test is against where you <em>already</em> are, standing on a hill above a tunnel gets you the hill, and walking into the tunnel's mouth gets you the tunnel. Bounds tests are strict, so two flats that only meet leave a line belonging to neither; <b>grow every flat 10 cm into its neighbours</b>, and make neighbouring voids overlap by 40 cm.</p>
+<pre><code>addFlat(x0, x1, z0, z1, y);                         <span class="c">// a level floor, deck, stair tread or threshold</span>
+addRamp(x0, x1, z0, z1, "z", a0, a1, y0, y1);       <span class="c">// y runs y0→y1 as z runs a0→a1</span>
+addVoid(x0, x1, z0, z1, y0, y1, floorY);            <span class="c">// in this box the ground is floorY, not terrain</span></code></pre>
+  <div class="rule"><div class="t">Rule · You stand on the triangles that are drawn</div>
+  <p>Terrain is an analytic function drawn by sampling it on a grid and joining the samples with flat triangles. On a steep flank a 6 m cell can sit metres away from the function, so a player walking at the function's height sinks into the hill they can see. <code>Terrain.groundAt</code> finds the finest ring that actually draws a triangle at that point and interpolates within it. Use it for the player, the cars and anything placed on the ground.</p></div>
+
+  <h2>Collision that never traps you</h2>
+  <p>Colliders are axis-aligned boxes with a vertical span, <code>{x0,x1, z0,z1, y0,y1}</code>, so the same footprint can block the ground floor and leave the balcony above it open. <code>blocked(x, z, feetY)</code> grows each box by the player's radius and tests the body column from <code>feetY + 0.12</code> to <code>feetY + 1.72</code>.</p>
+  <ul>
+    <li><b>Static colliders</b> go into a uniform 12 m grid once the world is built, padded by 1.4 m so a query near a cell edge still sees a box just over the line. Anything spanning more than 64 cells goes in a short list that is always checked.</li>
+    <li><b>Moving colliders</b> (parked cars) live in <code>COL_DYN</code>, outside the grid. Highway traffic has its own list that only cars test, because a pedestrian held still inside a passing truck reads as being stuck, not hit.</li>
+    <li><b>Never stuck.</b> If the player's own position is ever blocked (a door swung onto you, you stood up into a table), a ring search finds the nearest free spot within 6 m at a height you could have reached, and puts you there. It runs only while you are actually stuck.</li>
+  </ul>
+<pre><code>function nearestFree(x, z, base, maxR, tol){         <span class="c">// rings 0.45 m out, 0.35 m apart</span>
+  for(let r = 0.45; r <= (maxR||4.2); r += 0.35){
+    const n = Math.max(8, Math.round(r*14));
+    for(let k = 0; k < n; k++){
+      const a = (k/n)*Math.PI*2 + r;                   <span class="c">// each ring rotated a little</span>
+      const nx = x + Math.cos(a)*r, nz = z + Math.sin(a)*r;
+      const fy = surfaceY(nx, nz, base + 0.45);
+      if(Math.abs(fy - base) < (tol||1.3) && !blocked(nx, nz, fy)) return [nx, nz, fy];
+    }
+  }
+  return null;
+}</code></pre>
+</section>
+
+<section>
+  <h2>Sitting and lying down</h2>
+  <p>A seat is a registration, not an object: a point on the cushion, a height, the direction the sitter faces, and a name for the prompt. Any piece of furniture becomes sittable with one line.</p>
+<pre><code>addSeat(x, z, y, yaw, label, lie);
+<span class="c">// x, z   the middle of the cushion          y     the cushion's height (a chair ~0.50, a bed ~0.77)</span>
+<span class="c">// yaw    the CAMERA yaw when seated         label shown in the prompt: "C · SIT · THE OBSERVER'S CHAIR"</span>
+<span class="c">// lie    true for a bed or a couch you lie on</span></code></pre>
+  <div class="g2">
+    <figure><img src="img/obs.jpg"><figcaption><b>Standing in the observation room</b>, eye at 1.66 m. The 1955 set is visible through the glass.</figcaption></figure>
+    <figure><img src="img/sit_obs.jpg"><figcaption><b>Seated in the observer's chair</b> after pressing C. The view drops, the yaw snaps to the seat's, and the mouse still looks around.</figcaption></figure>
+  </div>
+  <h3>How it behaves</h3>
+  <ol class="rules">
+    <li><b>Finding a seat.</b> <b>C</b> takes the nearest seat within 2.0 m horizontally and 1.7 m vertically. Sitting has its own key because chairs and doors are often both in reach, and when they shared <b>E</b> the door won.</li>
+    <li><b>Settling.</b> Your yaw snaps to the seat's, and position and feet ease onto the cushion at rate 7 per second while the <code>sit</code> factor eases to 1 at rate 5. The eye ends at <code>seat.y + 1.66 − sitDrop</code>, with <code>sitDrop</code> 0.66 for sitting and 1.34 for lying. Lying also tips the view up to at least 0.86 rad, because on your back you look at the ceiling.</li>
+    <li><b>Looking.</b> While seated the mouse looks anywhere; movement keys do nothing until they have been released once. You almost always arrive at a chair still holding W, and without that guard you would stand up on the very next step.</li>
+    <li><b>Standing up.</b> Any movement key (or C again) stands you up. The engine tries spots in a fan in front of the seat, at 0.95, 1.35 and 0.65 m (1.45 to 2.25 m for a bed), sweeping ±0.52 rad steps either side of the way you faced. If every one is blocked it falls back to the ring search, so you can never be left standing inside the furniture.</li>
+  </ol>
+  <div class="rule"><div class="t">Rule · A seat looks the other way from its chair</div>
+  <p>A chair is modelled facing its own +z and placed with <code>ry</code>, so it faces world <code>(sin ry, cos ry)</code>. The camera looks down its own −z, along <code>(−sin yaw, −cos yaw)</code>. So the seat that looks the way the chair faces has <b>yaw = ry + π</b>. Aim a chair at what it faces with <code>ry = atan2(tx − cx, tz − cz)</code>, then add π for the seat. Getting this backwards shipped three chairs facing the wall.</p></div>
+  <div class="note"><div class="t">Tuning note</div>
+  <p>With <code>sitDrop</code> at 0.66 the seated eye is 1.00 m above the cushion, which is about 1.5 m above the floor on a dining chair. A real seated eye is nearer 0.75–0.80 m above the cushion. If your world is about sitting, at a bar, in a car, in a theatre, raise <code>sitDrop</code> to about 0.9 for a lower, more natural seated view, and check that tables still clear the eye.</p></div>
+
+  <h2>Interaction and prompts</h2>
+  <p>One prompt line under the crosshair lists what you can do from where you stand, and each action has its own key so prompts never compete:</p>
+  <table class="keep">
+    <tr><th style="width:20%">Key</th><th style="width:30%">Action</th><th>Reach</th></tr>
+    <tr><td><b>E</b> or Space</td><td>Get in or out of a car</td><td>within 3.6 m of a car, 2.2 m vertically</td></tr>
+    <tr><td><b>E</b> or Space</td><td>Open or close the nearest door</td><td>within 3.4 m, same floor (1.8 m vertically)</td></tr>
+    <tr><td><b>C</b></td><td>Sit, lie down, stand up</td><td>within 2.0 m of a seat</td></tr>
+    <tr><td><b>F</b></td><td>Fly the drone (a chase-camera quadcopter)</td><td>anywhere on foot</td></tr>
+    <tr><td><b>L</b></td><td>Flashlight</td><td>anywhere</td></tr>
+  </table>
+  <p><b>Zones</b> name places on the HUD. <code>addZone(x0,x1, z0,z1, y0,y1, name, indoor)</code> registers a box, and the last zone listed that contains the camera wins, so put small rooms after the big areas around them. <code>indoor</code> marks a roof overhead: blown sand and lot dust are drawn as a field around the camera and switch off indoors, or the storm comes inside with you.</p>
+</section>

@@ -1,0 +1,121 @@
+<section class="chapter">
+  <div class="opener"><div class="num">A</div><div><p class="kicker">Appendix</p><h1>Reference card</h1></div></div>
+
+  <h2>Registration functions</h2>
+  <table>
+    <tr><th style="width:44%">Call</th><th>Registers</th></tr>
+    <tr><td><code>push(bucket, geo, x,y,z, ry, color, rx, rz)</code></td><td>A static piece; <code>y</code> is its centre; Euler YXZ</td></tr>
+    <tr><td><code>bx(bucket, w,h,d, x,y,z, uv, ry, color)</code></td><td>A box with world-scaled UVs (<code>uv</code> = repeats per metre)</td></tr>
+    <tr><td><code>cyl(bucket, rt,rb,h,seg, x,y,z, color, rx,ry,rz)</code></td><td>A cylinder (axis +y before rotation)</td></tr>
+    <tr><td><code>bucketOf(name, ()=>material)</code></td><td>A bucket's material, made at bake time</td></tr>
+    <tr><td><code>addCol(x0,x1, z0,z1, y0,y1)</code></td><td>A solid box (defaults y −2 to 60)</td></tr>
+    <tr><td><code>addFlat(x0,x1, z0,z1, y)</code></td><td>A walkable level surface</td></tr>
+    <tr><td><code>addRamp(x0,x1, z0,z1, axis, a0,a1, y0,y1)</code></td><td>A walkable slope along <code>"x"</code> or <code>"z"</code></td></tr>
+    <tr><td><code>addVoid(x0,x1, z0,z1, y0,y1, floor)</code></td><td>Inside this box the ground is <code>floor</code>, not the terrain</td></tr>
+    <tr><td><code>addZone(x0,x1, z0,z1, y0,y1, name, indoor)</code></td><td>A named place; <code>indoor</code> stops weather</td></tr>
+    <tr><td><code>addBuried(x0,x1, z0,z1, y0,y1, amb)</code></td><td>Underground: no sun, low sky, ambient <code>amb</code>, lamps off the clock</td></tr>
+    <tr><td><code>addSeat(x, z, y, yaw, label, lie)</code></td><td>Somewhere to sit or lie (yaw = chair ry + π)</td></tr>
+    <tr><td><code>LAMPS.push({x,y,z, color, intensity, dist, decay, indoor, vol, flicker, mothy})</code></td><td>A fixture the light pool may drive</td></tr>
+    <tr><td><code>makeDoor(XF(ox,oz,ry), lx,ly,lz, label, opensIn, ajar, style)</code></td><td>A swinging leaf; hinge at local (lx,lz), leaf along +x</td></tr>
+    <tr><td><code>glowMat(opts, kind)</code> · <code>emitMat(color, k, kind)</code></td><td>An emissive that ramps with <code>dark</code>; kinds <code>warm</code>, <code>cool</code>, <code>pool</code>, <code>buried</code></td></tr>
+    <tr><td><code>basicGlowMat(color, kind, blending)</code></td><td>An unlit quad whose opacity follows <code>dark</code>; set <code>always</code>, <code>day</code>, <code>max</code>, <code>blink</code>, <code>duty</code> on its <code>GLOW</code> entry</td></tr>
+    <tr><td><code>signTex(w,h, draw)</code> · <code>signPanel(w,h, tex, x,y,z, ry, lit)</code></td><td>A canvas face and the plane that shows it</td></tr>
+    <tr><td><code>fitText(ctx, str, maxW, size, cx, cy)</code> · <code>fitSerif(...)</code></td><td>Lettering that shrinks to fit and keeps its padding</td></tr>
+    <tr><td><code>Terrain.heightAt(x,z)</code> · <code>Terrain.groundAt(x,z)</code></td><td>The field · the drawn surface (use this one)</td></tr>
+    <tr><td><code>surfaceY(x,z,curY)</code> · <code>blocked(x,z,feetY)</code></td><td>What you would stand on · whether the body fits</td></tr>
+    <tr><td><code>nearestFree(x,z, base, maxR, tol)</code></td><td>The nearest spot the player could stand</td></tr>
+  </table>
+
+  <h2>Controls</h2>
+  <div class="two">
+  <table class="keep">
+    <tr><th>Key</th><th>On foot</th></tr>
+    <tr><td><b>W A S D</b> / arrows</td><td>Walk</td></tr>
+    <tr><td><b>Shift</b> · <b>Q</b></td><td>Run · sprint</td></tr>
+    <tr><td><b>Mouse</b></td><td>Look (click for pointer lock)</td></tr>
+    <tr><td><b>Wheel</b></td><td>Zoom the lens</td></tr>
+    <tr><td><b>E</b> · Space</td><td>Door, car</td></tr>
+    <tr><td><b>C</b></td><td>Sit, lie, stand</td></tr>
+    <tr><td><b>L</b></td><td>Flashlight</td></tr>
+    <tr><td><b>F</b></td><td>Drone</td></tr>
+  </table>
+  <table class="keep">
+    <tr><th>Key</th><th>World</th></tr>
+    <tr><td><b>N</b> · <b>M</b></td><td>Nightfall · midday</td></tr>
+    <tr><td><b>[</b> · <b>]</b></td><td>Scrub time ±29 min</td></tr>
+    <tr><td><b>O</b></td><td>Plan view</td></tr>
+    <tr><td><b>H</b></td><td>Hide the HUD</td></tr>
+    <tr><th>Key</th><th>In a car / drone</th></tr>
+    <tr><td><b>W · S</b></td><td>Throttle · brake, reverse</td></tr>
+    <tr><td><b>A · D</b> · Space</td><td>Steer · handbrake</td></tr>
+    <tr><td>Drone: Space · Shift</td><td>Climb · descend</td></tr>
+  </table>
+  </div>
+
+  <h2>Key numbers</h2>
+  <table>
+    <tr><th style="width:32%">Name</th><th style="width:20%">Value</th><th>Where</th></tr>
+    <tr><td><code>EYE</code> · <code>PLAYER_R</code> · <code>STEP_UP</code></td><td class="n">1.66 · 0.34 · 0.62</td><td>00-config, 06-collision</td></tr>
+    <tr><td><code>WALK</code> · <code>RUN</code> · <code>SPRINT</code></td><td class="n">3.05 · 5.6 · 10.4</td><td>17-player</td></tr>
+    <tr><td><code>sitDrop</code> sit · lie</td><td class="n">0.66 · 1.34</td><td>17-player</td></tr>
+    <tr><td><code>FOV_ACROSS</code> · min · max</td><td class="n">88 · 50 · 66</td><td>03-scene</td></tr>
+    <tr><td>Shadow map · box · <code>KEY_D</code></td><td class="n">3072 · 92 m · 110</td><td>03-scene</td></tr>
+    <tr><td>Bias · normal bias</td><td class="n">−0.00005 · 0.012</td><td>03-scene</td></tr>
+    <tr><td>Tone shoulder <code>K</code></td><td class="n">0.76</td><td>03-scene</td></tr>
+    <tr><td>Light pool · reach</td><td class="n">12 · 46 m</td><td>16-lighting</td></tr>
+    <tr><td><code>DayNight.DUR</code></td><td class="n">414 s</td><td>05-sky</td></tr>
+    <tr><td>Fog near · far (day)</td><td class="n">185 · 1460 m</td><td>19-loop</td></tr>
+    <tr><td>Flat no-cast threshold <code>FLAT_T</code></td><td class="n">12 mm</td><td>01-helpers</td></tr>
+    <tr><td>Collider grid cell · pad</td><td class="n">12 m · 1.4 m</td><td>06-collision</td></tr>
+    <tr><td>Door auto-open · prompt · release</td><td class="n">2.5 · 3.4 · 4.6 m</td><td>17-player</td></tr>
+    <tr><td><code>CAR_RIDE</code></td><td class="n">0.96 m</td><td>10-office</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2 style="break-before:page">Porting checklist</h2>
+  <p>To start a new world from this engine:</p>
+  <ol class="rules">
+    <li><b>Copy the shell and the engine files</b>: <code>index.html</code> (markup, CSS, HUD), <code>00</code>–<code>06</code>, <code>11</code>, and <code>15</code>–<code>19</code>. Keep three.js r128, or test carefully before upgrading; the tone-mapping patch replaces a shader chunk by its exact text.</li>
+    <li><b>Delete the content files</b> (<code>07</code>–<code>14j</code> except <code>11</code>) and remove their script tags.</li>
+    <li><b>Cut or stub the content hooks</b> in the core files. These names are defined by motel content but read by the engine:
+      <ul style="margin-top:3pt">
+        <li><code>06-collision</code>: <code>POOL</code>, <code>PAVED</code> and <code>poolFloorY</code> in <code>groundY</code>; <code>TRAFFIC</code> for the traffic colliders.</li>
+        <li><code>16-lighting</code>: <code>POOL_LIGHTS</code>.</li>
+        <li><code>17-player</code>: <code>POOL</code> (wading) and <code>OFFICE</code> (the desk bell).</li>
+        <li><code>18-hud</code>: <code>ROOMS</code> (vacancy), <code>OFFICE</code>, <code>POOL</code>.</li>
+        <li><code>19-loop</code>: the pool's <code>waterMat</code>, <code>poolFloorCaustic</code> and <code>poolGlow</code>; <code>NEON</code>, <code>VAC_NEON</code>, <code>TVWIN_MAT</code>, <code>SLOW_GREEN</code>; <code>BASE</code> in the debug handle.</li>
+        <li><code>15-bake</code>: the rooftop clutter after the bake reads <code>lvlY</code>, <code>WALL_H1</code>, <code>NORTH</code> and <code>EAST</code>.</li>
+        <li>The cars' constants and builder (<code>CARC</code>, <code>CAR_RIDE</code>, <code>CARS</code>, <code>driving</code>) live in <code>10-office.js</code>; move them to a file of their own before <code>11-driving.js</code>.</li>
+      </ul></li>
+    <li><b>Set the config</b>: <code>SPAWN</code>, <code>EYE</code>, <code>PLAYER_R</code>, your site constants, and <code>NEXT_SCENE_URL</code> if the world hands off to another page.</li>
+    <li><b>Repaint the cycle</b>: <code>DayNight.P</code>, the night haze, the start time and <code>DUR</code>.</li>
+    <li><b>Replace the land</b>: a new <code>heightAt</code> (base noise, features, pads), ring boxes on one lattice, and <code>SKIRT_GAPS</code> for anything you dig.</li>
+    <li><b>Draw your textures</b> in <code>02-textures.js</code>, using the three-pass recipe, and declare their buckets in <code>15-bake.js</code>.</li>
+    <li><b>Build content files in order</b>, one place per file, each in its own local frame, registering colliders, flats, zones, lamps, doors and seats as you go.</li>
+    <li><b>Keep the light budget</b>: one key, twelve pool lamps, and glow for everything else.</li>
+    <li><b>Keep the debug handle</b> (<code>window.MOTEL</code> or your own) and run the four checks on everything you add.</li>
+  </ol>
+
+  <div class="avoid">
+  <h2>Twelve sentences to remember</h2>
+  <ol class="rules">
+    <li>Paint the colour; let the light shade it; never let it clip.</li>
+    <li>An emissive does not illuminate.</li>
+    <li>A lamp with a volume is on only while you are inside it.</li>
+    <li>Do not raise the normal bias to cure acne; find what is shadowing itself.</li>
+    <li>Under the ground there is no sky.</li>
+    <li>You stand on the triangles that are drawn.</li>
+    <li>Every slab needs a flat, and flats overlap.</li>
+    <li>A hole goes through every course, including the ones you cannot see.</li>
+    <li>A lintel stops where it is.</li>
+    <li>A seat looks the other way from its chair.</li>
+    <li>Two faces on one plane fight; two faces that butt do not.</li>
+    <li>When a probe and a picture disagree, the probe is testing the wrong thing.</li>
+  </ol>
+  </div>
+  <hr>
+  <p class="small">Low Desert Engine: a field guide. Written from the source of the Low Desert Motel (repository <code>a-better-internet/motel</code>), Round 48, October 2026. Screenshots are rendered by the game itself in a headless browser, with no retouching.</p>
+</section>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<section class="chapter">
+  <div class="opener"><div class="num">1</div><div><p class="kicker">Chapter one</p><h1>The engine at a glance</h1></div></div>
+  <p class="lede">A hand-rolled first-person engine on three.js r128. It has no bundler, no modules, no build step and no asset files: open <code>index.html</code> by double-clicking it and the whole world is generated in the browser. Every texture is drawn on a canvas at load time, every static object is merged into a handful of meshes, and the simulation runs at a fixed 60 steps a second.</p>
+
+  <div class="specs">
+    <div class="spec"><div class="k">Eye height</div><div class="v">1.66 m</div><div class="s">above whatever you stand on</div></div>
+    <div class="spec"><div class="k">Body</div><div class="v">r 0.34 m</div><div class="s">tested from 0.12 to 1.72 m above the feet</div></div>
+    <div class="spec"><div class="k">Gaits</div><div class="v">3.05 · 5.6 · 10.4</div><div class="s">walk · run (Shift) · sprint (Q), m/s</div></div>
+    <div class="spec"><div class="k">Step-up</div><div class="v">0.62 m</div><div class="s">highest ledge you climb without a ramp</div></div>
+    <div class="spec"><div class="k">Simulation</div><div class="v">1/60 s</div><div class="s">fixed step, at most 6 per frame, frame time capped at 0.1 s</div></div>
+    <div class="spec"><div class="k">Lens</div><div class="v">88° across</div><div class="s">vertical held 50–66°; near 0.24 m, far 4,000 m</div></div>
+    <div class="spec"><div class="k">A full day</div><div class="v">414 s</div><div class="s">about 7 minutes for 24 game hours</div></div>
+    <div class="spec"><div class="k">Real lights</div><div class="v">1 + 12</div><div class="s">one shadow-casting sun or moon, twelve pooled point lights</div></div>
+  </div>
+
+  <h2>How it is put together</h2>
+  <p>The page loads 29 classic <code>&lt;script&gt;</code> tags in order. They share one global scope, so a <code>const</code> declared in an early file is visible to every later one, exactly as if it were one long file. The numbering on the file names <em>is</em> the load order, and nothing reorders itself.</p>
+  <table>
+    <tr><th style="width:24%">File</th><th>Role</th><th style="width:30%">Reusable as-is?</th></tr>
+    <tr><td><code>00-config.js</code></td><td>Spawn point, eye height, player radius, site constants, image slots</td><td>Yes, after you edit the constants</td></tr>
+    <tr><td><code>01-helpers.js</code></td><td>Seeded random numbers, geometry makers, merge buckets, <code>push()</code>, the bake, GIF decoder</td><td>Yes</td></tr>
+    <tr><td><code>02-textures.js</code></td><td>Every canvas texture, plus the sign helpers <code>signTex</code>, <code>signPanel</code>, <code>fitText</code></td><td>Keep the helpers, replace the textures</td></tr>
+    <tr><td><code>03-scene.js</code></td><td>Renderer, tone-mapping shoulder, camera and lens, base lights, flashlight, the sun's shadow camera</td><td>Yes</td></tr>
+    <tr><td><code>04-terrain.js</code></td><td>Analytic height field, level-of-detail rings, graded pads, <code>groundAt</code></td><td>Keep the machinery, replace the landscape</td></tr>
+    <tr><td><code>05-sky.js</code></td><td>Sky dome, stars, sun and moon, clouds, birds, highway traffic, the <code>DayNight</code> clock</td><td>Yes; repaint the palette</td></tr>
+    <tr><td><code>06-collision.js</code></td><td>Colliders, walking surfaces, voids, zones, buried volumes, seats, the collider grid</td><td>Yes</td></tr>
+    <tr><td><code>07</code> to <code>14j</code>, except <code>11</code></td><td>The content: site, motel, pool, office, signs, canteen, desert, diner, speakeasy, auditorium, warehouse, baths, rink, observation room</td><td>No. This is what you replace</td></tr>
+    <tr><td><code>11-driving.js</code></td><td>Car rigid body, four springs, tyre model, headlights</td><td>Yes</td></tr>
+    <tr><td><code>15-bake.js</code></td><td>Materials for the glowing buckets, then merge everything and build the collider grid</td><td>Yes; edit the bucket list</td></tr>
+    <tr><td><code>16-lighting.js</code></td><td>The pool of twelve point lights that follows the camera</td><td>Yes</td></tr>
+    <tr><td><code>17-player.js</code></td><td>Input, movement, collision response, doors, seats, the drone</td><td>Yes</td></tr>
+    <tr><td><code>18-hud.js</code></td><td>Compass, clock, location name, toasts, the site plan</td><td>Mostly</td></tr>
+    <tr><td><code>19-loop.js</code></td><td>Fixed-timestep loop, cameras, day/night application, ambience, the <code>MOTEL</code> debug handle</td><td>Yes, minus the motel-specific bits</td></tr>
+  </table>
+
+  <div class="rule"><div class="t">Rule · Order is load-bearing</div>
+  <p>A function declaration only hoists within its own script. If a file's <em>top-level</em> code calls a function declared in a later file, the page throws on load. Calling a later file's function from <em>inside</em> a function body is fine, because by the time anything is called every script has run. That is why the sign helpers live in <code>02-textures.js</code>: half the world raises a sign before <code>12-signage.js</code> loads. Any registry that several files push into (<code>GLOW</code>, <code>ANIM</code>, <code>LAMPS</code>, <code>DOORS</code>) must be declared before all of them.</p></div>
+
+  <h2>One frame</h2>
+  <p>The simulation and the picture run on separate clocks. Physics, walking and driving advance in fixed 1/60 s steps from an accumulator, so the game behaves the same at 30 fps as at 144. Anything drawn from simulated state (the car, the drone) is drawn <em>between</em> its last two steps using <code>stepAlpha</code>, so motion stays smooth whatever the display rate.</p>
+  <div class="diagram">
+  <svg viewBox="0 0 640 128" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#7a7066"/></marker></defs>
+    <g font-size="10.5" fill="#1f1b17">
+      <rect x="4" y="30" width="92" height="56" rx="4" fill="#f6f1e8" stroke="#d8b98c"/>
+      <text x="50" y="52" text-anchor="middle" font-weight="600">INPUT</text>
+      <text x="50" y="68" text-anchor="middle" font-size="8.5" fill="#4d463e">keys by e.code</text>
+      <text x="50" y="79" text-anchor="middle" font-size="8.5" fill="#4d463e">mouse · touch</text>
+      <rect x="114" y="18" width="128" height="80" rx="4" fill="#efe7da" stroke="#b0502a"/>
+      <text x="178" y="38" text-anchor="middle" font-weight="600">FIXED STEPS</text>
+      <text x="178" y="54" text-anchor="middle" font-size="8.5" fill="#4d463e">while acc ≥ 1/60 (max 6):</text>
+      <text x="178" y="66" text-anchor="middle" font-size="8.5" fill="#4d463e">walk · collide · drive</text>
+      <text x="178" y="78" text-anchor="middle" font-size="8.5" fill="#4d463e">drone · seat easing</text>
+      <text x="178" y="90" text-anchor="middle" font-size="8.5" fill="#4d463e">stepAlpha = acc / step</text>
+      <rect x="260" y="30" width="104" height="56" rx="4" fill="#f6f1e8" stroke="#d8b98c"/>
+      <text x="312" y="52" text-anchor="middle" font-weight="600">PER FRAME</text>
+      <text x="312" y="68" text-anchor="middle" font-size="8.5" fill="#4d463e">doors · wind · weeds</text>
+      <text x="312" y="79" text-anchor="middle" font-size="8.5" fill="#4d463e">camera (interpolated)</text>
+      <rect x="382" y="30" width="118" height="56" rx="4" fill="#f6f1e8" stroke="#d8b98c"/>
+      <text x="441" y="52" text-anchor="middle" font-weight="600">TIME OF DAY</text>
+      <text x="441" y="68" text-anchor="middle" font-size="8.5" fill="#4d463e">sun · sky · fog · glow</text>
+      <text x="441" y="79" text-anchor="middle" font-size="8.5" fill="#4d463e">assign the 12 lamps</text>
+      <rect x="518" y="30" width="118" height="56" rx="4" fill="#16203c" stroke="#16203c"/>
+      <text x="577" y="52" text-anchor="middle" font-weight="600" fill="#f6efe2">RENDER</text>
+      <text x="577" y="68" text-anchor="middle" font-size="8.5" fill="#c9d3e6">HUD · plan · one draw</text>
+      <text x="577" y="79" text-anchor="middle" font-size="8.5" fill="#c9d3e6">of scene + camera</text>
+      <line x1="96" y1="58" x2="112" y2="58" stroke="#7a7066" marker-end="url(#ar)"/>
+      <line x1="242" y1="58" x2="258" y2="58" stroke="#7a7066" marker-end="url(#ar)"/>
+      <line x1="364" y1="58" x2="380" y2="58" stroke="#7a7066" marker-end="url(#ar)"/>
+      <line x1="500" y1="58" x2="516" y2="58" stroke="#7a7066" marker-end="url(#ar)"/>
+      <text x="320" y="120" text-anchor="middle" font-size="8.5" fill="#7a7066">requestAnimationFrame → frame(): delta = min(now − last, 0.1); acc += delta</text>
+    </g>
+  </svg></div>
+<pre><code>function frame(){
+  requestAnimationFrame(frame);
+  let delta = Math.min(now - last, 0.1);        <span class="c">// a stalled tab cannot fling you through a wall</span>
+  acc += delta; let guard = 0;
+  while(acc >= STEP && guard++ < 6){            <span class="c">// STEP = 1/60</span>
+    if(driving) driving.veh.savePrev();         <span class="c">// one step of history, for drawing between steps</span>
+    fixedUpdate(STEP);
+    acc -= STEP;
+  }
+  stepAlpha = clamp(acc/STEP, 0, 1);
+  <span class="c">// ...camera, day/night, lamps, emissives, HUD...</span>
+  renderer.render(scene, camera);
+}</code></pre>
+
+  <h2>Five ideas the whole engine rests on</h2>
+  <ol class="rules">
+    <li><b>Paint, don't light, the colour.</b> Every surface carries a hex you chose, stored as a vertex colour. The lighting shades it but never decides it, and a tone-mapping shoulder stops bright paint clipping to white.</li>
+    <li><b>Few real lights, many fake ones.</b> One sun, twelve point lights reassigned every frame to the lamps nearest the camera, and emissive or unlit materials for everything else that glows.</li>
+    <li><b>Merge everything that does not move.</b> Geometry is pushed into named <em>buckets</em> by material, and each bucket bakes into one mesh. A world of tens of thousands of pieces draws in a few hundred calls.</li>
+    <li><b>Collision is boxes and floors, not meshes.</b> Axis-aligned boxes with a vertical span block you, and a separate list of flat plates and ramps says what you stand on. Geometry and collision are authored side by side and must agree.</li>
+    <li><b>Everything is generated.</b> Textures are drawn on canvases, terrain is a function, and furniture is primitives. The page needs nothing but three.js. Real pictures are optional overrides.</li>
+  </ol>
+</section>

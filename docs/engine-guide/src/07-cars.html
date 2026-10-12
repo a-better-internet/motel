@@ -1,0 +1,148 @@
+<section class="chapter">
+  <div class="opener"><div class="num">6</div><div><p class="kicker">Chapter six</p><h1>Cars</h1></div></div>
+  <p class="lede">Seventeen parked cars, every one of them drivable, and sixteen vehicles on the highway that react when you hit them. The car engine splits the problem the useful way: four springs own everything vertical (bounce, pitch, roll), and a two-axle tyre model owns everything flat (grip, slide, yaw). The two never argue because the tyre model never touches height.</p>
+  <div class="g2">
+    <figure><img src="img/car_day.jpg"><figcaption><b>A parked sedan.</b> About fifty boxes and cylinders in two merged meshes (paint and glass) plus four wheel meshes that steer, roll and follow the springs.</figcaption></figure>
+    <figure><img src="img/car_chase.jpg"><figcaption><b>Driving at night.</b> The chase camera, the tail lamps, and two converging headlight beams lighting the lot and the motel front.</figcaption></figure>
+  </div>
+
+  <h2>How the cars look</h2>
+  <p>A car is modelled in its own space (x right, y up, z forward, origin at the centre of mass) from about fifty primitives, each with a hex colour, then merged. Three body styles share one lower body and differ above the beltline.</p>
+  <table>
+    <tr><th style="width:26%">Part</th><th style="width:28%">Size (m)</th><th>Detail that sells it</th></tr>
+    <tr><td>Rocker and pan</td><td class="n">2.04 × 0.30 × 4.22</td><td>Near-black, so the body seems to float over its own shadow</td></tr>
+    <tr><td>Main body</td><td class="n">1.98 × 0.52 × 4.10</td><td>The paint colour; top at 0.93 m above the ground</td></tr>
+    <tr><td>Hood deck, trunk deck</td><td class="n">1.82 wide</td><td>Separate boxes, each at its own height, so they never share a plane</td></tr>
+    <tr><td>Bumpers</td><td class="n">2.06 × 0.28 × 0.22</td><td>Chrome <code>#b8b0a0</code>, slightly wider than the body</td></tr>
+    <tr><td>Grille, plate, lamps</td><td></td><td>Round headlamps (r 0.125) in chrome bezels, red tail lamps, a pale plate</td></tr>
+    <tr><td>Shut lines and handles</td><td class="n">0.02 grooves</td><td>Dark lines where the doors are and chrome handles: what tells you where a car comes apart</td></tr>
+    <tr><td>Greenhouse</td><td>per style</td><td>Sedan: raked windshield and backlight (0.42 and −0.52 rad), roof cap, mirrors, antenna. Pickup: cab, bulkhead, bed with slats. Van: tall box, rear doors</td></tr>
+    <tr><td>Arches</td><td class="n">0.10 × 0.30 × 1.14</td><td>A dark box inside each arch and a fender lip: wheel wells read as depth</td></tr>
+    <tr><td>Wheels</td><td class="n">r 0.36, 0.30 wide</td><td>Tyre, white wall, hub, cap and two spokes, so you can see it turn</td></tr>
+  </table>
+  <p><b>Materials.</b> Body <code>roughness 0.38, metalness 0.34</code>; glass <code>opacity 0.80, roughness 0.08, metalness 0.45</code>; tyres carry the rubber texture at roughness 0.95. The paint palette is muted period colour: oxblood <code>#7c1f14</code>, navy <code>#21386e</code>, silver <code>#b0b3b8</code>, green <code>#2f5a34</code>, tan <code>#8a5a1e</code>, charcoal <code>#3a3735</code>, rust <code>#a8452b</code>, sage <code>#6d6b5e</code>.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 8 640 222" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="am" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#4d463e"/></marker>
+      <marker id="am2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#4d463e"/></marker></defs>
+    <g font-size="8.6" fill="#4d463e">
+      <path d="M321,83 L640,-101 M321,83 L640,232" stroke="#eda100" stroke-opacity="0.0"/>
+      <polygon points="321,82.8 630,8 630,150" fill="#ffd68c" fill-opacity="0.22"/>
+      <polygon points="321,157.2 630,90 630,232" fill="#ffd68c" fill-opacity="0.22"/>
+      <text x="520" y="120" text-anchor="middle" fill="#8a6a2a">two spot beams, 30° half-angle,</text>
+      <text x="520" y="131" text-anchor="middle" fill="#8a6a2a">aimed at one point 40 m ahead</text>
+      <rect x="53.4" y="58.8" width="253.2" height="122.4" rx="10" fill="#efe7da" stroke="#7c1f14" stroke-width="1.4"/>
+      <rect x="140" y="70" width="90" height="100" rx="6" fill="#20303a" fill-opacity="0.18" stroke="#20303a" stroke-opacity="0.4"/>
+      <text x="185" y="92" text-anchor="middle" fill="#1f1b17">greenhouse</text>
+      <rect x="64.8" y="49.1" width="43.2" height="18" rx="3" fill="#1f1b17"/>
+      <rect x="252" y="49.1" width="43.2" height="18" rx="3" fill="#1f1b17"/>
+      <rect x="64.8" y="172.9" width="43.2" height="18" rx="3" fill="#1f1b17"/>
+      <rect x="252" y="172.9" width="43.2" height="18" rx="3" fill="#1f1b17"/>
+      <g fill="#2a7f78">
+        <circle cx="306" cy="120" r="4"/><circle cx="54" cy="120" r="4"/>
+        <circle cx="294" cy="63" r="4"/><circle cx="294" cy="177" r="4"/>
+        <circle cx="66" cy="63" r="4"/><circle cx="66" cy="177" r="4"/>
+        <circle cx="222" cy="60" r="4"/><circle cx="222" cy="180" r="4"/>
+        <circle cx="138" cy="60" r="4"/><circle cx="138" cy="180" r="4"/>
+      </g>
+      <circle cx="180" cy="120" r="3" fill="#b0502a"/>
+      <text x="180" y="146" text-anchor="middle" fill="#b0502a">centre of mass, 0.96 m up</text>
+      <line x1="53.4" y1="210" x2="306.6" y2="210" stroke="#4d463e" marker-start="url(#am2)" marker-end="url(#am)"/>
+      <text x="180" y="224" text-anchor="middle">4.22 long · wheelbase 3.12 · forward is +z →</text>
+      <line x1="30" y1="58.8" x2="30" y2="181.2" stroke="#4d463e" marker-start="url(#am2)" marker-end="url(#am)"/>
+      <text x="24" y="124" text-anchor="end">2.04</text>
+      <text x="180" y="22" text-anchor="middle" fill="#2a7f78">10 collision points round the shell, r 0.12</text>
+      <text x="86" y="44" text-anchor="middle" fill="#1f1b17">rear springs</text>
+      <text x="274" y="44" text-anchor="middle" fill="#1f1b17">front springs, steer</text>
+    </g>
+  </svg></div>
+
+  <h2>The physics</h2>
+  <h3>Body and springs</h3>
+  <p>The car is one rigid body of 1,200 kg with a box inertia (2.0 × 1.0 × 4.3 m; roll stiffened × 1.4) and a quaternion orientation. Each wheel is a spring that looks straight down: it asks <code>surfaceY</code> under its mount, the same function the player walks on, so cars drive up onto kerbs and forecourts rather than through them. If the ground is within rest length plus wheel radius, the spring pushes along the car's up vector <em>at the wheel</em>. Because the force is applied at the wheel and not at the centre, braking pitches the nose down and cornering rolls the body with no extra code.</p>
+<pre><code>const disp = CARC.restLength - (len - CARC.wheelRadius);    <span class="c">// how far the spring is compressed</span>
+const sv = up.dot(pointVelocityAtWheel);                     <span class="c">// how fast it is compressing</span>
+force.copy(up).multiplyScalar(CARC.springK*disp - CARC.damping*sv);
+body.addForceAtPosition(force, wheelWorldPos);               <span class="c">// a torque about the centre of mass</span></code></pre>
+  <p><b>Ride height.</b> At rest each spring carries a quarter of the weight, so it sags <code>m·g / 4k</code> = 8.7 cm. <code>CAR_RIDE = (rest − sag + radius) − mount</code> = 0.96 m is where the body floats, and parked cars are built at exactly that height so nothing jumps when you get in.</p>
+  <h3>Tyres: the bicycle model</h3>
+  <p>With all four wheels down, the car is treated as two axles. Each axle's sideways force comes from its slip angle, clamped at a grip limit, and the difference between the front and rear forces, acting 1.56 m either side of the centre, turns the car.</p>
+<pre><code>steerAngle = steer * (1 - Math.min(speed, 40)/40) * 0.42;   <span class="c">// steering washes out with speed</span>
+const rot  = Math.atan2(yawRate, |vf|), slip = Math.atan2(vl, |vf|);
+const latF = clamp(-5.0*(slip + rot - steerAngle), -2.6, 2.6) * axleLoad;   <span class="c">// axleLoad = m·g/2</span>
+let   latR = clamp(-5.2*(slip - rot),              -2.6, 2.6) * axleLoad;
+if(handbrake) latR *= 0.5;                                  <span class="c">// the whole of "the back steps out"</span>
+let trac = 9000*throttle;  if(braking) trac = -12000*Math.sign(vf);
+const drag = -5.0*vf*Math.abs(vf), roll = -15*vf;
+yawAccel = (1.56*latF - 1.56*latR) / mass;</code></pre>
+  <table class="keep">
+    <tr><th style="width:28%">Constant (<code>CARC</code>)</th><th style="width:16%">Value</th><th>Effect</th></tr>
+    <tr><td>mass · gravity</td><td class="n">1200 · 9.81</td><td>Sets axle load, sag and inertia</td></tr>
+    <tr><td>engineForce · brakeConstant</td><td class="n">9000 · 12000</td><td>About 0.75 g of acceleration, a little more braking</td></tr>
+    <tr><td>dragConstant · rollingResist</td><td class="n">5.0 · 15</td><td>Top speed where 5v² + 15v = 9000: 41 m/s, about 92 mph</td></tr>
+    <tr><td>corneringFront · Rear</td><td class="n">−5.0 · −5.2</td><td>A slightly stiffer rear: stable, mild understeer</td></tr>
+    <tr><td>maxGrip · maxSteer</td><td class="n">2.6 · 0.42 rad</td><td>Grip limit (× axle load); full lock 24°</td></tr>
+    <tr><td>steerSpeedBias</td><td class="n">40 m/s</td><td>Steering fades linearly to zero at this speed</td></tr>
+    <tr><td>restLength · wheelRadius</td><td class="n">0.34 · 0.36</td><td>Suspension travel and ride height</td></tr>
+    <tr><td>springK · damping</td><td class="n">34000 · 4200</td><td>A soft period ride that settles in one bounce</td></tr>
+  </table>
+  <h3>Airborne, collisions and the ground</h3>
+  <ul>
+    <li><b>In the air</b> the tyres do nothing. Spin is split into yaw and everything else: pitch and roll bleed off fast (× e<sup>−3.6 dt</sup>), yaw persists (× e<sup>−0.45 dt</sup>), and a damped torque about <code>up × worldUp</code> rolls the roof back upright. W/S and A/D trim pitch and roll on the way down. Cars arc rather than tumble, and land driving.</li>
+    <li><b>Walls.</b> Ten points round the shell (r 0.12) are tested against the static grid, the moving colliders and the traffic. Movement is reverted per axis, x then z, with a −0.18 bounce, so the car slides along a wall the way the player does.</li>
+    <li><b>Fast slopes.</b> At 38 m/s a car covers two thirds of a metre a step, so a hillside can be above a wheel before its spring reacts. After every step the body is lifted out of the deepest wheel that has gone under, at up to 4 m/s.</li>
+    <li><b>No creep.</b> With no throttle and under 0.5 m/s, planar velocity and yaw are zeroed, so a parked car never drifts.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Driving it</h2>
+  <table class="keep">
+    <tr><th style="width:18%">Key</th><th>Action</th></tr>
+    <tr><td><b>E</b> (or Space on foot)</td><td>Get in, within 3.6 m of a car. <b>E</b> again gets out on the driver's side</td></tr>
+    <tr><td><b>W</b></td><td>Throttle</td></tr>
+    <tr><td><b>S</b></td><td>Brakes while moving forward faster than 0.8 m/s, then reverses at 55% throttle</td></tr>
+    <tr><td><b>A / D</b></td><td>Steer, smoothed 18% of the way to the target each step, so the wheel turns rather than snaps</td></tr>
+    <tr><td><b>Space</b></td><td>Handbrake: halves rear grip. Space no longer means "use" once you are in a car</td></tr>
+    <tr><td>Mouse</td><td>Orbits the chase camera (yaw free, pitch −0.18 to 1.05 rad)</td></tr>
+  </table>
+  <h3>The chase camera</h3>
+<pre><code>const sp  = Math.min(1, Math.abs(speed)/28);                 <span class="c">// pulls back as you speed up</span>
+const horiz = (7.6 + sp*3.0) * Math.cos(camPitch);
+target.set(car.x + Math.sin(a)*horiz,
+           car.y + 2.20 + (3.4 + sp*1.3)*Math.sin(camPitch),
+           car.z + Math.cos(a)*horiz);
+target.y = Math.max(target.y, surfaceY(target.x, target.z, target.y) + 0.9);   <span class="c">// never under the ground</span>
+camera.position.lerp(target, 1 - Math.exp(-10*delta));       <span class="c">// exponential: same lag at any frame rate</span>
+look.lerp(car.position, 1 - Math.exp(-15*delta));
+camera.lookAt(look.x, look.y + 0.85, look.z);</code></pre>
+  <div class="rule"><div class="t">Rule · Draw the car between steps, and aim the camera at what is drawn</div>
+  <p>Physics runs at 60 Hz whatever the display does. <code>savePrev()</code> keeps exactly one step of history, and <code>showCar()</code> places the shell at <code>lerp(prevPos, pos, stepAlpha)</code> and <code>slerp(prevQuat, quat, stepAlpha)</code>, with suspension travel and steer angle interpolated the same way. The camera then follows the <em>shell</em>, not the physics body; aimed at the body, the two were a fraction of a step apart every frame and the car shivered. Use <code>1 − e<sup>−kΔ</sup></code> rather than <code>k·Δ</code> for every follow, or the lag changes with the frame time.</p></div>
+
+  <h2>Headlights</h2>
+  <div class="g2">
+    <figure><img src="img/car_high.jpg"><figcaption><b>From above.</b> Two spotlights from the lamp positions, converging on one point 40 m ahead, light the asphalt in front of the car.</figcaption></figure>
+    <figure><img src="img/car_front.jpg"><figcaption><b>Head-on.</b> The lenses are small amber planes, never white: the size of the light is in the beam, not the lamp.</figcaption></figure>
+  </div>
+  <p>Real lights are expensive, so there is only one pair, made once and moved to whichever car you are driving. They switch on above <code>dark = 0.12</code> and reach full strength by about 0.45.</p>
+  <table class="keep">
+    <tr><th style="width:24%">Piece</th><th style="width:36%">Setting</th><th>Why</th></tr>
+    <tr><td>Beams</td><td><code>SpotLight(0xffd68c, 1.65, 90, π/6, 0.55, 1.5)</code> × 2</td><td>Tungsten colour, about 2,800 K. At 2.2 the road blew out to white</td></tr>
+    <tr><td>Beam origin and aim</td><td>2.35 m forward, ±0.62 m across; one target 40 m ahead and 0.4 m down</td><td>The cones converge the way a real car's do</td></tr>
+    <tr><td>Lenses</td><td>0.30 × 0.20 planes, <code>#ffcf82</code>, opacity 0.80, unlit, tone mapping off</td><td>An unlit basic material cannot go above white, so the only way to keep a lamp warm is not to ask it to be brighter than white</td></tr>
+    <tr><td>Tail lamps</td><td>0.34 × 0.15 planes, <code>#ff2a12</code>, opacity 0.78</td><td>Face backwards (turned π), on whenever the headlights are</td></tr>
+  </table>
+  <div class="note"><div class="t">Design note</div><p>A headlamp is a small bright thing that throws a large dim thing. The first version was one beam plus a pair of 3 m glow sprites, and it read as headlight-shaped clouds. Keep the lens the size of a lamp and put all of the size into the light it throws.</p></div>
+
+  <h2>Parked cars and getting out</h2>
+  <ul>
+    <li>Parked cars are separate groups (not baked) with an axis-aligned collider in <code>COL_DYN</code>, sized from the rotated footprint: <code>hx = |cos yaw|·1.03 + |sin yaw|·2.28</code>.</li>
+    <li>Getting in copies the shell's transform into a fresh physics body and disables the car's own collider so it cannot block itself.</li>
+    <li>Getting out tries the driver's side, 1.9 m left of centre, with a tight height tolerance (0.45 m) before a loose one, so you never step out onto the shoulder a metre below where you got in. Then the collider is rebuilt round wherever the car stopped.</li>
+  </ul>
+
+  <h2>Highway traffic</h2>
+  <p>Sixteen vehicles (sedans, pickups, and tractor-trailers) run on rails in two lanes 2.2 m either side of the centre line, at 26–32 m/s for cars and 19–25 m/s for trucks, and wrap at ±1,500 m, well past the fog, so nothing is ever seen appearing. Each keeps a moving collider that only cars test. At night their lamps are small bright lens planes with a faint additive halo behind.</p>
+  <p><b>Being hit moves the other car too.</b> A struck vehicle gets a sideways velocity and a speed loss scaled by how hard you hit it, divided by its weight (trucks × 1.9). A damped spring (stiffness 6.4, damping 2.3) walks it back into its lane, overshooting once, and its heading is never animated; it is simply pointed along its own velocity with <code>atan2(dir·speed, swayV)</code>. The slew, the correction and the fishtail all come from one number, so they cannot disagree with the path. Your car gets one impulse per collision, along the truck's direction and off the centre line, and is moved clear of the box if the space is free.</p>
+</section>

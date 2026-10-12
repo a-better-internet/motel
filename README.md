@@ -795,13 +795,18 @@ headless Chromium and asks the scene about itself rather than looking at it:
 
 ## How it is built
 
-`index.html` plus twenty-four scripts in `js/` are the whole game — classic
+`index.html` plus twenty-nine scripts in `js/` are the whole game — classic
 scripts in one shared scope, three.js r128 from cdnjs, no bundler and no image
-assets. It follows two references:
+assets. The engine underneath it — light and shadow, textures, walking and
+sitting, doors, the day/night cycle, the cars, and how to build a completely
+different world on it — is written up as an illustrated field guide,
+[`docs/Low-Desert-Engine-Guide.pdf`](docs/Low-Desert-Engine-Guide.pdf). It
+follows two references:
 
 - The **Coconuts scene technical style guide** for the engine and the look:
   every texture is drawn at runtime into a 2D canvas, materials default to high
-  roughness and zero metalness, tone mapping is off and output is sRGB, lighting
+  roughness and zero metalness, tone mapping is a shoulder that leaves painted
+  colours literal and output is sRGB, lighting
   is layered base → key → fixture pools with a single shadow caster, physics runs
   on a fixed 1/60 s step, collision is AABBs resolved separately on X and Z so
   you slide along walls, and look works by drag as well as pointer lock.

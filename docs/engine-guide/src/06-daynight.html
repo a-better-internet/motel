@@ -1,0 +1,98 @@
+<section class="chapter">
+  <div class="opener"><div class="num">5</div><div><p class="kicker">Chapter five</p><h1>The day/night cycle</h1></div></div>
+  <p class="lede">One number, the time of day, drives the sun, the moon, the sky, the stars, the fog, every lamp, every glowing surface, every lit sign, the pool, the headlights and the wildlife. Nothing else in the world knows what time it is; it only asks how dark it is.</p>
+  <div class="g2">
+    <figure><img src="img/ext_noon.jpg"><figcaption><b>12:30.</b> Sun 1.12, sky fill 1.02, lamps off.</figcaption></figure>
+    <figure><img src="img/ext_gold.jpg"><figcaption><b>17:24.</b> The key turns orange; lamps begin to ramp up.</figcaption></figure>
+    <figure><img src="img/ext_dusk.jpg"><figcaption><b>18:30.</b> Twilight: the key at its weakest (0.16), every lamp fully on.</figcaption></figure>
+    <figure><img src="img/ext_night.jpg"><figcaption><b>22:00.</b> Moonlight 0.38 from the blue key, stars wheeling, haze darker than the sky.</figcaption></figure>
+  </div>
+
+  <h2>The clock</h2>
+<pre><code>const DayNight = { DUR: 414,                        <span class="c">// real seconds for 24 game hours</span>
+  state: { t: 0.478, ... },             <span class="c">// t ∈ [0,1); 0 is 06:00, so the game opens near 17:28</span>
+  setHour(h){ s.t = (((h - 6)/24) % 1 + 1) % 1; },
+  nudge(d){ s.t = (s.t + d + 1) % 1; },
+  tick(dt){ if(!s.paused) s.t = (s.t + dt/DUR) % 1;  ...  s.hour = (s.t*24 + 6) % 24; }
+};</code></pre>
+  <p>The player can jump to nightfall (<b>N</b>, 21:36) or midday (<b>M</b>, 12:30) and scrub time with <b>[</b> and <b>]</b> (about 29 game minutes a press). Before the player clicks <em>start</em>, the clock runs at a quarter speed behind the title card.</p>
+
+  <h2>From the clock to the light</h2>
+  <p>The sun travels a circle: <code>ang = t × 2π</code>, and its height is <code>sunHeight = sin(ang)</code>, which is 0 at 06:00 and 18:00, 1 at noon and −1 at midnight. Every blend in the cycle is a <code>smoothstep</code> of that one value:</p>
+  <table class="keep">
+    <tr><th style="width:22%">Quantity</th><th style="width:44%">Formula (sh = sunHeight)</th><th>Drives</th></tr>
+    <tr><td><code>day</code></td><td class="n">smoothstep(0.12, 0.35, sh)</td><td>full daylight weight</td></tr>
+    <tr><td><code>set</code></td><td class="n">smoothstep(−0.22, 0.12, sh) × (1 − smoothstep(0.15, 0.35, sh))</td><td>the orange band either side of the horizon</td></tr>
+    <tr><td><code>nightAmount</code></td><td class="n">1 − smoothstep(−0.50, −0.02, sh)</td><td>sky, key and haze colours; stars; clouds</td></tr>
+    <tr><td><code>sunsetAmount</code></td><td class="n">set + 0.6 × twilight</td><td>how orange the key light is</td></tr>
+    <tr><td><code>dark</code></td><td class="n">1 − smoothstep(−0.14, 0.24, sh)</td><td><b>every artificial light</b>: lamps, glow, signs, headlights</td></tr>
+    <tr><td>Key intensity</td><td class="n">max(0.04, 1.12·day + 0.68·set) + 0.34·night</td><td>sun by day, moon by night</td></tr>
+    <tr><td>Sky fill intensity</td><td class="n">max(0.15, 0.70·day + 0.46·set + 0.32·(1 − night))</td><td>the hemisphere light</td></tr>
+  </table>
+  <div class="diagram">{{DAYCHART}}</div>
+  <p class="small" style="margin-top:-6pt">Light levels over 24 game hours, computed from the formulas above. The shaded bands are full night. The key light is weakest at about 18:30, between the sun going down and the moon taking over, and that dip is what makes dusk read as dusk. Lamps (<code>dark</code>) ramp up between about 17:15 and 18:30 and fade out between 05:30 and 07:00.</p>
+
+  <h3>Where the sun is</h3>
+<pre><code>sunDir.set(Math.cos(ang)*190, Math.max(14, Math.sin(ang)*190 + 6) - camY*0.3, 70).normalize();
+<span class="c">// rises in +x (east), sets in −x (west), always tilted towards +z (south) by the 70</span>
+<span class="c">// never lower than 14 above the horizon as a light, so shadows never stretch to infinity</span>
+placeCelestial(sunDisc,  ang,  1, 70/190);     <span class="c">// sprites 1,800 m out along the same direction…</span>
+placeCelestial(moonDisc, ang, -1, 70/190);     <span class="c">// …and the moon exactly opposite</span></code></pre>
+  <p>The sun disc is an additive sprite that grows from 320 to 580 units and shifts from <code>#fff4d6</code> to <code>#ff6f28</code> as it nears the horizon, fading out as it drops below. The moon fades in with <code>nightAmount</code>. Stars are three <code>Points</code> layers by magnitude, with colour temperatures from blue-white to orange and a Milky Way band, hung on a tilted pivot that turns with the hour, so the sky wheels overhead.</p>
+</section>
+
+<section>
+  <h2>The palette</h2>
+  <p>Every colour the cycle uses lives in one object, <code>DayNight.P</code>. To move this engine to a different climate (a grey northern coast, a green valley, an alien planet) this is the first thing to repaint.</p>
+  <h4>Sky gradient: zenith → mid → low → horizon</h4>
+  <div class="skyrow"><div class="lab">Day</div><div class="bar" style="background:linear-gradient(90deg,#21406e 0%,#86a2b6 42%,#d8a072 72%,#c37946 100%)"></div></div>
+  <div class="skyrow"><div class="lab">Sunset</div><div class="bar" style="background:linear-gradient(90deg,#2a2246 0%,#8a3f4e 42%,#d8623a 72%,#5a1e2c 100%)"></div></div>
+  <div class="skyrow"><div class="lab">Night</div><div class="bar" style="background:linear-gradient(90deg,#040611 0%,#0b1428 42%,#16203c 72%,#24304f 100%)"></div></div>
+  <p class="small">Each frame <code>paint()</code> mixes the three sets by day, set and night weights and redraws a 16 × 256 canvas with seven stops (0, 0.19, 0.33, 0.42, 0.58, 0.72, 1.0). The canvas maps onto a 2,400 m sphere drawn inside-out around the camera, with fog and depth writing off. The horizon colour is also the fog colour and the clear colour, so the world's edge always dissolves into the sky.</p>
+  <h4>Lights</h4>
+  <div class="chips">
+    <span class="chip"><i style="background:#ffeed0"></i>key · day #ffeed0</span>
+    <span class="chip"><i style="background:#ff9b4c"></i>key · set #ff9b4c</span>
+    <span class="chip"><i style="background:#8ea6d4"></i>key · night #8ea6d4</span>
+    <span class="chip"><i style="background:#ffe7c4"></i>sky fill · day #ffe7c4</span>
+    <span class="chip"><i style="background:#18243a"></i>sky fill · night #18243a</span>
+    <span class="chip"><i style="background:#4a2a18"></i>ground bounce · day #4a2a18</span>
+    <span class="chip"><i style="background:#080a12"></i>ground bounce · night #080a12</span>
+    <span class="chip"><i style="background:#0a1020"></i>night haze #0a1020</span>
+  </div>
+<pre><code>key.color.copy(P.dayLight).lerp(P.setLight, Math.min(1, dn.sunsetAmount*1.2))
+         .lerp(P.nightLight, dn.nightAmount);
+hemi.color.copy(P.dayHemi).lerp(P.nightHemi, dn.nightAmount);
+hemi.groundColor.copy(P.dayGround).lerp(P.nightGround, dn.nightAmount);
+amb.intensity = 0.15 + dn.nightAmount*0.06;
+scene.fog.color.copy(skyImg.hz).lerp(NIGHT_HAZE, dn.nightAmount*0.72);
+scene.fog.near = 185 + dn.nightAmount*52;
+scene.fog.far  = (1460 + dn.nightAmount*330) * (1 - Wind.gust*0.46);</code></pre>
+
+  <h2>What <code>dark</code> switches on</h2>
+  <table>
+    <tr><th style="width:28%">System</th><th style="width:40%">Response</th><th>Note</th></tr>
+    <tr><td>Pool point lights, outdoors</td><td class="n">intensity × dark</td><td>Porch lights, lot poles, sign floods</td></tr>
+    <tr><td>Pool point lights, indoors</td><td class="n">intensity × max(dark, 0.70)</td><td>Drapes drawn: rooms are lamplit all day</td></tr>
+    <tr><td>Pool point lights, underground</td><td class="n">intensity × 1</td><td>No day forty feet down</td></tr>
+    <tr><td>Emissive surfaces (<code>GLOW</code>)</td><td class="n">k = 0.10 + 3.0·dark</td><td><code>"pool"</code> kind 0.30 + 2.0·dark; <code>"buried"</code> fixed at 2.35; all through the soft knee</td></tr>
+    <tr><td>Unlit glow quads</td><td class="n">opacity = dark (or 1 − dark, or 1)</td><td>Flags <code>day</code>, <code>always</code>, <code>max</code>; <code>blink</code> and <code>duty</code> make a beacon</td></tr>
+    <tr><td>Neon panels (<code>NEON</code>)</td><td class="n">0.40 + 0.60·dark</td><td>Stops at 1.0, or the lettering clips away</td></tr>
+    <tr><td>Your car's headlights</td><td class="n">on above dark 0.12</td><td>Ramp to full by about dark 0.45</td></tr>
+    <tr><td>Traffic lamps</td><td class="n">visible above dark 0.04</td><td>Lens dark × 0.98, halo dark × 0.34</td></tr>
+    <tr><td>Pool water shader</td><td class="n">sun strength, glow, reflection, foam</td><td>Less mirror and more underwater glow at night</td></tr>
+    <tr><td>Wildlife and weather</td><td class="n">by nightAmount</td><td>Birds and the vulture leave at night; moths circle outdoor lamps after dark; lot dust stops</td></tr>
+  </table>
+  <div class="rule"><div class="t">Rules for the cycle</div>
+  <ul>
+    <li><b>Ask how dark it is, never what time it is.</b> Everything reads <code>dark</code> or <code>nightAmount</code>. Change the curve in one place and the whole world follows.</li>
+    <li><b>Twilight lingers.</b> A desert dusk is a long warm band, not a switch. The <code>set</code> and twilight terms overlap the horizon on both sides so the change takes about an hour of game time, about 17 real seconds.</li>
+    <li><b>Turn off shadows you cannot see.</b> Below a sun height of 0.04 the key stops casting; the moon's shadows would be all acne and no shape.</li>
+    <li><b>Give the night a real moon.</b> A key of about 0.38 in pale blue is enough for cliffs and strata to keep reading across the valley. A token moon gives you a black screen with lit windows in it.</li>
+    <li><b>Haze is darker than the night sky.</b> Otherwise distant mountains wash out into the fog instead of standing against it.</li>
+  </ul></div>
+  <div class="g2">
+    <figure><img src="img/near_day.jpg"><figcaption><b>The court at 13:00.</b> Sun and sky do everything; every lamp is off.</figcaption></figure>
+    <figure><img src="img/near_night.jpg"><figcaption><b>The same court at 22:00.</b> Lit windows are glowing surfaces, porch lights are pool lamps, and the pool glows from its own shader.</figcaption></figure>
+  </div>
+</section>

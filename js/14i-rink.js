@@ -239,7 +239,7 @@
     // the door: a frame, the leaf, and the floor through it
     for(const x of [DW0-0.03, DW1+0.03])
       m.B("metal", 0.08, DH+0.08, RWT*0.4+0.10, x, FY+(DH+0.08)/2, (LZ1+RZ0)/2, 0.4, 0, "#4a4e50");
-    m.B("metal", DW1-DW0+0.16, 0.08, RWT*0.4+0.10, LXC, FY+DH+0.04, (LZ1+RZ0)/2, 0.4, 0, "#4a4e50");
+    m.B("metal", DW1-DW0+0.16, 0.08, RWT*0.4+0.12, LXC, FY+DH+0.04, (LZ1+RZ0)/2, 0.4, 0, "#4a4e50");
     m.flat(DW0, DW1, LZ1-0.2, RZ0+0.2, FY);
     m.P("lino", planeGeo(DW1-DW0, RZ0-LZ1, 0.6), LXC, FY+0.006, (LZ1+RZ0)/2, 0, RUBBER, -Math.PI/2, 0);
     makeDoor(XF(W(DW0), Z((LZ1+RZ0)/2), 0), 0, GY+FY+0.02, 0, "THE ICE", true, 0, "steel");
@@ -294,7 +294,7 @@
           const s0=cuts[i], s1=cuts[i+1], n=Math.max(1, Math.round((s1-s0)/1.8));
           for(let k=0;k<n;k++){
             const u0=s0+(s1-s0)*k/n, u1=s0+(s1-s0)*(k+1)/n;
-            segs.push(ax==="z" ? [fix,u0,fix,u1,nx,nz,end] : [u0,fix,u1,fix,nx,nz,end]);
+            segs.push(ax==="z" ? [fix,u0,fix,u1,nx,nz,end,false] : [u0,fix,u1,fix,nx,nz,end,false]);
           }
         }
       };
@@ -307,19 +307,24 @@
         for(let k=0;k<16;k++){
           const a0=c[2]+k*(Math.PI/2)/16, a1=c[2]+(k+1)*(Math.PI/2)/16, am=(a0+a1)/2;
           segs.push([c[0]+Math.cos(a0)*CR, c[1]+Math.sin(a0)*CR, c[0]+Math.cos(a1)*CR, c[1]+Math.sin(a1)*CR,
-                     Math.cos(am), Math.sin(am), true]);
+                     Math.cos(am), Math.sin(am), true, true]);
         }
       const BH=1.07, BT=0.12;
       for(const s of segs){
         const dx=s[2]-s[0], dz=s[3]-s[1], L=Math.hypot(dx,dz), ry=Math.atan2(-dz, dx);
         const mx=(s[0]+s[2])/2, mz=(s[1]+s[3])/2, nx=s[4], nz=s[5], gh=s[6]?2.30:1.40;
+        // corner pieces overlap a little to close their joints; straight ones
+        // butt exactly, or the overlap is two faces in one plane at every joint
+        const ex=s[7]?1:0;
         const at=(o)=>[mx+nx*o, mz+nz*o];
-        let q=at(BT/2);      m.P("paint", boxGeo(L+0.012, BH, BT, 0.5), q[0], FY+BH/2, q[1], ry, "#f2f1ec", 0, 0);
-        q=at(-0.006);        m.P("paint", boxGeo(L+0.004, 0.22, 0.012, 0.5), q[0], FY+0.11, q[1], ry, "#e8c02a", 0, 0);
-        q=at(BT/2);          m.P("paint", boxGeo(L+0.014, 0.06, BT+0.08, 0.5), q[0], FY+BH+0.03, q[1], ry, "#b8322a", 0, 0);
+        let q=at(BT/2);      m.P("paint", boxGeo(L+0.012*ex, BH, BT, 0.5), q[0], FY+BH/2, q[1], ry, "#f2f1ec", 0, 0);
+        q=at(-0.006);        m.P("paint", boxGeo(L+0.004*ex, 0.22, 0.012, 0.5), q[0], FY+0.11, q[1], ry, "#e8c02a", 0, 0);
+        // (alternate corner caps a millimetre apart: their tops overlap at the joints)
+        q=at(BT/2);          m.P("paint", boxGeo(L+0.014*ex, 0.06, BT+0.08, 0.5), q[0], FY+BH+0.03+ex*(segs.indexOf(s)%2)*0.001,
+                                 q[1], ry, "#b8322a", 0, 0);
         // dark tint: clean glass under arena lights is nearly invisible, and a
         // pale one read as a milky wall round the sheet
-        q=at(BT/2+0.01);     m.P("glass", boxGeo(L-0.03, gh, 0.014, 0), q[0], FY+BH+0.06+gh/2, q[1], ry, "#6e8088", 0, 0);
+        q=at(BT/2+0.01);     m.P("glass", boxGeo(L-0.03, gh, 0.014, 0), q[0], FY+BH+0.063+gh/2, q[1], ry, "#6e8088", 0, 0);
                              m.P("metal", boxGeo(0.05, gh, 0.06, 0), s[0]+nx*(BT/2+0.01), FY+BH+0.06+gh/2,
                                  s[1]+nz*(BT/2+0.01), ry, "#b8bcbe", 0, 0);
         const ax0=Math.min(s[0],s[2]), ax1=Math.max(s[0],s[2]), az0=Math.min(s[1],s[3]), az1=Math.max(s[1],s[3]);
@@ -456,7 +461,7 @@
         m.C("metal", 0.015,0.015,rod,6, x, y+0.36+rod/2, z, "#3a3d42");
         m.P("hbcold", domeGeo(0.31, 0.10, 16), x, y-0.002, z, 0, "#ffffff");
         if(lit.has(dx+","+dz))
-          m.lamp(x, y-0.6, z, {color:0xf0f4ff, intensity:0.60, dist:30, decay:1.25, indoor:true, vol:VOLR});
+          m.lamp(x, y-0.6, z, {color:0xf0f4ff, intensity:0.50, dist:30, decay:1.25, indoor:true, vol:VOLR});
       }
       // the scoreboard over centre ice, nothing to nothing, twenty minutes
       const SY=FY+8.6;

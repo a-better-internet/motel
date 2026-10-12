@@ -866,6 +866,13 @@ anything underground, or it stands you on the mesa over it), `elev46.js`
 were laid out; its first shot of a run is always a perspective frame, so
 start with a dummy) and `cols46.js` (the colliders in a box).
 
+Round 47 added `vols47.js`, which lists every VOID and BURIED volume —
+read it with `hgt45.js` before siting anything underground, which is how
+the rink went under the lookout butte with ninety metres of rock over it
+and clear of every room already dug — and `tex47.js`, which writes any
+canvas texture out to a png so a map can be judged on its own before it
+is blamed (or not) for what a render shows.
+
 If the scratchpad is lost, it is quick to rebuild: the CDNs answer 403
 from the sandbox, so three.js comes from `npm pack three@0.128.0`
 (`build/three.min.js`); playwright is the global one under

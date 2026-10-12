@@ -89,7 +89,11 @@
   wall(HX0-WT, HX0, FD1, HZ1+WT, -0.1, HH+0.4);
   wall(HX0-WT, HX0, FD0, FD1, FDH, HH+0.4);
   wall(HX0, HX1+WT, HZ0-WT, HZ0, -0.1, HH+0.4);      // south
-  wall(HX0, HX1+WT, HZ1, HZ1+WT, -0.1, HH+0.4);      // north
+  // north, either side of the door to the break room (built below), and over it
+  const BDX=-130.20, BD0=BDX-0.54, BD1=BDX+0.54, BDH=2.14;
+  wall(HX0, BD0-0.06, HZ1, HZ1+WT, -0.1, HH+0.4);
+  wall(BD1+0.06, HX1+WT, HZ1, HZ1+WT, -0.1, HH+0.4);
+  wall(BD0-0.06, BD1+0.06, HZ1, HZ1+WT, BDH+0.06, HH+0.4);
   wall(HX1, HX1+WT, HZ0, PZ0, -0.1, HH+0.4);         // east, either side of the passage
   wall(HX1, HX1+WT, PZ1, HZ1, -0.1, HH+0.4);
   wall(HX1, HX1+WT, PZ0, PZ1, PH, HH+0.4);           // and over it
@@ -118,7 +122,8 @@
     }
   };
   wallFace("x", HX0, HX1, HZ0, 1);
-  wallFace("x", HX0, HX1, HZ1, -1);
+  wallFace("x", HX0, BD0-0.10, HZ1, -1);
+  wallFace("x", BD1+0.10, HX1, HZ1, -1);
   wallFace("z", HZ0, FD0-0.08, HX0, 1);
   wallFace("z", FD1+0.08, HZ1, HX0, 1);
   wallFace("z", HZ0, PZ0-0.05, HX1, -1);
@@ -708,6 +713,214 @@
       m.P("glass", boxGeo(0.004, len, 0.22, 0), HX1-0.036+(i%2)*0.006, FY+PH-len/2, PZ0+0.09+i*0.20,
           0, "#cfdcd8", 0, 0);
     }
+  }
+
+  /* --- the break room, through the door in the north wall ---------------
+     Where the stores' crew ate: a room of pale green block with a tile
+     floor and a drop ceiling, three tables and their plastic chairs, two
+     machines still lit and one that is not, a counter with a sink, a
+     microwave and a coffee maker, a fridge, a couch under the notice board
+     and a television on a bracket in the corner, and the time clock by the
+     door with every card still in the OUT rack. Three of the four tubes
+     work. Nobody has been in for years and the machines have not noticed. */
+  {
+    const KX0=BDX-6.0, KX1=BDX+6.0, KZ0=HZ1+WT, KZ1=KZ0+8.0, KH=3.0, KWT=0.30;
+    const GRN="#c2cbb8", GRND="#7f8f78", RAIL="#5a6a58";
+    const KVOL=[W(KX0-KWT), W(KX1+KWT), Z(KZ0-0.3), Z(KZ1+KWT), GY+FY-1, GY+FY+KH+0.5];
+    const kwall=(x0,x1,z0,z1)=>{
+      m.B("block", x1-x0, KH+0.5, z1-z0, (x0+x1)/2, FY+(KH+0.5)/2-0.1, (z0+z1)/2, 0.833, 0, GRN);
+      m.col(x0, x1, z0, z1, FY-0.5, FY+KH+0.4);
+    };
+    const kband=(ax, a0, a1, c, n, y0, y1, col, o)=>{
+      const L=a1-a0, mid=(a0+a1)/2, off=o||0.010;
+      if(ax==="x") m.P("block", planeGeo(L, y1-y0, 0.833), mid, FY+(y0+y1)/2, c+n*off, n>0?0:Math.PI, col, 0, 0);
+      else m.P("block", planeGeo(L, y1-y0, 0.833), c+n*off, FY+(y0+y1)/2, mid, n>0?Math.PI/2:-Math.PI/2, col, 0, 0);
+    };
+    // the slab, the tile, the walls, the ceiling, the walking surface
+    m.B("concrete", (KX1+KWT+OS)-(KX0-KWT-OS), 0.50, (KZ1+KWT+OS)-(KZ0+OS), BDX, FY-0.25,
+        (KZ0+OS+KZ1+KWT+OS)/2, 0.5, 0, CONCD);
+    m.P("checker", planeGeo(KX1-KX0, KZ1-KZ0, 0.5), BDX, FY+0.006, (KZ0+KZ1)/2, 0, "#d8ccb0", -Math.PI/2, 0);
+    kwall(KX0-KWT, KX0, KZ0, KZ1+KWT); kwall(KX1, KX1+KWT, KZ0, KZ1+KWT); kwall(KX0, KX1, KZ1, KZ1+KWT);
+    m.B("ceil", (KX1+KWT+OS)-(KX0-KWT-OS), 0.30, (KZ1+KWT+OS)-(KZ0-OS), BDX, FY+KH+0.15, (KZ0+KZ1+KWT)/2,
+        0.45, 0, "#d4d0c4");
+    for(let x=KX0+0.6; x<KX1-0.1; x+=0.6)
+      m.P("soot", planeGeo(0.022, KZ1-KZ0, 0), x, FY+KH-0.004, (KZ0+KZ1)/2, 0, "#3a3834", Math.PI/2, 0);
+    for(let z=KZ0+1.2; z<KZ1; z+=1.2)
+      m.P("soot", planeGeo(KX1-KX0, 0.022, 0), BDX, FY+KH-0.005, z, 0, "#3a3834", Math.PI/2, 0);
+    m.flat(KX0, KX1, KZ0, KZ1, FY);
+    m.flat(BD0, BD1, HZ1-0.1, KZ0+0.1, FY);
+    m.voidAt(KX0-KWT-0.3, KX1+KWT+0.3, HZ1-0.2, KZ1+KWT+0.3, FY-1.0, FY+KH+0.6, FY);
+    // the door: a frame through the wall, the leaf, and the sign over it
+    for(const x of [BD0-0.03, BD1+0.03])
+      m.B("metal", 0.08, BDH+0.08, WT+0.12, x, FY+(BDH+0.08)/2, HZ1+WT/2, 0.4, 0, "#4a4e50");
+    m.B("metal", BD1-BD0+0.16, 0.08, WT+0.14, BDX, FY+BDH+0.04, HZ1+WT/2, 0.4, 0, "#4a4e50");
+    m.P("concrete", planeGeo(BD1-BD0, WT, 0.4), BDX, FY+0.006, HZ1+WT/2, 0, FLR, -Math.PI/2, 0);
+    makeDoor(XF(W(BD0), Z(HZ1+WT/2), 0), 0, GY+FY+0.02, 0, "THE BREAK ROOM", true, 0, "steel");
+    m.B("paint", 1.34, 0.36, 0.04, BDX, FY+2.62, HZ1-0.02, 0.4, 0, "#2a3a2e");
+    signPanel(1.24, 0.28, signTex(372,84,(x,w,h)=>{ x.fillStyle="#e2ddcc"; x.fillRect(0,0,w,h);
+      x.fillStyle="#2a3a2e"; fitText(x, "BREAK ROOM", w, h*0.6, w/2, h/2+2); }),
+      W(BDX), GY+FY+2.62, Z(HZ1-0.042), Math.PI, false);
+    // the block, painted: a darker green to the chair rail, all four sides
+    for(const q of [["z", KZ0, KZ1, KX0, 1],["z", KZ0, KZ1, KX1, -1],["x", KX0, KX1, KZ1, -1]]){
+      kband(q[0], q[1], q[2], q[3], q[4], 0, 1.10, GRND); kband(q[0], q[1], q[2], q[3], q[4], 1.10, 1.17, RAIL, 0.011);
+    }
+    for(const r of [[KX0, BD0-0.10],[BD1+0.10, KX1]]){              // the back of the stores' wall
+      kband("x", r[0], r[1], KZ0, 1, 0, KH, GRN, 0.009);
+      kband("x", r[0], r[1], KZ0, 1, 0, 1.10, GRND, 0.010); kband("x", r[0], r[1], KZ0, 1, 1.10, 1.17, RAIL, 0.011);
+    }
+    kband("x", BD0-0.10, BD1+0.10, KZ0, 1, BDH+0.08, KH, GRN, 0.009);
+    // the lights: four troffers, one dead, one going
+    for(const q of [[-3.0, 2.4, 1],[3.0, 2.4, 1],[-3.0, 5.6, 2],[3.0, 5.6, 0]]){
+      const x=BDX+q[0], z=KZ0+q[1];
+      m.B("metal", 0.64, 0.03, 1.24, x, FY+KH-0.012, z, 0.4, 0, "#c8c6be");
+      m.P(q[2]?"hbcold":"glass", planeGeo(0.56, 1.16, 0), x, FY+KH-0.029, z, 0, q[2]?"#ffffff":"#6a6c66", Math.PI/2, 0);
+      if(q[2]) m.lamp(x, FY+KH-0.4, z, {color:0xf2f2e6, intensity:0.48, dist:9, decay:1.5, indoor:true,
+                                        vol:KVOL, flicker:q[2]===2});
+    }
+
+    // the machines down the west wall: snacks and soda lit, the coffee one dead
+    const vx=KX0+0.40;
+    for(const v of [[KZ0+1.70, "snack", "#8f2c22"],[KZ0+2.85, "soda", "#2f4a8a"],[KZ0+4.00, null, "#5a4a3a"]]){
+      m.B("paint", 0.78, 1.92, 1.04, vx, FY+0.96, v[0], 0.4, 0, v[2]);
+      if(v[1]) m.P("pic:vendFrontB:"+v[1], planeGeo(0.80, 1.56, 0), vx+0.395, FY+1.06, v[0], Math.PI/2, "#ffffff");
+      else {
+        m.B("paint", 0.01, 1.30, 0.80, vx+0.395, FY+1.20, v[0], 0.4, 0, "#2a2420");
+        signPanel(0.60, 0.20, signTex(240,80,(x,w,h)=>{ x.fillStyle="#d8c8a0"; x.fillRect(0,0,w,h);
+          x.fillStyle="#5a2a1a"; fitText(x, "COFFEE", w, h*0.6, w/2, h/2+2); }),
+          W(vx+0.402), GY+FY+1.62, Z(v[0]), Math.PI/2, false);
+        m.P("art", boxGeo(0.01, 0.16, 0.22, 0), vx+0.405, FY+1.12, v[0]+0.08, 0, "#e6e0c4", 0.08, 0);   // OUT OF ORDER
+      }
+      m.B("metal", 0.06, 0.20, 0.70, vx+0.40, FY+0.34, v[0], 0.4, 0, "#5a5e60");
+      m.col(KX0, KX0+0.80, v[0]-0.53, v[0]+0.53, FY, FY+1.95);
+    }
+    // the water cooler, its jug a third full
+    m.B("paint", 0.34, 0.92, 0.34, KX0+0.22, FY+0.46, KZ0+5.10, 0.4, 0, "#d8d4c8");
+    m.C("glass", 0.15, 0.15, 0.42, 14, KX0+0.22, FY+1.13, KZ0+5.10, "#9ab8c8");
+    m.C("plaster", 0.13, 0.13, 0.14, 14, KX0+0.22, FY+0.99, KZ0+5.10, "#8aa8b8");
+    m.col(KX0, KX0+0.40, KZ0+4.92, KZ0+5.28, FY, FY+1.35);
+
+    // the kitchen run along the north wall, the fridge in the corner
+    const CZ1=KZ1, CTY=0.92, RX0k=KX0+0.85, RX1k=KX0+5.6;
+    m.B("oak", RX1k-RX0k, CTY-0.04, 0.60, (RX0k+RX1k)/2, FY+(CTY-0.04)/2, CZ1-0.30, 0.5, 0, "#8a6a44");
+    m.B("lino", RX1k-RX0k+0.02, 0.04, 0.64, (RX0k+RX1k)/2, FY+CTY-0.02, CZ1-0.32, 0.6, 0, "#d8cfae");
+    for(let x=RX0k+0.30; x<RX1k-0.1; x+=0.60) m.C("metal", 0.012,0.012,0.10,6, x, FY+0.62, CZ1-0.61, "#b8b4a8", 0, 0, Math.PI/2);
+    m.col(RX0k, RX1k, CZ1-0.64, CZ1, FY, FY+CTY);
+    const sx2=RX0k+2.2;                                              // the sink
+    m.B("metal", 0.70, 0.02, 0.46, sx2, FY+CTY+0.002, CZ1-0.33, 0.4, 0, "#a7ada6");
+    m.B("bin", 0.60, 0.02, 0.38, sx2, FY+CTY-0.15, CZ1-0.33, 0.4, 0, "#5f6560");
+    m.C("metal", 0.016,0.016,0.30,8, sx2, FY+CTY+0.15, CZ1-0.10, "#b8bcbc");
+    m.C("metal", 0.013,0.013,0.20,8, sx2, FY+CTY+0.29, CZ1-0.20, "#b8bcbc", Math.PI/2);
+    m.B("metal", 0.36, 0.22, 0.30, RX0k+3.55, FY+CTY+0.11, CZ1-0.32, 0.4, 0, "#e8e4d8");            // microwave
+    m.B("tvglass", 0.20, 0.14, 0.01, RX0k+3.49, FY+CTY+0.12, CZ1-0.476, 0, 0, "#1a1c1e");
+    m.B("paint", 0.22, 0.30, 0.24, RX0k+0.65, FY+CTY+0.15, CZ1-0.30, 0.4, 0, "#2a2a2a");             // coffee maker
+    m.C("glass", 0.07, 0.07, 0.12, 12, RX0k+0.65, FY+CTY+0.07, CZ1-0.40, "#6a4a2a");
+    for(let i=0;i<4;i++)
+      m.C("plaster", 0.04, 0.034, 0.09, 10, RX0k+1.10+i*0.10, FY+CTY+0.045, CZ1-0.22, ["#c8c0a8","#b8402a","#3a5a8a","#d8d0b8"][i]);
+    m.B("oak", RX1k-RX0k-0.6, 0.62, 0.34, (RX0k+RX1k)/2-0.3, FY+1.95, CZ1-0.17, 0.5, 0, "#8a6a44");    // uppers
+    m.C("paper", 0.06, 0.06, 0.26, 10, RX0k+2.95, FY+1.45, CZ1-0.10, "#efece2", 0, 0, Math.PI/2);    // towels
+    m.B("paint", 0.72, 1.70, 0.70, KX0+0.38, FY+0.85, CZ1-0.37, 0.4, 0, "#d8d4c4");                  // fridge
+    m.B("paint", 0.02, 0.03, 0.66, KX0+0.745, FY+1.10, CZ1-0.37, 0.4, 0, "#b8b4a8");
+    m.C("metal", 0.015,0.015,0.34,8, KX0+0.76, FY+1.32, CZ1-0.64, "#b8b4a8");
+    m.P("paper", planeGeo(0.16,0.20,0), KX0+0.752, FY+1.45, CZ1-0.30, Math.PI/2, "#e8e2c8", 0, 0.08);
+    m.col(KX0, KX0+0.76, CZ1-0.74, CZ1, FY, FY+1.72);
+    m.C("bin", 0.20, 0.17, 0.50, 12, RX1k+0.30, FY+0.25, CZ1-0.30, "#4a5a4a");                       // the bin
+    m.col(RX1k+0.08, RX1k+0.52, CZ1-0.52, CZ1-0.08, FY, FY+0.5);
+
+    // three tables and their chairs, the chairs where they were left
+    const chair=(x,z,ry,col,down)=>{
+      const S=(dx,dz)=>[x+dx*Math.cos(ry)+dz*Math.sin(ry), z-dx*Math.sin(ry)+dz*Math.cos(ry)];
+      if(down){                                                      // over on its back
+        m.P("paint", boxGeo(0.44,0.05,0.42,0.4), x, FY+0.21, z, ry, col, -Math.PI/2+0.25, 0);
+        const b=S(0,-0.38); m.P("paint", boxGeo(0.44,0.40,0.05,0.4), b[0], FY+0.04, b[1], ry, col, -Math.PI/2, 0);
+        return;
+      }
+      m.B("paint", 0.44, 0.05, 0.42, x, FY+0.45, z, 0.4, ry, col);
+      const b=S(0,-0.20); m.P("paint", boxGeo(0.44,0.40,0.05,0.4), b[0], FY+0.70, b[1], ry, col, -0.10, 0);
+      for(const a of [[-1,-1],[1,-1],[-1,1],[1,1]]){ const q=S(a[0]*0.18, a[1]*0.17);
+        m.C("metal", 0.011,0.011,0.44,6, q[0], FY+0.22, q[1], "#b8bcbe"); }
+      m.col(x-0.24, x+0.24, z-0.24, z+0.24, FY, FY+0.48);
+    };
+    const COLS=["#c8642a","#3a8a88","#d8b03a","#c8bca0"];
+    const tables=[[BDX-2.4, KZ0+3.2],[BDX-2.4, KZ0+5.6],[BDX+2.2, KZ0+4.4]];
+    tables.forEach((t,i)=>{
+      m.B("lino", 1.22, 0.04, 0.78, t[0], FY+0.74, t[1], 0.6, 0, "#e2d8bc");
+      m.B("metal", 1.24, 0.03, 0.80, t[0], FY+0.71, t[1], 0.4, 0, "#9a9e9e");
+      for(const sx of [-0.50,0.50]){ m.C("metal", 0.02,0.02,0.70,8, t[0]+sx, FY+0.35, t[1], "#b8bcbe");
+        m.B("metal", 0.06, 0.02, 0.62, t[0]+sx, FY+0.01, t[1], 0, 0, "#b8bcbe"); }
+      m.col(t[0]-0.62, t[0]+0.62, t[1]-0.40, t[1]+0.40, FY, FY+0.76);
+      for(let k=0;k<4;k++){
+        const sx=(k%2)?0.30:-0.30, sz=k<2?-1:1, push=(k===1&&i===0)?0.35:((k+i)%3===0?0.12:0);
+        if(i===2&&k===3){ chair(t[0]+0.55, t[1]+0.95, 0.8, COLS[(k+i)%4], true); continue; }
+        chair(t[0]+sx+(R()-0.5)*0.06, t[1]+sz*(0.62+push), sz<0?0:Math.PI, COLS[(k+i)%4], false);
+      }
+    });
+    // what is on the tables: a paper, mugs, an ashtray, a game of patience
+    m.P("paper", boxGeo(0.40, 0.012, 0.30, 0.5), tables[0][0]+0.15, FY+0.767, tables[0][1]-0.05, 0.3, "#d8d2c0");
+    for(const q of [[-0.35,0.15],[0.40,-0.20]])
+      m.C("plaster", 0.042, 0.036, 0.09, 12, tables[0][0]+q[0], FY+0.805, tables[0][1]+q[1], "#e8e4d8");
+    m.C("metal", 0.07, 0.07, 0.025, 14, tables[1][0]-0.30, FY+0.773, tables[1][1], "#9aa4a8");
+    for(let i=0;i<7;i++)
+      m.P("paper", planeGeo(0.063, 0.088, 0), tables[1][0]+0.05+i*0.075, FY+0.7615+i*0.0004, tables[1][1]+(i%2)*0.03,
+          0, i%3?"#f2efe6":"#c83a2a", -Math.PI/2, 0);
+    m.B("metal", 0.30, 0.18, 0.18, tables[2][0]-0.25, FY+0.85, tables[2][1], 0.4, 0.2, "#3a4a5a");   // a lunch pail
+    m.C("plaster", 0.04, 0.034, 0.10, 12, tables[2][0]+0.30, FY+0.81, tables[2][1]+0.12, "#f2f0ea");
+
+    // the couch under the notice board, the TV on its bracket in the corner
+    const ux=KX1-0.45, uz=KZ0+5.1;
+    m.B("fabric", 0.80, 0.42, 2.10, ux, FY+0.21, uz, 0.5, 0, "#6a5a3a");
+    m.B("fabric", 0.22, 0.48, 2.10, ux+0.29, FY+0.66, uz, 0.5, 0, "#6a5a3a");
+    for(const sz of [-1,1]) m.B("fabric", 0.80, 0.30, 0.20, ux, FY+0.55, uz+sz*0.95, 0.5, 0, "#5e5032");
+    for(const sz of [-0.45,0.45]) m.B("fabric", 0.56, 0.12, 0.86, ux-0.08, FY+0.47, uz+sz, 0.5, 0, "#7a6a48");
+    m.col(KX1-0.86, KX1, uz-1.06, uz+1.06, FY, FY+0.55);
+    addSeat(W(ux-0.10), Z(uz), GY+FY+0.52, Math.PI/2, "THE BREAK ROOM COUCH");     // looking west, into the room
+    m.B("oak", 0.50, 0.40, 1.00, ux-1.00, FY+0.20, uz, 0.5, 0, "#6a4a2c");
+    m.col(ux-1.26, ux-0.74, uz-0.51, uz+0.51, FY, FY+0.42);
+    m.P("paper", boxGeo(0.22, 0.02, 0.30, 0.5), ux-1.00, FY+0.41, uz+0.15, 0.4, "#c8443a");
+    m.B("metal", 0.30, 0.04, 0.30, KX1-0.18, FY+2.30, KZ1-0.40, 0.4, 0, "#3a3a3a");
+    // turned to face the tables: its screen looks south-west into the room
+    m.B("paint", 0.50, 0.42, 0.46, KX1-0.46, FY+2.53, KZ1-0.50, 0.4, 0.6, "#2a2a2a");
+    m.P("tvglass", planeGeo(0.38, 0.30, 0), KX1-0.46-0.234*Math.sin(0.6), FY+2.53, KZ1-0.50-0.234*Math.cos(0.6),
+        0.6+Math.PI, "#14181c", 0, 0);
+    m.C("metal", 0.02,0.02,0.30,6, KX1-0.18, FY+2.42, KZ1-0.40, "#3a3a3a", 0, 0, Math.PI/2);
+    // the notice board, the safety tally, and the rules
+    m.B("oak", 0.03, 0.90, 1.40, KX1-0.015, FY+1.65, KZ0+2.30, 0.4, 0, "#6b4a2c");
+    m.P("fabric", planeGeo(1.30, 0.80, 0), KX1-0.032, FY+1.65, KZ0+2.30, -Math.PI/2, "#8a7a5e", 0, 0);
+    for(let i=0;i<7;i++)
+      m.P("paper", planeGeo(0.21, 0.28, 0), KX1-0.040-(i%2)*0.001, FY+1.48+(i%2)*0.32, KZ0+1.78+i*0.17, -Math.PI/2,
+          ["#e8e2c8","#f0ecd8","#d8e0e8","#e8d8c0"][i%4], 0, (R()-0.5)*0.12);
+    signPanel(1.10, 0.42, signTex(440,168,(x,w,h)=>{
+      x.fillStyle="#f2efe4"; x.fillRect(0,0,w,h); x.fillStyle="#2a6a3a"; x.fillRect(0,0,w,h*0.30);
+      x.fillStyle="#f2efe4"; fitText(x, "SAFETY FIRST", w*0.80, h*0.20, w/2, h*0.15);
+      x.fillStyle="#1a1c1e"; fitText(x, "THIS CREW HAS WORKED", w*0.80, h*0.13, w/2, h*0.44);
+      x.fillStyle="#c83a2a"; fitText(x, "4,417", w*0.44, h*0.26, w/2, h*0.66);
+      x.fillStyle="#1a1c1e"; fitText(x, "DAYS WITHOUT A LOST-TIME ACCIDENT", w*0.80, h*0.09, w/2, h*0.87);
+    }), W(KX1-0.012), GY+FY+1.65, Z(KZ0+4.0), -Math.PI/2, false);
+    // by the door: the time clock and its two card racks, a coat rack, a clock
+    // (clear of the door frame, which comes to BDX+0.61)
+    m.B("paint", 0.34, 0.42, 0.18, BDX+1.60, FY+1.40, KZ0+0.09, 0.4, 0, "#8a8478");
+    m.C("clockface", 0.10, 0.10, 0.012, 16, BDX+1.60, FY+1.50, KZ0+0.186, "#efece2", Math.PI/2);
+    for(const sx of [0.98, 2.24]){
+      m.B("metal", 0.36, 0.70, 0.05, BDX+sx, FY+1.35, KZ0+0.025, 0.4, 0, "#9a9e9e");
+      for(let r=0;r<6;r++) for(let c=0;c<3;c++)
+        if(sx<1.5 || R()<0.25) m.P("paper", planeGeo(0.08, 0.14, 0), BDX+sx-0.11+c*0.11, FY+1.12+r*0.09, KZ0+0.053, 0, "#e8dcb8", 0, 0);
+      signPanel(0.30, 0.08, signTex(150,40,(x,w,h)=>{ x.fillStyle="#2a2a2a"; x.fillRect(0,0,w,h);
+        x.fillStyle="#e8e4d8"; fitText(x, sx<1.5?"OUT":"IN", w, h*0.6, w/2, h/2+1); }),
+        W(BDX+sx), GY+FY+1.77, Z(KZ0+0.053), 0, false);
+    }
+    m.C("metal", 0.02, 0.02, 1.70, 8, BDX-1.25, FY+0.85, KZ0+0.35, "#4a4a4a");
+    m.C("metal", 0.18, 0.20, 0.03, 12, BDX-1.25, FY+0.015, KZ0+0.35, "#4a4a4a");
+    m.B("fabric", 0.08, 0.80, 0.42, BDX-1.25, FY+1.28, KZ0+0.35, 0.5, 0.4, "#3a4a5a");
+    m.col(BDX-1.45, BDX-1.05, KZ0+0.15, KZ0+0.55, FY, FY+1.7);
+    m.C("paint", 0.17, 0.17, 0.04, 18, BDX-2.6, FY+2.35, KZ0+0.02, "#2a2c30", Math.PI/2);
+    m.P("clockface", new T.CircleGeometry(0.145, 24), BDX-2.6, FY+2.35, KZ0+0.042, 0, "#efece2");
+    // dust in the corners, a cup on the floor
+    let rung=0;
+    for(const c of [[KX0+0.6, KZ0+0.5],[KX1-0.6, KZ0+0.5],[KX1-0.6, KZ1-0.5],[BDX, KZ0+1.2]])
+      m.P("stain", streakGeo(1.4, 1.0, 0), c[0], FY+0.010+(rung++)*0.0007, c[1], R()*3, "#5a5244", -Math.PI/2, 0);
+    m.C("plaster", 0.04, 0.034, 0.10, 12, BDX+0.9, FY+0.04, KZ0+2.3, "#f2f0ea", Math.PI/2, 1.1, 0);
+
+    addBuried(W(KX0-KWT-0.6), W(KX1+KWT+0.6), Z(KZ0), Z(KZ1+KWT+0.6), GY+FY-1.0, GY+FY+KH+0.8, 0xe6e2d0);
+    addZone(W(KX0), W(KX1), Z(KZ0), Z(KZ1), GY+FY-1, GY+FY+KH, "THE BREAK ROOM", true);
   }
 
   /* --- signs: EXIT over both doors, and the aisle boards --------------- */

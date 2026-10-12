@@ -481,12 +481,12 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
     x.strokeStyle="#3f6ea8"; x.lineWidth=3;
     x.beginPath(); x.moveTo(0,60); x.bezierCurveTo(160,120,300,70,W,140); x.stroke();
     x.fillStyle="#2f2a20";
-    for(const t of [[70,150,"GALLUP"],[250,120,"GRANTS"],[380,250,"LAGUNA"],[150,300,"ZUNI"],[420,90,"THOREAU"]]){
+    for(const t of [[70,150,"GALLUP"],[250,120,"GRANTS"],[380,250,"LAGUNA"],[150,300,"ZUNI"],[352,92,"THOREAU"]]){
       x.beginPath(); x.arc(t[0],t[1],5,0,7); x.fill();
       x.font="700 15px 'JetBrains Mono', monospace"; x.textAlign="left";
       x.fillText(t[2], t[0]+9, t[1]+5);
     }
-    x.fillStyle="#13405e"; fitText(x,"NEW MEXICO", W*0.5, 34, W*0.30, 36);
+    x.fillStyle="#13405e"; fitText(x,"NEW MEXICO", W*0.42, 28, W*0.30, 46);
     x.strokeStyle="#8a7e5e"; x.lineWidth=8; x.strokeRect(4,4,W-8,H-8);
   }));
   const aerialTex=hosted("aerial", signTex(512,384,(x,W,H)=>{
@@ -509,7 +509,7 @@ const APT_DX=-41.30, APT_DW=0.98, APT_DH=2.08;
     for(let k=0;k<4;k++) x.fillRect(360+k*0, 150+k*26, 12, 20);
     x.fillStyle="rgba(0,0,0,0.22)"; x.fillRect(70,108,300,10);     // shadow under the eave
     x.fillStyle="#f1ead6"; x.fillRect(0,H-40,W,40);
-    x.fillStyle="#13405e"; fitText(x,"LOW DESERT MOTEL  ·  ROUTE 66", W*0.86, 26, W/2, H-20);
+    x.fillStyle="#13405e"; fitText(x,"LOW DESERT MOTEL  ·  ROUTE 66", W*0.80, 22, W/2, H-21);
   }));
   push("art", boxGeo(0.05,0.64,0.92,0), O.x1-0.36, y0+2.02, cz+1.5, 0, "#5c4029");
   signPanel(0.84,0.56, mapTex, O.x1-0.40, y0+2.02, cz+1.5, -Math.PI/2, false);

@@ -110,6 +110,6 @@
     x.fillStyle="#3a3a36";
     const lines=["NO LIFEGUARD ON DUTY","SWIM AT YOUR OWN RISK","NO GLASS · NO DIVING","POOL CLOSES 10 PM"];
     x.font=Math.round(H*0.082)+"px 'JetBrains Mono', monospace"; x.textAlign="center";
-    lines.forEach((L,i)=>x.fillText(L, W/2, H*0.42+i*H*0.165));
+    lines.forEach((L,i)=>x.fillText(L, W/2, H*0.40+i*H*0.15));   // last line 0.15 H clear of the foot
   })), POOL.deck.x0+2.6, 0.10+1.42, POOL.deck.z0+0.78, 0, false));
 })();

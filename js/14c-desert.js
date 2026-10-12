@@ -1384,7 +1384,7 @@
     const tex=signTex(768,280,(x,W,H)=>{
       x.fillStyle="#d8cdae"; x.fillRect(0,0,W,H);
       x.fillStyle="#13405e"; x.fillRect(0,0,W,54);
-      x.fillStyle="#f1ead6"; fitText(x,"NEXT SERVICES 74 MILES", W*0.9, 40, W/2, 28);
+      x.fillStyle="#f1ead6"; fitText(x,"NEXT SERVICES 74 MILES", W*0.8, 30, W/2, 28);
       x.fillStyle="#c3311f"; fitText(x,"GAS · FOOD · ICE", W*0.86, 88, W/2, 120);
       x.fillStyle="#3a3a36"; fitText(x,"KEEP LEFT AT THE JUNCTION", W*0.8, 44, W/2, 210);
     });

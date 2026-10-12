@@ -430,10 +430,10 @@
           }
           x.font="900 72px 'Arial Black', Impact, Arial, sans-serif";
           x.textAlign="center"; x.textBaseline="middle";
-          const step=W*0.94/word.length;
+          const step=W*0.84/word.length;                // 8% of board clear at each end
           for(let i=0;i<word.length;i++){
             const ch=word[i]; if(ch===" ") continue;
-            const cx=W*0.03+step*(i+0.5);
+            const cx=W*0.08+step*(i+0.5);
             if(gone.indexOf(i)>=0){                     // where a letter was
               x.fillStyle="rgba(150,140,118,0.55)"; x.fillText(ch, cx, H*0.54);
               x.fillStyle="#3a3228";
@@ -456,7 +456,7 @@
           x.textAlign="center"; x.textBaseline="middle"; x.fillStyle="#9c4436"; x.fillText("A", W/2, H*0.55);
         });
         // the plane is turned to face the road, so u runs from east to west
-        const L=signPanel(0.40, 0.50, ltex, -145+(BX0+SX1)/2+6.2-12.4*(0.03+0.94*(13.5/word.length)),
+        const L=signPanel(0.40, 0.50, ltex, -145+(BX0+SX1)/2+6.2-12.4*(0.08+0.84*(13.5/word.length)),
                           m.y+F+GH-0.82, -359+Z0g-0.205, Math.PI, false);
         L.material.transparent=true; L.material.alphaTest=0.5; L.rotation.z=-0.62;
       }

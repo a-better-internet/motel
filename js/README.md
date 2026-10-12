@@ -1,6 +1,6 @@
 # How the world is put together
 
-`index.html` is the page: the markup, the CSS, the HUD, and twenty-eight
+`index.html` is the page: the markup, the CSS, the HUD, and twenty-nine
 `<script src="js/…">` tags. Everything else lives here, one file per part of
 the world, loaded **in order** as classic scripts sharing one global scope.
 
@@ -33,6 +33,7 @@ scheduled. The numbering is the load order; nothing re-orders itself.
 | `14g-warehouse.js` | the stores, through the door in the backstage end room |
 | `14h-pool.js` | the old baths, through the fire door at the far end of the stores |
 | `14i-rink.js` | the locker rooms through the baths' north wall, and the ice rink at the end of them |
+| `14j-observe.js` | the corridor off the rink, the observation room, and the 1950s living room behind its glass |
 | `15-bake.js` | glow materials, then merge and bake every bucket |
 | `16-lighting.js` | the pool of real lights that follows the player |
 | `17-player.js` | movement, collision response, doors, seats |
@@ -53,7 +54,7 @@ is called, every script has run.
 
 **No modules, no bundler, no build step.** ES modules will not load from a
 `file://` page, and this is meant to open by double-clicking it. Classic
-scripts share one global lexical scope, which is what lets these twenty-eight files
+scripts share one global lexical scope, which is what lets these twenty-nine files
 behave exactly like the single file they came from.
 
 **A wall you can stand inside has to be a ring, not a slab.** A course of

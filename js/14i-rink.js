@@ -24,6 +24,10 @@
    roof and room for a building the size of an arena. Same frame as the
    stores, the hall and the baths (mk(-80, 340)), same floor.
    ---------------------------------------------------------------------- */
+/* The door out of the rink's east wall, in the north-east corner past the
+   end of the stand: 14j-observe.js builds what is behind it. Local to the
+   backstage frame, like BATHS_DOOR. */
+const ARENA_DOOR={x:-167.10, wt:0.50, z:114.40, h:2.14};
 (function rink(){
   const SX=-80, SZ=340;
   const m=mk(SX,SZ), GY=m.y;
@@ -190,7 +194,7 @@
       t.strokeStyle="#24365a"; t.lineWidth=3; t.setLineDash([10,7]);
       t.beginPath(); t.moveTo(120,188); t.quadraticCurveTo(140,110, 230,96); t.stroke();
       t.beginPath(); t.moveTo(360,188); t.lineTo(300,130); t.stroke(); t.setLineDash([]);
-      t.font="700 20px Arial"; t.fillStyle="#24365a"; t.textAlign="left"; t.fillText("2ND PERIOD — SAME AS 1ST", 30, 40);
+      t.font="700 20px Arial"; t.fillStyle="#24365a"; t.textAlign="left"; t.fillText("2ND PERIOD — SAME AS 1ST", 48, 46);
     }), W(LX1-0.032), GY+FY+1.55, Z((SB0+SB1)/2), -Math.PI/2, false);
     // a shelf under it: pucks, tape, a crate of bottles
     m.B("oak", 0.30, 0.04, 1.60, LX1-0.15, FY+0.80, (SB0+SB1)/2, 0.5, 0, "#6a4a2c");
@@ -228,7 +232,18 @@
     m.P("lino", planeGeo(RX1-RX0, RZ1-RZ0, 0.5), CX, FY+0.006, CZ, 0, RUBBER, -Math.PI/2, 0);
     m.flat(RX0, RX1, LZ1-0.1, RZ1, FY);
     wall("block", RX0-RWT, RX0, LZ1, RZ1+RWT, -0.1, RH+0.4, WALLC);           // west, owns corners
-    wall("block", RX1, RX1+RWT, LZ1, RZ1+RWT, -0.1, RH+0.4, WALLC);           // east
+    // east, either side of the door to the observation corridor, and over it
+    const AD=ARENA_DOOR, AD0=AD.z-0.54, AD1=AD.z+0.54;
+    wall("block", RX1, RX1+RWT, LZ1, AD0-0.06, -0.1, RH+0.4, WALLC);
+    wall("block", RX1, RX1+RWT, AD1+0.06, RZ1+RWT, -0.1, RH+0.4, WALLC);
+    wall("block", RX1, RX1+RWT, AD0-0.06, AD1+0.06, AD.h+0.06, RH+0.4, WALLC);
+    for(const z of [AD0-0.03, AD1+0.03])
+      m.B("metal", RWT+0.12, AD.h+0.08, 0.08, RX1+RWT/2, FY+(AD.h+0.08)/2, z, 0.4, 0, "#4a4e50");
+    m.B("metal", RWT+0.14, 0.08, AD1-AD0+0.16, RX1+RWT/2, FY+AD.h+0.04, AD.z, 0.4, 0, "#4a4e50");
+    m.flat(RX1-0.2, RX1+RWT+0.2, AD0, AD1, FY);
+    m.P("lino", planeGeo(RWT, AD1-AD0, 0.6), RX1+RWT/2, FY+0.006, AD.z, 0, RUBBER, -Math.PI/2, 0);
+    makeDoor(XF(W(RX1+RWT/2), Z(AD1-0.06), Math.PI/2), 0, GY+FY+0.02, 0, "STAFF ONLY", false, 0, "steel");
+    sign(0.86, 0.22, "STAFF ONLY", "#24365a", "#e8e6dc", RX1-0.012, AD.h+0.34, AD.z, -Math.PI/2);
     wall("block", RX0, RX1, RZ1, RZ1+RWT, -0.1, RH+0.4, WALLC);               // north
     wall("block", RX0, DW0-0.06, LZ1, RZ0, -0.1, RH+0.4, WALLC);              // south, round the door
     wall("block", DW1+0.06, RX1, LZ1, RZ0, -0.1, RH+0.4, WALLC);
@@ -254,8 +269,12 @@
     }
     signPanel(14.0, 1.6, signTex(1400,160,(t,w,h)=>{
       t.fillStyle=WALLC; t.fillRect(0,0,w,h);
-      t.fillStyle=NAVY; t.font="900 118px 'Arial Black', Impact, Arial, sans-serif";
-      t.textAlign="center"; t.textBaseline="middle"; t.fillText("LOW DESERT ICE ARENA", w/2, h/2+6);
+      // shrunk to the wall's width with 8% clear each end: set at 118 px it
+      // ran off both edges of its own panel
+      t.fillStyle=NAVY; t.textAlign="center"; t.textBaseline="middle";
+      let fs=96; do{ t.font="900 "+fs+"px 'Arial Black', Impact, Arial, sans-serif"; fs-=2; }
+      while(t.measureText("LOW DESERT ICE ARENA").width>w*0.84 && fs>20);
+      t.fillText("LOW DESERT ICE ARENA", w/2, h/2+4);
     }), W(CX), GY+FY+8.2, Z(RZ0+0.012), 0, false);
 
     /* --- the ice ------------------------------------------------------ */
@@ -472,9 +491,9 @@
       const board=signTex(512,284,(t,w,h)=>{
         t.fillStyle="#0c0d10"; t.fillRect(0,0,w,h);
         t.fillStyle="#e8e6dc"; t.font="700 34px Arial"; t.textAlign="center"; t.textBaseline="middle";
-        t.fillText("HOME", 96, 40); t.fillText("GUEST", w-96, 40); t.fillText("PERIOD", w/2, 190);
+        t.fillText("HOME", 110, 44); t.fillText("GUEST", w-110, 44); t.fillText("PERIOD", w/2, 190);
         t.fillStyle="#ff3a2a"; t.font="700 96px 'Courier New', monospace";
-        t.fillText("0", 96, 120); t.fillText("0", w-96, 120);
+        t.fillText("0", 110, 122); t.fillText("0", w-110, 122);
         t.fillStyle="#ffb02a"; t.font="700 74px 'Courier New', monospace"; t.fillText("20:00", w/2, 105);
         t.fillStyle="#ff3a2a"; t.font="700 54px 'Courier New', monospace"; t.fillText("1", w/2, 245);
       });

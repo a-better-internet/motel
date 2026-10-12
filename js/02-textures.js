@@ -385,6 +385,32 @@ TEX.block=(function(){
   const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; return setSRGB(t);
 })();
 
+/* ATOMIC WALLPAPER, 1955: cream ground, boomerangs in aqua and coral,
+   gold starbursts on thin stalks, charcoal dots. One repeat is 0.6 m. */
+TEX.atomic=(function(){
+  const N=256, c=cvs(N,N), x=c.getContext("2d");
+  let sd=19550401; const r=()=>{ sd=(sd*1103515245+12345)&0x7fffffff; return sd/0x7fffffff; };
+  x.fillStyle="#efe6cf"; x.fillRect(0,0,N,N);
+  const boom=(cx,cy,rot,col)=>{ x.save(); x.translate(cx,cy); x.rotate(rot); x.fillStyle=col;
+    x.beginPath(); x.moveTo(-22,6); x.quadraticCurveTo(-4,-18,0,-6); x.quadraticCurveTo(4,-18,22,6);
+    x.quadraticCurveTo(10,0,0,4); x.quadraticCurveTo(-10,0,-22,6); x.fill(); x.restore(); };
+  const star=(cx,cy,R)=>{ x.strokeStyle="#b8902e"; x.lineWidth=1.4;
+    for(let k=0;k<12;k++){ const a=k*Math.PI/6; x.beginPath(); x.moveTo(cx,cy);
+      x.lineTo(cx+Math.cos(a)*R*(k%2?0.6:1), cy+Math.sin(a)*R*(k%2?0.6:1)); x.stroke(); }
+    x.fillStyle="#b8902e"; x.beginPath(); x.arc(cx,cy,2.2,0,7); x.fill(); };
+  // laid on a grid with a jitter, wrapped so the repeat cannot be seen
+  for(let gy=0;gy<4;gy++) for(let gx=0;gx<4;gx++){
+    const cx=gx*64+32+(r()-0.5)*14+(gy%2)*20, cy=gy*64+32+(r()-0.5)*14;
+    for(const ox of [-N,0,N]) for(const oy of [-N,0,N]){
+      if((gx+gy)%2) boom(cx+ox, cy+oy, r()*6.28, (gx+gy*3)%3?"#5fb0a6":"#e07a5a");
+      else star(cx+ox, cy+oy, 12+r()*5);
+    }
+  }
+  for(let i=0;i<70;i++){ x.fillStyle=i%3?"#3a3a38":"#5fb0a6"; x.beginPath(); x.arc(r()*N, r()*N, 1.6, 0, 7); x.fill(); }
+  noiseDots(x,N,N,1800,["rgba(0,0,0,0.04)","rgba(255,255,255,0.08)"]);
+  const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; return setSRGB(t);
+})();
+
 TEX.lino=(function(){                         // speckled terrazzo, office floor
   const c=cvs(256,256), x=c.getContext("2d");
   x.fillStyle="#b9ae95"; x.fillRect(0,0,256,256);
@@ -1151,8 +1177,19 @@ function plateTex(num){
    because the motel, the office, the Canteen and half the desert all
    raise signs of their own, and every one of them is built before the
    signage file loads.                                                */
+/* EVERY PAINTED WORD KEEPS ITS PADDING. Whatever width and size a sign asks
+   for, the words never come within 8% of the board's edge on either side,
+   and are never set taller than about three fifths of it — so there is
+   always board showing round the lettering, the way a sign painter leaves
+   it. (Asked-for widths of 0.88-0.92 of the board put the first and last
+   letters on the frame.) */
+function _fitBox(x, maxW, size){
+  const c=x.canvas;
+  return [Math.min(maxW, c.width*0.84), Math.min(size, c.height*0.62)];
+}
 function fitText(x, str, maxW, size, cx, cy){
   x.textAlign="center"; x.textBaseline="middle";
+  [maxW, size]=_fitBox(x, maxW, size);
   let s=size;
   do{ x.font="700 "+s+"px Oswald, sans-serif"; s-=1; }
   while(x.measureText(str).width>maxW && s>6);
@@ -1162,6 +1199,7 @@ function fitText(x, str, maxW, size, cx, cy){
 // closer than its own padding to the edge of the board it is painted on.
 function fitSerif(x, str, maxW, size, cx, cy, weight){
   x.textAlign="center"; x.textBaseline="middle";
+  [maxW, size]=_fitBox(x, maxW, size);
   let s=size;
   do{ x.font=(weight||"700")+" "+s+"px Georgia, 'Times New Roman', Times, serif"; s-=1; }
   while(x.measureText(str).width>maxW && s>6);

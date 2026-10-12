@@ -73,6 +73,7 @@ bucketOf("rug",     ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.rug,
 // fresh ice: smooth enough to hold the lights in it, and never white
 bucketOf("ice",     ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.ice, roughness:0.45, metalness:0.0}));
 bucketOf("block",   ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.block, roughness:0.62}));
+bucketOf("atomic",  ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.atomic, roughness:0.85}));
 // glazed brick and pool mosaic: a glaze is glossy, and dust takes the edge off it
 bucketOf("glazed",  ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.glazed, roughness:0.42}));
 bucketOf("mosaic",  ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.mosaic, roughness:0.55}));
@@ -217,8 +218,8 @@ function capArt(x,W,H,title,sub,a,b,c){        // a park-poster kind of thing
   x.lineTo(W*0.28,H*0.40); x.lineTo(W*0.48,H*0.70); x.lineTo(W*0.70,H*0.30);
   x.lineTo(W,H*0.74); x.lineTo(W,H*0.96); x.closePath(); x.fill();
   x.fillStyle="rgba(20,16,12,0.72)"; x.fillRect(0,H*0.78,W,H*0.22);
-  x.fillStyle="#f1ead6"; fitText(x,title, W*0.86, H*0.13, W/2, H*0.865);
-  x.fillStyle="#d9c27a"; fitText(x,sub,   W*0.70, H*0.075, W/2, H*0.955);
+  x.fillStyle="#f1ead6"; fitText(x,title, W*0.80, H*0.11, W/2, H*0.85);
+  x.fillStyle="#d9c27a"; fitText(x,sub,   W*0.66, H*0.06, W/2, H*0.93);
 }
 // Six gig posters, each its own slot, so you can hang your own six. The
 // canvas art below is what is up until you name a URL against poster:0..5.
@@ -241,8 +242,8 @@ const posterArt=i=>(x,W,H)=>{
     fitSerif(x, line, W*(k===1?0.86:0.76), H*(k===1?0.19:0.13), W/2, H*(0.30+k*0.20), "900");
   });
   x.font="700 "+Math.round(H*0.045)+"px 'JetBrains Mono', monospace";
-  x.fillText("The Rusty Canteen", W/2, H*0.90);
-  x.globalAlpha=0.5; x.fillRect(W*0.18, H*0.935, W*0.64, Math.max(1,H*0.006)); x.globalAlpha=1;
+  x.fillText("The Rusty Canteen", W/2, H*0.875);
+  x.globalAlpha=0.5; x.fillRect(W*0.18, H*0.905, W*0.64, Math.max(1,H*0.006)); x.globalAlpha=1;
   for(let k=0;k<90;k++){                      // sun and cigarettes
     x.fillStyle="rgba(0,0,0,"+(Math.random()*0.10).toFixed(3)+")";
     x.fillRect(Math.random()*W, Math.random()*H, 1+Math.random()*3, 1+Math.random()*3);
@@ -283,7 +284,7 @@ const believeArt=(x,W,H)=>{
   // their tracking runs well past a 5:7 canvas at any font picked by eye,
   // so measure the whole line and come down until it sits inside the page.
   x.fillStyle="#eef3f6"; x.textAlign="center"; x.textBaseline="middle";
-  const word="I WANT TO BELIEVE", inner=W*0.86;
+  const word="I WANT TO BELIEVE", inner=W*0.80;
   let fs=Math.round(H*0.075), s2=0, tw=0;
   do{
     fs-=1; s2=fs*0.20; tw=0;
@@ -308,25 +309,25 @@ const passArt=(x,W,H)=>{
   for(let i=1;i<16;i++){ x.beginPath(); x.moveTo(W*i/16,0); x.lineTo(W*i/16,H); x.stroke(); }
   for(let i=1;i<10;i++){ x.beginPath(); x.moveTo(0,H*i/10); x.lineTo(W,H*i/10); x.stroke(); }
   x.strokeStyle="rgba(150,200,178,0.55)"; x.lineWidth=2;
-  x.strokeRect(W*0.06, H*0.16, W*0.88, H*0.66);
+  x.strokeRect(W*0.10, H*0.18, W*0.80, H*0.62);
   x.strokeStyle="#e8b44a"; x.lineWidth=3;     // the arc of a pass
   x.beginPath();
   for(let i=0;i<=40;i++){
-    const u=i/40, px=W*0.06+u*W*0.88, py=H*0.82-Math.sin(u*Math.PI)*H*0.58;
+    const u=i/40, px=W*0.10+u*W*0.80, py=H*0.82-Math.sin(u*Math.PI)*H*0.58;
     i?x.lineTo(px,py):x.moveTo(px,py);
   }
   x.stroke();
   x.fillStyle="#e8b44a";
   for(let i=1;i<8;i++){ const u=i/8;
-    x.beginPath(); x.arc(W*0.06+u*W*0.88, H*0.82-Math.sin(u*Math.PI)*H*0.58, 3, 0, 7); x.fill(); }
+    x.beginPath(); x.arc(W*0.10+u*W*0.80, H*0.82-Math.sin(u*Math.PI)*H*0.58, 3, 0, 7); x.fill(); }
   x.fillStyle="#9fd3bd"; x.textAlign="left"; x.textBaseline="middle";
   x.font="600 "+Math.round(H*0.075)+"px Helvetica, Arial, sans-serif";
-  x.fillText("ELEVATION \u00b7 AZIMUTH", W*0.06, H*0.085);
-  x.textAlign="right"; x.fillText("PASS 4417", W*0.94, H*0.085);
+  x.fillText("ELEVATION \u00b7 AZIMUTH", W*0.10, H*0.105);
+  x.textAlign="right"; x.fillText("PASS 4417", W*0.90, H*0.105);
   x.font="500 "+Math.round(H*0.055)+"px Helvetica, Arial, sans-serif";
   x.textAlign="center";
   for(let i=0;i<=8;i+=2)
-    x.fillText(String(i*45).padStart(3,"0"), W*0.06+(i/8)*W*0.88, H*0.92);
+    x.fillText(String(i*45).padStart(3,"0"), W*0.10+(i/8)*W*0.80, H*0.885);
   for(let k=0;k<50;k++){
     x.fillStyle="rgba(0,0,0,"+(Math.random()*0.12).toFixed(3)+")";
     x.fillRect(Math.random()*W, Math.random()*H, 1+Math.random()*5, 1+Math.random()*3);
@@ -381,7 +382,7 @@ bucketOf("pic:postcard",   ()=>picMat("postcard", 384, (x,W,H)=>{
 const vendArt=(head,tint,rows)=>(x,W,H)=>{
   x.fillStyle="#1a1c1e"; x.fillRect(0,0,W,H);
   x.fillStyle=tint; x.fillRect(0,0,W,H*0.20);
-  x.fillStyle="#f6f1e2"; fitText(x,head, W*0.80, H*0.085, W/2, H*0.105);
+  x.fillStyle="#f6f1e2"; fitText(x,head, W*0.76, H*0.072, W/2, H*0.11);
   for(let r=0;r<rows;r++) for(let c2=0;c2<4;c2++){
     const bw=W*0.19, bh=H*(0.62/rows)*0.72;
     x.fillStyle=["#c3562f","#3f6ea8","#4f7a4a","#c9a24b","#8a3f6e"][(r*4+c2)%5];
@@ -400,6 +401,9 @@ const picGlowMat=(key,long,draw,kind)=>{
 };
 bucketOf("pic:vendFront:snack", ()=>picGlowMat("vendFront:snack", 512, vendArt("SNACKS","#b8332a",5)));
 bucketOf("pic:vendFront:soda",  ()=>picGlowMat("vendFront:soda", 512, vendArt("ICE COLD","#2f5c8a",3), "cool"));
+// the same fronts forty feet down, where the hour does not reach them
+bucketOf("pic:vendFrontB:snack", ()=>picGlowMat("vendFront:snack", 512, vendArt("SNACKS","#b8332a",5), "buried"));
+bucketOf("pic:vendFrontB:soda",  ()=>picGlowMat("vendFront:soda", 512, vendArt("ICE COLD","#2f5c8a",3), "buried"));
 
 const BAKED=bakeBuckets(scene);
 buildColGrid();                     // everything solid is in place by now

@@ -69,6 +69,10 @@ bucketOf("clockled",()=>emitMat(0xff6a34, 0.9, "warm"));
 bucketOf("neonbox", ()=>emitMat(0xff4a32, 0.5, "warm"));
 bucketOf("fabric",  ()=>new T.MeshStandardMaterial({map:TEX.weave,  roughness:0.96}));
 bucketOf("runner",  ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.runner, roughness:0.97}));
+bucketOf("rug",     ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.rug, roughness:0.97}));
+// fresh ice: smooth enough to hold the lights in it, and never white
+bucketOf("ice",     ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.ice, roughness:0.32, metalness:0.0}));
+bucketOf("block",   ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.block, roughness:0.62}));
 // glazed brick and pool mosaic: a glaze is glossy, and dust takes the edge off it
 bucketOf("glazed",  ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.glazed, roughness:0.42}));
 bucketOf("mosaic",  ()=>new T.MeshStandardMaterial({color:0xffffff, map:TEX.mosaic, roughness:0.55}));

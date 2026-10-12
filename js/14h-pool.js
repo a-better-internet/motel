@@ -30,6 +30,9 @@
 
    Same frame as the stores and the hall (mk(-80, 340)), same floor.
    ---------------------------------------------------------------------- */
+/* The way out of the hall's north wall into the locker rooms (14i-rink.js
+   builds what is behind it). Local to the backstage frame, like STORES_DOOR. */
+const BATHS_DOOR={x0:-191.40, x1:-189.80, h:2.40, z:24.70};
 (function baths(){
   const SX=-80, SZ=340;
   const m=mk(SX,SZ), GY=m.y;
@@ -130,7 +133,13 @@
   // walls
   wall("glazed", QX0-WT, QX0, QZ0-WT, QZ1+WT, -0.1, QH+0.4, TILE);       // west, owns corners
   wall("glazed", QX0, QX1+WT, QZ0-WT, QZ0, -0.1, QH+0.4, TILE);          // south
-  wall("glazed", QX0, QX1+WT, QZ1, QZ1+WT, -0.1, QH+0.4, TILE);          // north
+  // north, either side of the way through to the locker rooms, and over it
+  const ND0=BATHS_DOOR.x0, ND1=BATHS_DOOR.x1, NDH=BATHS_DOOR.h;
+  wall("glazed", QX0, ND0, QZ1, QZ1+WT, -0.1, QH+0.4, TILE);
+  wall("glazed", ND1, QX1+WT, QZ1, QZ1+WT, -0.1, QH+0.4, TILE);
+  wall("glazed", ND0, ND1, QZ1, QZ1+WT, NDH, QH+0.4, TILE);
+  m.flat(ND0, ND1, QZ1-0.1, QZ1+WT+0.1, FY);
+  m.P("concrete", planeGeo(ND1-ND0, WT, 0.4), (ND0+ND1)/2, FY+0.006, QZ1+WT/2, 0, DECK, -Math.PI/2, 0);
   wall("glazed", QX1, QX1+WT, QZ0, CZ0, -0.1, QH+0.4, TILE);             // east, either side
   wall("glazed", QX1, QX1+WT, CZ1, QZ1, -0.1, QH+0.4, TILE);             // of the way in
   wall("glazed", QX1, QX1+WT, CZ0, CZ1, CH, QH+0.4, TILE);               // and over it
@@ -157,7 +166,17 @@
     P(planeGeo(L, 0.10, 0.833), QH-0.35, 0.011, TRIM);
   };
   face("x", QX0, QX1, QZ0, 1);
-  face("x", QX0, QX1, QZ1, -1);
+  face("x", QX0, ND0-0.04, QZ1, -1);
+  face("x", ND1+0.04, QX1, QZ1, -1);
+  // the top trim course carries on over the doorway, which is far below it
+  m.P("glazed", planeGeo(ND1-ND0+0.08, 0.10, 0.833), (ND0+ND1)/2, FY+QH-0.35, QZ1-0.011, Math.PI, TRIM, 0, 0);
+  // and the opening is framed: a dark tile surround, a sign over it
+  for(const ex of [ND0-0.06, ND1+0.06])
+    m.P("glazed", planeGeo(0.12, NDH+0.06, 0.833), ex, FY+(NDH+0.06)/2, QZ1-0.012, Math.PI, TRIM, 0, 0);
+  m.P("glazed", planeGeo(ND1-ND0+0.24, 0.12, 0.833), (ND0+ND1)/2, FY+NDH+0.06, QZ1-0.012, Math.PI, TRIM, 0, 0);
+  signPanel(1.30, 0.26, signTex(320,64,(x,w,h)=>{ x.fillStyle="#e6e0cc"; x.fillRect(0,0,w,h);
+      x.fillStyle="#1f3a30"; fitText(x, "CHANGING ROOMS", w*0.86, 34, w/2, h/2+2); }),
+    W((ND0+ND1)/2), GY+FY+NDH+0.40, Z(QZ1-0.013), Math.PI, false);
   face("z", QZ0, QZ1, QX0, 1);
   face("z", QZ0, CZ0-0.06, QX1, -1);
   face("z", CZ1+0.06, QZ1, QX1, -1);
@@ -338,25 +357,10 @@
     for(let k=0;k<8;k++)
       m.P("metal", boxGeo(0.44, 0.03, 0.04, 0), -199.2-0.70+k*0.18, FY-2.2+k*0.30*0.84, 11.1, 0.35,
           "#b0a060", 0, -0.55);
-    /* The deck has its share, the way the photograph's does: chairs
-       stacked against the north wall and strewn by the deep end, a desk on
-       its back, a stepladder against the brick, a tall cabinet with its
-       door hanging, a cleaning cart and a pile of boxes in the far corner. */
-    for(const st of [[-208.6, 23.9, 6],[-207.7, 23.9, 4],[-189.8, 6.5, 5]])
-      // each one nests a little off the one under it: square on, their backs
-      // were one plane and fought
-      for(let k=0;k<st[2];k++) chair(st[0]+k*0.012, FY+k*0.085, st[1]+(st[1]>15?-1:1)*k*0.011, 0, Math.PI, 0);
-    m.col(-209.0, -207.3, 23.5, 24.3, FY, FY+1.4);
-    m.col(-190.2, -189.4, 6.1, 6.9, FY, FY+1.3);
-    // strewn: [x, z, heading, 0 standing | 1 on its side | 2 on its back]
-    for(const c of [[-214.8, 9.8, 1.4, 0],[-215.6, 12.4, 2.6, 1],[-214.2, 19.6, 0.8, 2],
-                    [-215.2, 21.9, 3.9, 1],[-205.0, 6.9, 2.2, 0],[-199.5, 23.6, 0.4, 2]]){
-      if(c[3]===0) chair(c[0], FY, c[1], 0, c[2], 0);
-      else if(c[3]===1) chair(c[0], FY+0.20, c[1], 0, c[2], Math.PI/2);
-      else chair(c[0], FY+0.21, c[1], -Math.PI/2, c[2], 0);
-    }
-    desk(-215.0, FY+0.72, 16.8, Math.PI, 0.5, 0);                       // a desk on its back
-    m.col(-215.5, -214.5, 16.4, 17.2, FY, FY+0.8);
+    /* The chairs are all in the pool. The deck has the rest of what was
+       cleared out of somewhere and not thrown in: a stepladder against the
+       brick, a tall cabinet with its door hanging, a cleaning cart and a
+       pile of boxes in the far corner. */
     // the stepladder against the north wall
     for(const sd of [-1,1])
       m.P("metal", boxGeo(0.05, 2.6, 0.05, 0), -196.0+sd*0.22, FY+1.27, QZ1-0.30, 0, "#b0a060", 0.18, 0);
@@ -370,12 +374,14 @@
     for(let k=0;k<4;k++) m.B("metal", 0.84, 0.02, 0.40, -211.6, FY+0.30+k*0.42, QZ1-0.24, 0.4, 0, "#4a524c");
     m.col(-212.1, -211.1, QZ1-0.48, QZ1, FY, FY+2.0);
     // a cleaning cart, and boxes in the far corner
-    m.B("paint", 0.90, 0.06, 0.50, -192.3, FY+0.86, 22.9, 0.4, 0, "#c8a83a");
-    m.B("paint", 0.90, 0.06, 0.50, -192.3, FY+0.30, 22.9, 0.4, 0, "#c8a83a");
+    // (west of the doorway, out of the way through it)
+    const KX=-198.3;
+    m.B("paint", 0.90, 0.06, 0.50, KX, FY+0.86, 22.9, 0.4, 0, "#c8a83a");
+    m.B("paint", 0.90, 0.06, 0.50, KX, FY+0.30, 22.9, 0.4, 0, "#c8a83a");
     for(const a2 of [[-0.42,-0.22],[0.42,-0.22],[-0.42,0.22],[0.42,0.22]])
-      m.B("metal", 0.03, 0.86, 0.03, -192.3+a2[0], FY+0.53, 22.9+a2[1], 0, 0, "#8a8f92");
-    m.C("bin", 0.16,0.13,0.36,12, -192.6, FY+1.07, 22.9, "#3a5a6a");
-    m.col(-192.8, -191.8, 22.6, 23.2, FY, FY+1.2);
+      m.B("metal", 0.03, 0.86, 0.03, KX+a2[0], FY+0.53, 22.9+a2[1], 0, 0, "#8a8f92");
+    m.C("bin", 0.16,0.13,0.36,12, KX-0.3, FY+1.07, 22.9, "#3a5a6a");
+    m.col(KX-0.5, KX+0.5, 22.6, 23.2, FY, FY+1.2);
     for(let k=0;k<7;k++){
       const bx2=-215.6+(k%3)*0.52+(R()-0.5)*0.05, bz2=23.8-Math.floor(k/3)*0.0, by2=FY+0.21+Math.floor(k/3)*0.42;
       m.B("bin", 0.48, 0.42, 0.58, bx2, by2, bz2, 0.6, (R()-0.5)*0.2, pick(["#a8845a","#9c7a50","#b39064"]));
@@ -433,15 +439,8 @@
     m.P("paint", boxGeo(0.44, 1.80, 0.46, 0.4), -191.6, FY+0.23, QZ0+1.25, 0.2, "#4f6a74", -Math.PI/2, 0);
     m.col(-192.5, -188.7, QZ0, QZ0+0.52, FY, FY+1.8);
     m.col(-192.6, -190.6, QZ0+0.8, QZ0+1.7, FY, FY+0.5);
-    // the doors to the changing rooms, north wall, neither opening
-    for(const q of [[-188.6, "MEN"],[-193.4, "WOMEN"]]){
-      m.B("paint", 1.00, 2.10, 0.06, q[0], FY+1.05, QZ1-0.03, 0.4, 0, "#5a3a2a");
-      m.B("metal", 1.12, 2.18, 0.04, q[0], FY+1.09, QZ1-0.01, 0.4, 0, "#2e3430");
-      m.B("metal", 0.04, 0.14, 0.04, q[0]+0.38, FY+1.0, QZ1-0.08, 0, 0, "#9aa1a4");
-      const t=signTex(128,48,(x,w,h)=>{ x.fillStyle="#e6e0cc"; x.fillRect(0,0,w,h);
-        x.fillStyle="#1f3a30"; fitText(x, q[1], w*0.8, 30, w/2, h/2+2); });
-      signPanel(0.40, 0.15, t, W(q[0]), GY+FY+2.32, Z(QZ1-0.012), Math.PI, false);
-    }
+    // (the changing rooms are through the doorway in the north wall now:
+    // the two painted doors that stood there and did not open are gone)
     // benches on the east deck, a hose reel, a pile of kickboards, a mop
     for(const bz of [7.4, 22.8]){                       // (along the wall, not into it)
       m.B("oak", 0.36, 0.05, 2.4, QX1-0.22, FY+0.44, bz, 0.5, 0, "#8a6a42");

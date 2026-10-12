@@ -257,6 +257,134 @@ TEX.runner=(function(){
   return t;
 })();
 
+/* A RUG, not a runner: one piece, mapped once (u and v both 0..1), with
+   its border all the way round, corner pieces in the field and one
+   medallion in the middle. The speakeasy's runner ran fourteen metres down
+   the room; this is the thing you put down in the middle of a floor. */
+TEX.rug=(function(){
+  const W=600, H=400, c=cvs(W,H), x=c.getContext("2d");
+  const dia=(cx,cy,rx,ry,col)=>{ x.fillStyle=col; x.beginPath(); x.moveTo(cx-rx,cy);
+    x.lineTo(cx,cy-ry); x.lineTo(cx+rx,cy); x.lineTo(cx,cy+ry); x.closePath(); x.fill(); };
+  const RED="#6a1e1a", NAVY="#1c2741", IVORY="#d8c79e", GOLD="#9a6a2c", MAD="#a03a2c";
+  x.fillStyle=NAVY; x.fillRect(0,0,W,H);
+  // the guards and the main border, as nested frames
+  const frame=(i,col)=>{ x.fillStyle=col; x.fillRect(i,i,W-2*i,H-2*i); };
+  frame(10,IVORY); frame(14,NAVY); frame(48,IVORY); frame(52,GOLD); frame(58,IVORY); frame(62,RED);
+  // the border's vine: small lozenges marching round between the guards
+  for(let u=34;u<W-20;u+=34){ for(const y of [31,H-31]){ dia(u,y,11,9,MAD); dia(u,y,5,4,IVORY); } }
+  for(let v=34+17;v<H-30;v+=34){ for(const xx of [31,W-31]){ dia(xx,v,9,11,MAD); dia(xx,v,4,5,IVORY); } }
+  // abrash: the field's red drifts in bands where the dye lots changed
+  for(let i=0;i<7;i++){ x.fillStyle="rgba(120,40,30,"+(0.05+0.05*(i%3))+")"; x.fillRect(62, 62+i*40, W-124, 18); }
+  // the corner pieces: quarter medallions in each corner of the field
+  for(const cx of [62,W-62]) for(const cy of [62,H-62]){
+    x.save(); x.beginPath(); x.rect(62,62,W-124,H-124); x.clip();
+    x.fillStyle=NAVY; x.beginPath(); x.ellipse(cx,cy,78,62,0,0,7); x.fill();
+    x.fillStyle=IVORY; x.beginPath(); x.ellipse(cx,cy,66,52,0,0,7); x.fill();
+    x.fillStyle=MAD; x.beginPath(); x.ellipse(cx,cy,56,44,0,0,7); x.fill();
+    x.restore();
+  }
+  // the medallion, with its pendants
+  const mx=W/2, my=H/2;
+  dia(mx,my,150,96,NAVY); dia(mx,my,138,86,IVORY); dia(mx,my,128,78,MAD);
+  dia(mx,my,96,58,NAVY); dia(mx,my,84,50,GOLD); dia(mx,my,66,38,RED);
+  dia(mx,my,40,24,IVORY); dia(mx,my,22,13,NAVY); dia(mx,my,8,5,MAD);
+  for(const s of [-1,1]){ dia(mx+s*172,my,22,16,NAVY); dia(mx+s*172,my,12,9,IVORY); dia(mx+s*172,my,5,4,MAD); }
+  // small flowers scattered over the field
+  for(let u=100;u<W-90;u+=56) for(let v=96;v<H-90;v+=52){
+    const d=Math.abs(u-mx)/150+Math.abs(v-my)/96; if(d<1.25) continue;
+    dia(u,v,6,6,IVORY); dia(u,v,2.5,2.5,MAD);
+  }
+  // worn flat where people walk round the middle of it
+  const g=x.createRadialGradient(mx,my,40,mx,my,260);
+  g.addColorStop(0,"rgba(214,186,150,0.16)"); g.addColorStop(0.6,"rgba(214,186,150,0.10)");
+  g.addColorStop(1,"rgba(214,186,150,0)");
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  noiseDots(x,W,H,14000,["rgba(0,0,0,0.12)","rgba(230,205,170,0.08)","rgba(60,20,16,0.12)"]);
+  return setSRGB(new T.CanvasTexture(c));
+})();
+
+/* THE ICE, for a 24 x 54 m sheet, mapped once: canvas x runs across the
+   rink and canvas y along it, 16 px to the metre. The markings are the
+   regulation ones scaled to the sheet — a red centre line, blue lines nine
+   metres either side of it, red goal lines 3.4 m in from the ends, the
+   faceoff circles and dots, the creases — and it has been resurfaced since
+   anyone skated on it, so there is almost nothing on it but the paint. */
+TEX.ice=(function(){
+  const PX=16, IWm=24, ILm=54, W=IWm*PX, H=ILm*PX, c=cvs(W,H), x=c.getContext("2d");
+  const M=v=>v*PX, cx=W/2, cy=H/2;
+  const RED="#b5322b", BLUE="#2b4c98", CREASE="#9fc4e4";
+  // a grey-blue, not white: under thirty metres of lights white ice is a
+  // sheet of nothing, and the paint under it washes out
+  x.fillStyle="#c2ccd2"; x.fillRect(0,0,W,H);
+  // the resurfacer's laps, faint, and a little frost at the boards
+  for(let i=0;i<9;i++){
+    x.strokeStyle="rgba(255,255,255,"+(0.10+0.05*(i%3))+")"; x.lineWidth=M(1.6);
+    x.beginPath(); x.ellipse(cx, cy, M(10.5-i*1.1), M(25.5-i*2.6), 0, 0, 7); x.stroke();
+  }
+  const g=x.createLinearGradient(0,0,W,0);
+  g.addColorStop(0,"rgba(200,212,220,0.35)"); g.addColorStop(0.06,"rgba(200,212,220,0)");
+  g.addColorStop(0.94,"rgba(200,212,220,0)"); g.addColorStop(1,"rgba(200,212,220,0.35)");
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  const ring=(px,py,r,col,lw)=>{ x.strokeStyle=col; x.lineWidth=lw; x.beginPath(); x.arc(px,py,r,0,7); x.stroke(); };
+  const dot=(px,py,r,col)=>{ x.fillStyle=col; x.beginPath(); x.arc(px,py,r,0,7); x.fill(); };
+  // the lines
+  x.fillStyle=RED; x.fillRect(0, cy-M(0.15), W, M(0.30));
+  x.fillStyle="#c2ccd2"; for(let u=M(0.4); u<W; u+=M(1.2)) x.fillRect(u, cy-M(0.02), M(0.5), M(0.04));
+  x.fillStyle=BLUE; for(const sd of [-1,1]) x.fillRect(0, cy+sd*M(9)-M(0.15), W, M(0.30));
+  x.fillStyle=RED; for(const y of [M(3.4), H-M(3.4)]) x.fillRect(0, y-M(0.025), W, M(0.05));
+  // centre: the circle, the dot, and the arena's mark in it, faded
+  ring(cx, cy, M(4.5), BLUE, M(0.06)); dot(cx, cy, M(0.15), BLUE);
+  x.save(); x.globalAlpha=0.30; dot(cx, cy-M(1.0), M(1.2), "#d8902a");
+  x.fillStyle=BLUE; x.font="900 "+M(0.9)+"px 'Arial Black', Impact, Arial, sans-serif";
+  x.textAlign="center"; x.textBaseline="middle"; x.fillText("LOW DESERT", cx, cy+M(1.0));
+  x.font="700 "+M(0.55)+"px Arial, sans-serif"; x.fillText("ICE", cx, cy+M(2.0)); x.restore();
+  // the referee's crease, at the boards on the timekeeper's side
+  x.strokeStyle=RED; x.lineWidth=M(0.05); x.beginPath(); x.arc(W, cy, M(3.0), Math.PI/2, Math.PI*1.5); x.stroke();
+  // the end zones: two circles each, with their hash marks, and the creases
+  for(const ez of [1,-1]){
+    const gy=ez>0 ? M(3.4) : H-M(3.4), fy=ez>0 ? M(9.4) : H-M(9.4);
+    for(const sx of [-1,1]){
+      const fx=cx+sx*M(6.7);
+      ring(fx, fy, M(4.5), RED, M(0.06)); dot(fx, fy, M(0.30), RED);
+      x.fillStyle=RED;
+      for(const hs of [-1,1]) for(const vs of [-1,1])
+        x.fillRect(fx+hs*M(0.9)-M(0.025), fy+vs*M(4.5)-(vs>0?0:M(0.6)), M(0.05), M(0.6));
+      // and the neutral-zone dots, just outside the blue lines
+      dot(cx+sx*M(6.7), cy+ (ez>0?-1:1)*M(7.5), M(0.30), RED);
+    }
+    x.fillStyle=CREASE; x.beginPath(); x.arc(cx, gy, M(1.83), ez>0?0:Math.PI, ez>0?Math.PI:Math.PI*2); x.fill();
+    x.strokeStyle=RED; x.lineWidth=M(0.05); x.stroke();
+    // the trapezoid behind the net
+    x.beginPath(); x.moveTo(cx-M(3.3), gy); x.lineTo(cx-M(4.3), ez>0?0:H);
+    x.moveTo(cx+M(3.3), gy); x.lineTo(cx+M(4.3), ez>0?0:H); x.stroke();
+  }
+  noiseDots(x,W,H,5000,["rgba(255,255,255,0.18)","rgba(150,170,185,0.06)"]);
+  // a few skate marks nobody has resurfaced: one lap by somebody, alone
+  x.strokeStyle="rgba(160,178,190,0.22)"; x.lineWidth=1;
+  for(let k=0;k<3;k++){ x.beginPath(); x.ellipse(cx+M(0.5*k), cy, M(8.6-k*0.3), M(21-k*0.6), 0.04*k, 0, 7); x.stroke(); }
+  return setSRGB(new T.CanvasTexture(c));
+})();
+
+/* PAINTED BLOCK: 400 x 200 mm concrete block in running bond under three
+   coats of semi-gloss, so the joints are shallow shadows rather than the
+   dark grout of glazed brick. One repeat is 1.2 m (uvScale 0.833). */
+TEX.block=(function(){
+  const N=256, c=cvs(N,N), x=c.getContext("2d"), bw=N/3, bh=N/6;
+  x.fillStyle="#eeece6"; x.fillRect(0,0,N,N);
+  for(let r=0;r<6;r++){
+    const off=(r%2)?bw/2:0, y=r*bh;
+    x.fillStyle="rgba(120,116,108,0.30)"; x.fillRect(0, y, N, 2);
+    x.fillStyle="rgba(255,255,255,0.35)"; x.fillRect(0, y+2, N, 1);
+    for(let k=-1;k<4;k++){
+      const xx=Math.round(off+k*bw);
+      x.fillStyle="rgba(120,116,108,0.28)"; x.fillRect(xx, y, 2, bh);
+      x.fillStyle="rgba(255,255,255,0.30)"; x.fillRect(xx+2, y, 1, bh);
+    }
+  }
+  noiseDots(x,N,N,5200,["rgba(0,0,0,0.05)","rgba(255,255,255,0.10)"]);
+  const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; return setSRGB(t);
+})();
+
 TEX.lino=(function(){                         // speckled terrazzo, office floor
   const c=cvs(256,256), x=c.getContext("2d");
   x.fillStyle="#b9ae95"; x.fillRect(0,0,256,256);

@@ -1607,17 +1607,24 @@
       m.B("brass", 0.10, 0.26, 0.30, RX0+0.05, RD+1.92, pz, 0.4, 0, BR);
       m.P("sconce", planeGeo(0.22, 0.12, 0), RX0+0.17, RD+1.82, pz, Math.PI/2, "#ffcf8a", 1.1, 0);
     }
-    /* A RUNNER down the open floor: from the foot of the stair the whole way
-       to the Long Room's door, beside the snug's edge, between the lounge
-       and the bar. Its top stands on two bound edges, so it has a thickness
-       you can see, and it has a fringe at each end. */
+    /* A RUG in the open floor between the lounge and the bar, square to
+       the counter and centred on it. (It was a runner from the stair to
+       the Long Room's door, fourteen and a half metres of it, which read
+       as a carpeted corridor laid through the middle of the room.) It
+       stands on its bound edges, so it has a thickness you can see, and
+       it is fringed at both ends. */
     {
-      const ux0=-52.75, ux1=-38.15, uz=44.85, UW=1.00, L=ux1-ux0, ucx=(ux0+ux1)/2;
-      m.P("runner", runnerGeo(L, UW, 2.0), ucx, RD+0.027, uz, 0, "#ffffff");
-      for(const sd of [-1,1])
-        m.B("fabric", L, 0.016, 0.03, ucx, RD+0.018, uz+sd*(UW/2-0.015), 0.5, 0, "#1d2a42");
-      for(const ex of [ux0-0.04, ux1+0.04])
-        m.P("fabric", planeGeo(0.08, UW-0.04, 0), ex, RD+0.0205, uz, Math.PI/2, "#cdbb92", -Math.PI/2, 0);
+      const ux=(BARX0+BARX1)/2, uz=44.85, UL=4.40, UW=2.30;
+      const g=new T.PlaneGeometry(UL, UW); g.rotateX(-Math.PI/2);
+      m.P("rug", g, ux, RD+0.027, uz, 0, "#ffffff");
+      for(const sd of [-1,1]){
+        m.B("fabric", UL, 0.016, 0.03, ux, RD+0.018, uz+sd*(UW/2-0.015), 0.5, 0, "#1c2741");
+        m.B("fabric", 0.03, 0.016, UW-0.06, ux+sd*(UL/2-0.015), RD+0.018, uz, 0.5, 0, "#1c2741");
+        // laid flat with no turn: its 9 cm runs along x, off the end, and its
+        // length across the rug (turned a quarter it lay along the rug's length)
+        m.P("fabric", planeGeo(0.09, UW-0.04, 0), ux+sd*(UL/2+0.045), RD+0.0205, uz, 0,
+            "#cdbb92", -Math.PI/2, 0);
+      }
     }
     /* ---- the sconces, which are the room's own light ----------------- */
     const sconce=(x,z,ry)=>{

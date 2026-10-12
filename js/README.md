@@ -867,12 +867,32 @@ anything underground, or it stands you on the mesa over it), `elev46.js`
 were laid out; its first shot of a run is always a perspective frame, so
 start with a dummy) and `cols46.js` (the colliders in a box).
 
-Round 47 added `vols47.js`, which lists every VOID and BURIED volume —
+Round 48 added `signs48.js` (above). Round 47 added `vols47.js`, which lists every VOID and BURIED volume —
 read it with `hgt45.js` before siting anything underground, which is how
 the rink went under the lookout butte with ninety metres of rock over it
 and clear of every room already dug — and `tex47.js`, which writes any
 canvas texture out to a png so a map can be judged on its own before it
 is blamed (or not) for what a render shows.
+
+### Every painted word keeps its padding
+
+`fitText()` and `fitSerif()` clamp whatever they are asked for: lettering
+is never set within 8% of its board's edge on either side, nor taller than
+about three fifths of the board. Callers used to ask for 0.88-0.92 of the
+width, which put first and last letters on the frame, and hand-set text
+(a fixed font size and a `fillText`) can still run off a board, so measure
+it the same way. `signs48.js` hooks every `fillText`/`strokeText` on every
+canvas before the game loads, maps each string's ink box through the
+canvas transform, and lists anything inside the margin or overlapping other
+text on the same canvas, with its source line.
+
+### A lamp with a volume is on only while you are in it
+
+`vol` on a lamp switches it off whenever the camera is outside that box,
+which is right for a room you stand in and wrong for a room you look into.
+The 1955 living room behind the observation glass is never entered, so its
+lamps' volume takes in the observation room too; with its own volume the
+set was lit by nothing but the watchers' dark ambient.
 
 If the scratchpad is lost, it is quick to rebuild: the CDNs answer 403
 from the sandbox, so three.js comes from `npm pack three@0.128.0`

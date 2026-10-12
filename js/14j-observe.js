@@ -46,7 +46,10 @@
 
   const VOLC=[W(CX0-0.3), W(CX1+0.3), Z(CZ0-0.4), Z(CZ1+0.4), GY+FY-1, GY+FY+CH+0.6];
   const VOLO=[W(OX0-0.3), W(OX1+0.2), Z(OZ0-0.4), Z(OZ1+0.4), GY+FY-1, GY+FY+OH+0.6];
-  const VOLL=[W(LX0-0.1), W(LX1+0.4), Z(LZ0-0.4), Z(LZ1+0.4), GY+FY-1, GY+FY+LH+0.6];
+  // the living room's lamps burn for whoever is watching it: their volume is
+  // the observation room as well (a lamp with a vol is on only while the
+  // camera is inside it, and nobody is ever inside the living room)
+  const VOLL=[W(OX0-0.3), W(LX1+0.4), Z(LZ0-0.4), Z(LZ1+0.4), GY+FY-1, GY+FY+LH+0.6];
 
   const wall=(bk,x0,x1,z0,z1,y0,y1,c,uv)=>{
     m.B(bk, x1-x0, y1-y0, z1-z0, (x0+x1)/2, FY+(y0+y1)/2, (z0+z1)/2, uv||0.833, 0, c);
@@ -181,7 +184,7 @@
       t.fillRect(18,96,26,40); t.fillRect(180,96,26,40);                 // the chairs
       t.globalAlpha=0.18; for(let y=0;y<h;y+=3) t.fillRect(0,y,w,1);     // the scan lines
       t.globalAlpha=1; t.font="700 12px 'JetBrains Mono', monospace"; t.textAlign="left";
-      t.fillText("CAM 2", 14, 20);
+      t.fillText("CAM 2", 24, 26);
     }), W(KX-0.142), GY+TOP+0.17, Z(mz), -Math.PI/2, true);
     // the lamp, the only light on in here
     m.B("brass", 0.18, 0.02, 0.12, KX+0.05, TOP+0.01, DZ+1.75-0.5, 0.4, 0, "#a8883a");
@@ -203,7 +206,10 @@
     m.col(OX0, OX0+0.52, OZ1-0.72, OZ1, FY, FY+1.35);
     m.C("paint", 0.15,0.15,0.04,18, OX0+0.02, FY+2.30, OZ0+1.2, "#1a1c1e", 0, 0, Math.PI/2);
     m.P("clockface", new T.CircleGeometry(0.125, 24), OX0+0.042, FY+2.30, OZ0+1.2, Math.PI/2, "#d8d4c8");
-    sign(1.00, 0.30, "SILENCE · DO NOT TAP THE GLASS", "#1e2220", "#c8c0a8", OX0+0.014, 2.05, OZ0+2.25, Math.PI/2);
+    signPanel(0.90, 0.40, signTex(360,160,(t,w,h)=>{ t.fillStyle="#1e2220"; t.fillRect(0,0,w,h);
+      t.fillStyle="#c8c0a8"; fitText(t, "SILENCE", w*0.70, h*0.30, w/2, h*0.34);
+      fitText(t, "DO NOT TAP THE GLASS", w*0.80, h*0.16, w/2, h*0.70); }),
+      W(OX0+0.014), GY+FY+2.05, Z(OZ0+2.25), Math.PI/2, false);
     m.C("metal", 0.012,0.012,0.12,6, OX0+0.06, FY+1.75, OZ1-1.3, "#8a8e90", 0, 0, Math.PI/2);
     m.B("fabric", 0.10, 0.85, 0.40, OX0+0.12, FY+1.32, OZ1-1.3, 0.5, 0, "#4a3e30");
     addBuried(W(OX0-0.3), W(OX1+0.05), Z(OZ0-OWT-0.6), Z(OZ1+OWT+0.6), GY+FY-1.0, GY+FY+OH+0.8, 0x585c5c);
@@ -222,7 +228,8 @@
     wall("block", GX, GX+GWT, GZ0, GZ1, GY1, LH+0.4, GC);
     m.col(GX, GX+GWT, GZ0, GZ1, FY, FY+LH);                           // and you cannot go through it
     // the pane, a steel frame round it, and on the far side a mirror
-    m.P("glass", boxGeo(0.02, GY1-GY0, GZ1-GZ0, 0), GX+GWT/2, FY+(GY0+GY1)/2, DZ, 0, "#3a4246", 0, 0);
+    // barely tinted: a dark pane took a third of the light out of the room it is there to show
+    m.P("glass", boxGeo(0.02, GY1-GY0, GZ1-GZ0, 0), GX+GWT/2, FY+(GY0+GY1)/2, DZ, 0, "#a8b0b2", 0, 0);
     for(const y of [GY0, GY1]) m.B("metal", GWT+0.06, 0.05, GZ1-GZ0+0.10, GX+GWT/2, FY+y, DZ, 0.4, 0, "#2a2c2e");
     for(const z of [GZ0, GZ1]) m.B("metal", GWT+0.06, GY1-GY0+0.10, 0.05, GX+GWT/2, FY+(GY0+GY1)/2, z, 0.4, 0, "#2a2c2e");
     // (a mirror faces the living room; from this side its back is culled and you see through)
@@ -245,7 +252,8 @@
     wall("block", LX1, LX1+LWT, WZ1, LZ1+LWT, -0.1, LH+0.4, AQUA);
     wall("block", LX1, LX1+LWT, WZ0, WZ1, -0.1, WY0, AQUA);
     wall("block", LX1, LX1+LWT, WZ0, WZ1, WY1, LH+0.4, AQUA);
-    m.B("plaster", (LX1+LWT+OS)-LX0, 0.30, (LZ1+LWT+OS)-(LZ0-LWT-OS), (LX0+LX1+LWT+OS)/2, FY+LH+0.15, DZ, 0.5, 0, "#f2eee4");
+    // a popcorn ceiling, matte: the plaster one held the stage lights as two hot ovals
+    m.B("ceil", (LX1+LWT+OS)-LX0, 0.30, (LZ1+LWT+OS)-(LZ0-LWT-OS), (LX0+LX1+LWT+OS)/2, FY+LH+0.15, DZ, 0.45, 0, "#f2eee4");
     m.voidAt(LX0, LX1+LWT+0.3, LZ0-LWT-0.3, LZ1+LWT+0.3, FY-1.0, FY+LH+0.6, FY);
     // the paper on the back wall and the two sides, a white skirting
     for(const r of [[LZ0, WZ0],[WZ1, LZ1]]) band("atomic", "z", r[0], r[1], LX1, -1, 0, LH, "#ffffff", 0.010, 1.667);
@@ -284,7 +292,7 @@
     m.B("fabric", 0.86, 0.20, SL, sx, FY+0.32, DZ, 0.5, 0, "#3a9a92");
     for(const o of [-0.575, 0.575]) m.B("fabric", 0.66, 0.12, 1.12, sx-0.08, FY+0.48, DZ+o, 0.5, 0, "#48aaa2");
     m.B("fabric", 0.20, 0.46, SL, sx+0.33, FY+0.65, DZ, 0.5, 0, "#3a9a92");
-    for(const o of [-1,1]) m.B("fabric", 0.86, 0.32, 0.12, sx, FY+0.50, DZ+o*(SL/2-0.06), 0.5, 0, "#3a9a92");
+    for(const o of [-1,1]) m.B("fabric", 0.90, 0.32, 0.14, sx, FY+0.50, DZ+o*(SL/2-0.06), 0.5, 0, "#3a9a92");
     for(const a of [[-0.36,-1.05],[0.36,-1.05],[-0.36,1.05],[0.36,1.05]])
       m.C("oak", 0.022,0.014,0.24,8, sx+a[0], FY+0.11, DZ+a[1], WALNUTD, a[1]>0?-0.12:0.12, 0, a[0]>0?-0.12:0.12);
     m.P("fabric", boxGeo(0.12, 0.34, 0.34, 0.5), sx+0.12, FY+0.70, DZ-0.85, 0, "#e07a5a", 0, -0.18);   // cushions
@@ -361,7 +369,7 @@
     m.P("paint", boxGeo(0.20, 0.04, 0.05, 0), ex+0.05, FY+0.69, ez-0.10, 0, "#1a1a1a", 0, 0);
     m.C("plaster", 0.06,0.09,0.24,14, ex-0.06, FY+0.70, ez+0.10, "#e07a5a");
     m.P("lampshade", shadeGeo(0.13,0.15,0.20,16), ex-0.06, FY+0.96, ez+0.10, 0, "#f2ead8");
-    m.lamp(ex-0.06, FY+0.95, ez+0.10, {color:0xffd8a8, intensity:0.30, dist:4.5, decay:1.8, indoor:true, vol:VOLL});
+    m.lamp(ex-0.06, FY+0.95, ez+0.10, {color:0xffd8a8, intensity:0.50, dist:5.0, decay:1.7, indoor:true, vol:VOLL});
     m.col(ex-0.25, ex+0.25, ez-0.25, ez+0.25, FY, FY+0.6);
     // the tripod lamp in the far corner, three cones
     const fx=LX1-0.45, fz=LZ1-0.45;
@@ -370,7 +378,7 @@
     for(let k=0;k<3;k++){ const a=k*2.094+0.5;
       m.P("lampshade", shadeGeo(0.05,0.11,0.20,12), fx+Math.cos(a)*0.16, FY+1.40+k*0.10, fz+Math.sin(a)*0.16, 0,
           ["#e07a5a","#efe6cf","#5fb0a6"][k], Math.sin(a)*0.4, -Math.cos(a)*0.4); }
-    m.lamp(fx, FY+1.45, fz, {color:0xffdcb0, intensity:0.30, dist:5, decay:1.8, indoor:true, vol:VOLL});
+    m.lamp(fx, FY+1.45, fz, {color:0xffdcb0, intensity:0.55, dist:6, decay:1.7, indoor:true, vol:VOLL});
     m.col(fx-0.2, fx+0.2, fz-0.2, fz+0.2, FY, FY+1.7);
     // the south wall: a credenza, a bar on it, the sunburst clock over it, a print
     const cx2=LX0+4.3, cz2=LZ0+0.26;
@@ -415,7 +423,12 @@
           Math.atan2(dz, dy), 0, -Math.atan2(dx, Math.hypot(dy,dz)));
       m.P("ceilfix", new T.SphereGeometry(0.022,8,6), kx+dx*0.38, ky+dy*0.38, DZ+dz*0.38, 0, "#fff2d8");
     }
-    m.lamp(kx, ky-0.10, DZ, {color:0xffe2b8, intensity:0.62, dist:8, decay:1.5, indoor:true, vol:VOLL});
+    m.lamp(kx, ky-0.10, DZ, {color:0xffe2b8, intensity:1.25, dist:10, decay:1.3, indoor:true, vol:VOLL});
+    /* AND IT IS LIT LIKE A SET. Two lamps you cannot see, in the ceiling on
+       the glass side, throw light on the faces of everything turned to the
+       mirror — which is how a room built to be watched is lit. */
+    for(const sz of [-2.2, 2.2])
+      m.lamp(LX0+1.4, FY+LH-0.45, DZ+sz, {color:0xfff0dc, intensity:0.85, dist:9, decay:1.4, indoor:true, vol:VOLL});
     addBuried(W(LX0), W(LX1+LWT+0.6), Z(LZ0-LWT-0.6), Z(LZ1+LWT+0.6), GY+FY-1.0, GY+FY+LH+0.8, 0xffe8cc);
   }
 })();

@@ -869,7 +869,8 @@
     const ux=KX1-0.45, uz=KZ0+5.1;
     m.B("fabric", 0.80, 0.42, 2.10, ux, FY+0.21, uz, 0.5, 0, "#6a5a3a");
     m.B("fabric", 0.22, 0.48, 2.10, ux+0.29, FY+0.66, uz, 0.5, 0, "#6a5a3a");
-    for(const sz of [-1,1]) m.B("fabric", 0.80, 0.30, 0.20, ux, FY+0.55, uz+sz*0.95, 0.5, 0, "#5e5032");
+    // arms a hair proud of the base on every side, so no face is shared
+    for(const sz of [-1,1]) m.B("fabric", 0.84, 0.30, 0.22, ux, FY+0.55, uz+sz*0.96, 0.5, 0, "#5e5032");
     for(const sz of [-0.45,0.45]) m.B("fabric", 0.56, 0.12, 0.86, ux-0.08, FY+0.47, uz+sz, 0.5, 0, "#7a6a48");
     m.col(KX1-0.86, KX1, uz-1.06, uz+1.06, FY, FY+0.55);
     addSeat(W(ux-0.10), Z(uz), GY+FY+0.52, Math.PI/2, "THE BREAK ROOM COUCH");     // looking west, into the room
@@ -890,7 +891,7 @@
           ["#e8e2c8","#f0ecd8","#d8e0e8","#e8d8c0"][i%4], 0, (R()-0.5)*0.12);
     signPanel(1.10, 0.42, signTex(440,168,(x,w,h)=>{
       x.fillStyle="#f2efe4"; x.fillRect(0,0,w,h); x.fillStyle="#2a6a3a"; x.fillRect(0,0,w,h*0.30);
-      x.fillStyle="#f2efe4"; fitText(x, "SAFETY FIRST", w*0.80, h*0.20, w/2, h*0.15);
+      x.fillStyle="#f2efe4"; fitText(x, "SAFETY FIRST", w*0.74, h*0.15, w/2, h*0.155);
       x.fillStyle="#1a1c1e"; fitText(x, "THIS CREW HAS WORKED", w*0.80, h*0.13, w/2, h*0.44);
       x.fillStyle="#c83a2a"; fitText(x, "4,417", w*0.44, h*0.26, w/2, h*0.66);
       x.fillStyle="#1a1c1e"; fitText(x, "DAYS WITHOUT A LOST-TIME ACCIDENT", w*0.80, h*0.09, w/2, h*0.87);
@@ -902,7 +903,8 @@
     for(const sx of [0.98, 2.24]){
       m.B("metal", 0.36, 0.70, 0.05, BDX+sx, FY+1.35, KZ0+0.025, 0.4, 0, "#9a9e9e");
       for(let r=0;r<6;r++) for(let c=0;c<3;c++)
-        if(sx<1.5 || R()<0.25) m.P("paper", planeGeo(0.08, 0.14, 0), BDX+sx-0.11+c*0.11, FY+1.12+r*0.09, KZ0+0.053, 0, "#e8dcb8", 0, 0);
+        if(sx<1.5 || R()<0.25) m.P("paper", planeGeo(0.08, 0.14, 0), BDX+sx-0.11+c*0.11, FY+1.12+r*0.09,
+                                   KZ0+0.053+r*0.0008, 0, "#e8dcb8", 0, 0);       // each row in front of the one below
       signPanel(0.30, 0.08, signTex(150,40,(x,w,h)=>{ x.fillStyle="#2a2a2a"; x.fillRect(0,0,w,h);
         x.fillStyle="#e8e4d8"; fitText(x, sx<1.5?"OUT":"IN", w, h*0.6, w/2, h/2+1); }),
         W(BDX+sx), GY+FY+1.77, Z(KZ0+0.053), 0, false);
